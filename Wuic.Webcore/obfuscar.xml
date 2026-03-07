@@ -1,0 +1,15 @@
+﻿<?xml version='1.0'?>
+<Obfuscator>
+  <Var name="InPath" value=".\bin\Release\netcoreapp2.2" />
+  <Var name="OutPath" value="D:\Dropbox\Projects - Copia\KiaraBackoffice\KiaraBackoffice\KonvergenceCore\KonvergenceCore\Lib\netcoreapp2.2" />
+  <Var name="KeepPublicApi" value="true" />
+  <Var name="HidePrivateApi" value="false" />
+  <Var name="RenameProperties" value="true" />
+  <Var name="RenameEvents" value="true" />
+  <Var name="RenameFields" value="true" />
+  <Var name="UseUnicodeNames" value="true" />
+  <Var name="HideStrings" value="true" />
+  <Var name="OptimizeMethods" value="true" />
+  <Var name="SuppressIldasm" value="true" />
+  <Module file="$(InPath)\System.WebCore.dll" />
+</Obfuscator>

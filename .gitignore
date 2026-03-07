@@ -1,0 +1,12 @@
+# .NET
+**/bin/
+**/obj/
+.vs/
+*.user
+*.suo
+
+# Node
+**/node_modules/
+
+# Sonar generated
+**/.sonarqube/
