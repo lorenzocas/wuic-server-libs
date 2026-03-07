@@ -10,3 +10,22 @@
 
 # Sonar generated
 **/.sonarqube/
+**/Konvergence/wuic-angular-konvergence/Konvergence/Reports/Cache/
+**/AspNetCoreOData-main/
+**/DynamicADO/
+**/ILPack-master/
+**/Konvergence/wuic-angular-konvergence/
+**/NgUicClientProj/
+**/NGUICORM/
+**/ngUicService/
+**/ODataEfCoreFilterDynamicProps-main/
+**/packages/
+**/WideWorldImporters-main/
+**/WinFormsApp1/
+**/test/
+**/runtimelab-feature-assembly-builder-save/
+**/Konvergence/
+**/MigrationMySql/
+**/RuntimeEfCore-master/
+**/.nuget/
+**/MySqlDB/

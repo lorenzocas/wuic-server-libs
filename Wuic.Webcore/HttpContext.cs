@@ -20,6 +20,8 @@ namespace System.WebCore
 {
     public class HttpContext
     {
+        private static readonly JsonSerializerOptions ParameterDeserializeOptions = CreateParameterDeserializeOptions();
+
         public static bool trace = ConfigurationManager.AppSettings.AllKeys.Contains("traceQuery") ? ParseBool(ConfigurationManager.AppSettings["traceQuery"]) : false;
 
         public static ContentResult AsmxProxy(dynamic pmr, string fullMethodName)
@@ -233,7 +235,7 @@ namespace System.WebCore
 
                     if (tipo == typeof(System.String))
                     {
-                        parameters.Add(value.ToString());
+                        parameters.Add(CoerceToStringParameterValue(value));
                     }
                     else if (tipo == typeof(System.Boolean))
                     {
@@ -298,14 +300,7 @@ namespace System.WebCore
                         }
                         else
                         {
-                            if (value is string stringValue)
-                            {
-                                parameters.Add(JsonSerializer.Deserialize(stringValue, tipo));
-                            }
-                            else
-                            {
-                                parameters.Add(JsonSerializer.Deserialize(JsonSerializer.Serialize(value), tipo));
-                            }
+                            parameters.Add(DeserializeParameterValue(value, tipo));
                         }
                     }
                 }
@@ -313,6 +308,78 @@ namespace System.WebCore
                 {
                     parameters.Add(null);
                 }
+            }
+        }
+
+        private static object DeserializeParameterValue(object value, Type targetType)
+        {
+            if (value == null)
+            {
+                return null;
+            }
+
+            string rawValue = value as string ?? JsonSerializer.Serialize(value);
+            return JsonSerializer.Deserialize(rawValue, targetType, ParameterDeserializeOptions);
+        }
+
+        private static string CoerceToStringParameterValue(object value)
+        {
+            if (value == null)
+            {
+                return null;
+            }
+
+            if (value is string s)
+            {
+                return s;
+            }
+
+            // Preserve structural payloads when a string parameter receives object/array tokens.
+            if (value is JsonElement element)
+            {
+                return element.ValueKind == JsonValueKind.String ? element.GetString() : element.GetRawText();
+            }
+
+            if (value is IDictionary<string, object> || value is System.Collections.IDictionary || value is System.Collections.IEnumerable)
+            {
+                return CoerceToJsonString(value);
+            }
+
+            return value.ToString();
+        }
+
+        private static JsonSerializerOptions CreateParameterDeserializeOptions()
+        {
+            JsonSerializerOptions options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+
+            options.Converters.Add(new FlexibleStringJsonConverter());
+            return options;
+        }
+
+        private sealed class FlexibleStringJsonConverter : System.Text.Json.Serialization.JsonConverter<string>
+        {
+            public override string Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            {
+                switch (reader.TokenType)
+                {
+                    case JsonTokenType.String:
+                        return reader.GetString();
+                    case JsonTokenType.Null:
+                        return null;
+                    default:
+                        using (JsonDocument document = JsonDocument.ParseValue(ref reader))
+                        {
+                            return document.RootElement.ToString();
+                        }
+                }
+            }
+
+            public override void Write(Utf8JsonWriter writer, string value, JsonSerializerOptions options)
+            {
+                writer.WriteStringValue(value);
             }
         }
 

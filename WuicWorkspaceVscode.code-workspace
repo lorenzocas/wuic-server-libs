@@ -1,0 +1,19 @@
+{
+	"folders": [
+		{
+			"path": "KonvergenceCore"
+		},
+		{
+			"path": "RuntimeEfCore"
+		},
+		{
+			"path": "Wuic.Webcore"
+		},
+		{
+			"path": "WuicOData"
+		}
+	],
+	"settings": {
+		"CodeGPT.apiKey": "Claude Code"
+	}
+}
