@@ -11,6 +11,9 @@
 		},
 		{
 			"path": "WuicOData"
+		},
+		{
+			"path": "NugetHost"
 		}
 	],
 	"settings": {

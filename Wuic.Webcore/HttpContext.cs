@@ -159,7 +159,27 @@ namespace System.WebCore
             if (myInstance == null || method == null || parametersInfo == null)
             {
                 Assembly customerAssembly = System.Reflection.Assembly.GetEntryAssembly();
-                myType = customerAssembly.GetType(className);
+                myType = customerAssembly?.GetType(className);
+
+                // NugetHost scenario: services are in KonvergenceCore assembly, not in entry assembly.
+                if (myType == null)
+                {
+                    myType = AppDomain.CurrentDomain
+                        .GetAssemblies()
+                        .Select(a => a.GetType(className, false, false))
+                        .FirstOrDefault(t => t != null);
+                }
+
+                if (myType == null)
+                {
+                    string projectAssemblyName = ConfigurationManager.AppSettings["projectAssemblyName"];
+                    if (!string.IsNullOrWhiteSpace(projectAssemblyName) && File.Exists(projectAssemblyName))
+                    {
+                        Assembly configuredAssembly = Assembly.LoadFrom(projectAssemblyName);
+                        myType = configuredAssembly.GetType(className, false, false);
+                    }
+                }
+
                 if (myType == null)
                 {
                     throw new TypeLoadException($"Service class not found for '{fullMethodNameRaw}'. Resolved class: '{className}'.");
