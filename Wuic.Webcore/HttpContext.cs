@@ -26,14 +26,16 @@ namespace System.WebCore
 
         public static ContentResult AsmxProxy(dynamic pmr, string fullMethodName)
         {
-            object myInstance;
-            MethodInfo method;
-            List<object> parameters;
-            string methodName;
-            reflector(pmr, fullMethodName, out myInstance, out method, out parameters, out methodName);
-
             try
             {
+                EnsureAsmxProxyState();
+
+                object myInstance;
+                MethodInfo method;
+                List<object> parameters;
+                string methodName;
+                reflector(pmr, fullMethodName, out myInstance, out method, out parameters, out methodName);
+
                 Stopwatch sw = new Stopwatch();
                 sw.Start();
 
@@ -72,7 +74,17 @@ namespace System.WebCore
             }
             catch (Exception ex)
             {
-                throw ex.InnerException == null ? ex : ex.InnerException;
+                Exception root = ex.InnerException ?? ex;
+                string currentState = Current == null ? "null" : "ok";
+                string appState = Current?.Application == null ? "null" : "ok";
+                string instancesType = Current?.Application?["instances"]?.GetType().FullName ?? "<null>";
+                string methodsType = Current?.Application?["methods"]?.GetType().FullName ?? "<null>";
+                string parametersType = Current?.Application?["parameters"]?.GetType().FullName ?? "<null>";
+                throw new InvalidOperationException(
+                    "AsmxProxy invocation failed. " +
+                    $"Requested='{fullMethodName}', Current='{currentState}', Application='{appState}', Instances='{instancesType}', Methods='{methodsType}', Parameters='{parametersType}'. " +
+                    $"Inner='{root.GetType().FullName}: {root.Message}'",
+                    root);
             }
         }
 
@@ -99,6 +111,11 @@ namespace System.WebCore
             method = null;
             List<ParameterInfo> parametersInfo;
             parameters = new List<object>();
+
+            EnsureAsmxProxyState();
+            ConcurrentDictionary<string, object> instancesCache = Current.Application["instances"] as ConcurrentDictionary<string, object>;
+            ConcurrentDictionary<string, MethodInfo> methodsCache = Current.Application["methods"] as ConcurrentDictionary<string, MethodInfo>;
+            ConcurrentDictionary<string, List<ParameterInfo>> parametersCache = Current.Application["parameters"] as ConcurrentDictionary<string, List<ParameterInfo>>;
 
             var fullMethodNameRaw = (fullMethodName ?? string.Empty).Trim();
             int lastDotIndex = fullMethodNameRaw.LastIndexOf('.');
@@ -152,9 +169,9 @@ namespace System.WebCore
             }
 
             string methodCacheKey = className + "." + methodName;
-            ((ConcurrentDictionary<string, object>)Current.Application["instances"]).TryGetValue(className, out myInstance);
-            ((ConcurrentDictionary<string, MethodInfo>)HttpContext.Current.Application["methods"]).TryGetValue(methodCacheKey, out method);
-            ((ConcurrentDictionary<string, List<ParameterInfo>>)HttpContext.Current.Application["parameters"]).TryGetValue(methodCacheKey, out parametersInfo);
+            instancesCache.TryGetValue(className, out myInstance);
+            methodsCache.TryGetValue(methodCacheKey, out method);
+            parametersCache.TryGetValue(methodCacheKey, out parametersInfo);
 
             if (myInstance == null || method == null || parametersInfo == null)
             {
@@ -197,19 +214,72 @@ namespace System.WebCore
 
                 if (method == null)
                 {
+                    string assemblyFullName = myType.Assembly?.FullName ?? "<unknown-assembly>";
+                    string methodCandidates = BuildMethodCandidates(myType, methodName);
                     throw new MissingMethodException(
                         $"Method not found for '{fullMethodNameRaw}'. " +
-                        $"Resolved class: '{className}', requested method: '{methodName}'.");
+                        $"Resolved class: '{className}', requested method: '{methodName}', " +
+                        $"resolved assembly: '{assemblyFullName}', available candidates: {methodCandidates}.");
                 }
 
                 parametersInfo = method.GetParameters().ToList();
 
-                ((ConcurrentDictionary<string, object>)HttpContext.Current.Application["instances"]).TryAdd(className, myInstance);
-                ((ConcurrentDictionary<string, MethodInfo>)HttpContext.Current.Application["methods"]).TryAdd(methodCacheKey, method);
-                ((ConcurrentDictionary<string, List<ParameterInfo>>)HttpContext.Current.Application["parameters"]).TryAdd(methodCacheKey, parametersInfo);
+                instancesCache.TryAdd(className, myInstance);
+                methodsCache.TryAdd(methodCacheKey, method);
+                parametersCache.TryAdd(methodCacheKey, parametersInfo);
             }
 
             ParseParameters(pmr, parameters, parametersInfo);
+        }
+
+        private static void EnsureAsmxProxyState()
+        {
+            if (Current == null)
+            {
+                throw new InvalidOperationException("System.WebCore.HttpContext is not configured. Ensure HttpContext.Configure(...) is executed during app startup.");
+            }
+
+            if (Current.Application == null)
+            {
+                Current.Application = new DefaultableDictionary<string, object>(new ConcurrentDictionary<string, object>(), null);
+            }
+
+            if (!(Current.Application["instances"] is ConcurrentDictionary<string, object>))
+            {
+                Current.Application["instances"] = new ConcurrentDictionary<string, object>();
+            }
+
+            if (!(Current.Application["methods"] is ConcurrentDictionary<string, MethodInfo>))
+            {
+                Current.Application["methods"] = new ConcurrentDictionary<string, MethodInfo>();
+            }
+
+            if (!(Current.Application["parameters"] is ConcurrentDictionary<string, List<ParameterInfo>>))
+            {
+                Current.Application["parameters"] = new ConcurrentDictionary<string, List<ParameterInfo>>();
+            }
+        }
+
+        private static string BuildMethodCandidates(Type type, string requestedMethodName)
+        {
+            var methods = type.GetMethods(BindingFlags.Instance | BindingFlags.Public)
+                .Where(m => string.Equals(m.Name, requestedMethodName, StringComparison.OrdinalIgnoreCase))
+                .Select(BuildMethodSignature)
+                .Distinct()
+                .ToList();
+
+            if (methods.Count == 0)
+            {
+                return "<none>";
+            }
+
+            return "[" + string.Join(", ", methods) + "]";
+        }
+
+        private static string BuildMethodSignature(MethodInfo method)
+        {
+            string parameters = string.Join(", ", method.GetParameters().Select(p => $"{p.ParameterType.Name} {p.Name}"));
+            return $"{method.ReturnType.Name} {method.Name}({parameters})";
         }
 
         public static bool ParseBool(object obj)
