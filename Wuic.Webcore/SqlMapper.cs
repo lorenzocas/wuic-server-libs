@@ -143,7 +143,6 @@ namespace Dapper
 #if CSHARP30
         private static readonly Dictionary<Identity, CacheInfo> _queryCache = new Dictionary<Identity, CacheInfo>();
         // note: conflicts between readers and writers are so short-lived that it isn't worth the overhead of
-        // ReaderWriterLockSlim etc; a simple lock is faster
         private static void SetQueryCache(Identity key, CacheInfo value)
         {
             lock (_queryCache) { _queryCache[key] = value; }
@@ -517,7 +516,6 @@ this IDbConnection cnn, string sql, dynamic param = null, IDbTransaction transac
                     identity_scope = (int)cmd.ExecuteScalar();
                 }
                 
-                //return total;
                 return identity_scope;
             }
 
@@ -527,7 +525,6 @@ this IDbConnection cnn, string sql, dynamic param = null, IDbTransaction transac
                 identity = new Identity(sql, commandType, cnn, null, (object) param == null ? null : ((object) param).GetType(), null);
                 info = GetCacheInfo(identity);
             }
-            //return 
             int totale = ExecuteCommand(cnn, transaction, sql, (object)param == null ? null : info.ParamReader, (object)param, commandTimeout, commandType);
 
             string identity_scope_query = "";
@@ -539,9 +536,9 @@ this IDbConnection cnn, string sql, dynamic param = null, IDbTransaction transac
             else if (connType == "MySqlConnection")
                 identity_scope_query = "SELECT LAST_INSERT_ID()";
             else if (connType == "OracleConnection")
-                identity_scope_query = ""; // "SELECT LAST_INSERT_ID()";
+                identity_scope_query = "";
             else if(connType == "OleDbConnection")
-                identity_scope_query = ""; // "SELECT LAST_INSERT_ID()";
+                identity_scope_query = "";
             else
                 identity_scope_query = "SELECT SCOPE_IDENTITY()";
 
@@ -564,13 +561,6 @@ this IDbConnection cnn, string sql, dynamic param = null, IDbTransaction transac
                         return identity_scope;
 
                     }
-                    //catch (NpgsqlException ex)
-                    //{
-                    //    if (ex.Code == "55000")
-                    //        return totale;
-                    //    else
-                    //        throw ex;
-                    //}
                     catch (Exception)
                     {
 
@@ -600,14 +590,8 @@ this IDbConnection cnn, string sql, dynamic param = null, IDbTransaction transac
             MySqlConnection myCon = cnn as MySqlConnection;
             if (myCon != null)
             {
-                //if(sql.IndexOf("_metadati__tabelle")>0)
-                //{
-                //    var t = "";
-                //}
 
                 sql = Regex.Replace(sql, @"\[dbo]\.|dbo\.|`dbo`\.", "", RegexOptions.IgnoreCase);
-                //sql = Regex.Replace(sql, @"dbo\.", "", RegexOptions.IgnoreCase);
-                //sql = Regex.Replace(sql, @"`dbo`\.", "", RegexOptions.IgnoreCase);
         
                 sql = sql.Replace("[", "`").Replace("]", "`");
 
@@ -964,7 +948,6 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
 
                 bool skipFirst = false;
                 int startingPos = current + 1;
-                // if our current type has the split, skip the first time you see it. 
                 if (type != typeof(Object))
                 {
                     var props = GetSettableProps(type);
@@ -1131,7 +1114,6 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
                 {
                     if (!data.ContainsKey(key)) 
                     {
-	                    //throw new NotImplementedException();
                         data.Add(key, null);
                     }
                     data[key] = value;
@@ -1378,7 +1360,6 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
                 DbType dbType = LookupDbType(prop.PropertyType, prop.Name);
                 if (dbType == DbType.Xml)
                 {
-                    // this actually represents special handling for list types;
                     il.Emit(OpCodes.Ldarg_0); // stack is now [parameters] [command]
                     il.Emit(OpCodes.Ldstr, prop.Name); // stack is now [parameters] [command] [name]
                     il.Emit(OpCodes.Ldloc_0); // stack is now [parameters] [command] [name] [typed-param]
@@ -1432,7 +1413,6 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
                     Label notNull = il.DefineLabel();
                     Label? allDone = dbType == DbType.String ? il.DefineLabel() : (Label?)null;
                     il.Emit(OpCodes.Brtrue_S, notNull);
-                    // relative stack [boxed value = null]
                     il.Emit(OpCodes.Pop); // relative stack empty
                     il.Emit(OpCodes.Ldsfld, typeof(DBNull).GetField("Value")); // relative stack [DBNull]
                     if (dbType == DbType.String)
@@ -1520,7 +1500,6 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
 
         private static Func<IDataReader, object> GetStructDeserializer(Type type, int index)
         {
-            // no point using special per-type handling here; it boils down to the same, plus not all are supported anyway (see: SqlDataReader.GetChar - not supported!)
 #pragma warning disable 618
             if (type == typeof(char))
             { // this *does* need special handling, though

@@ -1,4 +1,4 @@
-﻿// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #nullable enable
 
@@ -15,6 +15,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace WuicCore.Server.Api.Infrastructure.Errors
 {
@@ -36,7 +37,6 @@ namespace WuicCore.Server.Api.Infrastructure.Errors
 
         public ActionResult HandleInvalidModelState(HttpContext httpContext, ModelStateDictionary modelStateDictionary)
         {
-            //_logger.TraceMethodEntry();
 
             ODataError error = new ODataError()
             {
@@ -45,7 +45,6 @@ namespace WuicCore.Server.Api.Infrastructure.Errors
                 Details = GetODataErrorDetails(modelStateDictionary),
             };
 
-            // If we have something like a Deserialization issue, the ModelStateDictionary has
             // a lower-level Exception. We cannot do anything sensible with exceptions, so 
             // we add them to the InnerError.
             var firstException = GetFirstException(modelStateDictionary);
@@ -55,29 +54,17 @@ namespace WuicCore.Server.Api.Infrastructure.Errors
             return new BadRequestObjectResult(error);
         }
 
-        private Exception? GetFirstException(ModelStateDictionary modelStateDictionary)
+        private static Exception? GetFirstException(ModelStateDictionary modelStateDictionary)
         {
-            //_logger.TraceMethodEntry();
-
-            foreach (var modelStateEntry in modelStateDictionary)
-            {
-                foreach (var modelError in modelStateEntry.Value.Errors)
-                {
-                    if (modelError.Exception != null)
-                    {
-                        return modelError.Exception;
-                    }
-                }
-            }
-
-            return null;
+            return modelStateDictionary
+                .SelectMany(modelStateEntry => modelStateEntry.Value?.Errors ?? Enumerable.Empty<ModelError>())
+                .Select(modelError => modelError.Exception)
+                .FirstOrDefault(exception => exception != null);
         }
 
         private List<ODataErrorDetail> GetODataErrorDetails(ModelStateDictionary modelStateDictionary)
         {
-            //_logger.TraceMethodEntry();
 
-            // Validation Details
             var result = new List<ODataErrorDetail>();
 
             foreach (var modelStateEntry in modelStateDictionary)
@@ -115,83 +102,33 @@ namespace WuicCore.Server.Api.Infrastructure.Errors
 
         public ActionResult HandleException(HttpContext httpContext, Exception exception)
         {
-            //_logger.TraceMethodEntry();
 
             _logger.LogError(exception, "Call to '{RequestPath}' failed due to an Exception", httpContext.Request.Path);
 
             return exception switch
             {
-                //AuthenticationFailedException e => HandleAuthenticationException(httpContext, e),
-                //EntityConcurrencyException e => HandleEntityConcurrencyException(httpContext, e),
-                //EntityNotFoundException e => HandleEntityNotFoundException(httpContext, e),
-                //EntityUnauthorizedAccessException e => HandleEntityUnauthorizedException(httpContext, e),
                 Exception e => HandleSystemException(httpContext, e)
             };
         }
 
-        //private ActionResult HandleAuthenticationException(HttpContext httpContext, AuthenticationFailedException e)
-        //{
-        //    //_logger.TraceMethodEntry();
 
-        //    var error = new ODataError
-        //    {
-        //        Code = ErrorCodes.AuthenticationFailed,
-        //        Message = e.ErrorMessage,
-        //    };
 
-        //    AddInnerError(httpContext, error, e);
 
-        //    return new UnauthorizedODataResult(error);
-        //}
 
-        //private ActionResult HandleEntityConcurrencyException(HttpContext httpContext, EntityConcurrencyException e)
-        //{
-        //    //_logger.TraceMethodEntry();
 
-        //    var error = new ODataError
-        //    {
-        //        Code = e.ErrorCode,
-        //        Message = e.ErrorMessage,
-        //    };
 
-        //    AddInnerError(httpContext, error, e);
 
-        //    return new ConflictODataResult(error);
-        //}
 
-        //private ActionResult HandleEntityNotFoundException(HttpContext httpContext, EntityNotFoundException e)
-        //{
-        //    //_logger.TraceMethodEntry();
 
-        //    var error = new ODataError
-        //    {
-        //        Code = e.ErrorCode,
-        //        Message = e.ErrorMessage,
-        //    };
 
-        //    AddInnerError(httpContext, error, e);
 
-        //    return new NotFoundODataResult(error);
-        //}
 
-        //private ActionResult HandleEntityUnauthorizedException(HttpContext httpContext, EntityUnauthorizedAccessException e)
-        //{
-        //    //_logger.TraceMethodEntry();
 
-        //    var error = new ODataError
-        //    {
-        //        Code = e.ErrorCode,
-        //        Message = e.ErrorMessage,
-        //    };
 
-        //    AddInnerError(httpContext, error, e);
 
-        //    return new ForbiddenODataResult(error);
-        //}
 
-        private ActionResult HandleSystemException(HttpContext httpContext, Exception e)
+        private ObjectResult HandleSystemException(HttpContext httpContext, Exception e)
         {
-            //_logger.TraceMethodEntry();
 
             var error = new ODataError
             {
@@ -209,7 +146,6 @@ namespace WuicCore.Server.Api.Infrastructure.Errors
 
         private void AddInnerError(HttpContext httpContext, ODataError error, Exception? e)
         {
-            //_logger.TraceMethodEntry();
 
             error.InnerError = new ODataInnerError();
 

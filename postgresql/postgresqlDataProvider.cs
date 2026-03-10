@@ -12,7 +12,6 @@ using metaModelRaw;
 using ngUicOrm.metaModel;
 using WEB_UI_CRAFTER.Helpers;
 
-// Keep class in global namespace: RawHelpers.getMetaQueryProvider uses Assembly.GetType("postgresqlDataProvider").
 public class postgresqlDataProvider : IMetaQuery
 {
     public void logOut(user user) => metaQueryPostgreSql.logOut(user);
@@ -174,7 +173,6 @@ public class postgresqlDataProvider : IMetaQuery
 
     public string ExportFlatRecordData(List<SerializableDictionary<string, object>> dati, List<SerializableDictionary<string, object>> lst, string route, string uid, string progressGuid)
     {
-        // Placeholder export behavior aligned with provider boundaries; can be replaced by full PostgreSQL export pipeline.
         saveProgress(progressGuid, 100);
         return "";
     }

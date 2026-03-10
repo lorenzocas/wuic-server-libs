@@ -1,10 +1,9 @@
-﻿// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Microsoft.OData.Edm;
 using Microsoft.OData.ModelBuilder;
 using Microsoft.Spatial;
 
-//using WideWorldImporters.Server.Database.Models;
 using WuicCore.Server.Database.Models;
 using System.Reflection;
 using System.Linq;
@@ -29,11 +28,9 @@ namespace WuicCore.Server.Api.Models
 
             modelBuilder.Namespace = "WideWorldImportersService";
 
-            // Assemblies to scan: the executing assembly (static models) +
             // any runtime-generated assembly from DynamicModelService
             var assemblies = new List<Assembly> { Assembly.GetExecutingAssembly() };
 
-            // Prefer the in-memory assembly (rebuilt without restart);
             // fall back to the persisted DLL loaded at boot time
             var generatedAssembly = dynamicModelService?.CurrentAssembly;
             if (generatedAssembly != null)
@@ -62,7 +59,6 @@ namespace WuicCore.Server.Api.Models
                         ex.InnerException is TypeLoadException)
                     {
                         // Skip entity types that reference legacy runtime-only dependencies
-                        // (e.g. Microsoft.SqlServer.Types on .NET Framework) so the EDM can
                         // still be built for the remaining entities.
                     }
                     catch (FileNotFoundException)
@@ -76,12 +72,10 @@ namespace WuicCore.Server.Api.Models
                 });
             }
 
-            //modelBuilder.EntitySet<Person>("Persons");
 
             // Configure EntityTypes, that could not be mapped using Conventions. We
             // could also add Attributes to the Model, but I want to avoid mixing the
             // EF Core Fluent API and Attributes.
-            //modelBuilder.EntityType<Person>().HasKey(s => new { s.PersonId });
 
             // Build the Spatial Types:
             BuildGeometryTypes(modelBuilder);
@@ -117,12 +111,6 @@ namespace WuicCore.Server.Api.Models
         {
             modelBuilder.ComplexType<Geography>();
 
-            //modelBuilder.EntityType<City>().Ignore(x => x.Location);
-            //modelBuilder.EntityType<Country>().Ignore(x => x.Border);
-            //modelBuilder.EntityType<Customer>().Ignore(x => x.DeliveryLocation);
-            //modelBuilder.EntityType<Supplier>().Ignore(x => x.DeliveryLocation);
-            //modelBuilder.EntityType<StateProvince>().Ignore(x => x.Border);
-            //modelBuilder.EntityType<SystemParameter>().Ignore(x => x.DeliveryLocation);
 
             //// We will rewrite the Property Name from EdmLocation -> Location, so
             //// it matches fine with the EF Core Model for filtering.
@@ -133,18 +121,7 @@ namespace WuicCore.Server.Api.Models
                     foreach (PropertyConfiguration property in typeConfiguration.Properties)
                     {
                         //// Let's not introduce magic strings and make it more safe for refactorings:
-                        //string propertyName = (typeConfiguration.Name, property.Name) switch
-                        //{
-                        //    (nameof(City), nameof(City.EdmLocation)) => nameof(City.Location),
-                        //    (nameof(Country), nameof(Country.EdmBorder)) => nameof(Country.Border),
-                        //    (nameof(Customer), nameof(Customer.EdmDeliveryLocation)) => nameof(Customer.DeliveryLocation),
-                        //    (nameof(Supplier), nameof(Supplier.EdmDeliveryLocation)) => nameof(Supplier.DeliveryLocation),
-                        //    (nameof(StateProvince), nameof(StateProvince.EdmBorder)) => nameof(StateProvince.Border),
-                        //    (nameof(SystemParameter), nameof(SystemParameter.EdmDeliveryLocation)) => nameof(SystemParameter.DeliveryLocation),
-                        //    _ => property.Name,
-                        //};
 
-                        //property.Name = propertyName;
                     }
                 }
             };

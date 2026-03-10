@@ -1,4 +1,4 @@
-﻿/*
+/*
  License: http://www.apache.org/licenses/LICENSE-2.0
  Home page: https://github.com/StackExchange/dapper-dot-net
  */
@@ -570,7 +570,6 @@ namespace Dapper
                 }
 
                 return identity_scope;
-                //return total;
             }
 
             // nice and simple
@@ -579,7 +578,6 @@ namespace Dapper
                 identity = new Identity(command.CommandText, command.CommandType, cnn, null, param.GetType());
                 info = GetCacheInfo(identity, param, command.AddToCache);
             }
-            //return 
             int totale = ExecuteCommand(cnn, ref command, param == null ? null : info.ParamReader);
 
             string identity_scope_query = "";
@@ -1083,7 +1081,6 @@ namespace Dapper
                 var result = new GridReader(cmd, reader, identity, command.Parameters as DynamicParameters, command.AddToCache);
                 cmd = null; // now owned by result
                 wasClosed = false; // *if* the connection was closed and we got this far, then we now have a reader
-                // with the CloseConnection flag, so the reader will deal with the connection; we
                 // still need something in the "finally" to ensure that broken SQL still results
                 // in the connection closing itself
                 return result;
@@ -1115,7 +1112,6 @@ namespace Dapper
             { // thanks, Sqlite!
                 if (Settings.DisableCommandBehaviorOptimizations(behavior, ex))
                 {
-                    // we can retry; this time it will have different flags
                     return cmd.ExecuteReader(GetBehavior(wasClosed, behavior));
                 }
                 throw;
@@ -1139,7 +1135,6 @@ namespace Dapper
                 if (wasClosed) cnn.Open();
                 reader = ExecuteReaderWithFlagsFallback(cmd, wasClosed, CommandBehavior.SequentialAccess | CommandBehavior.SingleResult);
                 wasClosed = false; // *if* the connection was closed and we got this far, then we now have a reader
-                // with the CloseConnection flag, so the reader will deal with the connection; we
                 // still need something in the "finally" to ensure that broken SQL still results
                 // in the connection closing itself
                 var tuple = info.Deserializer;
@@ -1167,7 +1162,6 @@ namespace Dapper
                     }
                 }
                 while (reader.NextResult()) { /* ignore subsequent result sets */ }
-                // happy path; close the reader cleanly - no
                 // need for "Cancel" etc
                 reader.Dispose();
                 reader = null;
@@ -1243,7 +1237,6 @@ namespace Dapper
                 T result = default(T);
                 if (reader.Read() && reader.FieldCount != 0)
                 {
-                    // with the CloseConnection flag, so the reader will deal with the connection; we
                     // still need something in the "finally" to ensure that broken SQL still results
                     // in the connection closing itself
                     var tuple = info.Deserializer;
@@ -1273,7 +1266,6 @@ namespace Dapper
                     ThrowZeroRows(row);
                 }
                 while (reader.NextResult()) { /* ignore subsequent result sets */ }
-                // happy path; close the reader cleanly - no
                 // need for "Cancel" etc
                 reader.Dispose();
                 reader = null;
@@ -1816,7 +1808,6 @@ namespace Dapper
                         firstMatch = false;
                         cmd.Parameters.Clear(); // only clear if we are pretty positive that we've found this pattern successfully
                     }
-                    // if found, return the anonymous token "?"
                     cmd.Parameters.Add(param);
                     parameters.Remove(key);
                     consumed.Add(key);
@@ -2004,7 +1995,6 @@ namespace Dapper
             else if (count <= 2100) return 0; // just don't pad between 2070 and 2100, to minimize the crazy
             else padFactor = 200; // above that, all bets are off!
 
-            // if we have 17, factor = 10; 17 % 10 = 7, we need 3 more
             int intoBlock = count % padFactor;
             return intoBlock == 0 ? 0 : (padFactor - intoBlock);
         }
@@ -2123,7 +2113,6 @@ namespace Dapper
                             var variableName = match.Groups[1].Value;
                             if (match.Groups[2].Success)
                             {
-                                // looks like an optimize hint; leave it alone!
                                 return match.Value;
                             }
                             else
@@ -2143,7 +2132,6 @@ namespace Dapper
                             var variableName = match.Groups[1].Value;
                             if (match.Groups[2].Success)
                             {
-                                // looks like an optimize hint; expand it
                                 var suffix = match.Groups[2].Value;
 
                                 var sb = GetStringBuilder().Append(variableName).Append(1).Append(suffix);
@@ -2205,7 +2193,6 @@ namespace Dapper
                 var variableName = match.Groups[1].Value;
                 if (match.Groups[2].Success)
                 {
-                    // looks like an optimize hint; leave it alone!
                     return match.Value;
                 }
                 else
@@ -2423,7 +2410,7 @@ namespace Dapper
         public static Action<IDbCommand, object> CreateParamInfoGenerator(Identity identity, bool checkForDuplicates, bool removeUnused) =>
             CreateParamInfoGenerator(identity, checkForDuplicates, removeUnused, GetLiteralTokens(identity.sql));
 
-        private static bool IsValueTuple(Type type) => type?.IsValueType == true && type.FullName.StartsWith("System.ValueTuple`", StringComparison.Ordinal);
+        private static bool IsValueTuple(Type type) => type?.IsValueType  is true && type.FullName.StartsWith("System.ValueTuple`", StringComparison.Ordinal);
 
         internal static Action<IDbCommand, object> CreateParamInfoGenerator(Identity identity, bool checkForDuplicates, bool removeUnused, IList<LiteralToken> literals)
         {
@@ -2476,7 +2463,6 @@ namespace Dapper
             var ctors = type.GetConstructors();
             ParameterInfo[] ctorParams;
             IEnumerable<PropertyInfo> props = null;
-            // try to detect tuple patterns, e.g. anon-types, and use that to choose the order
             // otherwise: alphabetical
             if (ctors.Length == 1 && propsList.Count == (ctorParams = ctors[0].GetParameters()).Length)
             {
@@ -2492,7 +2478,6 @@ namespace Dapper
                 }
                 if (ok)
                 {
-                    // pre-sorted; the reflection gods have smiled upon us
                     props = propsList;
                 }
                 else
@@ -2550,7 +2535,6 @@ namespace Dapper
 #pragma warning restore 618
                 if (dbType == DynamicParameters.EnumerableMultiParameter)
                 {
-                    // this actually represents special handling for list types;
                     il.Emit(OpCodes.Ldarg_0); // stack is now [parameters] [command]
                     il.Emit(OpCodes.Ldstr, prop.Name); // stack is now [parameters] [command] [name]
                     il.Emit(OpCodes.Ldloc, typedParameterLocal); // stack is now [parameters] [command] [name] [typed-param]
@@ -2568,13 +2552,11 @@ namespace Dapper
 
                 if (checkForDuplicates)
                 {
-                    // need to be a little careful about adding; use a utility method
                     il.Emit(OpCodes.Ldstr, prop.Name); // stack is now [parameters] [parameters] [command] [name]
                     il.EmitCall(OpCodes.Call, typeof(SqlMapper).GetMethod(nameof(SqlMapper.FindOrAddParameter)), null); // stack is [parameters] [parameter]
                 }
                 else
                 {
-                    // no risk of duplicates; just blindly add
                     il.EmitCall(OpCodes.Callvirt, typeof(IDbCommand).GetMethod(nameof(IDbCommand.CreateParameter)), null);// stack is now [parameters] [parameters] [parameter]
 
                     il.Emit(OpCodes.Dup);// stack is now [parameters] [parameters] [parameter] [parameter]
@@ -2593,7 +2575,6 @@ namespace Dapper
                     }
                     else
                     {
-                        // constant value; nice and simple
                         EmitInt32(il, (int)dbType);// stack is now [parameters] [[parameters]] [parameter] [parameter] [db-type]
                     }
                     il.EmitCall(OpCodes.Callvirt, typeof(IDataParameter).GetProperty(nameof(IDataParameter.DbType)).GetSetMethod(), null);// stack is now [parameters] [[parameters]] [parameter]
@@ -2617,14 +2598,12 @@ namespace Dapper
                     {
                         if (nullType != null)
                         {
-                            // Nullable<SomeEnum>; we want to box as the underlying type; that's just *hard*; for
                             // simplicity, box as Nullable<SomeEnum> and call SanitizeParameterValue
                             callSanitize = checkForNull = true;
                         }
                         else
                         {
                             checkForNull = false;
-                            // non-nullable enum; we can do that! just box to the wrong type! (no, really)
                             switch (Type.GetTypeCode(Enum.GetUnderlyingType(propType)))
                             {
                                 case TypeCode.Byte: propType = typeof(byte); break;
@@ -2661,7 +2640,6 @@ namespace Dapper
                     Label notNull = il.DefineLabel();
                     Label? allDone = (dbType == DbType.String || dbType == DbType.AnsiString) ? il.DefineLabel() : (Label?)null;
                     il.Emit(OpCodes.Brtrue_S, notNull);
-                    // relative stack [boxed value = null]
                     il.Emit(OpCodes.Pop); // relative stack empty
                     il.Emit(OpCodes.Ldsfld, typeof(DBNull).GetField(nameof(DBNull.Value))); // relative stack [DBNull]
                     if (dbType == DbType.String || dbType == DbType.AnsiString)
@@ -2794,7 +2772,6 @@ namespace Dapper
                             case TypeCode.Double:
                             case TypeCode.Decimal:
                                 // need to stloc, ldloca, call
-                                // re-use existing locals (both the last known, and via a dictionary)
                                 var convert = GetToString(typeCode);
                                 if (local == null || local.LocalType != propType)
                                 {
@@ -2906,7 +2883,6 @@ namespace Dapper
                 var reader = ExecuteReaderWithFlagsFallback(cmd, wasClosed, commandBehavior);
                 wasClosed = false; // don't dispose before giving it to them!
                 disposeCommand = false;
-                // note: command.FireOutputCallbacks(); would be useless here; parameters come at the **end** of the TDS stream
                 return reader;
             }
             finally
@@ -2938,7 +2914,6 @@ namespace Dapper
 
         private static Func<IDataReader, object> GetStructDeserializer(Type type, Type effectiveType, int index)
         {
-            // no point using special per-type handling here; it boils down to the same, plus not all are supported anyway (see: SqlDataReader.GetChar - not supported!)
 #pragma warning disable 618
             if (type == typeof(char))
             { // this *does* need special handling, though
@@ -3483,7 +3458,7 @@ namespace Dapper
                 // unbox nullable enums as the primitive, i.e. byte etc
 
                 var nullUnderlyingType = Nullable.GetUnderlyingType(memberType);
-                var unboxType = nullUnderlyingType?.IsEnum == true ? nullUnderlyingType : memberType;
+                var unboxType = nullUnderlyingType?.IsEnum  is true ? nullUnderlyingType : memberType;
 
                 if (unboxType.IsEnum)
                 {
@@ -3537,7 +3512,6 @@ namespace Dapper
                     }
                     else
                     {
-                        // not a direct match; need to tweak the unbox
                         FlexibleConvertBoxedFromHeadOfStack(il, colType, nullUnderlyingType ?? unboxType, null);
                         if (nullUnderlyingType != null)
                         {
@@ -3557,7 +3531,6 @@ namespace Dapper
             }
             else if ((op = GetOperator(from, to)) != null)
             {
-                // this is handy for things like decimal <===> double
                 il.Emit(OpCodes.Unbox_Any, from); // stack is now [target][target][data-typed-value]
                 il.Emit(OpCodes.Call, op); // stack is now [target][target][typed-value]
             }

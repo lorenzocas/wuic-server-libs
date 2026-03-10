@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -406,7 +406,6 @@ namespace Dapper
                 }
                 else
                 {
-                    // happy path; close the reader cleanly - no
                     // need for "Cancel" etc
                     reader.Dispose();
                     reader = null;

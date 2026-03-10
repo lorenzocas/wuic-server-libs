@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Data;
 
 namespace Dapper
@@ -10,7 +10,6 @@ namespace Dapper
         /// </summary>
         public static class Settings
         {
-            // disable single result by default; prevents errors AFTER the select being detected properly
             private const CommandBehavior DefaultAllowedCommandBehaviors = ~CommandBehavior.SingleResult;
             internal static CommandBehavior AllowedCommandBehaviors { get; private set; } = DefaultAllowedCommandBehaviors;
             private static void SetAllowedCommandBehaviors(CommandBehavior behavior, bool enabled)

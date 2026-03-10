@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 
@@ -19,19 +19,8 @@ namespace Dapper
 
             //// in theory we could implement this for zero-length results to bind; would require
             //// additional changes, though, to capture a table even when no rows - so not currently provided
-            //internal sealed class DapperRowList : List<DapperRow>, ITypedList
-            //{
-            //    private readonly DapperTable _table;
-            //    public DapperRowList(DapperTable table) { _table = table; }
-            //    PropertyDescriptorCollection ITypedList.GetItemProperties(PropertyDescriptor[] listAccessors)
-            //    {
-            //        if (listAccessors != null && listAccessors.Length != 0) return PropertyDescriptorCollection.Empty;
 
-            //        return DapperRowTypeDescriptor.GetProperties(_table);
-            //    }
 
-            //    string ITypedList.GetListName(PropertyDescriptor[] listAccessors) => null;
-            //}
 
             private sealed class DapperRowTypeDescriptor : ICustomTypeDescriptor
             {

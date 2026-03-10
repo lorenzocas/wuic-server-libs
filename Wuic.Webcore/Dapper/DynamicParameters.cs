@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -189,7 +189,6 @@ namespace Dapper
                 // DynamicParameters until now.
                 foreach (IDbDataParameter param in command.Parameters)
                 {
-                    // If someone makes a DynamicParameters with a template,
                     // then explicitly adds a parameter of a matching name,
                     // it will already exist in 'parameters'.
                     if (!parameters.ContainsKey(param.ParameterName))
@@ -294,7 +293,6 @@ namespace Dapper
                 }
             }
 
-            // note: most non-priveleged implementations would use: this.ReplaceLiterals(command);
             if (literals.Count != 0) SqlMapper.ReplaceLiterals(this, command, literals);
         }
 

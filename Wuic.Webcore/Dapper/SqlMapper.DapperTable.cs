@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Dapper
@@ -17,7 +17,6 @@ namespace Dapper
                 this.fieldNames = fieldNames ?? throw new ArgumentNullException(nameof(fieldNames));
 
                 fieldNameLookup = new Dictionary<string, int>(fieldNames.Length, StringComparer.Ordinal);
-                // if there are dups, we want the **first** key to be the "winner" - so iterate backwards
                 for (int i = fieldNames.Length - 1; i >= 0; i--)
                 {
                     string key = fieldNames[i];

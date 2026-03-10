@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.OData.ModelBuilder;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,8 +14,6 @@ namespace WuicCore.Interfaces
         public void Configure(EntityTypeBuilder<T> builder)
         {
 
-            //builder.Property(x => x.lastModifiedDate).HasColumnType("timestamp");
-            //builder.Property(x => x.createDate).HasColumnType("timestamp");
 
             SpecialConfigure(builder);
 

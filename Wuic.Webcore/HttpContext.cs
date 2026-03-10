@@ -1,4 +1,4 @@
-﻿using Dapper;
+using Dapper;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -766,7 +766,6 @@ namespace System.WebCore
             return target?.GetType().GetProperty(propertyName)?.GetValue(target) as IFileProvider;
         }
 
-        //public static Microsoft.AspNetCore.Http.HttpContext Current => _accessor.HttpContext;
         public string rootPath => _webRootPath;
 
         public class ContextCurrent

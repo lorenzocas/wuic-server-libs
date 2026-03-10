@@ -31,7 +31,6 @@ namespace WuicOData.Services
 
         public Assembly CurrentAssembly => _currentAssembly;
 
-        // ── Boot: load the DLL that was saved by a previous Rebuild() ───
 
         public void LoadPersistedAssembly()
         {
@@ -69,7 +68,6 @@ namespace WuicOData.Services
             {
                 var (bytes, assembly) = MetadataModelGenerator.CompileModels(entityList);
 
-                // Persist for future restarts (OData picks it up at startup)
                 PersistAssemblyBytes(bytes);
 
                 // Swap in-memory assembly
@@ -107,7 +105,14 @@ namespace WuicOData.Services
 
             if (oldContext != null)
             {
-                try { oldContext.Unload(); } catch { }
+                try
+                {
+                    oldContext.Unload();
+                }
+                catch
+                {
+                    // Best effort: failing to unload old collectible contexts is non-fatal.
+                }
             }
         }
 
@@ -121,6 +126,7 @@ namespace WuicOData.Services
 
             var tempPath = DllPath + ".tmp";
             const int maxAttempts = 5;
+            var written = false;
 
             for (var attempt = 1; attempt <= maxAttempts; attempt++)
             {
@@ -128,7 +134,8 @@ namespace WuicOData.Services
                 {
                     File.WriteAllBytes(tempPath, bytes);
                     File.Copy(tempPath, DllPath, overwrite: true);
-                    return;
+                    written = true;
+                    break;
                 }
                 catch (IOException) when (attempt < maxAttempts)
                 {
@@ -141,9 +148,15 @@ namespace WuicOData.Services
                         if (File.Exists(tempPath))
                             File.Delete(tempPath);
                     }
-                    catch { }
+                    catch
+                    {
+                        // Best effort cleanup of temporary file between retries.
+                    }
                 }
             }
+
+            if (written)
+                return;
 
             throw new IOException($"Could not write '{DllPath}' because it is locked by another process.");
         }

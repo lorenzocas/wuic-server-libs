@@ -22,6 +22,7 @@ namespace WuicOData.Services
         /// ApplicationEdmModel.GetEdmModel() scans.
         /// </summary>
         public const string TargetNamespace = "WuicCore.Server.Database.Models";
+        private const string CSharpStringType = "string";
 
         // ── Code generation ──────────────────────────────────────────────
 
@@ -39,7 +40,6 @@ namespace WuicOData.Services
 
             sb.AppendLine("using Microsoft.EntityFrameworkCore;");
 
-            // sb.AppendLine("using Microsoft.EntityFrameworkCore.Relational;");
 
             sb.AppendLine("using Microsoft.EntityFrameworkCore.Metadata.Builders;");
             sb.AppendLine("using Microsoft.OData.ModelBuilder;");
@@ -90,10 +90,10 @@ namespace WuicOData.Services
                 var propName = ToPascalCase(col.ColumnName);
                 var configs = new List<string>();
 
-                if (col.MaxLength.HasValue && MapDbTypeToCSharp(col.DbType) == "string" && col.MaxLength.Value > 0)
+                if (col.MaxLength.HasValue && MapDbTypeToCSharp(col.DbType) == CSharpStringType && col.MaxLength.Value > 0)
                     configs.Add($".HasMaxLength({col.MaxLength.Value})");
 
-                if (!col.IsNullable && MapDbTypeToCSharp(col.DbType) == "string")
+                if (!col.IsNullable && MapDbTypeToCSharp(col.DbType) == CSharpStringType)
                     configs.Add(".IsRequired()");
 
                 if (col.IsComputed)
@@ -115,7 +115,6 @@ namespace WuicOData.Services
                     }
                 }
 
-                // if (configs.Count > 0)
                 sb.AppendLine($"        entity.Property(e => e.{propName}){string.Join("", configs)};");
             }
 
@@ -164,7 +163,6 @@ namespace WuicOData.Services
             return (bytes, assembly);
         }
 
-        // ── File save (for persistent rebuild across restarts) ───────────
 
         /// <summary>
         /// Saves one .cs file per entity to <paramref name="outputDirectory"/>.
@@ -203,7 +201,7 @@ namespace WuicOData.Services
                 "char" or "nchar"
                     or "varchar" or "nvarchar"
                     or "text" or "ntext"
-                    or "string" => "string",
+                    or CSharpStringType => CSharpStringType,
                 "date" or "datetime"
                     or "datetime2" or "smalldatetime" => "DateTime",
                 "datetimeoffset" => "DateTimeOffset",
@@ -212,8 +210,8 @@ namespace WuicOData.Services
                 "binary" or "varbinary"
                     or "image" or "rowversion"
                     or "timestamp" or "point" => "byte[]",
-                "xml" => "string",
-                _ => "string"
+                "xml" => CSharpStringType,
+                _ => CSharpStringType
             };
 
         /// <summary>Returns true for value types that need "?" when nullable.</summary>
@@ -245,7 +243,7 @@ namespace WuicOData.Services
 
         // ── Roslyn metadata references ───────────────────────────────────
 
-        private static IEnumerable<MetadataReference> GetCompilationReferences()
+        private static List<MetadataReference> GetCompilationReferences()
         {
             var refs = new List<MetadataReference>();
 
@@ -256,7 +254,6 @@ namespace WuicOData.Services
                 catch { /* skip assemblies that can't be read */ }
             }
 
-            // Ensure EF Core relational extensions (e.g., ToTable, ToView) are available
             var relationalAsm = typeof(Microsoft.EntityFrameworkCore.RelationalEntityTypeBuilderExtensions).Assembly;
             refs.Add(MetadataReference.CreateFromFile(relationalAsm.Location));
 

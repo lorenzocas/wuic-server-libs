@@ -11,7 +11,8 @@ namespace WEB_UI_CRAFTER.Helpers
 {
     public class CustomModelCacheKey : ModelCacheKey
     {
-        readonly string _contextVersion;
+        private readonly string _contextVersion;
+
         public CustomModelCacheKey(DbContext context)
             : base(context)
         {
@@ -21,6 +22,9 @@ namespace WEB_UI_CRAFTER.Helpers
         protected override bool Equals(ModelCacheKey other)
          => base.Equals(other)
             && (other as CustomModelCacheKey)?._contextVersion == _contextVersion;
+
+        public override bool Equals(object obj)
+            => obj is ModelCacheKey other && Equals(other);
 
         public override int GetHashCode() => base.GetHashCode();
     }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
@@ -147,7 +147,6 @@ namespace Dapper
                 }
                 else
                 {
-                    // happy path; close the reader cleanly - no
                     // need for "Cancel" etc
                     reader.Dispose();
                     reader = null;
@@ -187,7 +186,6 @@ namespace Dapper
             {
                 if (reader is DbDataReader dbReader) return ReadRowAsyncImplViaDbReader<T>(dbReader, type, row);
 
-                // no async API available; use non-async and fake it
                 return Task.FromResult(ReadRow<T>(type, row));
             }
 

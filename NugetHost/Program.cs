@@ -15,7 +15,6 @@ internal static class Program
 
         if (Directory.Exists(legacyRoot))
         {
-            // WuicCore.Startup relies on Directory.GetCurrentDirectory() for static/dev assets.
             Directory.SetCurrentDirectory(legacyRoot);
         }
 
@@ -193,7 +192,6 @@ internal static class Program
 
     private static string ResolveHostProjectRoot()
     {
-        // bin/{Configuration}/{TFM}/ => project root
         return Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", ".."));
     }
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
@@ -96,7 +96,6 @@ namespace Dapper
 
         }
 
-        // this needs to be done per-provider; "dynamic" doesn't work well on all runtimes, although that
         // would be a fair option otherwise
         internal static void ConfigureUDT(IDbDataParameter parameter, string typeName)
             => GetUDT(parameter.GetType())(parameter, typeName);

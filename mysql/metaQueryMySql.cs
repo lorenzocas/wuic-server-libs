@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Linq;
@@ -31,10 +31,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml;
 using ExcelOpenXMLBasics;
-//using WEB_UI_CRAFTER.ProjectData.Servizi;
 
-//using Stimulsoft.Report;
-//using Stimulsoft.Report.Dictionary;
 
 namespace metaModelRaw
 {
@@ -42,7 +39,6 @@ namespace metaModelRaw
     {
         #region "CONNECTION UTILS"
 
-        //public static readonly string connectionString = ConfigurationManager.ConnectionStrings["PagelleSQLConnection"].ConnectionString;
 
         public static MySqlConnection GetContentConnection()
         {
@@ -122,14 +118,7 @@ namespace metaModelRaw
                 connection = new MySqlConnection(connectionString);
                 connection.Open();
 
-                //   try 
-                //{
-                //       Utility.OpenedConnection(connection);
-                //}
-                //catch (Exception)
-                //{
 
-                //}
 
                 return connection;
             }
@@ -538,12 +527,10 @@ namespace metaModelRaw
 
             if (HttpContext.Current != null)
             {
-                //HttpContext.Current.Session.Abandon();
                 if (HttpContext.Current.Request.Cookies["user"] != null)
                 {
                     HttpContext.Current.Request.Cookies.Remove("userId");
                 }
-                //FormsAuthentication.SignOut();
             }
         }
 
@@ -564,7 +551,6 @@ namespace metaModelRaw
 
                     DateTime? last2 = user.getLastUserActivityByID(uid);
 
-                    //CONDITION: browser window or tab closed (prevent logout on page refresh)
                     if (last1.HasValue && last2.HasValue && (last2.Value - last1.Value).TotalSeconds == 0)
                     {
                         user u = user.getUserByID(uid);
@@ -624,7 +610,6 @@ namespace metaModelRaw
 
                 Dapper.SqlMapper.FastExpando user = ((List<Dapper.SqlMapper.FastExpando>)connection.Query(string.Format("SELECT id_utente, username, isAdmin, id_ruolo, userdescription, email, token, ip, language, LastActivityDate FROM {0} WHERE {1} = '{2}' AND {3} = '{4}' and coalesce(cancellato,0)=0", infos.user_table_name, infos.username_column_name, EscapeValue(user_name), infos.password_column_name, EscapeValue(pwd)))).FirstOrDefault();
 
-                //FormsAuthentication.SetAuthCookie(user_name, false);
 
                 if (user != null)
                 {
@@ -1134,7 +1119,6 @@ namespace metaModelRaw
                                                         JsonTextWriter jtr = new JsonTextWriter(sw);
                                                         serializera.Serialize(jtr, data);
                                                         settings = sw.ToString();
-                                                        //settings = JsonConvert.SerializeObject(data);
                                                     }
                                                 }
                                             }
@@ -1228,74 +1212,19 @@ namespace metaModelRaw
 
                         #region ignore metadata
 
-                        //if (u.isAdmin)
-                        //{
-                        //    bool needVersion = false;
 
-                        //    dict.Keys.ToList().ForEach(x =>
-                        //    {
-                        //        string route = x;
 
-                        //        List<_Metadati_Colonne> cols = context.GetMetadati_Colonnes(null, null, x);
 
-                        //        if (cols.Count > 0)
-                        //        {
-                        //            JToken jColArray = dict[x] as JToken;
-                        //            JArray kcs = jColArray.Value<JArray>();
 
-                        //            int colOrder = 0;
 
-                        //            foreach (JObject jCol in kcs)
-                        //            {
-                        //                kendoColumn kc = jCol.ToObject<kendoColumn>();
-                        //                if (kc.field != null)
-                        //                {
-                        //                    _Metadati_Colonne col = cols.FirstOrDefault(c => c.mc_nome_colonna == kc.field);
-                        //                    if (col == null)
-                        //                    {
-                        //                        string[] spl = kc.field.Split(new string[] { "__" }, StringSplitOptions.None);
-                        //                        if (spl.Length == 3)
-                        //                        {
-                        //                            col = cols.FirstOrDefault(c => c.mc_nome_colonna == spl[2]);
-                        //                        }
-                        //                    }
 
-                        //                    if (col != null)
-                        //                    {
-                        //                        if (kc.width != null)
-                        //                        {
-                        //                            col.mc_ui_grid_size_width = kc.width;
-                        //                        }
-                        //                        else
-                        //                        {
-                        //                            col.mc_ui_grid_size_width = 0;
-                        //                        }
 
-                        //                        //if (kc.hidden.HasValue)
-                        //                        //{
-                        //                        //    col.mc_hide_in_list = kc.hidden.Value;
-                        //                        //}
                         //                        //else
-                        //                        //{
-                        //                        //    col.mc_hide_in_list = false;
-                        //                        //}
 
-                        //                        //col.mc_ordine = colOrder;
 
-                        //                        context.UpdateColonna(col);
-                        //                        needVersion = true;
-                        //                    }
-                        //                }
 
-                        //                colOrder = colOrder + 10;
-                        //            }
-                        //        }
 
-                        //    });
 
-                        //    if (needVersion)
-                        //        context.setMetadataVersion();
-                        //}
 
                         #endregion
 
@@ -1601,8 +1530,6 @@ namespace metaModelRaw
                                 throw new Exception(ex1.Message + "****EXECUTED QUERY:****" + query);
                             else
                             {
-                                //List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)connection.Query(query.Replace(" DISTINCT ", " "));
-                                //return new rawPagedResult() { results = rows, TotalRecords = rows.Count, Agg = null };
                                 return false;
                             }
                         }
@@ -1661,8 +1588,6 @@ namespace metaModelRaw
                                 throw new Exception(ex1.Message + "****EXECUTED QUERY:****" + query);
                             else
                             {
-                                //List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)connection.Query(query.Replace(" DISTINCT ", " "));
-                                //return new rawPagedResult() { results = rows, TotalRecords = rows.Count, Agg = null };
                                 return new rawPagedResult() { results = new List<Dapper.SqlMapper.FastExpando>(), TotalRecords = 0, Agg = null };
                             }
                         }
@@ -1870,7 +1795,6 @@ namespace metaModelRaw
                     }
                     ;
 
-                    //cmbRes.results = cmbRes.results.OfType<Dictionary<string, object>>().OrderBy(z => z[lookupAlias].ToString()).Take(PageInfo.pageSize).ToList();
                     cmbRes.TotalRecords = cmbRes.results.Count;
                     return cmbRes;
 
@@ -1892,7 +1816,6 @@ namespace metaModelRaw
                     using (MySqlConnection connection = metaQueryMySql.GetOpenConnection(false, metaStored.md_conn_name))
                     {
                         stored = RawHelpers.getStorePrefix(metaStored, "mysql") + RawHelpers.getDBEntityQuoteSymbol("mysql") + metaStored.md_nome_tabella + RawHelpers.getDBEntityQuoteSymbol("mysql", false);
-                        //var storedProc = db.StoredProcedures[stored];
 
                         MySqlCommand cmd = new MySqlCommand(stored, connection);
 
@@ -2020,8 +1943,6 @@ namespace metaModelRaw
                                         int? size = new int?();
 
                                         DbType? dbtype = new DbType?();
-                                        //if (pair.Type == "ref_cursor")
-                                        //    dbtype = OracleDbType.RefCursor;
 
                                         ParameterDirection? pDir = new ParameterDirection?();
                                         if (pair.isOut)
@@ -2040,7 +1961,6 @@ namespace metaModelRaw
                         }
 
                         //test stored with normal out params, multiple output normal param, cursor + normal output param -> bind
-                        //check expected parameter count da propsbag -> se non è 0 ma non ci sono parametri in dbArgs-> skippa esecuzione (no exception)
                         if (parameterDefinition != null && parameterDefinition.Count != parameters.Count)
                             return new rawPagedResult() { results = new List<Dapper.SqlMapper.FastExpando>(), TotalRecords = 0 };
 
@@ -2169,7 +2089,6 @@ namespace metaModelRaw
             query = SqlMapper.ParseMySqlConn(connection, query);
 
             Utility.customizeUpdate(ref query, route, entity, userId);
-            //query = (string)parameters[0];
 
             _Metadati_Tabelle tableMetadata = metadata.FirstOrDefault()._Metadati_Tabelle;
             bool invalidateAllMetadata = tableMetadata != null && tableMetadata.is_system_route;
@@ -2298,7 +2217,6 @@ namespace metaModelRaw
 
             if (!string.IsNullOrEmpty(metadata.First()._Metadati_Tabelle.md_after_save_server_method_name))
             {
-                //RawHelpers.executeCustomCommand(new object[] { userId, entity, dataMode.edit, "" }, metadata.First()._Metadati_Tabelle.md_after_save_server_method_name, metadata.First()._Metadati_Tabelle.md_after_server_save_method_class);
                 RawHelpers.InvokeUtilityHook(metadata.First()._Metadati_Tabelle.md_after_save_server_method_name, new object[] { userId, entity, dataMode.edit, "" });
             }
 
@@ -2459,7 +2377,6 @@ namespace metaModelRaw
             query = SqlMapper.ParseMySqlConn(connection, query);
 
             Utility.customizeDelete(ref query, route, entity, userId);
-            //query = (string)parameters[0];
 
             RawHelpers.setMetadataVersion(metadata.FirstOrDefault()._Metadati_Tabelle);
 
@@ -2538,7 +2455,6 @@ namespace metaModelRaw
             query = SqlMapper.ParseMySqlConn(connection, query);
 
             Utility.customizeInsert(ref query, route, entity, userId);
-            //query = (string)parameters[0];
 
             RawHelpers.setMetadataVersion(metadata.FirstOrDefault()._Metadati_Tabelle);
 
@@ -2574,13 +2490,6 @@ namespace metaModelRaw
                         subColumns = subTable._Metadati_Colonnes.ToList();
                 }
 
-                //if (entity[colGrid.mc_nome_colonna] != null) {
-                //    if (entity[colGrid.mc_nome_colonna].GetType() == typeof(string))
-                //    {
-                //        entity[colGrid.mc_nome_colonna] = new Dictionary<string, object>();
-                //        entity[colGrid.mc_nome_colonna][colGrid.mc_ui_grid_manytomany_local_id_field] = entity[colGrid.mc_nome_colonna].ToString().Split(',');
-                //    }
-                //}
 
                 List<Dictionary<string, object>> collection = GetDictionaryListValue(entity, colGrid.mc_nome_colonna);
 
@@ -2608,8 +2517,6 @@ namespace metaModelRaw
                                 newMMEntity[colGrid.mc_ui_grid_manytomany_local_id_field] = entity[colGrid.mc_ui_grid_local_id_field];
 
                                 ////****************IT's WRONG!!!!*******************
-                                //if (colGrid.mc_ui_grid_related_id_field != colGrid.mc_ui_grid_local_id_field)
-                                //    subEntity[colGrid.mc_ui_grid_related_id_field] = subEntity[colGrid.mc_ui_grid_local_id_field];
 
                                 string insertedID = InsertflatData(newMMEntity, subRoute, userId);
 
@@ -2693,12 +2600,9 @@ namespace metaModelRaw
                 }
             });
 
-            //if (route == " metadati  colonne" || route == " metadati  tabelle" || route == "Autorizzazioni colonne" || route == "Autorizzazioni tabelle")
-            //    RawHelpers.updateModelAndServices();
 
             if (!string.IsNullOrEmpty(metadata.First()._Metadati_Tabelle.md_after_save_server_method_name))
             {
-                //RawHelpers.executeCustomCommand(new object[] { userId, entity, dataMode.insert, result }, metadata.First()._Metadati_Tabelle.md_after_save_server_method_name, metadata.First()._Metadati_Tabelle.md_after_server_save_method_class);
                 RawHelpers.InvokeUtilityHook(metadata.First()._Metadati_Tabelle.md_after_save_server_method_name, new object[] { userId, entity, dataMode.insert, result });
             }
 
@@ -2758,7 +2662,6 @@ namespace metaModelRaw
             query = SqlMapper.ParseMySqlConn(connection, query);
 
             Utility.customizeRestore(ref query, route, entity, userId);
-            //query = (string)parameters[0];
 
             RawHelpers.setMetadataVersion(metadata.FirstOrDefault()._Metadati_Tabelle);
 
@@ -2982,16 +2885,6 @@ namespace metaModelRaw
             return current_fld;
         }
 
-        //public static string GetSafeTableName(_Metadati_Tabelle tab)
-        //{
-        //    string safetable_name = GetTableName(tab);
-        //    if (tab.md_is_reticular)
-        //    {
-        //        string table_name = "tabella_reticolare";
-        //        safetable_name = (string.IsNullOrEmpty(tab.md_db_name) ? "" : "`" + tab.md_db_name + "`.") + EscapeDBObjectName(table_name);
-        //    }
-        //    return safetable_name;
-        //}
 
         public static string BuildWherePart(List<_Metadati_Colonne> lst, PageInfo PageInfo, FilterInfos filterInfo, string userId, string logicOperator = "AND", string distinct = "", string formulaLookup = "", _Metadati_Colonne linkedCol = null)
         {
@@ -3072,27 +2965,17 @@ namespace metaModelRaw
                 string autocompleteFilterValue = (string.IsNullOrEmpty(distinct) ? "" : filterInfo.filters.First().value);
 
                 //custom injection
-                //WEB_UI_CRAFTER.ProjectData.Servizi.Utility.customizeSelect(ref fieldList, ref join, ref where, ref orderBy, user.getUserByID(userId), tab, parentRoute, currentRecord);
                 Utility.customizeSelect(ref fieldList, ref join, ref where, ref orderBy, user.getUserByID(userId), tab, ref customSelectClause, parentRoute, currentRecord, filterInfo, SortInfo, PageInfo);
-                //fieldList = (string)parameters[0];
-                //join = (string)parameters[1];
-                //where = (string)parameters[2];
-                //orderBy = (string)parameters[3];
 
                 if (string.IsNullOrEmpty(distinct) && hasServerOperation)
                 {
                     string WhereCustom = where;
                     string safetableNameCustom = safetableName;
 
-                    //WEB_UI_CRAFTER.ProjectData.Servizi.Utility.customizeCountSelect(ref fieldList, ref join, ref WhereCustom, ref orderBy, user.getUserByID(userId), tab, ref safetableNameCustom);
 
                     string customCount = "";
 
                     Utility.customizeCountSelect(ref fieldList, ref join, ref WhereCustom, ref orderBy, user.getUserByID(userId), tab, ref safetableNameCustom, ref customCount, filterInfo, SortInfo, PageInfo);
-                    //fieldList = (string)parametersCount[0];
-                    //join = (string)parametersCount[1];
-                    //WhereCustom = (string)parametersCount[2];
-                    //orderBy = (string)parametersCount[3];
 
                     if (!shadowing)
                     {
@@ -3126,7 +3009,6 @@ namespace metaModelRaw
                             throw RawHelpers.flatException(ex, true, countQry);
                         }
 
-                        //ManageAggregates(aggregates, where, connection, aggregateValues, safetableName, join);
 
                     }
                 }
@@ -3162,7 +3044,6 @@ namespace metaModelRaw
                                 _Metadati_Colonne distCol = lst.FirstOrDefault(x => x.mc_nome_colonna == distinct);
                                 string distColName = EscapeDBObjectName(RawHelpers.getStoreColumnName(distCol));
 
-                                //string distinctStr = string.Format("DISTINCT {0}", safetableName + "." + distColName);
 
                                 finalQry = " SELECT " + distColName + " as " + distinct +
                                             string.Format(" FROM {0} where {0}.", safetableName) + distColName + " like '%" + EscapeValue(autocompleteFilterValue) + "%' " +
@@ -3257,8 +3138,6 @@ namespace metaModelRaw
                         if (filteringCol == null)
                             throw new Exception(string.Format("Colonna '{0}' non trovata. Default lookup filter definition '{1}'", filterPart[0], lookuprelatedCol.mc_display_string_in_view));
 
-                        //_Metadati_Tabelle currentFldLUpTabel = filteringCol._Metadati_Tabelle;
-                        //string currentFldLUp = (string.IsNullOrEmpty(currentFldLUpTabel.md_db_name) ? "" : "`" + currentFldLUpTabel.md_db_name + "`." + (!string.IsNullOrEmpty(currentFldLUpTabel.md_schema_name) ? "`" + currentFldLUpTabel.md_schema_name + "`" : "") + ".") + EscapeDBObjectName(currentFldLUpTabel.md_nome_tabella) + "." + EscapeDBObjectName(RawHelpers.getStoreColumnName(filteringCol));
                         string currentFldLUp = RawHelpers.getFullyQualifiedColumnName(filteringCol, "mysql");
                         innerWhere = AppendFilter(filteringCol, filterInfo, logicOperator, currentFldLUp, innerWhere, tab, "", user_id);
                     }
@@ -3334,11 +3213,9 @@ namespace metaModelRaw
                 lst.ForEach((fld) =>
                 {
 
-                    //string safeColumnName = escapeDBObjectName(RawHelpers.getStoreColumnName(fld));
                     string safeAlias = EscapeDBObjectName(fld.mc_nome_colonna);
 
                     string currentFld = GetCurrentFieldString(tab, fld);
-                    //string computed_column_alias = "";
 
                     _Metadati_Colonne_Lookup col = fld as _Metadati_Colonne_Lookup;
                     if (col != null)
@@ -3388,8 +3265,6 @@ namespace metaModelRaw
                             fieldList += (fieldList == "" ? "" : ", ") + string.Format(" {0} AS {1}", formulaLookup, lookuprelatedCol.mc_ui_lookup_dataTextField);
                             fixFormulaLookupFieldListDuplication = true;
                         }
-                        //else
-                        //    fieldList += (fieldList == "" ? "" : ", ") + currentFld + " AS " + EscapeDBObjectName(fld.mc_nome_colonna);
                     }
                     else
                         fieldList += (fieldList == "" ? "" : ", ") + currentFld + " AS " + EscapeDBObjectName(fld.mc_nome_colonna);
@@ -3433,7 +3308,6 @@ namespace metaModelRaw
 
             if (col.mc_ui_lookup_dataValueField != "mc_nome_colonna")
             {
-                //join_list += string.Format(" LEFT JOIN {0} AS {3} on {1} = {2} ", safeEntityName, current_fld, safeUniqueEntityName + "." + escapeDBObjectName(col.mc_ui_lookup_dataValueField), safeUniqueEntityName);
                 if (ap == null)
                 {
                     if (!string.IsNullOrEmpty(col.mc_ui_lookup_dataValueField))
@@ -3471,11 +3345,8 @@ namespace metaModelRaw
                                                 }
                                                 else
                                                 {
-                                                    //if (join_list.IndexOf(join_part) < 0) //sempre TRUE
-                                                    //{
                                                     joinn += joinPart;
                                                     joins[currentAP] = joinn;
-                                                    //}
                                                 }
                                             }
                                         }
@@ -3520,12 +3391,6 @@ namespace metaModelRaw
                     if (!string.IsNullOrWhiteSpace(jj))
                     {
                         Match m = Regex.Match(jj.Trim(), ".+ AS (.+) ON ", RegexOptions.IgnoreCase);
-                        //if(!m.Success)
-                        //    m = Regex.Match(jj.Trim(), ".+ as (.+) ON ");
-                        //if (!m.Success)
-                        //    m = Regex.Match(jj.Trim(), ".+ AS (.+) on ");
-                        //if (!m.Success) 
-                        //    m = Regex.Match(jj.Trim(), ".+ as (.+) on ");
 
                         if (m.Success)
                         {
@@ -3634,7 +3499,6 @@ namespace metaModelRaw
                 long tot;
                 List<AggregationResult> ar;
 
-                //string safeTableName = (string.IsNullOrEmpty(mmTable.md_db_name) ? "" : "`" + mmTable.md_db_name + "`." + (!string.IsNullOrEmpty(mmTable.md_schema_name) ? "`" + mmTable.md_schema_name + "`" : "") + ".") + RawHelpers.escapeDBObjectName(mmTable.md_nome_tabella, "mysql");
                 string safeTableName = RawHelpers.getStoreTableName(mmTable, "mysql");
                 string localTableName = RawHelpers.getStoreTableName(tabel, "mysql");
 
@@ -3669,18 +3533,10 @@ namespace metaModelRaw
                         ////******************BETTER SOLUTION****************************************
                         //SELECT [hts1].[config].[Utente].[UtenteId] AS [UtenteId], [hts1].[config].[Utente].[UserName] AS [UserName],  ''  AS [colonna_002_testo], [hts1].[config].[Utente].[AziendaId] AS [AziendaId], [hts1].[config].[Utente].[FlAgente] AS [FlAgente], [hts1].[config].[Utente].[FlPartner] AS [FlPartner], [hts1].[config].[Utente].[FlSegnalatore] AS [FlSegnalatore], [hts1].[config].[Utente].[FlAmministratore] AS [FlAmministratore], [hts1].[config].[Utente].[FlFiltroProvincie] AS [FlFiltroProvincie] 
                         //FROM [hts1].[config].[Utente]     
-                        //where [hts1].[config].[Utente].AziendaId = 2 and 
-                        //( 
                         //    UtenteId IN 
-                        //    (
                         //        select M.UtenteId
                         //        from [config].[Utente] M
-                        //        inner join [config].[UtentiProvincie] D on M.UtenteId=D.UtenteId
-                        //        where D.ProvinciaId in ('AG', 'AO')
                         //        group by M.UtenteId
-                        //        having count(*)=2
-                        //    )
-                        //)
                         ////*************************************************************************
 
                         FilterInfos fiComplexNest = new FilterInfos();
@@ -3927,34 +3783,11 @@ namespace metaModelRaw
                     AppendBaseFilter(fld, current_fld, f.operatore, realOperator, f.value, f.__extra, logicOperator, ref where);
                 }
 
-                //if (f.nestedFilters != null && f.nestedFilters.filters.Count > 0)
-                //{
-                //    where += ((where == "") ? " where ( " : (string.IsNullOrEmpty(logicOperator) ? " " : logicOperator + " ( "));
-                //    bool isFirstNested = true;
-                //    foreach (var nestedFld in f.nestedFilters.filters)
-                //    {
-                //        fld = tabel._Metadati_Colonnes.FirstOrDefault(x => x.mc_nome_colonna == nestedFld.field);
 
-                //        string safeColumnName;
 
-                //        if (fld != null)
-                //        {
-                //            safeColumnName = RawHelpers.escapeDBObjectName(RawHelpers.getStoreColumnName(fld), "mysql");
-                //            current_fld = (string.IsNullOrEmpty(tabel.md_db_name) ? "" : "`" + tabel.md_db_name + "`." + (!string.IsNullOrEmpty(tabel.md_schema_name) ? "`" + tabel.md_schema_name + "`" : "") + ".") + RawHelpers.escapeDBObjectName(tabel.md_nome_tabella, "mysql") + "." + safeColumnName;
-                //            where = AppendFilter(fld, f.nestedFilters, ((isFirstNested && !string.IsNullOrEmpty(logicOperator)) ? "" : f.nestedFilters.logic), current_fld, where, tabel, formula_lookup, user_id, true);
 
-                //            isFirstNested = false;
-                //        }
-                //        else
-                //        {
-                //            throw new Exception("Campo filtro '" + nestedFld.field + "' non trovato in route '" + tabel.md_route_name + "'");
-                //        }
 
-                //    }
 
-                //    if (!string.IsNullOrEmpty(logicOperator))
-                //        where += " )";
-                //}
 
                 where += " )";
 
@@ -3993,11 +3826,6 @@ namespace metaModelRaw
             }
 
             string async_extra_condition = "";
-            //if (fld.mc_ui_column_type == "lookupByID")
-            //{
-            //    if(((_Metadati_Colonne_Lookup) fld).mc_ui_pagesize.HasValue)
-            //        //async_extra_condition = string.Format(" OR {0} = {1}", p_key.mc_nome_colonna);
-            //}
 
             if (filterValue != null)
                 filterValue = EscapeValue(filterValue).ToString();
@@ -4034,7 +3862,6 @@ namespace metaModelRaw
             {
                 //FIX UTC TIME ISSUE 
                 //se f.value è del format YYYY-MM-ddTHH:mm:ssZ -> il DateTime.Parse applica UTC time. 
-                //se f.value è del format YYYY-MM-ddTHH:mm:ss (senza la Z finale) il DateTime.Parse mantiene l'ora corretta !!!!
                 string parsed = filterValue.ToString().Replace(@"""", "");
                 DateTime d = DateTime.Parse(parsed);
                 filterValue = d.ToString("yyyy-MM-dd HH:mm:ss").Replace(".", ":");
@@ -4493,8 +4320,6 @@ namespace metaModelRaw
                         cloned[manyToManyKey.mc_nome_colonna] = selected.data[manyToManyKey.mc_nome_colonna];
                         cloned[gridCol.mc_ui_grid_display_field] = selected.data[display_col];
 
-                        //cloned[display_col] = selected.data[display_col];
-                        //cloned[grid_col.mc_ui_grid_local_id_field] = selected.data[grid_col.mc_ui_grid_local_id_field];
                         cloned["___selected"] = true;
                     }
                     else
@@ -4661,7 +4486,6 @@ namespace metaModelRaw
                     fixOrder = ((sort == "") ? string.Format(" ORDER BY {0}", pkOrder) : sort + (!string.IsNullOrEmpty(pkOrder) ? ", " + pkOrder : ""));
                 else
                     fixOrder = string.Format(" ORDER BY {0}", inverted);
-                //fixOrder = ((sort == "") ? string.Format(" ORDER BY {0}", pkOrder) : "ORDER BY " + pkOrder .Replace(",", " ") + ", " + sort.Replace("ORDER BY", ""));
             }
             else
             {
@@ -4890,11 +4714,6 @@ namespace metaModelRaw
 
         private static void AppendLoggingInsertFields(ref string field_list, ref string value_list, _Metadati_Tabelle tabel, string user_id, IDictionary<string, object> entity)
         {
-            //if (!string.IsNullOrEmpty(tabel.md_user_id_field_name))
-            //{
-            //    field_list += (field_list == "" ? "" : ", ") + tabel.md_user_id_field_name;
-            //    value_list += (value_list == "" ? "" : ", ") + "'" + user_id + "'";
-            //}
             if (!string.IsNullOrEmpty(tabel.md_logging_insert_date_field_name))
             {
                 if (tabel.md_logging_insert_date_field_name.Contains(","))
@@ -5036,8 +4855,6 @@ namespace metaModelRaw
         {
             string fieldList = "";
             string fieldListForCount = "";
-            //string distList = "";
-            //string orderListX = "";
             string orderListT = "";
 
             GroupInfo.ForEach(gi =>
@@ -5064,16 +4881,12 @@ namespace metaModelRaw
 
                         fieldList += (string.IsNullOrEmpty(fieldList) ? "" : ", ") + string.Format("{0} AS {1}", string.IsNullOrEmpty(calculatedText) ? (safeUniqueEntityName + "." + safeTextField) : calculatedText, safeappend);
 
-                        //dist_list += (string.IsNullOrEmpty(dist_list) ? "" : ", ") + string.Format("{0}", safeappend);
-                        //order_list_x += (string.IsNullOrEmpty(order_list_x) ? "" : ", ") + "X." + safeappend;
                         orderListT += (string.IsNullOrEmpty(orderListT) ? "" : ", ") + safeappend;
 
                     }
                 }
                 else
                 {
-                    //dist_list += (string.IsNullOrEmpty(order_list_x) ? "" : ", ") + dist_col_name;
-                    //order_list_x += (string.IsNullOrEmpty(order_list_x) ? "" : ", ") + "X." + dist_col_name;
                     orderListT += (string.IsNullOrEmpty(orderListT) ? "" : ", ") + dist_col_name;
                 }
             });
@@ -5083,7 +4896,6 @@ namespace metaModelRaw
             {
                 Dapper.SqlMapper.FastExpando jj = connection.Query(countGroupQry).FirstOrDefault();
                 GroupInfo[0].groupCount = long.Parse(jj.data["conta_record"].ToString());
-                //GroupInfo[0].groupCount = connection.Query<Int32>(countGroupQry).FirstOrDefault();
             }
             catch (Exception ex)
             {
@@ -5109,10 +4921,7 @@ namespace metaModelRaw
 
             if (tabel.md_is_reticular)
             {
-                //field_list += (field_list == "" ? "" : ", ") + tabel.reticular_key_name;
-                //value_list += (value_list == "" ? "" : ", ") + tabel.reticular_key_value;
                 table_name = "tabella_reticolare";
-                //safetable_name = (string.IsNullOrEmpty(tabel.md_db_name) ? "" : "`" + tabel.md_db_name + "`." + (!string.IsNullOrEmpty(tabel.md_schema_name) ? "`" + tabel.md_schema_name + "`" : "") + ".") + RawHelpers.escapeDBObjectName(table_name);            Dictionary<string, object> original = (Dictionary<string, object>)(entity["__original"]);
 
             }
 
@@ -5566,8 +5375,6 @@ namespace metaModelRaw
                                 string tmp_path = System.IO.Path.Combine(pth, entity[fld.mc_nome_colonna].ToString());
 
                                 ////append to query
-                                //if (System.IO.File.Exists(tmp_path))
-                                //    field_value_list += (field_value_list == "" ? "" : ", ") + RawHelpers.escapeDBObjectName(uploader.MultipleUploadBlobFieldName) + "=" + "LOAD_FILE('" + EscapeValue(tmp_path) + "') ";
                                 if (base64Image)
                                 {
                                     string base64Converted = "";
@@ -5575,7 +5382,6 @@ namespace metaModelRaw
                                     {
                                         Image img = Image.FromFile(tmp_path);
 
-                                        //base64Converted = WEB_UI_CRAFTER.ProjectData.Servizi.Utility.ImageToBase64(img, img.RawFormat);
                                         base64Converted = Utility.ImageToBase64(tmp_path);
 
                                     }
@@ -5596,13 +5402,11 @@ namespace metaModelRaw
 
                                     ////for older version bytea Escape Format
                                     ////use decode('...', 'hex')
-                                    //string hexString = RawHelpers.convertByteToHexString(bytes);
 
                                     field_value_list += (field_value_list == "" ? "" : ", ") + RawHelpers.escapeDBObjectName(uploader.MultipleUploadBlobFieldName, "mysql") + "=x'" + hexString + "'";
 
                                     ////append to query
                                     ////alternative like openrowset ->  http://www.sql-workbench.net/manual/using.html#blob-support
-                                    //value_list += (value_list == "" ? "" : ", ") + "(" + "SELECT * FROM OPENROWSET (BULK '" + tmp_path.Replace("'", "''") + "', SINGLE_BLOB) " + uploader.MultipleUploadBlobFieldName + ")";
 
                                 }
                             }
@@ -5620,7 +5424,6 @@ namespace metaModelRaw
             {
                 if (ConfigurationManager.AppSettings.AllKeys.Contains("logging-extra_client"))
                 {
-                    //userId = WEB_UI_CRAFTER.ProjectData.Servizi.Utility.id_extraClient(ref userId);
                     user_id = Utility.id_extraClient(ref user_id);
                 }
 
@@ -5663,9 +5466,6 @@ namespace metaModelRaw
                     else
                     {
 
-                        //Guid uo;
-                        //if(Guid.TryParse(entity[fld.mc_nome_colonna].ToString(), out uo))
-                        //    throw new ValidationException("Please refresh the grid before delete !");
 
                         int ou;
                         string quote = "";
@@ -6245,7 +6045,6 @@ namespace metaModelRaw
                                     string base64Converted = "";
                                     Image img = Image.FromFile(tmp_path);
 
-                                    //base64Converted = WEB_UI_CRAFTER.ProjectData.Servizi.Utility.ImageToBase64(img, img.RawFormat);
                                     base64Converted = Utility.ImageToBase64(tmp_path);
 
                                     value_list += (value_list == "" ? "" : ", ") + "'" + base64Converted + "'";
@@ -6257,7 +6056,6 @@ namespace metaModelRaw
                                     value_list += (value_list == "" ? "" : ", ") + "x'" + hexString + "'";
                                 }
 
-                                //remove file (better to wait after successfull commit)
                                 //...
 
                             }
@@ -6346,12 +6144,9 @@ namespace metaModelRaw
         }
 
         //Clones Entity + First Level related entities
-        //to clone nested(level>1) routes enable and use "nestedRoute" Property of routePair (client-side and server-side)
         public static string CloneData(IDictionary<string, object> entity, string route, string user_id, List<routePair> relatedRouteToClone)
         {
             string query = "";
-            //try
-            //{
             List<_Metadati_Colonne> metadata = _Metadati_Colonne.getColonneByUserID(route, 0, user_id, dataMode.insert, null);
             List<_Metadati_Colonne> pkeys = metadata.Where(x => x.mc_is_primary_key).ToList();
             _Metadati_Tabelle tab = _Metadati_Tabelle.getTableMetadataFromRoute(route);
@@ -6423,12 +6218,6 @@ namespace metaModelRaw
 
             }
 
-            //}
-            //catch (Exception EX)
-            //{
-            //    RawHelpers.logError(EX, "cloneData", query);
-            //    throw new Exception(EX.Message + "****EXECUTED QUERY:****" + query);
-            //}
         }
 
         public static void ManageShadowCaching(dynamic caching, MySqlConnection con, metaRawModel mmd, _Metadati_Tabelle tab, List<_Metadati_Colonne> lst, string safetableName, string fieldList, string join, string where, string orderBy, int skiprecords, PageInfo PageInfo, List<SortInfo> SortInfo, FilterInfos filterInfo, List<AggregationInfo> aggregates, List<AggregationResult> aggregateValues, string logicOperator, string distinct, Dictionary<aliasPair, string> joins, string formulaLookup, string userId, int mcId, _Metadati_Colonne linkedCol, ref string finalQry, out long totalRecords)
@@ -6459,152 +6248,35 @@ namespace metaModelRaw
 
             return;
 
-            //string shadowTableName = "_shadow_" + tab.md_route_name;
-            //string shadowRouteName = "shadow" + tab.md_route_name;
-            //bool shadowTableExists = RawHelpers.checkTableExist(shadowTableName);
-            //if (!shadowTableExists) // NEED TO BE ADMIN !!!
-            //{
-            //    _Metadati_Colonne pkey = tab._Metadati_Colonnes.FirstOrDefault(x => x.mc_is_primary_key);
-            //    if (pkey == null)
-            //        throw new Exception("Per abilitare lo shadow caching è necessario specificare una primary key ");
 
-            //    using (scaffolding s = new scaffolding())
-            //    {
-            //        int md_id = s.AddTable(shadowTableName, "DataSQLConnection", "", ConfigurationManager.AppSettings["DataDBName"], pkey.mc_db_column_type.ToLower().IndexOf("int") >= 0 ? "MAX" : "", false, pkey.mc_nome_colonna, false);
 
-            //        _Metadati_Tabelle shadowTbl = mmd.GetMetadati_Tabelles("", md_id.ToString()).FirstOrDefault();
 
-            //        var vConnection = new ServerConnection(con);
-            //        var vServer = new Server(vConnection);
-            //        var vDatabase = vServer.Databases[string.IsNullOrEmpty(tab.md_db_name) ? ConfigurationManager.AppSettings["DataDBName"] : tab.md_db_name];
-            //        var vTable = vDatabase.Tables[shadowTableName];
 
-            //        if (vTable == null)
-            //            vTable = vDatabase.Tables.OfType<Table>().FirstOrDefault(x => x.Name == shadowTableName);
 
-            //        if (vTable != null)
-            //        {
 
-            //            lst.ForEach(mc =>
-            //            {
-            //                string colSpecificType = mc.mc_ui_column_type;
-            //                if (colSpecificType == "number")
-            //                    mc.mc_ui_column_type += "_" + mc.mc_db_column_type;
 
-            //                if (mc.mc_ui_column_type == "lookupByID")
-            //                {
-            //                    _Metadati_Colonne_Lookup look = (_Metadati_Colonne_Lookup)mc;
-            //                    string alias = RawHelpers.getLookupAlias(look, "mssql", false);
-            //                    //s.AddColumn(shadowRouteName, "text", alias, alias, true, 0, 0, 0, "");
-            //                    s.AddMsSqlColumn(mmd, shadowTbl, vTable, "text", alias, alias, true, 0, 0, 0, "", false, true);
-            //                }
 
-            //                if (pkey.mc_nome_colonna != mc.mc_nome_colonna)
-            //                {
-            //                    int mc_id = s.AddMsSqlColumn(mmd, shadowTbl, vTable, mc.mc_ui_column_type, mc.mc_real_column_name, mc.mc_nome_colonna, true, 0, 0, mc.mc_max_length.HasValue ? mc.mc_max_length.Value : 0, "", false, true);
-            //                }
-            //            });
 
-            //            vTable.Alter();
-            //        }
-            //        else
-            //        {
-            //            throw new Exception("Errore creazione tabella" + shadowTableName);
-            //        }
-            //    }
-            //}
 
-            //string fullSelectQuery = string.Format("SELECT {0} FROM {1} {2}", fieldList, safetableName, join);
-            //string insertFields = "";
-            //lst.ForEach(mc =>
-            //{
-            //    if (mc.mc_ui_column_type == "lookupByID")
-            //    {
-            //        _Metadati_Colonne_Lookup look = (_Metadati_Colonne_Lookup)mc;
-            //        string alias = RawHelpers.getLookupAlias(look, "mssql", false);
-            //        insertFields += (string.IsNullOrEmpty(insertFields) ? "" : ", ") + alias;
-            //    }
-            //    insertFields += (string.IsNullOrEmpty(insertFields) ? "" : ", ") + mc.mc_nome_colonna;
-            //});
-            //string shadowInsertIntoQuery = string.Format("INSERT INTO {0}({1}) {2}", shadowTableName, insertFields, fullSelectQuery);
-            //string deleteShadowQuery = string.Format("DELETE FROM {0}", shadowTableName);
 
             ////try
             ////{
-            //using (SqlConnection metaCon = metaQuery.GetOpenConnection(true))
-            //{
-            //    var dbArgs = new DynamicParameters();
-            //    dbArgs.Add("route", metaQuery.EscapeValue(tab.md_route_name));
-            //    dbArgs.Add(name: "timestamp", direction: ParameterDirection.Output, dbType: DbType.DateTime);
-            //    dbArgs.Add(name: "pending", direction: ParameterDirection.Output, dbType: DbType.Boolean);
 
-            //    int totalWait = 0;
-            //    int waitUnit = 500;
 
             //wait:
 
-            //    metaCon.Execute("SELECT @timestamp=timestamp, @pending=pending from _shadow_caching WHERE route=@route", dbArgs);
-            //    DateTime? lastStamp = dbArgs.Get<DateTime?>("timestamp");
-            //    bool? pending = dbArgs.Get<bool?>("pending");
 
-            //    double cacheExpiration = caching.cacheExpiration == null ? 30D : (double)caching.cacheExpiration;
 
-            //    if (pending.HasValue && pending.Value)
-            //    {
-            //        if (totalWait < 60000)
-            //        {
-            //            System.Threading.Thread.Sleep(waitUnit);
-            //            totalWait += waitUnit;
-            //            goto wait;
-            //        }
-            //        else
-            //        {
-            //            metaCon.Execute("UPDATE _shadow_caching SET pending=0 WHERE route=@route", dbArgs);
-            //        }
-            //    }
 
-            //    if (!lastStamp.HasValue || lastStamp.Value.AddMinutes(cacheExpiration) < DateTime.Now)
-            //    {
-            //        dbArgs.Add("timestamp", DateTime.Now);
 
-            //        if (!lastStamp.HasValue)
-            //            metaCon.Execute("INSERT INTO _shadow_caching(route, timestamp, pending) values(@route, @timestamp, 1)", dbArgs);
-            //        else
-            //            metaCon.Execute("UPDATE _shadow_caching SET timestamp=@timestamp, pending=1 where route=@route", dbArgs);
 
-            //        con.Execute(deleteShadowQuery);
-            //        con.Execute(shadowInsertIntoQuery, commandTimeout: 2000);
 
-            //        metaCon.Execute("UPDATE _shadow_caching SET timestamp=@timestamp, pending=0 where route=@route", dbArgs);
-            //    }
 
-            //    _Metadati_Tabelle shadow = mmd.GetMetadati_Tabelles(shadowRouteName).FirstOrDefault();
-            //    shadow.skipColumns = false;
-            //    _Metadati_Colonne shadowPKey = shadow._Metadati_Colonnes.FirstOrDefault(x => x.mc_is_primary_key);
 
-            //    string shadowWhere = BuildDynamicWhere(filterInfo, PageInfo, mmd, shadow._Metadati_Colonnes, shadow, shadowPKey, logicOperator, distinct, joins, formulaLookup, userId, mcId, linkedCol);
-            //    string shadowCountQuery = string.Format("SELECT {0} FROM {1} {2}", "count(*)", shadowTableName, shadowWhere);
 
-            //    totalRecords = con.Query<Int32>(shadowCountQuery).FirstOrDefault();
 
-            //    ManageAggregates(aggregates, shadowWhere, con, aggregateValues, shadowTableName, "");
 
-            //    string shadowOrderBy = BuildDynamicOrderBy(SortInfo, shadow._Metadati_Colonnes, shadow, shadowPKey, filterInfo);
 
-            //    if (PageInfo.pageSize > 0)
-            //    {
-            //        finalQry = string.Format("SELECT * FROM " +
-            //                       "(SELECT ROW_NUMBER() " +
-            //                           "OVER ({5}) AS Row, " +
-            //                           "{0} " +
-            //                           "FROM {1} {2} {3} {4}) AS ENT ", insertFields, shadowTableName, "", shadowWhere, "", shadowOrderBy) +
-            //                           string.Format("WHERE Row BETWEEN {0} AND {1}", ((skiprecords == 0) ? 0 : skiprecords + 1), skiprecords + PageInfo.pageSize);
-            //    }
-            //    else
-            //    {
-            //        finalQry = string.Format("SELECT {0} FROM {1} {2} {3} {4} ", insertFields, shadowTableName, "", shadowWhere, shadowOrderBy);
-            //    }
-            //}
             ////}
             ////catch (Exception ex)
             ////{
@@ -6956,16 +6628,7 @@ namespace metaModelRaw
                     }
                 }
 
-                //SortInfo.Where(x => x.field != null).ToList().ForEach(x =>
-                //{
-                //    _Metadati_Colonne col = context._Metadati_Colonnes.FirstOrDefault(x => x.mc_id == def.realID);
-                //    appendSort(col, order_safetable_name, orderby_clause, x.dir);
-                //    orderby_clause += (string.IsNullOrEmpty(orderby_clause) ? "" : ", ") + x.field + " " + x.dir;
-                //});
 
-                //filterInfo.filters.ForEach(x =>
-                //{
-                //});
 
                 string ret = "";
 
@@ -6976,7 +6639,6 @@ namespace metaModelRaw
 
                     int skiprecords = (PageInfo.currentPage - 1) * PageInfo.pageSize;
 
-                    //dovresti ordinare in base a tutte le pkey presenti nelle tabelle coinvolte(se c'è group by ordina per le colonne grouppate)
                     string fix_order;
 
                     if (!string.IsNullOrEmpty(groupby_clause))
@@ -7448,8 +7110,6 @@ namespace metaModelRaw
             int updatedRecord = 0;
             int deletedRecord = 0;
             int errorCount = 0;
-            //try
-            //{
             using (MySqlConnection con = metaQueryMySql.GetOpenConnection(false))
             {
                 using (MySqlTransaction myTrans = con.BeginTransaction())
@@ -7481,14 +7141,11 @@ namespace metaModelRaw
                             string pk = "";
                             bool fkeyParsed = false;
 
-                            //try
-                            //{
                             recordCounter++;
 
                             if (uploadOption.import_type.Contains("U"))
                             {
                                 //select using pkey values in record ... 
-                                //string db_name = metaQueryMySql.escapeDBObjectName(tabel.md_db_name);
                                 string table_name = RawHelpers.getStoreTableName(tabel, "mysql");
 
                                 string query_check_from = string.Format(string.Format("SELECT * FROM {0} ", table_name));
@@ -7547,28 +7204,6 @@ namespace metaModelRaw
                                 insertedRecord++;
                                 continue;
                             }
-                            //}
-                            //catch (Exception ex)
-                            //{
-                            //    errorCount++;
-                            //    if (uploadOption.commit_level == "R")
-                            //    {
-                            //        log.AppendLine(ex.Message + (ex.InnerException != null ? ex.InnerException.Message : ""));
-                            //        myTrans.Rollback();
-                            //        log.AppendLine("Changes have been rolled back.");
-                            //        //HttpContext.Current.Response.Write(JsonConvert.SerializeObject(new uploadCallBackInfo { message = log.ToString(), filename = fileName, errorCount = errorCount }, Formatting.Indented));
-                            //        return log.ToString();
-                            //    }
-                            //    else if (uploadOption.commit_level == "I")
-                            //    {
-                            //        log.AppendLine(ex.Message + (ex.InnerException != null ? ex.InnerException.Message : ""));
-                            //        myTrans.Commit();
-                            //        //HttpContext.Current.Response.Write(JsonConvert.SerializeObject(new uploadCallBackInfo { message = log.ToString(), filename = fileName, errorCount = errorCount }, Formatting.Indented));
-                            //        return log.ToString();
-                            //    }
-                            //    else if (uploadOption.commit_level == "C" || uploadOption.commit_level == "T")
-                            //        log.AppendLine(string.Format("Record {0}: ", recordCounter) + ex.Message + (ex.InnerException != null ? ex.InnerException.Message : ""));
-                            //}
                         }
 
                         if (uploadOption.commit_level == "T")
@@ -7590,19 +7225,10 @@ namespace metaModelRaw
                             log.AppendLine(string.Format("Import completed{0}.", errorCount == 0 ? " successfully" : " with " + errorCount + " errors"));
                         }
 
-                        //HttpContext.Current.Response.Write(JsonConvert.SerializeObject(new uploadCallBackInfo { message = log.ToString(), filename = fileName, errorCount = errorCount }, Formatting.Indented));
 
                     }
                 }
             }
-            //}
-            //catch (Exception ex2)
-            //{
-            //    log.AppendLine(ex2.Message + (ex2.InnerException != null ? ex2.InnerException.Message : ""));
-            //    errorCount++;
-            //    //HttpContext.Current.Response.Write(JsonConvert.SerializeObject(new uploadCallBackInfo { message = log.ToString(), filename = fileName, errorCount = errorCount }, Formatting.Indented));
-            //    //return log.ToString();
-            //}
 
             return log.ToString();
         }

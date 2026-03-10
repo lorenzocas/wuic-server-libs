@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData.Deltas;
 using Microsoft.AspNetCore.OData.Query;
 using Microsoft.AspNetCore.OData.Routing.Controllers;
@@ -34,23 +34,25 @@ using WuicOData.Services;
 
 namespace WuicCore.Controllers
 {
+    [Route("")]
     public partial class EntitiesController : ODataController
     {
         private readonly ILogger<EntitiesController> _logger;
-        private readonly ApplicationErrorHandler _applicationErrorHandler;
         private readonly DynamicContext _context;
         private readonly DynamicModelService _dynamicModelService;
+        private static readonly JsonSerializerOptions CaseInsensitiveJsonOptions = new()
+        {
+            PropertyNameCaseInsensitive = true
+        };
 
-        public EntitiesController(ILogger<EntitiesController> logger, ApplicationErrorHandler applicationErrorHandler, DynamicContext context, DynamicModelService dynamicModelService)
+        public EntitiesController(ILogger<EntitiesController> logger, DynamicContext context, DynamicModelService dynamicModelService)
         {
             _logger = logger;
-            _applicationErrorHandler = applicationErrorHandler;
             _context = context;
             _dynamicModelService = dynamicModelService;
         }
 
         [HttpGet("odata/{entityset}")]
-        //[ODataRoute("{entityset}")]
         public IActionResult Get(string entityset)
         {
             Type t = ResolveEntityType(entityset);
@@ -107,6 +109,7 @@ namespace WuicCore.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogWarning(ex, "Invalid OData query options for entity set '{EntitySet}'.", entityset);
                 return BadRequest($"Invalid OData query options: {ex.Message}");
             }
         }
@@ -159,7 +162,7 @@ namespace WuicCore.Controllers
                 return BadRequest($"Invalid key '{key}': {ex.Message}");
             }
 
-            var existing = _context.Find(t, convertedKey);
+            var existing = await _context.FindAsync(t, convertedKey);
             if (existing == null)
                 return NotFound();
 
@@ -170,12 +173,12 @@ namespace WuicCore.Controllers
 
             ApplyJsonObjectToEntity(existing, payload, keyInfo.KeyName);
 
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
             return Ok(existing);
         }
 
         [HttpDelete("odata/{entityset}({key})")]
-        public IActionResult Delete(string entityset, string key)
+        public async Task<IActionResult> Delete(string entityset, string key)
         {
             var writeFlags = TryGetWriteFlagsFromMetadata(entityset);
             if (!writeFlags.HasValue || !writeFlags.Value.EnableDelete)
@@ -199,12 +202,12 @@ namespace WuicCore.Controllers
                 return BadRequest($"Invalid key '{key}': {ex.Message}");
             }
 
-            var existing = _context.Find(t, convertedKey);
+            var existing = await _context.FindAsync(t, convertedKey);
             if (existing == null)
                 return NotFound();
 
             _context.Remove(existing);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
 
             return NoContent();
         }
@@ -212,7 +215,6 @@ namespace WuicCore.Controllers
         private Type ResolveEntityType(string entityset)
         {
             // Resolve the CLR type from the EF model first: this works for both
-            // static entities and runtime-generated entities loaded in a custom ALC.
             Type t = _context.Model
                 .GetEntityTypes()
                 .Select(et => et.ClrType)
@@ -254,15 +256,14 @@ namespace WuicCore.Controllers
 
         private static object ConvertKeyValue(string key, Type targetType)
         {
-            if (targetType == null)
-                throw new ArgumentNullException(nameof(targetType));
+            ArgumentNullException.ThrowIfNull(targetType);
 
             var source = (key ?? string.Empty).Trim();
             var nonNullable = Nullable.GetUnderlyingType(targetType) ?? targetType;
 
             if (nonNullable == typeof(string))
             {
-                if (source.Length >= 2 && source.StartsWith("'") && source.EndsWith("'"))
+                if (source.Length >= 2 && source.StartsWith('\'') && source.EndsWith('\''))
                     source = source.Substring(1, source.Length - 2).Replace("''", "'");
 
                 return Uri.UnescapeDataString(source);
@@ -270,7 +271,7 @@ namespace WuicCore.Controllers
 
             if (nonNullable == typeof(Guid))
             {
-                if (source.Length >= 2 && source.StartsWith("'") && source.EndsWith("'"))
+                if (source.Length >= 2 && source.StartsWith('\'') && source.EndsWith('\''))
                     source = source.Substring(1, source.Length - 2);
 
                 return Guid.Parse(source);
@@ -307,10 +308,7 @@ namespace WuicCore.Controllers
 
                 try
                 {
-                    object parsed = JsonSerializer.Deserialize(item.Value.GetRawText(), p.PropertyType, new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true
-                    });
+                    object parsed = JsonSerializer.Deserialize(item.Value.GetRawText(), p.PropertyType, CaseInsensitiveJsonOptions);
                     p.SetValue(entity, parsed);
                 }
                 catch
@@ -460,10 +458,7 @@ namespace WuicCore.Controllers
                 object parsed;
                 try
                 {
-                    parsed = JsonSerializer.Deserialize(item.Value.GetRawText(), mapped.Property.PropertyType, new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true
-                    });
+                    parsed = JsonSerializer.Deserialize(item.Value.GetRawText(), mapped.Property.PropertyType, CaseInsensitiveJsonOptions);
                 }
                 catch
                 {
@@ -548,7 +543,7 @@ namespace WuicCore.Controllers
             using var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                if (!reader.IsDBNull(0))
+                if (!await reader.IsDBNullAsync(0))
                     result.Add(reader.GetString(0));
             }
 
@@ -562,7 +557,7 @@ namespace WuicCore.Controllers
             public bool EnableDelete { get; set; }
         }
 
-        private WriteFlags? TryGetWriteFlagsFromMetadata(string entityset)
+        private static WriteFlags? TryGetWriteFlagsFromMetadata(string entityset)
         {
             try
             {
@@ -594,9 +589,9 @@ namespace WuicCore.Controllers
 
                 return new WriteFlags
                 {
-                    EnableInsert = reader.IsDBNull(0) ? false : Convert.ToBoolean(reader.GetValue(0)),
-                    EnableEdit = reader.IsDBNull(1) ? false : Convert.ToBoolean(reader.GetValue(1)),
-                    EnableDelete = reader.IsDBNull(2) ? false : Convert.ToBoolean(reader.GetValue(2))
+                    EnableInsert = !reader.IsDBNull(0) && Convert.ToBoolean(reader.GetValue(0)),
+                    EnableEdit = !reader.IsDBNull(1) && Convert.ToBoolean(reader.GetValue(1)),
+                    EnableDelete = !reader.IsDBNull(2) && Convert.ToBoolean(reader.GetValue(2))
                 };
             }
             catch
@@ -606,7 +601,7 @@ namespace WuicCore.Controllers
             }
         }
 
-        private int? TryGetForcedTopFromMetadata(string entityset)
+        private static int? TryGetForcedTopFromMetadata(string entityset)
         {
             try
             {
@@ -645,173 +640,52 @@ namespace WuicCore.Controllers
 
         //// Get entityset
         //// odata/{datasource}/{entityset}
-        //public EdmEntityObjectCollection Get(string datasource)
-        //{
         //    // Get entity set's EDM type: A collection type.
-        //    ODataPath path = Request.ODataFeature().Path;
-        //    IEdmCollectionType collectionType = (IEdmCollectionType)path.Last().EdmType;
-        //    IEdmEntityTypeReference edmEntityTypeReference = collectionType.ElementType.AsEntity();
-        //    var edmEntityType = edmEntityTypeReference.EntityDefinition();
 
         //    //Set the SelectExpandClause on OdataFeature to include navigation property set in the $expand
-        //    SetSelectExpandClauseOnODataFeature(path, edmEntityType);
 
         //    // Create an untyped collection with the EDM collection type.
-        //    EdmEntityObjectCollection collection =
-        //        new EdmEntityObjectCollection(new EdmCollectionTypeReference(collectionType));
 
         //    // Add untyped objects to collection.
-        //    IDataSource ds = _provider.DataSources[datasource];
-        //    ds.Get(edmEntityTypeReference, collection);
 
-        //    return collection;
-        //}
 
-        //private void SetSelectExpandClauseOnODataFeature(ODataPath odataPath, IEdmType edmEntityType)
-        //{
-        //    IDictionary<string, string> options = new Dictionary<string, string>();
-        //    foreach (var k in Request.Query.Keys)
-        //    {
-        //        options.Add(k, Request.Query[k]);
-        //    }
 
         //    //At this point, we should have valid entity segment and entity type.
         //    //If there is invalid entity in the query, then OData routing should return 404 error before executing this api
-        //    var segment = odataPath.FirstSegment as EntitySetSegment;
-        //    IEdmNavigationSource source = segment?.EntitySet;
-        //    ODataQueryOptionParser parser = new(Request.GetModel(), edmEntityType, source, options);
-        //    parser.Resolver.EnableCaseInsensitive = true;
 
         //    //Set the SelectExpand Clause on the ODataFeature otherwise  Odata formatter won't show the expand and select properties in the response.
-        //    Request.ODataFeature().SelectExpandClause = parser.ParseSelectAndExpand();
-        //}
 
         #region People
 
         //[EnableQuery]
-        //[HttpGet("odata/People")]
-        //public IActionResult GetPeople()
-        //{
-        //    return Ok(_context.People);
-        //}
 
         //[EnableQuery]
-        //[HttpGet("odata/People({key})")]
-        //public IActionResult GetPeople(int key)
-        //{
-        //    _logger.TraceMethodEntry();
 
-        //    if (!ModelState.IsValid)
-        //    {
-        //        return _applicationErrorHandler.HandleInvalidModelState(HttpContext, ModelState);
-        //    }
 
-        //    var entity = _context.People.Where(x => x.PersonId == key);
 
-        //    if (!entity.Any())
-        //    {
-        //        throw new EntityNotFoundException
-        //        {
-        //            EntityName = nameof(Person),
-        //            EntityId = key
-        //        };
-        //    }
 
-        //    return Ok(SingleResult.Create(entity));
-        //}
 
-        //[HttpPost("odata/People")]
-        //public IActionResult PostPerson([FromBody]Person entity, CancellationToken token)
-        //{
-        //    _logger.TraceMethodEntry();
 
-        //    if (!ModelState.IsValid)
-        //    {
-        //        return _applicationErrorHandler.HandleInvalidModelState(HttpContext, ModelState);
-        //    }
 
-        //    _context.Add(entity);
-        //    _context.SaveChanges();
 
-        //    return Created(entity);
-        //}
 
-        //[HttpPut("odata/People({key})")]
-        //public IActionResult PutPerson(int key, [FromBody] Person entity)
-        //{
-        //    _logger.TraceMethodEntry();
 
-        //    if (!ModelState.IsValid)
-        //    {
-        //        return _applicationErrorHandler.HandleInvalidModelState(HttpContext, ModelState);
-        //    }
 
-        //    var original = _context.People.Find(key);
 
-        //    if (original == null)
-        //    {
-        //        throw new EntityNotFoundException 
-        //        {
-        //            EntityName = nameof(Person),
-        //            EntityId = key
-        //        };
-        //    }
 
-        //    _context.Entry(original)
         //        .CurrentValues
-        //        .SetValues(entity);
 
-        //    _context.SaveChanges();
 
-        //    return Ok(original);
-        //}
 
-        //[HttpPatch("odata/People({key})")]
-        //public IActionResult PatchPerson(int key, Delta<Person> delta)
-        //{
-        //    _logger.TraceMethodEntry();
 
-        //    if (!ModelState.IsValid)
-        //    {
-        //        return _applicationErrorHandler.HandleInvalidModelState(HttpContext, ModelState);
-        //    }
 
-        //    var original = _context.People.Find(key);
 
-        //    if (original == null)
-        //    {
-        //        throw new EntityNotFoundException
-        //        {
-        //            EntityName = nameof(Person),
-        //            EntityId = key
-        //        };
-        //    }
 
-        //    delta.Patch(original);
 
-        //    _context.SaveChanges();
 
-        //    return Updated(original);
-        //}
 
-        //[HttpDelete("odata/People({key})")]
-        //public IActionResult DeletePerson(int key)
-        //{
-        //    var original = _context.People.Find(key);
 
-        //    if (original == null)
-        //    {
-        //        throw new EntityNotFoundException
-        //        {
-        //            EntityName = nameof(Person),
-        //            EntityId = key
-        //        };
-        //    }
 
-        //    _context.People.Remove(original);
-        //    _context.SaveChanges();
-        //    return Ok();
-        //}
 
 
         #endregion People

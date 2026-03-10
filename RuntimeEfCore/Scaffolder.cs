@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
@@ -26,7 +26,6 @@ namespace RuntimeEfCore
     {
         public static Assembly Scaffold(string connectionString)
         {
-            //var connectionString = "data source=localhost\\sqlexpress;integrated security=False;User ID=sa;Password=superlamelauser;Persist Security Info=true;initial catalog=Kiara_Gabel;Encrypt=False";
             Assembly currentAssembly = Assembly.GetExecutingAssembly();
 
             var scaffolder = CreateMssqlScaffolder();
@@ -73,13 +72,10 @@ namespace RuntimeEfCore
         {
             Assembly assembly = Scaffold(connectionString);
 
-            //var generator = new Lokad.ILPack.AssemblyGenerator();
 
             //// for ad-hoc serialization
-            //var bytes = generator.GenerateAssemblyBytes(assembly);
 
             //// direct serialization to disk
-            //generator.GenerateAssembly(assembly, "/ass.dll");
         }
 
         private static CSharpCompilation GenerateCode(List<string> sourceFiles, bool enableLazyLoading)

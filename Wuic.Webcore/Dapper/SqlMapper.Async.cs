@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
@@ -452,7 +452,6 @@ namespace Dapper
                     }
                     else
                     {
-                        // can't use ReadAsync / cancellation; but this will have to do
                         wasClosed = false; // don't close if handing back an open reader; rely on the command-behavior
                         var deferred = ExecuteReaderSync<T>(reader, func, command.Parameters);
                         reader = null; // to prevent it being disposed before the caller gets to see it
@@ -1051,7 +1050,6 @@ namespace Dapper
 
                 var result = new GridReader(cmd, reader, identity, command.Parameters as DynamicParameters, command.AddToCache, command.CancellationToken);
                 wasClosed = false; // *if* the connection was closed and we got this far, then we now have a reader
-                // with the CloseConnection flag, so the reader will deal with the connection; we
                 // still need something in the "finally" to ensure that broken SQL still results
                 // in the connection closing itself
                 return result;

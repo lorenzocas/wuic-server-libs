@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
@@ -73,13 +73,10 @@ namespace RuntimeEfCore
 
             Assembly assembly = Scaffold(connectionString);
 
-            //var generator = new Lokad.ILPack.AssemblyGenerator();
 
             //// for ad-hoc serialization
-            //var bytes = generator.GenerateAssemblyBytes(assembly); // , new List<Assembly>() { currentAssembly }
 
             //// direct serialization to disk
-            //generator.GenerateAssembly(assembly, "/ass.dll");
         }
 
         private static CSharpCompilation GenerateCode(List<string> sourceFiles, bool enableLazyLoading)

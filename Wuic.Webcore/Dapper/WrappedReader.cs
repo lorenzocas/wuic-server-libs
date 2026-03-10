@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Data;
 using System.Data.Common;
@@ -81,9 +81,6 @@ namespace Dapper
     {
         // the purpose of wrapping here is to allow closing a reader to *also* close
         // the command, without having to explicitly hand the command back to the
-        // caller; what that actually looks like depends on what we get: if we are
-        // given a DbDataReader, we will surface a DbDataReader; if we are given
-        // a raw IDataReader, we will surface that; and if null: null
         public static IDataReader Create(IDbCommand cmd, IDataReader reader)
         {
             if (cmd == null) return reader; // no need to wrap if no command

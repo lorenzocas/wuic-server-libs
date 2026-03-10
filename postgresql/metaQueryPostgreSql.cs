@@ -6,7 +6,6 @@ using System.Security.Authentication;
 using System.Web;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
-//using System.Linq.Dynamic;
 using System.Data.SqlClient;
 using Dapper;
 using System.Configuration;
@@ -36,7 +35,6 @@ namespace metaModelRaw
         public static string buildChartSelect(string chartType, string route, string user_id, string aggregationFunction, string valueField, FilterInfos filters, string categoryAxFld)
         {
             chartType tipo = (chartType)Enum.Parse(typeof(chartType), chartType);
-            //rawPagedResult pr = metaQuery.getFlatData(user_id, route, lookup_table_id, SortInfo, GroupInfo, PageInfo, filterInfo, logicOperator, has_server_operation, aggregates, columnRestrictionList);
 
             //route:                utenti
             //chartType:            bar
@@ -135,7 +133,6 @@ namespace metaModelRaw
             return safetable_name;
         }
 
-        //public static readonly string connectionString = ConfigurationManager.ConnectionStrings["PagelleSQLConnection"].ConnectionString;
 
         public static NpgsqlConnection GetContentConnection()
         {
@@ -483,7 +480,7 @@ namespace metaModelRaw
 
         public static void logOut(user user)
         {
-            if (bool.Parse(ConfigHelper.GetSettingAsString("enableCookieAuthentication")) == true)
+            if (bool.Parse(ConfigHelper.GetSettingAsString("enableCookieAuthentication")))
             {
                 using (metaRawModel context = new metaRawModel())
                 {
@@ -495,7 +492,6 @@ namespace metaModelRaw
                 }
             }
 
-            //HttpContext.Current.Session.Abandon();
             if (HttpContext.Current?.Request?.Cookies["user"] != null)
             {
                 HttpContext.Current.Response.Cookies["userId"].Expires = DateTime.Now.AddDays(-1);
@@ -559,7 +555,7 @@ namespace metaModelRaw
                 {
                     user u = mapUserFields(infos, user);
 
-                    if (bool.Parse(ConfigHelper.GetSettingAsString("enableCookieAuthentication")) == true)
+                    if (bool.Parse(ConfigHelper.GetSettingAsString("enableCookieAuthentication")))
                     {
                         string iP = HttpContext.Current.Request.UserHostAddress;
                         string token = Guid.NewGuid().ToString();
@@ -858,8 +854,6 @@ namespace metaModelRaw
                                 throw new Exception(ex1.Message + "****EXECUTED QUERY:****" + query);
                             else
                             {
-                                //List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)connection.Query(query.Replace(" DISTINCT ", " "));
-                                //return new rawPagedResult() { results = rows, TotalRecords = rows.Count, Agg = null };
                                 return new rawPagedResult() { results = new List<Dapper.SqlMapper.FastExpando>(), TotalRecords = 0, Agg = null };
                             }
                         }
@@ -897,8 +891,6 @@ namespace metaModelRaw
 
                 using (NpgsqlConnection connection = GetOpenConnection(RawHelpers.checkIsMetaData(route), tab.md_conn_name))
                 {
-                    //try
-                    //{
 
                     query = BuildDynamicSelectQuery(lst, SortInfo, GroupInfo, PageInfo, filterInfo, logicOperator, has_server_operation, connection, out totalRecords, aggregates, out aggregateValues, user_id, formula_lookup, mc_id);
 
@@ -910,7 +902,7 @@ namespace metaModelRaw
                     if (!skipNested)
                         ParseGridColumns(lst, user_id, rows);
 
-                    if (tab.md_server_side_operations == false && aggregates != null)
+                    if (!tab.md_server_side_operations && aggregates != null)
                     {
                         foreach (AggregationInfo agg in aggregates)
                         {
@@ -958,12 +950,6 @@ namespace metaModelRaw
                     return new rawPagedResult() { results = rows, TotalRecords = totalRecords, Agg = aggregateValues, TotalGroups = (GroupInfo != null && GroupInfo.Count > 0 ? GroupInfo[0].groupCount : 0) };
 
 
-                    //}
-                    //catch (Exception ex)
-                    //{
-                    //    RawHelpers.logError(ex, "getFlatData", query);
-                    //    throw ex;
-                    //}
                 }
             }
             else
@@ -984,7 +970,6 @@ namespace metaModelRaw
                     using (NpgsqlConnection connection = metaQueryPostgreSql.GetOpenConnection(false, metaStored.md_conn_name))
                     {
                         stored = RawHelpers.getStorePrefix(metaStored, "postgresql") + RawHelpers.getDBEntityQuoteSymbol("postgresql") + metaStored.md_nome_tabella + RawHelpers.getDBEntityQuoteSymbol("postgresql", false);
-                        //var storedProc = db.StoredProcedures[stored];
 
                         NpgsqlCommand cmd = new NpgsqlCommand(stored, connection);
 
@@ -1052,8 +1037,6 @@ namespace metaModelRaw
                                     int? size = new int?();
 
                                     DbType? dbtype = new DbType?();
-                                    //if (pair.Type == "ref_cursor")
-                                    //    dbtype = OracleDbType.RefCursor;
 
                                     ParameterDirection? pDir = new ParameterDirection?();
                                     if (pair.isOut)
@@ -1071,7 +1054,6 @@ namespace metaModelRaw
                         }
 
                         //test stored with normal out params, multiple output normal param, cursor + normal output param -> bind
-                        //check expected parameter count da propsbag -> se non è 0 ma non ci sono parametri in dbArgs-> skippa esecuzione (no exception)
                         if (parameterDefinition != null && parameterDefinition.Count != parameters.Count)
                             return new rawPagedResult() { results = new List<Dapper.SqlMapper.FastExpando>(), TotalRecords = 0 };
 
@@ -1242,7 +1224,7 @@ namespace metaModelRaw
                 {
 
                     Dictionary<string, object> entity = new Dictionary<string, object>();
-                    entity.Add(metadata.FirstOrDefault(x => x.mc_is_primary_key == true).mc_nome_colonna, id);
+                    entity.Add(metadata.FirstOrDefault(x => x.mc_is_primary_key).mc_nome_colonna, id);
 
                     _Metadati_Colonne logic_del_key = metadata.FirstOrDefault(x => x.mc_is_logic_delete_key == true);
                     if (logic_del_key != null)
@@ -1293,8 +1275,6 @@ namespace metaModelRaw
 
                     RawHelpers.setMetadataVersion(metadata.FirstOrDefault()._Metadati_Tabelle);
 
-                    //if (route == " metadati  colonne" || route == " metadati  tabelle" || route == "Autorizzazioni colonne" || route == "Autorizzazioni tabelle")
-                    //    RawHelpers.updateModelAndServices();
 
                     return connection.Execute(NormalizeSql(query)).ToString();
                 }
@@ -1333,7 +1313,7 @@ namespace metaModelRaw
                 {
                     if (string.IsNullOrEmpty(parent_id))
                     {
-                        if (sameLevel == true)
+                        if (sameLevel)
                         {
 
                         }
@@ -1344,7 +1324,7 @@ namespace metaModelRaw
                     }
                     else
                     {
-                        if (sameLevel == true)
+                        if (sameLevel)
                         {
                             entity.Add(col.mc_nome_colonna, parent_id);
                         }
@@ -1402,19 +1382,6 @@ namespace metaModelRaw
                     List<_Metadati_Colonne_Upload> upload_fixes = metadata.OfType<_Metadati_Colonne_Upload>().ToList();
                     List<_Metadati_Colonne_Grid> multiple_check_fixes = metadata.OfType<_Metadati_Colonne_Grid>().ToList();
 
-                    //upload_fixes.ForEach(upload_fix =>
-                    //{
-                    //    if (upload_fix != null)
-                    //    {
-                    //        if (entity[upload_fix.mc_nome_colonna] != null)
-                    //        {
-                    //            if (!string.IsNullOrEmpty(upload_fix.thumbNameField))
-                    //            {
-                    //                entity[upload_fix.thumbNameField] = "";
-                    //            }
-                    //        }
-                    //    }
-                    //});
 
                     string result = connection.Execute(NormalizeSql(query)).ToString();
 
@@ -1443,13 +1410,13 @@ namespace metaModelRaw
                             string localfield = colGrid.mc_ui_grid_manytomany_related_id_field;
                             if (subEntity.ContainsKey("___added") && subEntity["___added"] != null)
                             {
-                                if ((bool)subEntity["___added"] == true)
+                                if ((bool)subEntity["___added"])
                                 {
                                     if (subEntity.ContainsKey("___deleted"))
                                     {
                                         object deleted = subEntity["___deleted"];
                                         if (deleted != null)
-                                            if ((bool)deleted == true)
+                                            if ((bool)deleted)
                                                 continue;
                                     }
 
@@ -1465,9 +1432,9 @@ namespace metaModelRaw
 
                                 }
                             }
-                            else if (subEntity.ContainsKey("___deleted") && (bool)subEntity["___deleted"] == true)
+                            else if (subEntity.ContainsKey("___deleted") && (bool)subEntity["___deleted"])
                             {
-                                if ((bool)subEntity["___selected"] == true)
+                                if ((bool)subEntity["___selected"])
                                 {
                                     subEntity[colGrid.mc_ui_grid_manytomany_related_id_field] = subEntity[colGrid.mc_ui_grid_related_id_field];
                                     subEntity[colGrid.mc_ui_grid_manytomany_local_id_field] = entity[colGrid.mc_ui_grid_local_id_field];
@@ -1531,8 +1498,6 @@ namespace metaModelRaw
                         }
                     });
 
-                    //if (route == " metadati  colonne" || route == " metadati  tabelle" || route == "Autorizzazioni colonne" || route == "Autorizzazioni tabelle")
-                    //    RawHelpers.updateModelAndServices();
 
                     if (!string.IsNullOrEmpty(metadata.First()._Metadati_Tabelle.md_after_save_server_method_name))
                     {
@@ -1547,7 +1512,6 @@ namespace metaModelRaw
             {
                 RawHelpers.logError(ex, "insertFlatData", query);
                 throw ex;
-                //throw new Exception(EX.Message + "****EXECUTED QUERY:****" + query);
             }
 
         }
@@ -1720,7 +1684,7 @@ namespace metaModelRaw
             using (metaRawModel mmd = new metaRawModel())
             {
                 _Metadati_Tabelle tab = lst.First()._Metadati_Tabelle;
-                _Metadati_Colonne pKey = lst.FirstOrDefault(x => x.mc_is_primary_key == true);
+                _Metadati_Colonne pKey = lst.FirstOrDefault(x => x.mc_is_primary_key);
                 string safetableName = GetSafeTableName(tab);
                 _Metadati_Colonne_Lookup lookuprelatedCol = null;
 
@@ -2239,11 +2203,9 @@ namespace metaModelRaw
                 lst.ForEach((fld) =>
                 {
 
-                    //string safeColumnName = escapeDBObjectName(RawHelpers.getStoreColumnName(fld));
                     string safeAlias = EscapeDBObjectName(fld.mc_nome_colonna);
 
                     string currentFld = GetCurrentFieldString(tab, fld);
-                    //string computed_column_alias = "";
 
                     _Metadati_Colonne_Lookup col = fld as _Metadati_Colonne_Lookup;
                     if (col != null)
@@ -2318,7 +2280,6 @@ namespace metaModelRaw
 
             if (col.mc_ui_lookup_dataValueField != "mc_nome_colonna")
             {
-                //join_list += string.Format(" LEFT JOIN {0} AS {3} on {1} = {2} ", safeEntityName, current_fld, safeUniqueEntityName + "." + escapeDBObjectName(col.mc_ui_lookup_dataValueField), safeUniqueEntityName);
                 if (ap == null)
                 {
                     string joinn = string.Format(" LEFT JOIN {0} AS {3} ON {1} = {2} ", safeEntityName, currentFld, safeUniqueEntityName + "." + EscapeDBObjectName(col.mc_ui_lookup_dataValueField), safeUniqueEntityName);
@@ -2353,11 +2314,8 @@ namespace metaModelRaw
                                             }
                                             else
                                             {
-                                                //if (join_list.IndexOf(join_part) < 0) //sempre TRUE
-                                                //{
                                                 joinn += joinPart;
                                                 joins[currentAP] = joinn;
-                                                //}
                                             }
                                         }
                                     }
@@ -2471,7 +2429,6 @@ namespace metaModelRaw
                         long tot;
                         List<AggregationResult> ar;
 
-                        //string safeTableName = (string.IsNullOrEmpty(mmTable.md_db_name) ? "" : "[" + mmTable.md_db_name + "]." + (!string.IsNullOrEmpty(mmTable.md_schema_name) ? "[" + mmTable.md_schema_name + "]" : "") + ".") + escapeDBObjectName(mmTable.md_nome_tabella);
 
                         string safeTableName = RawHelpers.getStoreTableName(mmTable, "mssql");
                         string localTableName = RawHelpers.getStoreTableName(tabel, "mssql");
@@ -2500,18 +2457,10 @@ namespace metaModelRaw
                                 ////******************BETTER SOLUTION****************************************
                                 //SELECT [hts1].[config].[Utente].[UtenteId] AS [UtenteId], [hts1].[config].[Utente].[UserName] AS [UserName],  ''  AS [colonna_002_testo], [hts1].[config].[Utente].[AziendaId] AS [AziendaId], [hts1].[config].[Utente].[FlAgente] AS [FlAgente], [hts1].[config].[Utente].[FlPartner] AS [FlPartner], [hts1].[config].[Utente].[FlSegnalatore] AS [FlSegnalatore], [hts1].[config].[Utente].[FlAmministratore] AS [FlAmministratore], [hts1].[config].[Utente].[FlFiltroProvincie] AS [FlFiltroProvincie] 
                                 //FROM [hts1].[config].[Utente]     
-                                //where [hts1].[config].[Utente].AziendaId = 2 and 
-                                //( 
                                 //    UtenteId IN 
-                                //    (
                                 //        select M.UtenteId
                                 //        from [config].[Utente] M
-                                //        inner join [config].[UtentiProvincie] D on M.UtenteId=D.UtenteId
-                                //        where D.ProvinciaId in ('AG', 'AO')
                                 //        group by M.UtenteId
-                                //        having count(*)=2
-                                //    )
-                                //)
                                 ////*************************************************************************
 
                                 FilterInfos fiComplexNest = new FilterInfos();
@@ -2763,11 +2712,6 @@ namespace metaModelRaw
                 }
 
                 string async_extra_condition = "";
-                //if (fld.mc_ui_column_type == "lookupByID")
-                //{
-                //    if(((_Metadati_Colonne_Lookup) fld).mc_ui_pagesize.HasValue)
-                //        //async_extra_condition = string.Format(" OR {0} = {1}", p_key.mc_nome_colonna);
-                //}
 
                 if (f.value != null)
                     f.value = EscapeValue(f.value).ToString();
@@ -2787,7 +2731,6 @@ namespace metaModelRaw
                 if (fld.mc_ui_column_type == "datetime" && f.value != null && f.value != "")
                 {
                     //se f.value è del format YYYY-MM-ddTHH:mm:ssZ -> il DateTime.Parse applica UTC time. 
-                    //se f.value è del format YYYY-MM-ddTHH:mm:ss (senza la Z finale) il DateTime.Parse mantiene l'ora corretta !!!!
                     string parsed = f.value.ToString().Replace(@"""", "");
                     DateTime d = DateTime.Parse(parsed);
                     f.value = d.ToString("yyyyMMdd HH:mm:ss").Replace(".", ":");
@@ -3077,11 +3020,6 @@ namespace metaModelRaw
 
         private static void AppendLoggingInsertFields(ref string fieldList, ref string valueList, _Metadati_Tabelle tabel, string userId, IDictionary<string, object> entity)
         {
-            //if (!string.IsNullOrEmpty(tabel.md_user_id_field_name))
-            //{
-            //    field_list += (field_list == "" ? "" : ", ") + tabel.md_user_id_field_name;
-            //    value_list += (value_list == "" ? "" : ", ") + "'" + user_id + "'";
-            //}
             if (!string.IsNullOrEmpty(tabel.md_logging_insert_date_field_name))
             {
                 if (tabel.md_logging_insert_date_field_name.Contains(","))
@@ -3281,7 +3219,6 @@ namespace metaModelRaw
                         string row_id = row.data[pkey.mc_nome_colonna].ToString();
 
                         List<Dictionary<string, object>> relatedFullDataClone = GetManyToManyOptions(localKeyName, row_id, pkey, userId, grid_col, row, relatedKeyName, manyToManyKey);
-                        //List<Dictionary<string, object>> relatedFullDataClone = getManyToManyOptions(localKeyName, row_id, pkey, user_id, grid_col, relatedFullData, row, relatedKeyName, manyToManyKey);
 
                         row.data[grid_col.mc_nome_colonna] = relatedFullDataClone;
                     }
@@ -3317,7 +3254,6 @@ namespace metaModelRaw
                     if (selected != null)
                     {
                         cloned[manyToManyKey.mc_nome_colonna] = selected.data[manyToManyKey.mc_nome_colonna];
-                        //cloned[grid_col.mc_ui_grid_local_id_field] = selected.data[grid_col.mc_ui_grid_local_id_field];
                         cloned["___selected"] = true;
                     }
                     else
@@ -3363,10 +3299,7 @@ namespace metaModelRaw
 
             if (tabel.md_is_reticular)
             {
-                //field_list += (field_list == "" ? "" : ", ") + tabel.reticular_key_name;
-                //value_list += (value_list == "" ? "" : ", ") + tabel.reticular_key_value;
                 table_name = "tabella_reticolare";
-                //safetable_name = (string.IsNullOrEmpty(tabel.md_db_name) ? "" : "[" + tabel.md_db_name + "]." + (!string.IsNullOrEmpty(tabel.md_schema_name) ? "[" + tabel.md_schema_name + "]" : "") + ".") + escapeDBObjectName(table_name);            Dictionary<string, object> original = (Dictionary<string, object>)(entity["__original"]);
 
             }
 
@@ -3418,7 +3351,7 @@ namespace metaModelRaw
 
             string safetable_name = GetTableName(tabel);
 
-            metadata.Where(x => x.mc_is_computed == false || x.GetType() == typeof(_Metadati_Colonne_Grid)).ToList().ForEach((fld) =>
+            metadata.Where(x => x.mc_is_computed != true || x.GetType() == typeof(_Metadati_Colonne_Grid)).ToList().ForEach((fld) =>
             {
                 if (tabel.md_logging_enable)
                 {
@@ -3515,7 +3448,7 @@ namespace metaModelRaw
                     {
                         if (valore.GetType() is bool)
                         {
-                            if ((bool)valore == false)
+                            if (!(bool)valore)
                                 valore = 0;
                             else
                                 valore = 1;
@@ -3558,7 +3491,6 @@ namespace metaModelRaw
                     {
                         Pair point = RawHelpers.pointStringToPoint(valore.ToString(), "mssql");
                         valore = string.Format("geography::STGeomFromText('POINT({0} {1})', 8307)", point.First.ToString(), point.Second.ToString());
-                        //quote = "";
                     }
                 }
                 else if (fld.mc_db_column_type == "geometry")
@@ -3566,7 +3498,6 @@ namespace metaModelRaw
                     if (valore != null)
                     {
                         valore = string.Format("geography::STGeomFromText('{0}', 8307)", valore);
-                        //quote = "";
                     }
                 }
 
@@ -3591,13 +3522,13 @@ namespace metaModelRaw
                         {
                             Dictionary<string, object> subEntity = (Dictionary<string, object>)item;
                             string localfield = colGrid.mc_ui_grid_manytomany_related_id_field;
-                            if (subEntity.ContainsKey("___added") && (bool)subEntity["___added"] == true)
+                            if (subEntity.ContainsKey("___added") && (bool)subEntity["___added"])
                             {
                                 if (subEntity.ContainsKey("___deleted"))
                                 {
                                     object deleted = subEntity["___deleted"];
                                     if (deleted != null)
-                                        if ((bool)deleted == true)
+                                        if ((bool)deleted)
                                             continue;
                                 }
 
@@ -3610,7 +3541,7 @@ namespace metaModelRaw
                                 string insertedID = InsertflatData(subEntity, subRoute, userId);
 
                             }
-                            else if (subEntity.ContainsKey("___deleted") && subEntity["___deleted"] != null && (bool)subEntity["___deleted"] == true)
+                            else if (subEntity.ContainsKey("___deleted") && subEntity["___deleted"] != null && (bool)subEntity["___deleted"])
                             {
                                 subEntity[colGrid.mc_ui_grid_manytomany_related_id_field] = subEntity[colGrid.mc_ui_grid_related_id_field];
                                 subEntity[colGrid.mc_ui_grid_manytomany_local_id_field] = entity[colGrid.mc_ui_grid_local_id_field];
@@ -3745,9 +3676,6 @@ namespace metaModelRaw
                     else
                     {
 
-                        //Guid uo;
-                        //if(Guid.TryParse(entity[fld.mc_nome_colonna].ToString(), out uo))
-                        //    throw new ValidationException("Please refresh the grid before delete !");
 
                         int ou;
                         string quote = "";
@@ -3865,16 +3793,10 @@ namespace metaModelRaw
                             }
                             else if (col.mc_db_column_type == "point")
                             {
-                                //field_compare = string.Format("{0}.ToString()", field_compare);
-                                //Pair point = RawHelpers.pointStringToPoint(valore, "mssql");
-                                //valore = string.Format("POINT({0} {1})", point.First.ToString(), point.Second.ToString());
-                                //quote = "'";
                                 continue;
                             }
                             else if (col.mc_db_column_type == "geometry")
                             {
-                                //field_compare = string.Format("{0}.ToString()", field_compare);
-                                //quote = "'";
                                 continue;
                             }
 
@@ -3927,7 +3849,7 @@ namespace metaModelRaw
                 safetable_name = (string.IsNullOrEmpty(tabel.md_db_name) ? "" : "[" + tabel.md_db_name + "]." + (!string.IsNullOrEmpty(tabel.md_schema_name) ? "[" + tabel.md_schema_name + "]" : "") + ".") + EscapeDBObjectName(table_name);
             }
 
-            metadata.Where(x => x.mc_is_computed == false).ToList().ForEach((fld) =>
+            metadata.Where(x => x.mc_is_computed != true).ToList().ForEach((fld) =>
             {
                 string safecolumn_name = EscapeDBObjectName(RawHelpers.getStoreColumnName(fld));
                 string current_fld = safetable_name + "." + safecolumn_name;
@@ -4055,7 +3977,7 @@ namespace metaModelRaw
                         {
                             if (valore.GetType() is bool)
                             {
-                                if ((bool)valore == false)
+                                if (!(bool)valore)
                                     valore = 0;
                                 else
                                     valore = 1;
@@ -4103,7 +4025,6 @@ namespace metaModelRaw
                         {
                             Pair point = RawHelpers.pointStringToPoint(valore.ToString(), "mssql");
                             valore = string.Format("geography::STGeomFromText('POINT({0} {1})', 8307)", point.First.ToString(), point.Second.ToString());
-                            //quote = "";
                         }
                     }
                     else if (fld.mc_db_column_type == "geometry")
@@ -4111,7 +4032,6 @@ namespace metaModelRaw
                         if (valore != null)
                         {
                             valore = string.Format("geography::STGeomFromText('{0}', 8307)", valore);
-                            //quote = "";
                         }
                     }
 
@@ -4186,13 +4106,10 @@ namespace metaModelRaw
                                 string tmp_path = System.IO.Path.Combine(pth, entity[fld.mc_nome_colonna].ToString());
 
                                 ////serialize
-                                //byte[] bytes = System.IO.File.ReadAllBytes(tmp_path);
-                                //string hexString = RawHelpers.convertByteToHexString(bytes); //"0x" + 
 
                                 //append to query
                                 value_list += (value_list == "" ? "" : ", ") + "(" + "SELECT * FROM OPENROWSET (BULK '" + tmp_path.Replace("'", "''") + "', SINGLE_BLOB) " + uploader.MultipleUploadBlobFieldName + ")";
 
-                                //remove file (better to wait after successfull commit)
                                 //...
 
                             }
@@ -4276,12 +4193,9 @@ namespace metaModelRaw
         }
 
         //Clones Entity + First Level related entities
-        //to clone nested(level>1) routes enable and use "nestedRoute" Property of routePair (client-side and server-side)
         public static string CloneData(IDictionary<string, object> entity, string route, string user_id, List<routePair> relatedRouteToClone)
         {
             string query = "";
-            //try
-            //{
             List<_Metadati_Colonne> metadata = _Metadati_Colonne.getColonneByUserID(route, 0, user_id, dataMode.insert, null);
             List<_Metadati_Colonne> pkeys = metadata.Where(x => x.mc_is_primary_key).ToList();
             _Metadati_Tabelle tab = _Metadati_Tabelle.getTableMetadataFromRoute(route);
@@ -4341,12 +4255,6 @@ namespace metaModelRaw
 
             }
 
-            //}
-            //catch (Exception EX)
-            //{
-            //    RawHelpers.logError(EX, "cloneData", query);
-            //    throw new Exception(EX.Message + "****EXECUTED QUERY:****" + query);
-            //}
         }
 
         private static void ManageMaxKeyType(_Metadati_Tabelle tabel, _Metadati_Colonne fld, List<_Metadati_Colonne> pks, IDictionary<string, object> entity, string safecolumnName, string safetableName)
@@ -4666,16 +4574,7 @@ namespace metaModelRaw
                     }
                 }
 
-                //SortInfo.Where(x => x.field != null).ToList().ForEach(x =>
-                //{
-                //    _Metadati_Colonne col = context._Metadati_Colonnes.FirstOrDefault(x => x.mc_id == def.realID);
-                //    appendSort(col, order_safetable_name, orderby_clause, x.dir);
-                //    orderby_clause += (string.IsNullOrEmpty(orderby_clause) ? "" : ", ") + x.field + " " + x.dir;
-                //});
 
-                //filterInfo.filters.ForEach(x =>
-                //{
-                //});
 
                 string ret = "";
 
@@ -4686,7 +4585,6 @@ namespace metaModelRaw
 
                     int skiprecords = (PageInfo.currentPage - 1) * PageInfo.pageSize;
 
-                    //dovresti ordinare in base a tutte le pkey presenti nelle tabelle coinvolte(se c'è group by ordina per le colonne grouppate)
                     string fix_order;
 
                     if (!string.IsNullOrEmpty(groupby_clause))

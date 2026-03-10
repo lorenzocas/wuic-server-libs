@@ -1,4 +1,4 @@
-﻿using WuicCore.Server.Api.Infrastructure.Errors;
+using WuicCore.Server.Api.Infrastructure.Errors;
 using WuicCore.Server.Api.Infrastructure.Spatial;
 using WuicCore.Server.Api.Models;
 using WuicCore.Server.Database;
@@ -18,6 +18,9 @@ namespace WuicOData
 {
     public static class Configurator
     {
+    private const string KonvergenceCoreFolderName = "KonvergenceCore";
+    private const string KonvergenceAppConfigFileName = "app.config";
+
         public static void ConfigureService(IServiceCollection services)
         {
             // ── DynamicModelService ──────────────────────────────────────
@@ -51,8 +54,6 @@ namespace WuicOData
             services.AddSingleton<ApplicationErrorHandler>();
 
             // ── OData ────────────────────────────────────────────────────
-            // The EDM model is built with the persisted dynamic assembly (if any).
-            // After a Rebuild() + app restart the new types are present from boot.
             services
               .AddControllers()
               .AddOData((opt) =>
@@ -68,7 +69,6 @@ namespace WuicOData
                   .EnableQueryFeatures().Select().Expand().OrderBy().Filter().Count();
               });
 
-            //services.AddSwaggerGen();
         }
 
         public static void Configure(IApplicationBuilder app)
@@ -97,10 +97,10 @@ namespace WuicOData
         {
             var probes = new[]
             {
-                Path.Combine(Directory.GetCurrentDirectory(), "..", "KonvergenceCore", "app.config"),
-                Path.Combine(Directory.GetCurrentDirectory(), "KonvergenceCore", "app.config"),
-                Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "KonvergenceCore", "app.config"),
-                Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "KonvergenceCore", "app.config")
+                Path.Combine(Directory.GetCurrentDirectory(), "..", KonvergenceCoreFolderName, KonvergenceAppConfigFileName),
+                Path.Combine(Directory.GetCurrentDirectory(), KonvergenceCoreFolderName, KonvergenceAppConfigFileName),
+                Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", KonvergenceCoreFolderName, KonvergenceAppConfigFileName),
+                Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", KonvergenceCoreFolderName, KonvergenceAppConfigFileName)
             };
 
             return probes

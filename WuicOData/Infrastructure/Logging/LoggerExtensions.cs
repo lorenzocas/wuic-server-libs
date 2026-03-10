@@ -9,6 +9,12 @@ namespace WuicCore.Server.Api.Infrastructure.Logging
 {
     public static class LoggerExtensions
     {
+        private static readonly Action<ILogger, string, int?, string, Exception?> TraceMethodEntryLog =
+            LoggerMessage.Define<string, int?, string>(
+                LogLevel.Trace,
+                new EventId(0, nameof(TraceMethodEntry)),
+                "Method Entry (CallerFilePath = {CallerFilePath}, CallerLineNumber = {CallerLineNumber}, CallerMemberName = {CallerMemberName})");
+
         public static bool IsDebugEnabled<TLoggerType>(this ILogger<TLoggerType> logger)
         {
             return logger.IsEnabled(LogLevel.Debug);
@@ -43,8 +49,7 @@ namespace WuicCore.Server.Api.Infrastructure.Logging
         {
             if (logger.IsTraceEnabled())
             {
-                logger.LogTrace("Method Entry (CallerFilePath = {CallerFilePath}, CallerLineNumber = {CallerLineNumber}, CallerMemberName = {CallerMemberName})",
-                    callerFilePath, callerLineNumber, callerMemberName);
+                TraceMethodEntryLog(logger, callerFilePath ?? string.Empty, callerLineNumber, callerMemberName, null);
             }
         }
     }

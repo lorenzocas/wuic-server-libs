@@ -1,4 +1,4 @@
-﻿using MySql.Data.MySqlClient;
+using MySql.Data.MySqlClient;
 using System;
 using System.Data;
 using System.Linq;
@@ -115,10 +115,6 @@ namespace Dapper
             MySqlConnection myCon = cnn as MySqlConnection;
             if (myCon != null)
             {
-                //if(sql.IndexOf("_metadati__tabelle")>0)
-                //{
-                //    var t = "";
-                //}
 
                 sql = Regex.Replace(sql, @"\[dbo]\.", "", RegexOptions.IgnoreCase);
                 sql = Regex.Replace(sql, @"dbo\.", "", RegexOptions.IgnoreCase);
@@ -190,7 +186,6 @@ namespace Dapper
 
                 if (bindByName != null)
                 {
-                    // .BindByName = true
                     il.Emit(OpCodes.Ldarg_0);
                     il.Emit(OpCodes.Castclass, commandType);
                     il.Emit(OpCodes.Ldc_I4_1);
@@ -198,7 +193,6 @@ namespace Dapper
                 }
                 if (initialLongFetchSize != null)
                 {
-                    // .InitialLONGFetchSize = -1
                     il.Emit(OpCodes.Ldarg_0);
                     il.Emit(OpCodes.Castclass, commandType);
                     il.Emit(OpCodes.Ldc_I4_M1);
@@ -215,7 +209,7 @@ namespace Dapper
         private static MethodInfo GetBasicPropertySetter(Type declaringType, string name, Type expectedType)
         {
             var prop = declaringType.GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
-            if (prop?.CanWrite == true && prop.PropertyType == expectedType && prop.GetIndexParameters().Length == 0)
+            if (prop?.CanWrite  is true && prop.PropertyType == expectedType && prop.GetIndexParameters().Length == 0)
             {
                 return prop.GetSetMethod();
             }

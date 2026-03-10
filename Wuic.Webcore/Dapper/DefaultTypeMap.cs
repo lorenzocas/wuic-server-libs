@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -143,7 +143,6 @@ namespace Dapper
             if (property != null)
                 return new SimpleMemberMap(columnName, property);
 
-            // roslyn automatically implemented properties, in particular for get-only properties: <{Name}>k__BackingField;
             var backingFieldName = "<" + columnName + ">k__BackingField";
 
             // preference order is:
