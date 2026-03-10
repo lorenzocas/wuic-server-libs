@@ -5576,7 +5576,7 @@ namespace metaModelRaw
                                         Image img = Image.FromFile(tmp_path);
 
                                         //base64Converted = WEB_UI_CRAFTER.ProjectData.Servizi.Utility.ImageToBase64(img, img.RawFormat);
-                                        base64Converted = Utility.ImageToBase64(img, img.RawFormat);
+                                        base64Converted = Utility.ImageToBase64(tmp_path);
 
                                     }
                                     field_value_list += (field_value_list == "" ? "" : ", ") + uploader.MultipleUploadBlobFieldName + "='" + base64Converted + "'";
@@ -6246,7 +6246,7 @@ namespace metaModelRaw
                                     Image img = Image.FromFile(tmp_path);
 
                                     //base64Converted = WEB_UI_CRAFTER.ProjectData.Servizi.Utility.ImageToBase64(img, img.RawFormat);
-                                    base64Converted = Utility.ImageToBase64(img, img.RawFormat);
+                                    base64Converted = Utility.ImageToBase64(tmp_path);
 
                                     value_list += (value_list == "" ? "" : ", ") + "'" + base64Converted + "'";
 

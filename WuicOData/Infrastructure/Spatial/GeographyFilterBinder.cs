@@ -39,11 +39,11 @@ namespace WuicCore.Server.Api.Infrastructure.Spatial
             return bindGeoDistanceExpression;
         }
 
-        public Expression? InternalBindGeoDistance(SingleValueFunctionCallNode node, QueryBinderContext context)
+        public Expression InternalBindGeoDistance(SingleValueFunctionCallNode node, QueryBinderContext context)
         {
             Expression[] arguments = BindArguments(node.Parameters, context);
 
-            string? propertyName = null;
+            string propertyName = null;
 
             var svpan = node.Parameters
                 .Where(queryNode => queryNode is SingleValuePropertyAccessNode)
@@ -55,11 +55,11 @@ namespace WuicCore.Server.Api.Infrastructure.Spatial
                 propertyName = svpan.Property.Name;
             }
 
-            Expression? expression = null;
+            Expression expression = null;
 
             if (propertyName != null)
             {
-                GetPointExpressions(arguments, propertyName, out MemberExpression? memberExpression, out ConstantExpression? constantExpression);
+                GetPointExpressions(arguments, propertyName, out MemberExpression memberExpression, out ConstantExpression constantExpression);
 
                 if (memberExpression != null && constantExpression != null)
                 {
@@ -71,7 +71,7 @@ namespace WuicCore.Server.Api.Infrastructure.Spatial
             return expression;
         }
 
-        private static void GetPointExpressions(Expression[] expressions, string propertyName, out MemberExpression? memberExpression, out ConstantExpression? constantExpression)
+        private static void GetPointExpressions(Expression[] expressions, string propertyName, out MemberExpression memberExpression, out ConstantExpression constantExpression)
         {
             memberExpression = null;
             constantExpression = null;
@@ -85,11 +85,11 @@ namespace WuicCore.Server.Api.Infrastructure.Spatial
                     continue;
                 }
 
-                var constantExpr = memberExpr!.Expression as ConstantExpression;
+                var constantExpr = memberExpr.Expression as ConstantExpression;
 
                 if (constantExpr != null)
                 {
-                    GeographyPoint? point = GetGeographyPointFromConstantExpression(constantExpr);
+                    GeographyPoint point = GetGeographyPointFromConstantExpression(constantExpr);
 
                     if (point != null)
                     {
@@ -106,13 +106,13 @@ namespace WuicCore.Server.Api.Infrastructure.Spatial
             }
         }
 
-        private static GeographyPoint? GetGeographyPointFromConstantExpression(ConstantExpression expression)
+        private static GeographyPoint GetGeographyPointFromConstantExpression(ConstantExpression expression)
         {
-            GeographyPoint? point = default;
+            GeographyPoint point = null;
 
             if (expression != null)
             {
-                PropertyInfo? constantExpressionValuePropertyInfo = expression.Type.GetProperty("Property");
+                PropertyInfo constantExpressionValuePropertyInfo = expression.Type.GetProperty("Property");
 
                 if (constantExpressionValuePropertyInfo != null)
                 {

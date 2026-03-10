@@ -886,7 +886,7 @@ namespace System.WebCore
                 _acc = acc;
             }
 
-            public object this[string key]
+            public new object this[string key]
             {
                 // returns value if exists
                 get
@@ -928,7 +928,7 @@ namespace System.WebCore
                 _acc = acc;
             }
 
-            public HttpCookie this[string key]
+            public new HttpCookie this[string key]
             {
                 // returns value if exists
                 get
