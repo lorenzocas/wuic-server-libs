@@ -21,15 +21,16 @@ using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using WEB_UI_CRAFTER;
 using Microsoft.SqlServer.Management.Smo;
+using Microsoft.SqlServer.Management.Common;
 using System.Xml;
 using Newtonsoft.Json.Linq;
 using WEB_UI_CRAFTER.Helpers;
-using Npgsql;
+using Oracle.ManagedDataAccess.Client;
 using HttpContext = System.WebCore.HttpContext;
 
 namespace metaModelRaw
 {
-    public class metaQueryPostgreSql
+    public class metaQueryOracleSql
     {
         #region "CHARTING"
 
@@ -137,17 +138,17 @@ namespace metaModelRaw
 
         //public static readonly string connectionString = ConfigurationManager.ConnectionStrings["PagelleSQLConnection"].ConnectionString;
 
-        public static NpgsqlConnection GetContentConnection()
+        public static OracleConnection GetContentConnection()
         {
             string connectionString;
             connectionString = ConfigurationManager.ConnectionStrings["ContentSQLConnection"].ConnectionString;
 
-            var connection = new NpgsqlConnection(connectionString);
+            var connection = new OracleConnection(connectionString);
             connection.Open();
             return connection;
         }
 
-        public static NpgsqlConnection GetOpenConnection(bool isMetaDataQuery, string connectionName = "")
+        public static OracleConnection GetOpenConnection(bool isMetaDataQuery, string connectionName = "")
         {
             string connectionString;
 
@@ -165,7 +166,7 @@ namespace metaModelRaw
             else
                 connectionString = ConfigurationManager.ConnectionStrings[connectionName].ConnectionString;
 
-            var connection = new NpgsqlConnection(connectionString);
+            var connection = new OracleConnection(connectionString);
             connection.Open();
             return connection;
         }
@@ -204,9 +205,9 @@ namespace metaModelRaw
                         }
 
                         string query = "INSERT INTO [_metadati__colonne] ([voa_class], [md_id], [mc_db_column_type], [mc_display_string_in_edit], [mc_display_string_in_view], [mc_logic_editable], [mc_logic_nullable], [mc_nome_colonna], [mc_ui_column_type], [mccomputedformula], [mciscomputed], [mcgrantbydefault], [mcordine]) VALUES (@voa_class, @md_id, @mc_db_column_type, @mc_display_string_in_edit, @mc_display_string_in_view, @mc_logic_editable, @mc_logic_nullable, @mc_nome_colonna, @mc_ui_column_type, @mccomputedformula, @mciscomputed, @mcgrantbydefault, @mcordine); select SCOPE_IDENTITY()";
-                        using (NpgsqlConnection con = GetOpenConnection(true))
+                        using (OracleConnection con = GetOpenConnection(true))
                         {
-                            NpgsqlCommand cmd = new NpgsqlCommand(NormalizeSql(query), con);
+                            OracleCommand cmd = new OracleCommand(NormalizeSql(query), con);
                             cmd.Parameters.Add(new SqlParameter("voa_class", 1));
                             cmd.Parameters.Add(new SqlParameter("md_id", tab.md_id));
                             cmd.Parameters.Add(new SqlParameter("mc_db_column_type", db_col_type));
@@ -243,9 +244,9 @@ namespace metaModelRaw
                         }
 
                         string query = "INSERT INTO [_metadati__colonne] ([voa_class], [md_id], [mc_db_column_type], [mc_display_string_in_edit], [mc_display_string_in_view], [mc_logic_editable], [mc_logic_nullable], [mc_nome_colonna], [mc_ui_column_type], [mccomputedformula], [mciscomputed], [mcgrantbydefault], [mcordine]) VALUES (@voa_class, @md_id, @mc_db_column_type, @mc_display_string_in_edit, @mc_display_string_in_view, @mc_logic_editable, @mc_logic_nullable, @mc_nome_colonna, @mc_ui_column_type, @mccomputedformula, @mciscomputed, @mcgrantbydefault, @mcordine); select SCOPE_IDENTITY()";
-                        using (NpgsqlConnection con = GetOpenConnection(true))
+                        using (OracleConnection con = GetOpenConnection(true))
                         {
-                            NpgsqlCommand cmd = new NpgsqlCommand(NormalizeSql(query), con);
+                            OracleCommand cmd = new OracleCommand(NormalizeSql(query), con);
                             cmd.Parameters.Add(new SqlParameter("voa_class", 1));
                             cmd.Parameters.Add(new SqlParameter("md_id", tab.md_id));
                             cmd.Parameters.Add(new SqlParameter("mc_db_column_type", db_col_type));
@@ -273,9 +274,9 @@ namespace metaModelRaw
                         mc_ui_column_type = "number";
 
                         string query = "INSERT INTO [_metadati__colonne] ([voa_class], [md_id], [mc_db_column_type], [mc_display_string_in_edit], [mc_display_string_in_view], [mc_logic_editable], [mc_logic_nullable], [mc_nome_colonna], [mc_ui_column_type], [mccomputedformula], [mciscomputed], [mcgrantbydefault], [mcordine]) VALUES (@voa_class, @md_id, @mc_db_column_type, @mc_display_string_in_edit, @mc_display_string_in_view, @mc_logic_editable, @mc_logic_nullable, @mc_nome_colonna, @mc_ui_column_type, @mccomputedformula, @mciscomputed, @mcgrantbydefault, @mcordine); select SCOPE_IDENTITY()";
-                        using (NpgsqlConnection con = GetOpenConnection(true))
+                        using (OracleConnection con = GetOpenConnection(true))
                         {
-                            NpgsqlCommand cmd = new NpgsqlCommand(NormalizeSql(query), con);
+                            OracleCommand cmd = new OracleCommand(NormalizeSql(query), con);
                             cmd.Parameters.Add(new SqlParameter("voa_class", 3));
                             cmd.Parameters.Add(new SqlParameter("md_id", tab.md_id));
                             cmd.Parameters.Add(new SqlParameter("mc_db_column_type", db_col_type));
@@ -303,9 +304,9 @@ namespace metaModelRaw
                         string display_name = col_name.Replace("_numero", "_bit");
 
                         string query = "INSERT INTO [_metadati__colonne] ([voa_class], [md_id], [mc_db_column_type], [mc_display_string_in_edit], [mc_display_string_in_view], [mc_logic_editable], [mc_logic_nullable], [mc_nome_colonna], [mc_ui_column_type], [mccomputedformula], [mciscomputed], [mcgrantbydefault], [mcordine]) VALUES (@voa_class, @md_id, @mc_db_column_type, @mc_display_string_in_edit, @mc_display_string_in_view, @mc_logic_editable, @mc_logic_nullable, @mc_nome_colonna, @mc_ui_column_type, @mccomputedformula, @mciscomputed, @mcgrantbydefault, @mcordine); select SCOPE_IDENTITY()";
-                        using (NpgsqlConnection con = GetOpenConnection(true))
+                        using (OracleConnection con = GetOpenConnection(true))
                         {
-                            NpgsqlCommand cmd = new NpgsqlCommand(NormalizeSql(query), con);
+                            OracleCommand cmd = new OracleCommand(NormalizeSql(query), con);
                             cmd.Parameters.Add(new SqlParameter("voa_class", 3));
                             cmd.Parameters.Add(new SqlParameter("md_id", tab.md_id));
                             cmd.Parameters.Add(new SqlParameter("mc_db_column_type", db_col_type));
@@ -332,9 +333,9 @@ namespace metaModelRaw
                         string display_name = col_name.Replace("_numero", "_lookup");
 
                         string query = "INSERT INTO [_metadati__colonne] ([voa_class], [md_id], [mc_db_column_type], [mc_display_string_in_edit], [mc_display_string_in_view], [mc_logic_editable], [mc_logic_nullable], [mc_nome_colonna], [mc_ui_column_type], [mccomputedformula], [mciscomputed], [mcgrantbydefault], [mcordine]) VALUES (@voa_class, @md_id, @mc_db_column_type, @mc_display_string_in_edit, @mc_display_string_in_view, @mc_logic_editable, @mc_logic_nullable, @mc_nome_colonna, @mc_ui_column_type, @mccomputedformula, @mciscomputed, @mcgrantbydefault, @mcordine); select SCOPE_IDENTITY()";
-                        using (NpgsqlConnection con = GetOpenConnection(true))
+                        using (OracleConnection con = GetOpenConnection(true))
                         {
-                            NpgsqlCommand cmd = new NpgsqlCommand(NormalizeSql(query), con);
+                            OracleCommand cmd = new OracleCommand(NormalizeSql(query), con);
                             cmd.Parameters.Add(new SqlParameter("voa_class", 2));
                             cmd.Parameters.Add(new SqlParameter("md_id", tab.md_id));
                             cmd.Parameters.Add(new SqlParameter("mc_db_column_type", db_col_type));
@@ -361,9 +362,9 @@ namespace metaModelRaw
                         string display_name = col_name.Replace("_testo", "_button");
 
                         string query = "INSERT INTO [_metadati__colonne] ([voa_class], [md_id], [mc_db_column_type], [mc_display_string_in_edit], [mc_display_string_in_view], [mc_logic_editable], [mc_logic_nullable], [mc_nome_colonna], [mc_ui_column_type], [mccomputedformula], [mciscomputed], [mcgrantbydefault], [mcordine], mchideinedit, mcisdbcomputed) VALUES (@voa_class, @md_id, @mc_db_column_type, @mc_display_string_in_edit, @mc_display_string_in_view, @mc_logic_editable, @mc_logic_nullable, @mc_nome_colonna, @mc_ui_column_type, @mccomputedformula, @mciscomputed, @mcgrantbydefault, @mcordine, @mchideinedit, @mcisdbcomputed); select SCOPE_IDENTITY()";
-                        using (NpgsqlConnection con = GetOpenConnection(true))
+                        using (OracleConnection con = GetOpenConnection(true))
                         {
-                            NpgsqlCommand cmd = new NpgsqlCommand(NormalizeSql(query), con);
+                            OracleCommand cmd = new OracleCommand(NormalizeSql(query), con);
                             cmd.Parameters.Add(new SqlParameter("voa_class", 6));
                             cmd.Parameters.Add(new SqlParameter("md_id", tab.md_id));
                             cmd.Parameters.Add(new SqlParameter("mc_db_column_type", db_col_type));
@@ -393,9 +394,9 @@ namespace metaModelRaw
                         string display_name = col_name.Replace("_testo", "_multiple_check");
 
                         string query = "INSERT INTO [_metadati__colonne] ([voa_class], [md_id], [mc_db_column_type], [mc_display_string_in_edit], [mc_display_string_in_view], [mc_logic_editable], [mc_logic_nullable], [mc_nome_colonna], [mc_ui_column_type], [mcgrantbydefault], [mcordine], [mccomputedformula], [mciscomputed]) VALUES (@voa_class, @md_id, @mc_db_column_type, @mc_display_string_in_edit, @mc_display_string_in_view, @mc_logic_editable, @mc_logic_nullable, @mc_nome_colonna, @mc_ui_column_type, @mcgrantbydefault, @mcordine, @mccomputedformula, @mciscomputed); select SCOPE_IDENTITY()";
-                        using (NpgsqlConnection con = GetOpenConnection(true))
+                        using (OracleConnection con = GetOpenConnection(true))
                         {
-                            NpgsqlCommand cmd = new NpgsqlCommand(NormalizeSql(query), con);
+                            OracleCommand cmd = new OracleCommand(NormalizeSql(query), con);
                             cmd.Parameters.Add(new SqlParameter("voa_class", 4));
                             cmd.Parameters.Add(new SqlParameter("md_id", tab.md_id));
                             cmd.Parameters.Add(new SqlParameter("mc_db_column_type", db_col_type));
@@ -430,23 +431,22 @@ namespace metaModelRaw
 
         #region "PERMISSIONS"
 
-        public static NpgsqlConnection getSpecificConnection(string db_name)
+        public static OracleConnection getSpecificConnection(string db_name)
         {
-            NpgsqlConnection connection;
+            OracleConnection connection;
             if (string.IsNullOrEmpty(db_name))
             {
                 connection = GetOpenConnection(false);
             }
             else
             {
-                connection = new NpgsqlConnection(ConfigHelper.GetSettingAsString("connection") + string.Format(";initial catalog={0}", db_name));
+                connection = new OracleConnection(ConfigHelper.GetSettingAsString("connection") + string.Format(";initial catalog={0}", db_name));
                 connection.Open();
             }
             return connection;
         }
 
-
-        private static string checkUserName(string user_name, string email, NpgsqlConnection connection)
+        private static string checkUserName(string user_name, string email, OracleConnection connection)
         {
             if (user.getUserByName(user_name) != null)
             {
@@ -459,9 +459,9 @@ namespace metaModelRaw
             }
 
             string query = "select * from cms.register_requests where username=@username";
-            NpgsqlCommand cmd = new NpgsqlCommand(NormalizeSql(query), connection);
+            OracleCommand cmd = new OracleCommand(NormalizeSql(query), connection);
             cmd.Parameters.Add(new SqlParameter("username", user_name));
-            NpgsqlDataAdapter adpt = new NpgsqlDataAdapter(cmd);
+            OracleDataAdapter adpt = new OracleDataAdapter(cmd);
             DataTable dt = new DataTable();
             adpt.Fill(dt);
 
@@ -469,9 +469,9 @@ namespace metaModelRaw
                 return "-1"; //throw new ValidationException(string.Format("User name '{0}' già utilizzato", user_name));
 
             query = "select * from cms.register_requests where email=@email";
-            cmd = new NpgsqlCommand(NormalizeSql(query), connection);
+            cmd = new OracleCommand(NormalizeSql(query), connection);
             cmd.Parameters.Add(new SqlParameter("email", email));
-            adpt = new NpgsqlDataAdapter(cmd);
+            adpt = new OracleDataAdapter(cmd);
             dt = new DataTable();
             adpt.Fill(dt);
 
@@ -488,7 +488,7 @@ namespace metaModelRaw
                 using (metaRawModel context = new metaRawModel())
                 {
                     SysInfo infos = context.GetSysInfos();
-                    using (NpgsqlConnection connection = string.IsNullOrEmpty(infos.user_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.user_db_name))
+                    using (OracleConnection connection = string.IsNullOrEmpty(infos.user_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.user_db_name))
                     {
                         connection.Execute(string.Format("UPDATE {0} SET {1}='', LastLogoutDate=getdate(), IsLoggedIn = 0 WHERE {2} = {3}", infos.user_table_name, "token", infos.user_id_column_name, user.user_id));
                     }
@@ -505,7 +505,7 @@ namespace metaModelRaw
 
         public static rawPagedResult getLoggedUsers()
         {
-            using (NpgsqlConnection connection = GetOpenConnection(true))
+            using (OracleConnection connection = GetOpenConnection(true))
             {
                 string stored = "loggedUserList";
                 var dbArgs = new DynamicParameters();
@@ -519,7 +519,7 @@ namespace metaModelRaw
 
         public static Int32 getLoggedUserCount()
         {
-            using (NpgsqlConnection connection = GetOpenConnection(true))
+            using (OracleConnection connection = GetOpenConnection(true))
             {
                 string stored = "loggedUserCount";
                 var dbArgs = new DynamicParameters();
@@ -533,7 +533,7 @@ namespace metaModelRaw
 
         public static user login(string user_name, string password, SysInfo infos)
         {
-            using (NpgsqlConnection connection = string.IsNullOrEmpty(infos.user_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.user_db_name))
+            using (OracleConnection connection = string.IsNullOrEmpty(infos.user_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.user_db_name))
             {
                 bool isPwdEncripted = bool.Parse(ConfigHelper.GetSettingAsString("IsPwdEncripted"));
                 string encriptionMethod = ConfigHelper.GetSettingAsString("encriptionMethod");
@@ -552,8 +552,6 @@ namespace metaModelRaw
                 }
 
                 Dapper.SqlMapper.FastExpando user = ((List<Dapper.SqlMapper.FastExpando>)connection.Query(string.Format("SELECT id_utente, username, isAdmin, id_ruolo, userdescription, email, token, ip, language FROM {0} WHERE {1} = '{2}' AND {3} = '{4}' and coalesce(cancellato,0)=0", infos.user_table_name, infos.username_column_name, user_name, infos.password_column_name, pwd))).FirstOrDefault();
-
-                // Cookie auth integration is managed by host pipeline in .NET Core.
 
                 if (user != null)
                 {
@@ -644,7 +642,7 @@ namespace metaModelRaw
                 if (infos == null)
                     return null;
 
-                using (NpgsqlConnection connection = string.IsNullOrEmpty(infos.user_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.user_db_name))
+                using (OracleConnection connection = string.IsNullOrEmpty(infos.user_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.user_db_name))
                 {
                     List<user> users = new List<user>();
                     List<Dapper.SqlMapper.FastExpando> userss = (List<Dapper.SqlMapper.FastExpando>)connection.Query(string.Format("SELECT * FROM {0} ORDER BY {1}", infos.user_table_name, infos.username_column_name));
@@ -667,7 +665,7 @@ namespace metaModelRaw
                 if (infos == null)
                     return null;
 
-                using (NpgsqlConnection connection = string.IsNullOrEmpty(infos.role_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.role_db_name))
+                using (OracleConnection connection = string.IsNullOrEmpty(infos.role_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.role_db_name))
                 {
                     List<role> roles = new List<role>();
                     List<Dapper.SqlMapper.FastExpando> roless = (List<Dapper.SqlMapper.FastExpando>)connection.Query(string.Format("SELECT * FROM {0} ORDER BY {1}", infos.role_table_name, infos.role_description_column_name));
@@ -688,7 +686,7 @@ namespace metaModelRaw
                 SysInfo infos = context.GetSysInfos();
 
 
-                using (NpgsqlConnection connection = GetOpenConnection(true))
+                using (OracleConnection connection = GetOpenConnection(true))
                 {
                     List<Dapper.SqlMapper.FastExpando> azs = (List<Dapper.SqlMapper.FastExpando>)connection.Query(string.Format("SELECT * FROM {0} ORDER BY {1}", "aziende", "nome_azienda"));
 
@@ -706,7 +704,7 @@ namespace metaModelRaw
                 if (infos == null)
                     return null;
 
-                using (NpgsqlConnection connection = string.IsNullOrEmpty(infos.role_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.role_db_name))
+                using (OracleConnection connection = string.IsNullOrEmpty(infos.role_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.role_db_name))
                 {
                     Dapper.SqlMapper.FastExpando role = ((List<Dapper.SqlMapper.FastExpando>)connection.Query(string.Format("SELECT {2}.{0}, {2}.{1} FROM {2} inner join {5} ON {2}.{6}={5}.{7} WHERE {3}='{4}'", infos.role_id_column_name, infos.role_description_column_name, infos.role_table_name, infos.user_id_column_name, user_id, infos.user_table_name, infos.role_id_column_name, infos.role_user_table_fk_name))).FirstOrDefault();
                     if (role != null)
@@ -727,7 +725,7 @@ namespace metaModelRaw
                 if (infos == null)
                     return null;
 
-                using (NpgsqlConnection connection = string.IsNullOrEmpty(infos.role_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.role_db_name))
+                using (OracleConnection connection = string.IsNullOrEmpty(infos.role_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.role_db_name))
                 {
                     var dbArgs = new DynamicParameters();
                     dbArgs.Add("@uid", user_id);
@@ -757,7 +755,7 @@ namespace metaModelRaw
                 if (infos == null)
                     return null;
 
-                using (NpgsqlConnection connection = string.IsNullOrEmpty(infos.user_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.user_db_name))
+                using (OracleConnection connection = string.IsNullOrEmpty(infos.user_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.user_db_name))
                 {
 
                     Dapper.SqlMapper.FastExpando user = ((List<Dapper.SqlMapper.FastExpando>)connection.Query(string.Format("SELECT * FROM {0} WHERE {1}='{2}'", infos.user_table_name, infos.user_id_column_name, user_id))).FirstOrDefault();
@@ -779,7 +777,7 @@ namespace metaModelRaw
                 if (infos == null)
                     return null;
 
-                using (NpgsqlConnection connection = string.IsNullOrEmpty(infos.user_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.user_db_name))
+                using (OracleConnection connection = string.IsNullOrEmpty(infos.user_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.user_db_name))
                 {
                     Dapper.SqlMapper.FastExpando user = ((List<Dapper.SqlMapper.FastExpando>)connection.Query(string.Format("SELECT * FROM {0} WHERE {1}='{2}'", infos.user_table_name, infos.email_column_name, email))).FirstOrDefault();
                     if (user != null)
@@ -800,7 +798,7 @@ namespace metaModelRaw
                 if (infos == null)
                     return null;
 
-                using (NpgsqlConnection connection = string.IsNullOrEmpty(infos.user_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.user_db_name))
+                using (OracleConnection connection = string.IsNullOrEmpty(infos.user_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.user_db_name))
                 {
                     Dapper.SqlMapper.FastExpando user = ((List<Dapper.SqlMapper.FastExpando>)connection.Query(string.Format("SELECT * FROM {0} WHERE {1}='{2}'", infos.user_table_name, infos.username_column_name, user_name))).FirstOrDefault();
                     if (user != null)
@@ -815,6 +813,7 @@ namespace metaModelRaw
         #endregion
 
         #region "FLAT"
+
 
         public static rawPagedResult GetDistinctValues(int column_id, string text, string filter_type, int max_results, string user_id)
         {
@@ -845,7 +844,7 @@ namespace metaModelRaw
                         finfos.filters = new List<filterElement>();
                         finfos.filters.Add(new filterElement() { field = column_name, operatore = filter_type, value = text });
 
-                        query = BuildDynamicSelectQuery(tabel._Metadati_Colonnes.ToList(), null, null, new PageInfo() { currentPage = 0, pageSize = max_results }, finfos, "AND", true, (NpgsqlConnection)connection, out ouut, null, out nullo, user_id, "", 0, column_name);
+                        query = BuildDynamicSelectQuery(tabel._Metadati_Colonnes.ToList(), null, null, new PageInfo() { currentPage = 0, pageSize = max_results }, finfos, "AND", true, (OracleConnection)connection, out ouut, null, out nullo, user_id, "", 0, column_name);
 
                         try
                         {
@@ -895,7 +894,7 @@ namespace metaModelRaw
                 List<AggregationResult> aggregateValues;
                 _Metadati_Tabelle tab = lst.First()._Metadati_Tabelle;
 
-                using (NpgsqlConnection connection = GetOpenConnection(RawHelpers.checkIsMetaData(route), tab.md_conn_name))
+                using (OracleConnection connection = GetOpenConnection(RawHelpers.checkIsMetaData(route), tab.md_conn_name))
                 {
                     //try
                     //{
@@ -981,16 +980,16 @@ namespace metaModelRaw
                 if (metaStored != null)
                 {
 
-                    using (NpgsqlConnection connection = metaQueryPostgreSql.GetOpenConnection(false, metaStored.md_conn_name))
+                    using (OracleConnection connection = metaQueryOracleSql.GetOpenConnection(false, metaStored.md_conn_name))
                     {
-                        stored = RawHelpers.getStorePrefix(metaStored, "postgresql") + RawHelpers.getDBEntityQuoteSymbol("postgresql") + metaStored.md_nome_tabella + RawHelpers.getDBEntityQuoteSymbol("postgresql", false);
+                        stored = RawHelpers.getStorePrefix(metaStored, "oracle") + RawHelpers.getDBEntityQuoteSymbol("oracle") + metaStored.md_nome_tabella + RawHelpers.getDBEntityQuoteSymbol("oracle", false);
                         //var storedProc = db.StoredProcedures[stored];
 
-                        NpgsqlCommand cmd = new NpgsqlCommand(stored, connection);
+                        OracleCommand cmd = new OracleCommand(stored, connection);
 
                         foreach (var pair in parameters)
                         {
-                            cmd.Parameters.AddWithValue(pair.field, pair.value);
+                            cmd.Parameters.Add(pair.field, pair.value);
                         }
 
                         cmd.CommandType = CommandType.StoredProcedure;
@@ -1026,7 +1025,7 @@ namespace metaModelRaw
 
                 if (metaStored != null)
                 {
-                    using (NpgsqlConnection connection = GetOpenConnection(false, metaStored.md_conn_name))
+                    using (OracleConnection connection = GetOpenConnection(false, metaStored.md_conn_name))
                     {
                         stored = RawHelpers.getStoreTableName(metaStored, "mssql");
 
@@ -1117,7 +1116,7 @@ namespace metaModelRaw
 
         public static Int32 checkAsyncCondition(string user_id, string query)
         {
-            using (NpgsqlConnection connection = GetOpenConnection(false))
+            using (OracleConnection connection = GetOpenConnection(false))
             {
                 try
                 {
@@ -1142,7 +1141,7 @@ namespace metaModelRaw
                 List<_Metadati_Colonne> metadata = _Metadati_Colonne.getColonneByUserID(route, 0, userId, dataMode.edit, null);
                 _Metadati_Tabelle tab = metadata.First()._Metadati_Tabelle;
 
-                using (NpgsqlConnection connection = GetOpenConnection(isMeta, tab.md_conn_name))
+                using (OracleConnection connection = GetOpenConnection(isMeta, tab.md_conn_name))
                 {
 
                     if (!OptimisticCheck(entity, route, metadata))
@@ -1234,7 +1233,7 @@ namespace metaModelRaw
             List<_Metadati_Colonne> metadata = _Metadati_Colonne.getColonneByUserID(route, 0, userId, dataMode.insert, null);
             _Metadati_Tabelle tab = metadata.First()._Metadati_Tabelle;
 
-            using (NpgsqlConnection connection = GetOpenConnection(RawHelpers.checkIsMetaData(route), tab.md_conn_name))
+            using (OracleConnection connection = GetOpenConnection(RawHelpers.checkIsMetaData(route), tab.md_conn_name))
             {
                 string query = "";
 
@@ -1286,7 +1285,7 @@ namespace metaModelRaw
                 List<_Metadati_Colonne> metadata = _Metadati_Colonne.getColonneByUserID(route, 0, user_id, dataMode.insert, null);
                 _Metadati_Tabelle tab = metadata.First()._Metadati_Tabelle;
 
-                using (NpgsqlConnection connection = GetOpenConnection(RawHelpers.checkIsMetaData(route), tab.md_conn_name))
+                using (OracleConnection connection = GetOpenConnection(RawHelpers.checkIsMetaData(route), tab.md_conn_name))
                 {
 
                     query = BuildDynamicDeleteQuery(entity, metadata, user_id);
@@ -1390,7 +1389,7 @@ namespace metaModelRaw
                 List<_Metadati_Colonne> metadata = _Metadati_Colonne.getColonneByUserID(route, 0, userId, dataMode.insert, null);
                 _Metadati_Tabelle tab = metadata.First()._Metadati_Tabelle;
 
-                using (NpgsqlConnection connection = GetOpenConnection(RawHelpers.checkIsMetaData(route), tab.md_conn_name))
+                using (OracleConnection connection = GetOpenConnection(RawHelpers.checkIsMetaData(route), tab.md_conn_name))
                 {
 
                     string generated_pkey = "";
@@ -1623,10 +1622,10 @@ namespace metaModelRaw
                 return sql;
 
             string normalized = Regex.Replace(sql, @"\[([^\]]+)\]", "\"$1\"");
-            normalized = Regex.Replace(normalized, @"\bgetdate\s*\(\s*\)", "now()", RegexOptions.IgnoreCase);
-            normalized = Regex.Replace(normalized, @"\bselect\s+SCOPE_IDENTITY\s*\(\s*\)", "select LASTVAL()", RegexOptions.IgnoreCase);
-            normalized = Regex.Replace(normalized, @"\bSCOPE_IDENTITY\s*\(\s*\)", "LASTVAL()", RegexOptions.IgnoreCase);
-            normalized = Regex.Replace(normalized, @"\bnvarchar\s*\(", "varchar(", RegexOptions.IgnoreCase);
+            normalized = Regex.Replace(normalized, @"\bgetdate\s*\(\s*\)", "SYSDATE", RegexOptions.IgnoreCase);
+            normalized = Regex.Replace(normalized, @"\bselect\s+SCOPE_IDENTITY\s*\(\s*\)", "select 0 from dual", RegexOptions.IgnoreCase);
+            normalized = Regex.Replace(normalized, @"\bSCOPE_IDENTITY\s*\(\s*\)", "0", RegexOptions.IgnoreCase);
+            normalized = Regex.Replace(normalized, @"\bnvarchar\s*\(", "varchar2(", RegexOptions.IgnoreCase);
             return normalized;
         }
 
@@ -1661,7 +1660,7 @@ namespace metaModelRaw
             {
 
             }
-            else if (fld.mc_is_computed.Value)
+            else if (fld.mc_is_computed.HasValue && fld.mc_is_computed.Value)
             {
                 string safeappend = (string.IsNullOrEmpty(fld.mc_computed_formula) ? "''" : fld.mc_computed_formula);
                 current_fld = string.Format(" {0} {1}", safeappend, "");
@@ -1703,7 +1702,7 @@ namespace metaModelRaw
             return safetable_name;
         }
 
-        public static string BuildDynamicSelectQuery(List<_Metadati_Colonne> lst, List<SortInfo> SortInfo, List<GroupInfo> GroupInfo, PageInfo PageInfo, FilterInfos filterInfo, string logicOperator, bool hasServerOperation, NpgsqlConnection connection, out long totalRecords, List<AggregationInfo> aggregates, out List<AggregationResult> aggregateValues, string userId, string formulaLookup = "", int mcId = 0, string distinct = "")
+        public static string BuildDynamicSelectQuery(List<_Metadati_Colonne> lst, List<SortInfo> SortInfo, List<GroupInfo> GroupInfo, PageInfo PageInfo, FilterInfos filterInfo, string logicOperator, bool hasServerOperation, OracleConnection connection, out long totalRecords, List<AggregationInfo> aggregates, out List<AggregationResult> aggregateValues, string userId, string formulaLookup = "", int mcId = 0, string distinct = "")
         {
             if (PageInfo == null) { PageInfo = new PageInfo() { pageSize = 0, currentPage = 1 }; }
             if (filterInfo == null) { filterInfo = new FilterInfos(); filterInfo.filters = new List<filterElement>(); }
@@ -1874,7 +1873,7 @@ namespace metaModelRaw
                                      "FROM {1} {2} {3} ", fieldList, safetableName, join, where);
         }
 
-        private static string FinalizeServerSideGrouping(_Metadati_Tabelle tab, List<_Metadati_Colonne> lst, metaRawModel mmd, List<GroupInfo> GroupInfo, string safetableName, string join, string where, NpgsqlConnection connection, int skiprecords, PageInfo PageInfo)
+        private static string FinalizeServerSideGrouping(_Metadati_Tabelle tab, List<_Metadati_Colonne> lst, metaRawModel mmd, List<GroupInfo> GroupInfo, string safetableName, string join, string where, OracleConnection connection, int skiprecords, PageInfo PageInfo)
         {
             string fieldList = "";
             string fieldListForCount = "";
@@ -2001,7 +2000,7 @@ namespace metaModelRaw
 
         }
 
-        private static void ManageAggregates(List<AggregationInfo> aggregates, string where, NpgsqlConnection connection, List<AggregationResult> aggregateValues, string safetableName, string join)
+        private static void ManageAggregates(List<AggregationInfo> aggregates, string where, OracleConnection connection, List<AggregationResult> aggregateValues, string safetableName, string join)
         {
             if (aggregates != null)
             {
@@ -2058,7 +2057,7 @@ namespace metaModelRaw
 
             if (tab.md_has_logic_delete)
             {
-                _Metadati_Colonne logic_del_key = tab._Metadati_Colonnes.FirstOrDefault(x => x.mc_is_logic_delete_key.Value);
+                _Metadati_Colonne logic_del_key = tab._Metadati_Colonnes.FirstOrDefault(x => x.mc_is_logic_delete_key.HasValue && x.mc_is_logic_delete_key.Value);
                 if (logic_del_key != null)
                 {
                     where += ((where == "") ? " where " : " " + logicOperator + " ") + " coalesce(" + safetableName + "." + EscapeDBObjectName(RawHelpers.getStoreColumnName(logic_del_key)) + ",0) = 0";
@@ -2136,7 +2135,7 @@ namespace metaModelRaw
                         if (filterInfo.filters.Any(x => x.field == "__extra"))
                             where = AppendFilter(fld, filterInfo, logicOperator, (currentFld), where, tab, formulaLookup, userId);
                         else
-                            where = AppendFilter(fld, filterInfo, logicOperator, (String.IsNullOrEmpty(formulaLookup) ? (!fld.mc_is_computed.Value ? currentFld : fld.mc_nome_colonna) : formulaLookup), where, tab, formulaLookup, userId);
+                            where = AppendFilter(fld, filterInfo, logicOperator, (String.IsNullOrEmpty(formulaLookup) ? (!fld.mc_is_computed.HasValue || !fld.mc_is_computed.Value ? currentFld : fld.mc_nome_colonna) : formulaLookup), where, tab, formulaLookup, userId);
                 }
             });
 
@@ -2222,7 +2221,7 @@ namespace metaModelRaw
             }
             else
             {
-                fixOrder = string.Format(" ORDER BY {0}.{1}", safetableName, EscapeDBObjectName(RawHelpers.getStoreColumnName(lst.First(x => !x.mc_is_computed.Value))));
+                fixOrder = string.Format(" ORDER BY {0}.{1}", safetableName, EscapeDBObjectName(RawHelpers.getStoreColumnName(lst.First(x => !x.mc_is_computed.HasValue || !x.mc_is_computed.Value))));
             }
 
             return fixOrder;
@@ -2466,7 +2465,7 @@ namespace metaModelRaw
 
                     _Metadati_Tabelle mmTable = _Metadati_Tabelle.getTableMetadataFromRoute(mm.mc_ui_grid_manytomany_route);
 
-                    using (NpgsqlConnection con = GetOpenConnection(false, mmTable.md_conn_name))
+                    using (OracleConnection con = GetOpenConnection(false, mmTable.md_conn_name))
                     {
                         long tot;
                         List<AggregationResult> ar;
@@ -2829,7 +2828,7 @@ namespace metaModelRaw
                         f.value = "1";
                 }
 
-                where += ((where == "") ? " where " : " " + logicOperator + " ") + "( (" + (fld.mc_is_computed.Value ? fld.mc_computed_formula : currentFld) + ")" + realOperator + string.Format(" {0}{1}{2} {3} {4} )", leftExtraOperator, f.value, rightExtraOperator, async_extra_condition, (f.__extra ? " OR 1=1" : ""));
+                where += ((where == "") ? " where " : " " + logicOperator + " ") + "( (" + (fld.mc_is_computed.HasValue && fld.mc_is_computed.Value ? fld.mc_computed_formula : currentFld) + ")" + realOperator + string.Format(" {0}{1}{2} {3} {4} )", leftExtraOperator, f.value, rightExtraOperator, async_extra_condition, (f.__extra ? " OR 1=1" : ""));
 
                 if (!isNested)
                     filterInfo.filters.Remove(f);
@@ -2865,13 +2864,13 @@ namespace metaModelRaw
 
                     string calculatedText = look.mc_ui_lookup_computed_dataTextField;
                     string safename = EscapeDBObjectName(look.mc_ui_lookup_entity_name) + "." + EscapeDBObjectName(look.mc_ui_lookup_dataTextField);
-                    if (look.mc_is_computed.Value)
+                    if (look.mc_is_computed.HasValue && look.mc_is_computed.Value)
                         safename = "(" + look.mc_computed_formula + ")";
                     sort += ((sort == "") ? " ORDER BY " : ", ") + orderSafetableName + "." + look.mc_ui_lookup_dataValueField + " " + sortDir;
                 }
                 else
                 {
-                    sort += ((sort == "") ? " ORDER BY " : ", ") + "(" + ((fld.mc_is_computed.Value) ? "(SELECT " + fld.mc_computed_formula + ")" : orderSafetableName + "." + EscapeDBObjectName(RawHelpers.getStoreColumnName(fld))) + ") " + sortDir;
+                    sort += ((sort == "") ? " ORDER BY " : ", ") + "(" + ((fld.mc_is_computed.HasValue && fld.mc_is_computed.Value) ? "(SELECT " + fld.mc_computed_formula + ")" : orderSafetableName + "." + EscapeDBObjectName(RawHelpers.getStoreColumnName(fld))) + ") " + sortDir;
                 }
             }
         }
@@ -3229,7 +3228,7 @@ namespace metaModelRaw
 
             if (chartCols.Count > 0)
             {
-                using (NpgsqlConnection con = GetOpenConnection(false))
+                using (OracleConnection con = GetOpenConnection(false))
                 {
                     foreach (_Metadati_Colonne_Slider chartCol in chartCols)
                     {
@@ -3428,12 +3427,12 @@ namespace metaModelRaw
                     }
                 }
 
-                if (!fld.mc_logic_editable.Value && !fld.mc_is_primary_key & fld.mc_nome_colonna != "voa_class")
+                if ((!fld.mc_logic_editable.HasValue || !fld.mc_logic_editable.Value) && !fld.mc_is_primary_key & fld.mc_nome_colonna != "voa_class")
                 {
                     return;
                 }
 
-                if (importing && (fld.hide_in_import.Value || !entity.ContainsKey(fld.mc_nome_colonna)))
+                if (importing && ((fld.hide_in_import.HasValue && fld.hide_in_import.Value) || !entity.ContainsKey(fld.mc_nome_colonna)))
                     return;
 
                 _Metadati_Colonne_Button btnCol = fld as _Metadati_Colonne_Button;
@@ -3447,7 +3446,7 @@ namespace metaModelRaw
                 if (entity[fld.mc_nome_colonna] != null)
                     valore = entity[fld.mc_nome_colonna];
 
-                if (fld.mc_validation_has.Value && fld.mc_validation_required.Value && valore == null && fld.mc_ui_column_type != "boolean" && fld.mc_ui_column_type != "number_boolean")
+                if (fld.mc_validation_has.HasValue && fld.mc_validation_has.Value && fld.mc_validation_required.HasValue && fld.mc_validation_required.Value && valore == null && fld.mc_ui_column_type != "boolean" && fld.mc_ui_column_type != "number_boolean")
                     throw new ValidationException(string.Format("{0} non può essere null", fld.mc_display_string_in_view));
 
                 valore = EscapeValue(valore);
@@ -3503,7 +3502,7 @@ namespace metaModelRaw
                     }
                     else
                     {
-                        if (fld.mc_validation_has.Value && fld.mc_validation_required.Value)
+                        if (fld.mc_validation_has.HasValue && fld.mc_validation_has.Value && fld.mc_validation_required.HasValue && fld.mc_validation_required.Value)
                         {
                             valore = 0;
                         }
@@ -3659,7 +3658,7 @@ namespace metaModelRaw
                 {
                     if (valore.ToString() != "")
                     {
-                        if (fld.mc_ui_is_password.Value && ConfigurationManager.AppSettings["IsPwdEncripted"] == "true")
+                        if (fld.mc_ui_is_password.HasValue && fld.mc_ui_is_password.Value && ConfigurationManager.AppSettings["IsPwdEncripted"] == "true")
                         {
                             if (fld.mc_password_encription_method == "SHA1")
                             {
@@ -3762,7 +3761,7 @@ namespace metaModelRaw
 
             if (tabel.md_has_logic_delete)
             {
-                _Metadati_Colonne logic_del_key = metadata.FirstOrDefault(x => x.mc_is_logic_delete_key.Value);
+                _Metadati_Colonne logic_del_key = metadata.FirstOrDefault(x => x.mc_is_logic_delete_key.HasValue && x.mc_is_logic_delete_key.Value);
                 if (logic_del_key != null)
                 {
                     string delete_log = "";
@@ -3802,7 +3801,7 @@ namespace metaModelRaw
             if (isMeta) return true;
             _Metadati_Tabelle tab = metadata.First()._Metadati_Tabelle;
 
-            using (NpgsqlConnection connection = GetOpenConnection(isMeta, tab.md_conn_name))
+            using (OracleConnection connection = GetOpenConnection(isMeta, tab.md_conn_name))
             {
                 string fltr = "";
                 string table_name = tab.md_nome_tabella;
@@ -3831,7 +3830,7 @@ namespace metaModelRaw
 
                     _Metadati_Colonne col = metadata.FirstOrDefault(x => x.mc_nome_colonna == local_key);
 
-                    if (col != null && col.mc_db_column_type != "varbinary" && col.mc_db_column_type != "binary" && !col.mc_is_db_computed.Value && !col.mc_is_computed.Value)
+                    if (col != null && col.mc_db_column_type != "varbinary" && col.mc_db_column_type != "binary" && (!col.mc_is_db_computed.HasValue || !col.mc_is_db_computed.Value) && (!col.mc_is_computed.HasValue || !col.mc_is_computed.Value))
                     {
                         string quote = RawHelpers.getQuoteFromColumn(col);
 
@@ -3955,7 +3954,7 @@ namespace metaModelRaw
                 if (btnCol != null)
                     return;
 
-                if (fld.mc_validation_has.Value && fld.mc_validation_required.Value && (!entity.ContainsKey(fld.mc_nome_colonna) || entity[fld.mc_nome_colonna] == null) && fld.mc_ui_column_type != "boolean" && fld.mc_ui_column_type != "number_boolean" && string.IsNullOrEmpty(fld.mc_default_value))
+                if (fld.mc_validation_has.HasValue && fld.mc_validation_has.Value && fld.mc_validation_required.HasValue && fld.mc_validation_required.Value && (!entity.ContainsKey(fld.mc_nome_colonna) || entity[fld.mc_nome_colonna] == null) && fld.mc_ui_column_type != "boolean" && fld.mc_ui_column_type != "number_boolean" && string.IsNullOrEmpty(fld.mc_default_value))
                 {
                     if (fld.mc_is_primary_key)
                     {
@@ -3980,7 +3979,7 @@ namespace metaModelRaw
                     }
                 }
 
-                if (!fld.mc_is_primary_key || string.IsNullOrEmpty(tabel.md_primary_key_type) || fld.mc_logic_editable.Value)
+                if (!fld.mc_is_primary_key || string.IsNullOrEmpty(tabel.md_primary_key_type) || (fld.mc_logic_editable.HasValue && fld.mc_logic_editable.Value))
                 {
 
                     field_list += (field_list == "" ? "" : ", ") + current_fld;
@@ -4033,7 +4032,7 @@ namespace metaModelRaw
                         }
                         else
                         {
-                            if (fld.mc_validation_has.Value && fld.mc_validation_required.Value)
+                            if (fld.mc_validation_has.HasValue && fld.mc_validation_has.Value && fld.mc_validation_required.HasValue && fld.mc_validation_required.Value)
                             {
                                 valore = 0;
                             }
@@ -4043,7 +4042,7 @@ namespace metaModelRaw
                     {
                         if (valore == null)
                         {
-                            if (fld.mc_validation_has.Value && fld.mc_validation_required.Value)
+                            if (fld.mc_validation_has.HasValue && fld.mc_validation_has.Value && fld.mc_validation_required.HasValue && fld.mc_validation_required.Value)
                             {
                                 valore = 0;
                             }
@@ -4076,7 +4075,7 @@ namespace metaModelRaw
                                 }
                                 else
                                 {
-                                    if (fld.mc_validation_has.Value && fld.mc_validation_required.Value)
+                                    if (fld.mc_validation_has.HasValue && fld.mc_validation_has.Value && fld.mc_validation_required.HasValue && fld.mc_validation_required.Value)
                                     {
                                         valore = 0;
                                     }
@@ -4143,7 +4142,7 @@ namespace metaModelRaw
                     {
                         if (!string.IsNullOrEmpty(valore.ToString()))
                         {
-                            if (fld.mc_ui_is_password.Value && ConfigurationManager.AppSettings["IsPwdEncripted"] == "true")
+                            if (fld.mc_ui_is_password.HasValue && fld.mc_ui_is_password.Value && ConfigurationManager.AppSettings["IsPwdEncripted"] == "true")
                             {
                                 if (fld.mc_password_encription_method == "SHA1")
                                 {
@@ -4221,9 +4220,9 @@ namespace metaModelRaw
 
                         case "MAX":
 
-                            using (NpgsqlConnection connection = GetOpenConnection(RawHelpers.checkIsMetaData(tabel.md_route_name), tabel.md_conn_name))
+                            using (OracleConnection connection = GetOpenConnection(RawHelpers.checkIsMetaData(tabel.md_route_name), tabel.md_conn_name))
                             {
-                                NpgsqlCommand cmd = new NpgsqlCommand("", connection);
+                                OracleCommand cmd = new OracleCommand("", connection);
                                 cmd.CommandText = string.Format("SELECT max({0}) FROM {1}", safecolumn_name, safetable_name);
 
                                 object ob = cmd.ExecuteScalar();
@@ -4287,7 +4286,7 @@ namespace metaModelRaw
             _Metadati_Tabelle tab = _Metadati_Tabelle.getTableMetadataFromRoute(route);
 
 
-            using (NpgsqlConnection connection = GetOpenConnection(RawHelpers.checkIsMetaData(route), tab.md_conn_name))
+            using (OracleConnection connection = GetOpenConnection(RawHelpers.checkIsMetaData(route), tab.md_conn_name))
             {
 
                 if (pkeys.Count == 0)
@@ -4351,11 +4350,11 @@ namespace metaModelRaw
 
         private static void ManageMaxKeyType(_Metadati_Tabelle tabel, _Metadati_Colonne fld, List<_Metadati_Colonne> pks, IDictionary<string, object> entity, string safecolumnName, string safetableName)
         {
-            using (NpgsqlConnection connection = GetOpenConnection(RawHelpers.checkIsMetaData(tabel.md_route_name), tabel.md_conn_name))
+            using (OracleConnection connection = GetOpenConnection(RawHelpers.checkIsMetaData(tabel.md_route_name), tabel.md_conn_name))
             {
                 //special case 
                 //mixed pkey 2 cols: 1 is fkey one is int -> logic approach is to use a "Max dependant key"
-                NpgsqlCommand cmd = new NpgsqlCommand("", connection);
+                OracleCommand cmd = new OracleCommand("", connection);
                 string fltr = "";
 
                 string valore = "";
@@ -4389,7 +4388,7 @@ namespace metaModelRaw
 
         #region "BO UNIVERSE"
 
-        private static string BuilSelectFromUniverseDefinition(List<Definizione_Universi> definition, List<SortInfo> SortInfo, PageInfo PageInfo, FilterInfos filterInfo, string logicOperator, NpgsqlConnection connection, out long totalRecords)
+        private static string BuilSelectFromUniverseDefinition(List<Definizione_Universi> definition, List<SortInfo> SortInfo, PageInfo PageInfo, FilterInfos filterInfo, string logicOperator, OracleConnection connection, out long totalRecords)
         {
             Dictionary<string, string> aliases = new Dictionary<string, string>();
             string select_clause = "";
@@ -4654,7 +4653,7 @@ namespace metaModelRaw
                             {
                                 if (string.IsNullOrEmpty(order_safetable_name))
                                 {
-                                    orderby_clause += ((orderby_clause == "") ? " ORDER BY " : ", ") + "(" + ((col.mc_is_computed.Value) ? "(SELECT " + col.mc_computed_formula + ")" : (!string.IsNullOrEmpty(aggregatedAlias) ? aggregatedAlias : alias)) + ") " + SortInfo.FirstOrDefault(x => x.mc_id == col.mc_id).dir;
+                                    orderby_clause += ((orderby_clause == "") ? " ORDER BY " : ", ") + "(" + ((col.mc_is_computed.HasValue && col.mc_is_computed.Value) ? "(SELECT " + col.mc_computed_formula + ")" : (!string.IsNullOrEmpty(aggregatedAlias) ? aggregatedAlias : alias)) + ") " + SortInfo.FirstOrDefault(x => x.mc_id == col.mc_id).dir;
                                 }
                                 else
                                 {
@@ -4898,7 +4897,7 @@ namespace metaModelRaw
                 string query = "";
                 long totalRecords;
                 List<AggregationResult> aggregateValues;
-                using (NpgsqlConnection connection = GetOpenConnection(false))
+                using (OracleConnection connection = GetOpenConnection(false))
                 {
                     try
                     {
@@ -4911,7 +4910,6 @@ namespace metaModelRaw
                             totalRecords = rows.Count;
 
                         return new rawPagedResult() { results = rows, TotalRecords = totalRecords, Agg = null, metadata = restricted };
-
 
                     }
                     catch (Exception EX)
@@ -4940,7 +4938,7 @@ namespace metaModelRaw
 
                 string qry = "INSERT INTO [dbo].[definizione__universi] ([boid],[display_name1],[is_lookup1],[is_table1],[name1],[parent1],[type1],[id1],computed_formula1 ,[is_tbl1],[owner_route_name1],[owner_table_name1],[schema_name1],[db_name1],is_checked1,navigatoris_selected) VALUES(@boid,@display_name1,@is_lookup1,@is_table1,@name1,@parent1,@type1,@id1,@computed_formula1 ,@is_tbl1,@owner_route_name1,@owner_table_name1,@schema_name1,@db_name1,@is_checked1,@navigatoris_selected)";
 
-                using (NpgsqlConnection con = GetOpenConnection(true))
+                using (OracleConnection con = GetOpenConnection(true))
                 {
                     var dbArgs = new DynamicParameters();
                     dbArgs.Add("@boid", bo.bo_id);
@@ -4969,6 +4967,8 @@ namespace metaModelRaw
         }
 
         #endregion
+
+
 
     }
 
