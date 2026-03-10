@@ -18,8 +18,8 @@ namespace WuicOData
 {
     public static class Configurator
     {
-    private const string KonvergenceCoreFolderName = "KonvergenceCore";
-    private const string KonvergenceAppConfigFileName = "app.config";
+        private const string KonvergenceCoreFolderName = "KonvergenceCore";
+        private const string KonvergenceAppConfigFileName = "app.config";
 
         public static void ConfigureService(IServiceCollection services)
         {
