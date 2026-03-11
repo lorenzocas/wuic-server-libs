@@ -20,9 +20,19 @@
 		},
 		{
 			"path": "oracle"
+		},
+		{
+			"path": "mysql"
 		}
 	],
 	"settings": {
-		"CodeGPT.apiKey": "Claude Code"
+		"CodeGPT.apiKey": "Claude Code",
+		"powershell.cwd": "KonvergenceCore",
+		"sarif-viewer.connectToGithubCodeScanning": "off",
+		"semgrep.scan.configuration": [
+			"p/csharp",
+			"p/typescript"
+		],
+		"semgrep.scan.onlyGitDirty": false
 	}
 }
