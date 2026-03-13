@@ -1,0 +1,99 @@
+codex a inizio sessione/finestra chiedi sempre:
+usa sempre prefix_rule generici per Get-Content e rg
+
+rilancia tutti i test (suite wuic-framework-lib completa) e fixa i problemi. Prima di fixare un test dimmi perchè è fallito e chiedimi conferma di come lo vuoi fixare.
+rilancia il test wuic-menu-routes.spec.ts) e fixa i problemi. Prima di fixare un test dimmi perchè è fallito e chiedimi conferma di come lo vuoi fixare.
+rilancia lo stress test.
+
+
+Il repo è in una sandbox PowerShell un po' restrittiva e i path iniziali erano sbagliati rispetto alla root corrente. Correggo il contesto locale e apro solo i file del designer che servono.
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+ho scaffoldato il db crm. Organizzami i menu creati in sottomenu opportuni. Poi creami dei ruoli / utenti opportuni (nel db MetadataCrm) per operare sull'applicazione con i permessi (_mtdt__tnt__trizzazioni__menus, _mtdt__tnt__trzzzioni__colonne, _mtdt__tnt__trzzzioni__tabelle).I menu di primo livello devono avere [mm_parent_id] = null. Non creare un solo menu di primo livello con tutto dentro, ma scegli una struttra a 2 livelli di menu.
+
+applica dei [mm_display_string], [mc_display_string_in_view] ,[mc_display_string_in_edit] e mm_display_string, mm_long_description più parlanti
+
+crea nel workspace un progetto identico a NugetHost (e allo stesso livello) con nome "CrmApp" configurato con gli appsettings.json configurati per dati e metadati CRM. crea un launcher di debug per CrmApp
+
+verifica per ogni route se ha senso inserire azioni tabella o azioni colonna. Fammi un elenco col tipo azione e una breve descrizione della funzionalità
+
+ora creami le 16 azioni suggerite in precedenza (inserimento su _mtdt__cstom__actions__tabelle e/o bottoni colonna mcbutton*) con callback placeholder già pronte. Se queste azioni devono invocare metodi server, crea uno o più controller nel progetto CrmApp in modo che vengano invocati. devi creare colonne con mc_ui_column_type='button'. devi aggiungerle come colonne nei metadati colonna, puoi vedere esempi attuali nel db dei metadati (select *  FROM [MetadataCRM].[dbo].[_metadati__colonne]
+ where mc_ui_column_type = 'button').  usa template '... '@ + .Replace(...), così i backtick JS restano intatti. aggiungi anche escape dei ' nei valori dinamici
+
+
+sostituisci nel Endpoint server la logica placeholder con logica business reale e implementa tutte le azioni (tabella e colonna). Se necessario crea anche stored procedures e viste
+
+al momento tutte le voci di menu (non di amministrazione) puntano a action /list. Considerando il dominio dell'applicazione crm suggerisci pagine da aggiungere a menu che utilizzino gli altri archetipi disponibili. 
+propongo menu CRM usando solo archetipi esistenti (list, edit, dialog, chart, carousel, map, scheduler, spreadsheet, tree). non suggerire voci di menu già presenti (evita i list)
+
+per tutte le action tabella che prevedono nel payload del callback selectedRecordKeys (e lo utilizzano effettivamente nella stored), devono modificare nel metadato tabella corrispondente md_multiple_selection=true 
+e modificare il callback assegnando a selectedRecordKeys: datasource.getSelectedKeys() . Quindi implementa getSelectedKeys() sul DataSourceComponent
+
+
+[claude]documenta la applicazione CrmApp. per ogni voce di menu (con mm_id>= 5976 su connessione  MetaDataSQLConnection tabella _metadati__menu). Per ogni pagina elenca le azioni tabella e azioni colonna e quello che fanno 
+(guardando gli action callback e la stored crm_sp_execute_action su connessione  DataSQLConnection chiamata tramite il controller CrmActionsController). 
+
+[claude]estendi il menu in html con informazioni per ogni menu/tabella del significato della tabella stessa nel contesto di un crm e quale utilità hanno i dati della tabella. 
+Aggiungi in fondo la descrizione dei flussi da seguire nell inserimento dati / esecuzione azioni per ogni ruolo previsto nell'applicazione (in base ai permessi menu/tabella/colonna e ai ruoli definiti sul db MetadataCRM)
+
+
+[claude]aggiungi un todo html al progetto con le feature mancanti che possono essere utili e con un piano per ognuna di come implementarle usando il framework KonvergeCore Net / wuic-framework-lib Angular nel workspace
+
+
+...aggiungo un test script che invoca automaticamente tutte le action key e stampa esito/payload sintetico.
+ 
+ 
+ 
+ 
+ -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ 
+ crm_home/dashboard
+Archetipo: dashboard
+Funzione: KPI CRM (lead aperti, pipeline totale, case aperti, attività scadute).
+
+crm_accounts/detail360
+Archetipo: detail (master-detail)
+Funzione: scheda account con tab Contatti, Opportunità, Case, Note.
+
+crm_leads/convert-wizard
+Archetipo: wizard
+Funzione: conversione guidata lead -> account/contatto/opportunità.
+
+crm_opportunities/kanban
+Archetipo: kanban/board
+Funzione: pipeline commerciale per stage con drag&drop.
+
+crm_activities/calendar
+Archetipo: calendar
+Funzione: agenda attività per owner/tipo/stato.
+
+crm_activities/timeline
+Archetipo: timeline
+Funzione: cronologia attività e note per entità cliente.
+
+crm_cases/board
+Archetipo: board (kanban supporto)
+Funzione: gestione ticket per stato/priorità.
+
+crm_cases/sla-dashboard
+Archetipo: dashboard
+Funzione: SLA, backlog, tempi medi di risoluzione.
+
+crm_notes/timeline
+Archetipo: timeline
+Funzione: stream note cross-entity con filtri.
+
+crm_reports/pipeline-forecast
+Archetipo: report/chart
+Funzione: forecast vendite per mese/stage/owner.
+
+crm_reports/cohort-leads
+Archetipo: report/pivot
+Funzione: conversion rate lead per fonte/campagna.
+
+crm_admin/permissions-matrix
+Archetipo: matrix
+Funzione: matrice ruoli x tabelle/colonne/menu (non solo lista).

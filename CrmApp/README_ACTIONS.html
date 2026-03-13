@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CrmApp — Documentazione Completa</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.6; color: #1e293b; background: #f8fafc; }
+
+    /* Layout */
+    .layout { display: flex; min-height: 100vh; }
+
+    /* Sidebar */
+    nav { width: 270px; min-width: 270px; background: #1e293b; color: #cbd5e1; position: sticky; top: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; }
+    nav::-webkit-scrollbar { width: 4px; }
+    nav::-webkit-scrollbar-track { background: #1e293b; }
+    nav::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+    nav .nav-brand { padding: 18px 16px 10px; font-size: 13px; font-weight: 700; color: #f1f5f9; text-transform: uppercase; letter-spacing: .08em; border-bottom: 1px solid #334155; }
+    nav .nav-group-label { padding: 12px 16px 3px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: #475569; }
+    nav a { display: block; padding: 5px 14px 5px 22px; color: #94a3b8; text-decoration: none; font-size: 12.5px; border-left: 2px solid transparent; transition: background .12s, color .12s, border-color .12s; }
+    nav a:hover { background: #273549; color: #e2e8f0; border-left-color: #3b82f6; }
+    nav a.active { background: #1d3a5f; color: #60a5fa; border-left-color: #3b82f6; font-weight: 600; }
+    nav a .badge { display: inline-block; font-size: 9px; background: #334155; color: #64748b; border-radius: 9px; padding: 0 5px; margin-left: 5px; vertical-align: middle; }
+
+    /* Main */
+    main { flex: 1; padding: 36px 44px; max-width: 980px; }
+
+    /* Page header */
+    .page-header { margin-bottom: 32px; }
+    .page-header h1 { font-size: 24px; font-weight: 700; color: #0f172a; }
+    .page-header .meta { margin-top: 5px; font-size: 12px; color: #64748b; }
+    .page-header .meta code { background: #e2e8f0; padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+
+    /* Section headers */
+    .section-header { margin-top: 44px; margin-bottom: 18px; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0; display: flex; align-items: center; gap: 10px; }
+    .section-header h2 { font-size: 17px; font-weight: 700; color: #0f172a; }
+    .group-icon { width: 30px; height: 30px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+
+    /* Page card */
+    .page-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 18px; overflow: hidden; }
+    .page-card-header { padding: 13px 18px; background: #f1f5f9; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+    .page-card-header .mm-id { font-size: 10px; font-weight: 600; color: #64748b; background: #e2e8f0; padding: 2px 6px; border-radius: 99px; }
+    .page-card-header h3 { font-size: 14px; font-weight: 700; color: #0f172a; }
+    .page-card-header .route { margin-left: auto; font-size: 11px; color: #3b82f6; background: #eff6ff; padding: 2px 7px; border-radius: 4px; font-family: 'Consolas', monospace; }
+    .page-card-body { padding: 14px 18px; }
+
+    /* Table info box */
+    .table-info { background: #fafafa; border: 1px solid #e9ecef; border-radius: 7px; padding: 11px 14px; margin-bottom: 14px; font-size: 13px; }
+    .table-info .ti-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #94a3b8; margin-bottom: 4px; }
+    .table-info .ti-purpose { color: #334155; margin-bottom: 6px; }
+    .table-info .ti-fields { display: flex; flex-wrap: wrap; gap: 5px; }
+    .ti-field { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 4px; padding: 2px 7px; font-size: 11px; color: #475569; font-family: 'Consolas', monospace; }
+
+    /* Alias notice */
+    .alias-notice { font-size: 13px; color: #64748b; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 7px; padding: 10px 14px; }
+    .alias-notice code { background: #f1f5f9; padding: 1px 4px; border-radius: 3px; font-size: 11.5px; font-family: 'Consolas', monospace; }
+
+    /* Action section */
+    .action-section { margin-bottom: 12px; }
+    .action-section:last-child { margin-bottom: 0; }
+    .action-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
+    .badge-table { background: #dbeafe; color: #1d4ed8; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 99px; text-transform: uppercase; letter-spacing: .06em; }
+    .badge-col   { background: #dcfce7; color: #15803d; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 99px; text-transform: uppercase; letter-spacing: .06em; }
+
+    /* Action row */
+    .action-row { display: grid; grid-template-columns: 190px 260px 1fr; border: 1px solid #e2e8f0; border-radius: 7px; overflow: hidden; font-size: 12.5px; }
+    .action-row > div { padding: 9px 11px; border-right: 1px solid #e2e8f0; }
+    .action-row > div:last-child { border-right: none; }
+    .action-row .col-btn { font-weight: 600; color: #0f172a; background: #fafafa; }
+    .action-row .col-key { font-family: 'Consolas', monospace; font-size: 11px; color: #7c3aed; background: #faf5ff; }
+    .action-row .col-desc { color: #334155; }
+    .action-row code { background: #f1f5f9; padding: 1px 4px; border-radius: 3px; font-size: 11px; font-family: 'Consolas', monospace; }
+
+    /* Architecture box */
+    .arch-box { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px 22px; margin-bottom: 32px; }
+    .arch-box h2 { font-size: 14px; font-weight: 700; margin-bottom: 10px; color: #0f172a; }
+    .arch-endpoint { background: #0f172a; color: #7dd3fc; font-family: 'Consolas', monospace; font-size: 12.5px; padding: 10px 14px; border-radius: 7px; margin-bottom: 12px; }
+    .arch-endpoint .method { color: #86efac; font-weight: 700; }
+    .arch-params { list-style: none; }
+    .arch-params li { padding: 3px 0; font-size: 12.5px; color: #334155; }
+    .arch-params li code { background: #f1f5f9; padding: 1px 4px; border-radius: 3px; font-size: 11px; font-family: 'Consolas', monospace; color: #7c3aed; }
+    .arch-params li .param-desc { color: #64748b; }
+
+    /* Role section */
+    .role-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 24px; overflow: hidden; }
+    .role-card-header { padding: 14px 20px; display: flex; align-items: center; gap: 12px; }
+    .role-avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .role-card-header h3 { font-size: 15px; font-weight: 700; }
+    .role-card-header .role-id { font-size: 10px; color: #94a3b8; background: #f1f5f9; padding: 2px 7px; border-radius: 99px; }
+    .role-card-body { padding: 0 20px 18px; }
+
+    /* Permission grid */
+    .perm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin-bottom: 16px; }
+    .perm-item { border-radius: 7px; padding: 8px 10px; font-size: 12px; }
+    .perm-item .perm-table { font-weight: 600; color: #0f172a; margin-bottom: 3px; font-size: 11.5px; }
+    .perm-item .perm-icons { font-size: 11px; color: #64748b; letter-spacing: 1px; }
+    .perm-full  { background: #f0fdf4; border: 1px solid #bbf7d0; }
+    .perm-nomod { background: #fefce8; border: 1px solid #fde68a; }
+    .perm-none  { background: #fafafa; border: 1px solid #e2e8f0; opacity: .55; }
+    .perm-ro    { background: #eff6ff; border: 1px solid #bfdbfe; }
+
+    /* Flow steps */
+    .flow-section { margin-top: 14px; }
+    .flow-title { font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 8px; }
+    .flow-list { list-style: none; counter-reset: flow-counter; }
+    .flow-list li { counter-increment: flow-counter; display: flex; gap: 10px; margin-bottom: 8px; font-size: 13px; color: #334155; }
+    .flow-list li::before { content: counter(flow-counter); min-width: 22px; height: 22px; border-radius: 50%; background: #3b82f6; color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+    .flow-list li strong { color: #0f172a; }
+    .flow-list li code { background: #f1f5f9; padding: 1px 4px; border-radius: 3px; font-size: 11px; font-family: 'Consolas', monospace; }
+    .flow-note { font-size: 12px; color: #64748b; background: #f8fafc; border-left: 3px solid #cbd5e1; padding: 7px 11px; border-radius: 0 5px 5px 0; margin-top: 8px; }
+    .flow-note.warn { border-left-color: #f59e0b; background: #fffbeb; color: #92400e; }
+
+    /* Role color variants */
+    .rc-manager { background: linear-gradient(135deg,#1d4ed8,#2563eb); }
+    .rc-sales    { background: linear-gradient(135deg,#059669,#10b981); }
+    .rc-support  { background: linear-gradient(135deg,#d97706,#f59e0b); }
+    .rc-readonly { background: linear-gradient(135deg,#6b7280,#9ca3af); }
+
+    .role-card-header.rc-manager { color: #fff; }
+    .role-card-header.rc-manager h3 { color: #fff; }
+    .role-card-header.rc-manager .role-id { background: rgba(255,255,255,.2); color: #fff; }
+    .role-card-header.rc-sales   { color: #fff; }
+    .role-card-header.rc-sales   h3 { color: #fff; }
+    .role-card-header.rc-sales   .role-id { background: rgba(255,255,255,.2); color: #fff; }
+    .role-card-header.rc-support { color: #fff; }
+    .role-card-header.rc-support h3 { color: #fff; }
+    .role-card-header.rc-support .role-id { background: rgba(255,255,255,.2); color: #fff; }
+    .role-card-header.rc-readonly { color: #fff; }
+    .role-card-header.rc-readonly h3 { color: #fff; }
+    .role-card-header.rc-readonly .role-id { background: rgba(255,255,255,.2); color: #fff; }
+
+    /* Summary table */
+    .summary-table { width: 100%; border-collapse: collapse; font-size: 12.5px; background: #fff; border-radius: 10px; overflow: hidden; border: 1px solid #e2e8f0; }
+    .summary-table thead tr { background: #f1f5f9; }
+    .summary-table th { padding: 9px 12px; text-align: left; font-weight: 700; color: #374151; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; border-bottom: 1px solid #e2e8f0; }
+    .summary-table td { padding: 8px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+    .summary-table tr:last-child td { border-bottom: none; }
+    .summary-table tr:hover td { background: #f8fafc; }
+    .summary-table td code { background: #f5f3ff; color: #7c3aed; padding: 1px 5px; border-radius: 3px; font-size: 11px; font-family: 'Consolas', monospace; }
+
+    /* Divider */
+    hr.section-divider { border: none; border-top: 2px solid #e2e8f0; margin: 40px 0; }
+
+    /* Perm legend */
+    .perm-legend { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; font-size: 12px; }
+    .perm-legend span { display: flex; align-items: center; gap: 5px; }
+    .perm-legend .dot { width: 10px; height: 10px; border-radius: 2px; }
+  </style>
+</head>
+<body>
+<div class="layout">
+
+<!-- ══ SIDEBAR ══ -->
+<nav>
+  <div class="nav-brand">CrmApp Docs</div>
+
+  <div class="nav-group-label">Architettura</div>
+  <a href="#architettura">Flusso delle azioni</a>
+
+  <div class="nav-group-label">Anagrafiche CRM</div>
+  <a href="#p5976">Account <span class="badge">5976</span></a>
+  <a href="#p5978">Tipi attività <span class="badge">5978</span></a>
+  <a href="#p5980">Stati case <span class="badge">5980</span></a>
+  <a href="#p5981">Contatti <span class="badge">5981</span></a>
+  <a href="#p5983">Stati lead <span class="badge">5983</span></a>
+  <a href="#p5987">Fasi opportunità <span class="badge">5987</span></a>
+  <a href="#p5988">Prodotti <span class="badge">5988</span></a>
+  <a href="#p5997">Scheda account <span class="badge">5997</span></a>
+  <a href="#p5998">Nuovo contatto rapido <span class="badge">5998</span></a>
+  <a href="#p6003">Listino bulk <span class="badge">6003</span></a>
+
+  <div class="nav-group-label">Pipeline commerciale</div>
+  <a href="#p5982">Lead <span class="badge">5982</span></a>
+  <a href="#p5985">Opportunità <span class="badge">5985</span></a>
+  <a href="#p5986">Prodotti opportunità <span class="badge">5986</span></a>
+  <a href="#p5999">Lead analytics <span class="badge">5999</span></a>
+  <a href="#p6000">Pipeline chart <span class="badge">6000</span></a>
+  <a href="#p6002">Righe opp. bulk <span class="badge">6002</span></a>
+
+  <div class="nav-group-label">Attività operative</div>
+  <a href="#p5977">Attività <span class="badge">5977</span></a>
+  <a href="#p5984">Note <span class="badge">5984</span></a>
+  <a href="#p6001">Agenda attività <span class="badge">6001</span></a>
+
+  <div class="nav-group-label">Case e supporto</div>
+  <a href="#p5979">Case <span class="badge">5979</span></a>
+
+  <div class="nav-group-label">Configurazione CRM</div>
+  <a href="#p5989">Ruoli CRM <span class="badge">5989</span></a>
+  <a href="#p5990">Utenti CRM <span class="badge">5990</span></a>
+
+  <div class="nav-group-label">Ruoli e flussi</div>
+  <a href="#role16">CRM Manager</a>
+  <a href="#role17">CRM Sales</a>
+  <a href="#role18">CRM Support</a>
+  <a href="#role19">CRM Readonly</a>
+
+  <div class="nav-group-label">Riferimento</div>
+  <a href="#riepilogo">Riepilogo action keys</a>
+</nav>
+
+<!-- ══ MAIN ══ -->
+<main>
+
+  <div class="page-header">
+    <h1>CrmApp — Documentazione Completa</h1>
+    <div class="meta">
+      Generata il 13 marzo 2026 &mdash;
+      Metadati: <code>MetadataCRM</code> &mdash;
+      Dati: <code>AdvancedCRM</code> &mdash;
+      Logica: <code>dbo.crm_sp_execute_action</code>
+    </div>
+  </div>
+
+  <!-- ══ ARCHITETTURA ══ -->
+  <div class="arch-box" id="architettura">
+    <h2>Flusso delle azioni</h2>
+    <div class="arch-endpoint">
+      <span class="method">POST</span> /api/CrmActions/execute/<span style="color:#fde68a">{actionKey}</span>
+    </div>
+    <p style="font-size:13px;color:#475569;margin-bottom:9px;">
+      Il controller <code>CrmActionsController</code> invoca <code>dbo.crm_sp_execute_action</code> su <strong>AdvancedCRM</strong>:
+    </p>
+    <ul class="arch-params">
+      <li><code>@action_key</code> <span class="param-desc">— identificatore dell'azione</span></li>
+      <li><code>@route_name</code> <span class="param-desc">— route della pagina chiamante</span></li>
+      <li><code>@current_record</code> <span class="param-desc">— JSON del record corrente (chiavi: <code>account_id</code>, <code>lead_id</code>, ecc.)</span></li>
+      <li><code>@selected_record_keys</code> <span class="param-desc">— JSON array dei record selezionati (azioni massive)</span></li>
+    </ul>
+    <p style="font-size:12.5px;color:#475569;margin-top:9px;">Risposta: <code>ok (bit)</code>, <code>message (nvarchar)</code>, <code>payload (nvarchar/JSON)</code>.</p>
+  </div>
+
+  <!-- ════════════════════════════════
+       GRUPPO: ANAGRAFICHE CRM
+  ════════════════════════════════ -->
+  <div class="section-header" id="g-anagrafiche">
+    <div class="group-icon" style="background:#eff6ff;">🏢</div>
+    <h2>Anagrafiche CRM</h2>
+  </div>
+
+  <!-- 5976 Account -->
+  <div class="page-card" id="p5976">
+    <div class="page-card-header">
+      <span class="mm-id">5976</span><h3>Account</h3>
+      <span class="route">/crm_accounts/list</span>
+    </div>
+    <div class="page-card-body">
+      <div class="table-info">
+        <div class="ti-label">Tabella CRM: <code>crm_accounts</code></div>
+        <div class="ti-purpose">Rappresenta le <strong>aziende clienti o prospect</strong> con cui il CRM intrattiene rapporti commerciali. È l'entità centrale del modello dati: contatti, opportunità, case e attività vengono tutti collegati a un account. Consente di avere una visione aggregata di tutto ciò che riguarda un'azienda specifica.</div>
+        <div class="ti-fields">
+          <span class="ti-field">account_name</span><span class="ti-field">vat_number</span><span class="ti-field">industry</span>
+          <span class="ti-field">website</span><span class="ti-field">phone</span><span class="ti-field">billing_address</span>
+          <span class="ti-field">city</span><span class="ti-field">country</span><span class="ti-field">owner_user_id</span>
+        </div>
+      </div>
+      <div class="action-section">
+        <div class="action-label"><span class="badge-table">Azione tabella</span></div>
+        <div class="action-row">
+          <div class="col-btn">Unisci duplicati account</div>
+          <div class="col-key">crm_accounts_merge_duplicates</div>
+          <div class="col-desc">Trova account con stesso <code>account_name</code>, <code>vat_number</code> e <code>city</code>; mantiene il record con <code>MIN(account_id)</code> e reindirizza tutti i FK (contatti, opportunità, case, attività, note, lead convertiti) verso il master; elimina logicamente i duplicati (<code>Stato_Record=1</code>).</div>
+        </div>
+      </div>
+      <div class="action-section">
+        <div class="action-label"><span class="badge-col">Azione colonna</span></div>
+        <div class="action-row">
+          <div class="col-btn">Apri scheda 360</div>
+          <div class="col-key">crm_accounts_open_360</div>
+          <div class="col-desc">Carica <code>vw_crm_account_360</code> per <code>account_id</code>: restituisce la vista completa dell'account con tutti i dati correlati (contatti, opportunità, case, attività, note).</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5978 Tipi attività -->
+  <div class="page-card" id="p5978">
+    <div class="page-card-header">
+      <span class="mm-id">5978</span><h3>Tipi attività</h3>
+      <span class="route">/crm_activity_type/list</span>
+    </div>
+    <div class="page-card-body">
+      <div class="table-info">
+        <div class="ti-label">Tabella CRM: <code>crm_activity_type</code></div>
+        <div class="ti-purpose">Tabella di <strong>configurazione dei tipi di attività</strong> (es. Chiamata, Email, Riunione, Demo). Permette di categorizzare le attività operative e produrre statistiche per tipo. È un dato di supporto modificabile solo dagli amministratori.</div>
+        <div class="ti-fields"><span class="ti-field">type_code</span><span class="ti-field">type_name</span></div>
+      </div>
+      <div class="action-section">
+        <div class="action-label"><span class="badge-table">Azione tabella</span></div>
+        <div class="action-row">
+          <div class="col-btn">Riordina tipi attività</div>
+          <div class="col-key">crm_activity_type_reorder</div>
+          <div class="col-desc">Riallinea <code>type_code</code> ricalcolandolo da <code>type_name</code> (lowercase, spazi/trattini → <code>_</code>). Utile dopo importazioni manuali o modifiche bulk.</div>
+        </div>
+      </div>
+      <div class="action-section">
+        <div class="action-label"><span class="badge-col">Azione colonna</span></div>
+        <div class="action-row">
+          <div class="col-btn">Mostra attività collegate</div>
+          <div class="col-key">crm_activity_type_show_linked</div>
+          <div class="col-desc">Restituisce le ultime 100 attività collegate al tipo (<code>activity_type_id</code>), ordinate per <code>due_date DESC</code>.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5980 Stati case -->
+  <div class="page-card" id="p5980">
+    <div class="page-card-header">
+      <span class="mm-id">5980</span><h3>Stati case</h3>
+      <span class="route">/crm_case_status/list</span>
+    </div>
+    <div class="page-card-body">
+      <div class="table-info">
+        <div class="ti-label">Tabella CRM: <code>crm_case_status</code></div>
+        <div class="ti-purpose">Dizionario degli <strong>stati del ciclo di vita di un case</strong> di supporto (es. Aperto, In lavorazione, In attesa cliente, Risolto, Chiuso). Governa il workflow dei ticket e permette di configurare quali transizioni di stato sono consentite tramite <code>crm_case_status_transition</code>.</div>
+        <div class="ti-fields"><span class="ti-field">status_code</span><span class="ti-field">status_name</span></div>
+      </div>
+      <div class="action-section">
+        <div class="action-label"><span class="badge-table">Azione tabella</span></div>
+        <div class="action-row">
+          <div class="col-btn">Configura transizioni</div>
+          <div class="col-key">crm_case_status_configure_transitions</div>
+          <div class="col-desc">Crea (se non esiste) la tabella <code>crm_case_status_transition</code> e popola tutte le combinazioni di transizione permessa tra stati (cross join escludendo <code>from=to</code> e duplicati).</div>
+        </div>
+      </div>
+      <div class="action-section">
+        <div class="action-label"><span class="badge-col">Azione colonna</span></div>
+        <div class="action-row">
+          <div class="col-btn">Mostra case in stato</div>
+          <div class="col-key">crm_case_status_show_items</div>
+          <div class="col-desc">Lista i 100 case più recenti con lo stato selezionato, ordinati per <code>updated_at DESC</code>.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5981 Contatti -->
+  <div class="page-card" id="p5981">
+    <div class="page-card-header">
+      <span class="mm-id">5981</span><h3>Contatti</h3>
+      <span class="route">/crm_contacts/list</span>
+    </div>
+    <div class="page-card-body">
+      <div class="table-info">
+        <div class="ti-label">Tabella CRM: <code>crm_contacts</code></div>
+        <div class="ti-purpose">Registra le <strong>persone fisiche</strong> che lavorano presso gli account: referenti commerciali, decisori, tecnici. È il punto di contatto diretto per email, telefonate e riunioni. Ogni contatto è collegato a un account e può essere associato a opportunità, case e attività.</div>
+        <div class="ti-fields">
+          <span class="ti-field">first_name</span><span class="ti-field">last_name</span><span class="ti-field">job_title</span>
+          <span class="ti-field">email</span><span class="ti-field">phone</span><span class="ti-field">mobile</span>
+          <span class="ti-field">account_id</span><span class="ti-field">owner_user_id</span>
+        </div>
+      </div>
+      <div class="action-section">
+        <div class="action-label"><span class="badge-table">Azione tabella</span></div>
+        <div class="action-row">
+          <div class="col-btn">Importa contatti</div>
+          <div class="col-key">crm_contacts_import_csv</div>
+          <div class="col-desc">Promuove i lead qualificati (email valorizzata, non ancora convertiti) a nuovi contatti in <code>crm_contacts</code>, evitando duplicati su email. Ritorna il numero di contatti inseriti.</div>
+        </div>
+      </div>
+      <div class="action-section">
+        <div class="action-label"><span class="badge-col">Azione colonna</span></div>
+        <div class="action-row">
+          <div class="col-btn">Invia email</div>
+          <div class="col-key">crm_contacts_send_email</div>
+          <div class="col-desc">Registra l'invio di una email su <code>crm_notes</code> (timeline) per il contatto selezionato, con testo che include indirizzo e timestamp.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5983 Stati lead -->
+  <div class="page-card" id="p5983">
+    <div class="page-card-header">
+      <span class="mm-id">5983</span><h3>Stati lead</h3>
+      <span class="route">/crm_lead_status/list</span>
+    </div>
+    <div class="page-card-body">
+      <div class="table-info">
+        <div class="ti-label">Tabella CRM: <code>crm_lead_status</code></div>
+        <div class="ti-purpose">Dizionario delle <strong>fasi di qualificazione di un lead</strong> (Nuovo, Qualificato, Nurturing, Convertito, Perso). Permette di monitorare a che punto del funnel si trovano i prospect e misurare i tassi di conversione per fase.</div>
+        <div class="ti-fields"><span class="ti-field">status_code</span><span class="ti-field">status_name</span></div>
+      </div>
+      <div class="action-section">
+        <div class="action-label"><span class="badge-table">Azione tabella</span></div>
+        <div class="action-row">
+          <div class="col-btn">Riordina stati lead</div>
+          <div class="col-key">crm_lead_status_reorder</div>
+          <div class="col-desc">Normalizza i <code>status_name</code> ai valori IT standard (Nuovo, Qualificato, Nurturing, Convertito, Perso) in base al <code>status_code</code>.</div>
+        </div>
+      </div>
+      <div class="action-section">
+        <div class="action-label"><span class="badge-col">Azione colonna</span></div>
+        <div class="action-row">
+          <div class="col-btn">Mostra utilizzi</div>
+          <div class="col-key">crm_lead_status_show_usage</div>
+          <div class="col-desc">Restituisce i 100 lead più recenti con lo stato selezionato (<code>lead_status_id</code>).</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5987 Fasi opportunità -->
+  <div class="page-card" id="p5987">
+    <div class="page-card-header">
+      <span class="mm-id">5987</span><h3>Fasi opportunità</h3>
+      <span class="route">/crm_opportunity_stage/list</span>
+    </div>
+    <div class="page-card-body">
+      <div class="table-info">
+        <div class="ti-label">Tabella CRM: <code>crm_opportunity_stage</code></div>
+        <div class="ti-purpose">Dizionario delle <strong>fasi della pipeline commerciale</strong> (Prospecting, Qualification, Proposal, Negotiation, Closed Won, Closed Lost). Ogni fase ha una <code>win_probability</code> che alimenta i forecast di vendita e le chart della pipeline.</div>
+        <div class="ti-fields"><span class="ti-field">stage_code</span><span class="ti-field">stage_name</span><span class="ti-field">win_probability</span></div>
+      </div>
+      <div class="action-section">
+        <div class="action-label"><span class="badge-table">Azione tabella</span></div>
+        <div class="action-row">
+          <div class="col-btn">Ricalcola probabilità</div>
+          <div class="col-key">crm_opportunity_stage_recalc_probability</div>
+          <div class="col-desc">Aggiorna <code>win_probability</code> secondo mapping standard: prospecting→10%, qualification→25%, proposal→50%, negotiation→75%, closed_won→100%, closed_lost→0%.</div>
+        </div>
+      </div>
+      <div class="action-section">
+        <div class="action-label"><span class="badge-col">Azione colonna</span></div>
+        <div class="action-row">
+          <div class="col-btn">Mostra opportunità in fase</div>
+          <div class="col-key">crm_opportunity_stage_show_items</div>
+          <div class="col-desc">Restituisce le 100 opportunità aperte nella fase selezionata (<code>stage_id</code>), con account correlato, ordinate per <code>expected_close_date</code>.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5988 Prodotti -->
+  <div class="page-card" id="p5988">
+    <div class="page-card-header">
+      <span class="mm-id">5988</span><h3>Prodotti</h3>
+      <span class="route">/crm_products/list</span>
+    </div>
+    <div class="page-card-body">
+      <div class="table-info">
+        <div class="ti-label">Tabella CRM: <code>crm_products</code></div>
+        <div class="ti-purpose"><strong>Catalogo dei prodotti/servizi</strong> vendibili. I prezzi di listino vengono usati come base nelle righe opportunità. Ogni prodotto ha uno SKU, un prezzo unitario e un flag di attivazione; solo i prodotti attivi (<code>is_active=1</code>) compaiono nei selettori delle opportunità.</div>
+        <div class="ti-fields"><span class="ti-field">sku</span><span class="ti-field">product_name</span><span class="ti-field">unit_price</span><span class="ti-field">is_active</span></div>
+      </div>
+      <div class="action-section">
+        <div class="action-label"><span class="badge-table">Azione tabella</span></div>
+        <div class="action-row">
+          <div class="col-btn">Aggiorna listino</div>
+          <div class="col-key">crm_products_mass_price_update</div>
+          <div class="col-desc">Aumenta del 3% (<code>unit_price × 1.03</code>, arrotondato a 2 decimali) tutti i prodotti attivi. Utile per aggiornamento periodico del listino prezzi.</div>
+        </div>
+      </div>
+      <div class="action-section">
+        <div class="action-label"><span class="badge-col">Azione colonna</span></div>
+        <div class="action-row">
+          <div class="col-btn">Attiva/Disattiva</div>
+          <div class="col-key">crm_products_toggle_active</div>
+          <div class="col-desc">Inverte <code>is_active</code> del prodotto selezionato; restituisce <code>product_id</code> e nuovo stato nel payload.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5997 Scheda account (alias) -->
+  <div class="page-card" id="p5997">
+    <div class="page-card-header"><span class="mm-id">5997</span><h3>Scheda account</h3><span class="route">/crm_accounts/edit</span></div>
+    <div class="page-card-body">
+      <div class="alias-notice">Vista <strong>edit</strong> della pagina Account — stessa <code>mdid=3667</code>. Apre direttamente il form di modifica di un account specifico (accesso diretto alla scheda). Condivide azioni: <code>crm_accounts_merge_duplicates</code> (tabella) &amp; <code>crm_accounts_open_360</code> (colonna).</div>
+    </div>
+  </div>
+
+  <!-- 5998 Nuovo contatto rapido (alias) -->
+  <div class="page-card" id="p5998">
+    <div class="page-card-header"><span class="mm-id">5998</span><h3>Nuovo contatto rapido</h3><span class="route">/crm_contacts/dialog</span></div>
+    <div class="page-card-body">
+      <div class="alias-notice">Vista <strong>dialog</strong> della pagina Contatti — stessa <code>mdid=3672</code>. Apre un form compatto per inserire un contatto al volo senza navigare alla lista completa. Condivide azioni: <code>crm_contacts_import_csv</code> (tabella) &amp; <code>crm_contacts_send_email</code> (colonna).</div>
+    </div>
+  </div>
+
+  <!-- 6003 Listino bulk (alias) -->
+  <div class="page-card" id="p6003">
+    <div class="page-card-header"><span class="mm-id">6003</span><h3>Listino prodotti (bulk)</h3><span class="route">/crm_products/spreadsheet</span></div>
+    <div class="page-card-body">
+      <div class="alias-notice">Vista <strong>spreadsheet</strong> della pagina Prodotti — stessa <code>mdid=3679</code>. Consente di modificare prezzi e stato di molti prodotti in modalità griglia. Condivide azioni: <code>crm_products_mass_price_update</code> (tabella) &amp; <code>crm_products_toggle_active</code> (colonna).</div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════
+       GRUPPO: PIPELINE COMMERCIALE
+  ════════════════════════════════ -->
+  <div class="section-header" id="g-pipeline">
+    <div class="group-icon" style="background:#f0fdf4;">💼</div>
+    <h2>Pipeline commerciale</h2>
+  </div>
+
+  <!-- 5982 Lead -->
+  <div class="page-card" id="p5982">
+    <div class="page-card-header"><span class="mm-id">5982</span><h3>Lead</h3><span class="route">/crm_leads/list</span></div>
+    <div class="page-card-body">
+      <div class="table-info">
+        <div class="ti-label">Tabella CRM: <code>crm_leads</code></div>
+        <div class="ti-purpose">Raccoglie i <strong>contatti/aziende non ancora qualificati</strong> come clienti: form web, fiere, campagne marketing, passaparola. Un lead ha un ciclo di vita che termina con la conversione (creazione di account + contatto + opportunità) oppure con la perdita. Il campo <code>source</code> indica il canale di acquisizione e alimenta le analisi ROI.</div>
+        <div class="ti-fields">
+          <span class="ti-field">source</span><span class="ti-field">company_name</span><span class="ti-field">first_name</span>
+          <span class="ti-field">last_name</span><span class="ti-field">email</span><span class="ti-field">phone</span>
+          <span class="ti-field">expected_revenue</span><span class="ti-field">lead_status_id</span><span class="ti-field">assigned_user_id</span>
+          <span class="ti-field">converted_account_id</span><span class="ti-field">converted_contact_id</span>
+        </div>
+      </div>
+      <div class="action-section">
+        <div class="action-label"><span class="badge-table">Azione tabella</span></div>
+        <div class="action-row">
+          <div class="col-btn">Assegnazione massiva lead</div>
+          <div class="col-key">crm_leads_mass_assign</div>
+          <div class="col-desc">Riassegna i lead selezionati (o tutti quelli senza assegnatario) all'utente attivo con meno lead in carico: bilanciamento automatico del carico di lavoro.</div>
+        </div>
+      </div>
+      <div class="action-section">
+        <div class="action-label"><span class="badge-col">Azione colonna</span></div>
+        <div class="action-row">
+          <div class="col-btn">Converti lead</div>
+          <div class="col-key">crm_leads_convert</div>
+          <div class="col-desc">Converte il lead creando: (1) <code>crm_account</code> da <code>company_name</code>; (2) <code>crm_contact</code> collegato; (3) <code>crm_opportunity</code> con scadenza +30gg e fase <code>qualification</code>. Aggiorna il lead con i riferimenti e stato <code>converted</code>. Restituisce gli ID creati nel payload.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5985 Opportunità -->
+  <div class="page-card" id="p5985">
+    <div class="page-card-header"><span class="mm-id">5985</span><h3>Opportunità</h3><span class="route">/crm_opportunities/list</span></div>
+    <div class="page-card-body">
+      <div class="table-info">
+        <div class="ti-label">Tabella CRM: <code>crm_opportunities</code></div>
+        <div class="ti-purpose">Cuore della <strong>pipeline commerciale</strong>: ogni opportunità rappresenta una trattativa di vendita con un account. Tiene traccia dell'importo potenziale (<code>amount</code>), della fase (<code>stage_id</code>), della data di chiusura prevista (<code>expected_close_date</code>) e del venditore responsabile. Alimenta i forecast e le chart del fatturato atteso.</div>
+        <div class="ti-fields">
+          <span class="ti-field">title</span><span class="ti-field">account_id</span><span class="ti-field">contact_id</span>
+          <span class="ti-field">amount</span><span class="ti-field">stage_id</span><span class="ti-field">expected_close_date</span>
+          <span class="ti-field">owner_user_id</span><span class="ti-field">lead_id</span>
+        </div>
+      </div>
+      <div class="action-section">
+        <div class="action-label"><span class="badge-table">Azione tabella</span></div>
+        <div class="action-row">
+          <div class="col-btn">Aggiorna fase massiva</div>
+          <div class="col-key">crm_opportunities_mass_stage</div>
+          <div class="col-desc">Sposta le opportunità selezionate (o quelle senza fase) alla fase <code>qualification</code> (o prima disponibile).</div>
+        </div>
+      </div>
+      <div class="action-section">
+        <div class="action-label"><span class="badge-col">Azione colonna</span></div>
+        <div class="action-row">
+          <div class="col-btn">Duplica opportunità</div>
+          <div class="col-key">crm_opportunities_duplicate</div>
+          <div class="col-desc">Chiama <code>dbo.crm_sp_duplicate_opportunity</code>; restituisce <code>source_opportunity_id</code> e <code>new_opportunity_id</code>. Utile per riusare una trattativa come base per una nuova.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5986 Prodotti opportunità -->
+  <div class="page-card" id="p5986">
+    <div class="page-card-header"><span class="mm-id">5986</span><h3>Prodotti opportunità</h3><span class="route">/crm_opportunity_products/list</span></div>
+    <div class="page-card-body">
+      <div class="table-info">
+        <div class="ti-label">Tabella CRM: <code>crm_opportunity_products</code></div>
+        <div class="ti-purpose">Righe di dettaglio dell'<strong>offerta commerciale</strong> collegata a un'opportunità. Ogni riga indica quale prodotto, a quale prezzo, in quale quantità e con quale sconto è incluso nell'offerta. La somma delle righe determina il valore complessivo (<code>amount</code>) dell'opportunità.</div>
+        <div class="ti-fields">
+          <span class="ti-field">opportunity_id</span><span class="ti-field">product_id</span><span class="ti-field">quantity</span>
+          <span class="ti-field">unit_price</span><span class="ti-field">discount_percent</span>
+        </div>
+      </div>
+      <div class="action-section">
+        <div class="action-label"><span class="badge-table">Azione tabella</span></div>
+        <div class="action-row">
+          <div class="col-btn">Ricalcola totali opportunità</div>
+          <div class="col-key">crm_opportunity_products_recalc_totals</div>
+          <div class="col-desc">Ricalcola <code>crm_opportunities.amount</code> come <code>SUM(quantity × unit_price × (1 − discount_percent/100))</code> per tutte le opportunità attive.</div>
+        </div>
+      </div>
+      <div class="action-section">
+        <div class="action-label"><span class="badge-col">Azione colonna</span></div>
+        <div class="action-row">
+          <div class="col-btn">Applica sconto standard</div>
+          <div class="col-key">crm_opportunity_products_apply_standard_discount</div>
+          <div class="col-desc">Imposta <code>discount_percent</code> per fasce di quantità: ≥50→15%, ≥20→10%, ≥10→5%, altrimenti 0%.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5999 Lead analytics -->
+  <div class="page-card" id="p5999">
+    <div class="page-card-header"><span class="mm-id">5999</span><h3>Lead analytics</h3><span class="route">/crm_leads/chart</span></div>
+    <div class="page-card-body">
+      <div class="alias-notice">Vista <strong>chart</strong> della pagina Lead — stessa <code>mdid=3673</code>. Visualizza grafici di distribuzione lead per stato, fonte e assegnatario. Condivide azioni: <code>crm_leads_mass_assign</code> (tabella) &amp; <code>crm_leads_convert</code> (colonna).</div>
+    </div>
+  </div>
+
+  <!-- 6000 Pipeline chart -->
+  <div class="page-card" id="p6000">
+    <div class="page-card-header"><span class="mm-id">6000</span><h3>Pipeline chart</h3><span class="route">/crm_opportunities/chart</span></div>
+    <div class="page-card-body">
+      <div class="alias-notice">Vista <strong>chart</strong> della pagina Opportunità — stessa <code>mdid=3676</code>. Funnel visivo della pipeline con valore aggregato per fase. Condivide azioni: <code>crm_opportunities_mass_stage</code> (tabella) &amp; <code>crm_opportunities_duplicate</code> (colonna).</div>
+    </div>
+  </div>
+
+  <!-- 6002 Righe opp. bulk -->
+  <div class="page-card" id="p6002">
+    <div class="page-card-header"><span class="mm-id">6002</span><h3>Righe opportunità (bulk)</h3><span class="route">/crm_opportunity_products/spreadsheet</span></div>
+    <div class="page-card-body">
+      <div class="alias-notice">Vista <strong>spreadsheet</strong> della pagina Prodotti opportunità — stessa <code>mdid=3677</code>. Modifica massiva di quantità, prezzi e sconti su più righe contemporaneamente. Condivide azioni: <code>crm_opportunity_products_recalc_totals</code> (tabella) &amp; <code>crm_opportunity_products_apply_standard_discount</code> (colonna).</div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════
+       GRUPPO: ATTIVITÀ OPERATIVE
+  ════════════════════════════════ -->
+  <div class="section-header" id="g-attivita">
+    <div class="group-icon" style="background:#fefce8;">📋</div>
+    <h2>Attività operative</h2>
+  </div>
+
+  <!-- 5977 Attività -->
+  <div class="page-card" id="p5977">
+    <div class="page-card-header"><span class="mm-id">5977</span><h3>Attività</h3><span class="route">/crm_activities/list</span></div>
+    <div class="page-card-body">
+      <div class="table-info">
+        <div class="ti-label">Tabella CRM: <code>crm_activities</code></div>
+        <div class="ti-purpose">Registra tutte le <strong>interazioni operative</strong> con clienti e prospect: chiamate, email, riunioni, demo, follow-up. Ogni attività ha una scadenza (<code>due_date</code>), un tipo (<code>activity_type_id</code>) e un flag di completamento. Consente di monitorare la produttività del team e garantire che nessun follow-up venga dimenticato.</div>
+        <div class="ti-fields">
+          <span class="ti-field">activity_type_id</span><span class="ti-field">subject</span><span class="ti-field">due_date</span>
+          <span class="ti-field">completed</span><span class="ti-field">account_id</span><span class="ti-field">contact_id</span>
+          <span class="ti-field">lead_id</span><span class="ti-field">opportunity_id</span><span class="ti-field">owner_user_id</span><span class="ti-field">notes</span>
+        </div>
+      </div>
+      <div class="action-section">
+        <div class="action-label"><span class="badge-table">Azione tabella</span></div>
+        <div class="action-row">
+          <div class="col-btn">Completa attività selezionate</div>
+          <div class="col-key">crm_activities_complete_selected</div>
+          <div class="col-desc">Marca <code>completed=1</code> sulle attività selezionate; se nessuna selezione, completa tutte quelle non completate con <code>due_date</code> già scaduta.</div>
+        </div>
+      </div>
+      <div class="action-section">
+        <div class="action-label"><span class="badge-col">Azione colonna</span></div>
+        <div class="action-row">
+          <div class="col-btn">Segna completata</div>
+          <div class="col-key">crm_activities_mark_completed</div>
+          <div class="col-desc">Imposta <code>completed=1</code> sulla singola attività selezionata (<code>activity_id</code>).</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5984 Note -->
+  <div class="page-card" id="p5984">
+    <div class="page-card-header"><span class="mm-id">5984</span><h3>Note</h3><span class="route">/crm_notes/list</span></div>
+    <div class="page-card-body">
+      <div class="table-info">
+        <div class="ti-label">Tabella CRM: <code>crm_notes</code></div>
+        <div class="ti-purpose"><strong>Timeline di comunicazioni e annotazioni</strong> libere associate a account, contatti, lead, opportunità e case. Funziona da log storico: ogni interazione rilevante (telefonate, decisioni, accordi verbali, email inviate) viene tracciata qui con autore e timestamp. È la memoria condivisa del team su un cliente.</div>
+        <div class="ti-fields">
+          <span class="ti-field">note_text</span><span class="ti-field">account_id</span><span class="ti-field">contact_id</span>
+          <span class="ti-field">lead_id</span><span class="ti-field">opportunity_id</span><span class="ti-field">case_id</span>
+          <span class="ti-field">author_user_id</span>
+        </div>
+      </div>
+      <div class="action-section">
+        <div class="action-label"><span class="badge-table">Azione tabella</span></div>
+        <div class="action-row">
+          <div class="col-btn">Esporta timeline note</div>
+          <div class="col-key">crm_notes_export_timeline</div>
+          <div class="col-desc">Restituisce le 200 note più recenti con join a account, contatto, opportunità e case, filtrabili per <code>account_id</code>/<code>case_id</code> del record corrente. Output JSON nel payload.</div>
+        </div>
+      </div>
+      <div class="action-section">
+        <div class="action-label"><span class="badge-col">Azione colonna</span></div>
+        <div class="action-row">
+          <div class="col-btn">Apri dettaglio nota</div>
+          <div class="col-key">crm_notes_open_detail</div>
+          <div class="col-desc">Carica il dettaglio completo della nota selezionata (<code>note_id</code>) con tutti i riferimenti correlati.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6001 Agenda attività -->
+  <div class="page-card" id="p6001">
+    <div class="page-card-header"><span class="mm-id">6001</span><h3>Agenda attività</h3><span class="route">/crm_activities/scheduler</span></div>
+    <div class="page-card-body">
+      <div class="alias-notice">Vista <strong>scheduler/calendario</strong> della pagina Attività — stessa <code>mdid=3668</code>. Mostra le attività in formato calendario giornaliero/settimanale/mensile. Condivide azioni: <code>crm_activities_complete_selected</code> (tabella) &amp; <code>crm_activities_mark_completed</code> (colonna).</div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════
+       GRUPPO: CASE E SUPPORTO
+  ════════════════════════════════ -->
+  <div class="section-header" id="g-case">
+    <div class="group-icon" style="background:#fff7ed;">🎫</div>
+    <h2>Case e supporto</h2>
+  </div>
+
+  <!-- 5979 Case -->
+  <div class="page-card" id="p5979">
+    <div class="page-card-header"><span class="mm-id">5979</span><h3>Case</h3><span class="route">/crm_cases/list</span></div>
+    <div class="page-card-body">
+      <div class="table-info">
+        <div class="ti-label">Tabella CRM: <code>crm_cases</code></div>
+        <div class="ti-purpose">Gestione dei <strong>ticket di supporto post-vendita</strong>: segnalazioni, richieste di assistenza, reclami. Ogni case ha un numero univoco (<code>case_number</code>), una priorità, un account/contatto richiedente, uno stato e un agente responsabile. Il workflow di risoluzione è governato da <code>crm_case_status</code> e <code>crm_case_status_transition</code>.</div>
+        <div class="ti-fields">
+          <span class="ti-field">case_number</span><span class="ti-field">subject</span><span class="ti-field">account_id</span>
+          <span class="ti-field">contact_id</span><span class="ti-field">case_status_id</span><span class="ti-field">priority</span>
+          <span class="ti-field">owner_user_id</span><span class="ti-field">description</span>
+        </div>
+      </div>
+      <div class="action-section">
+        <div class="action-label"><span class="badge-table">Azione tabella</span></div>
+        <div class="action-row">
+          <div class="col-btn">Assegna case in carico</div>
+          <div class="col-key">crm_cases_mass_assign</div>
+          <div class="col-desc">Riassegna i case selezionati (o tutti quelli senza <code>owner_user_id</code>) all'agente attivo con meno case aperti: bilanciamento automatico del carico di supporto.</div>
+        </div>
+      </div>
+      <div class="action-section">
+        <div class="action-label"><span class="badge-col">Azione colonna</span></div>
+        <div class="action-row">
+          <div class="col-btn">Chiudi case</div>
+          <div class="col-key">crm_cases_close</div>
+          <div class="col-desc">Imposta <code>case_status_id</code> al primo stato con <code>status_code IN ('closed','resolved')</code> sul case selezionato.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════
+       GRUPPO: CONFIGURAZIONE CRM
+  ════════════════════════════════ -->
+  <div class="section-header" id="g-config">
+    <div class="group-icon" style="background:#fdf4ff;">⚙️</div>
+    <h2>Configurazione CRM</h2>
+  </div>
+
+  <!-- 5989 Ruoli CRM -->
+  <div class="page-card" id="p5989">
+    <div class="page-card-header"><span class="mm-id">5989</span><h3>Ruoli CRM</h3><span class="route">/crm_roles/list</span></div>
+    <div class="page-card-body">
+      <div class="table-info">
+        <div class="ti-label">Tabella CRM: <code>crm_roles</code></div>
+        <div class="ti-purpose">Definisce i <strong>profili funzionali degli utenti CRM</strong> (es. Administrator, Sales Manager, Sales Representative, Support Agent). Ogni utente CRM è associato a un ruolo che determina le sue responsabilità operative. Non va confuso con i ruoli del motore Wuic (tabella <code>ruoli</code> su MetadataCRM) che gestiscono i permessi di accesso all'applicazione.</div>
+        <div class="ti-fields"><span class="ti-field">role_code</span><span class="ti-field">role_name</span></div>
+      </div>
+      <div class="action-section">
+        <div class="action-label"><span class="badge-table">Azione tabella</span></div>
+        <div class="action-row">
+          <div class="col-btn">Clona ruolo</div>
+          <div class="col-key">crm_roles_clone_role</div>
+          <div class="col-desc">Duplica il ruolo selezionato con <code>role_code</code> suffissato <code>_clone_YYYYMMDDHHMMSS</code> e <code>role_name</code> con <code>(Clone)</code>. Ritorna l'ID del nuovo ruolo nel messaggio.</div>
+        </div>
+      </div>
+      <div class="action-section">
+        <div class="action-label"><span class="badge-col">Azione colonna</span></div>
+        <div class="action-row">
+          <div class="col-btn">Apri matrice permessi</div>
+          <div class="col-key">crm_roles_open_permissions_matrix</div>
+          <div class="col-desc">Carica <code>vw_crm_role_workload</code> filtrata per ruolo; conta le righe nelle tabelle di autorizzazione Wuic (<code>_mtdt__tnt__trzzzioni__tabelle/colonne</code>, <code>_mtdt__tnt__trizzazioni__menus</code>) su MetadataCRM.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5990 Utenti CRM -->
+  <div class="page-card" id="p5990">
+    <div class="page-card-header"><span class="mm-id">5990</span><h3>Utenti CRM</h3><span class="route">/crm_users/list</span></div>
+    <div class="page-card-body">
+      <div class="table-info">
+        <div class="ti-label">Tabella CRM: <code>crm_users</code></div>
+        <div class="ti-purpose">Anagrafica degli <strong>operatori del CRM</strong>: venditori, agenti di supporto, manager. È separata dalla tabella <code>utenti</code> di Wuic per consentire di tracciare assegnazioni (<code>assigned_user_id</code>, <code>owner_user_id</code>) in modo indipendente dall'autenticazione. Il flag <code>is_active</code> controlla se l'utente può ricevere nuove assegnazioni.</div>
+        <div class="ti-fields">
+          <span class="ti-field">username</span><span class="ti-field">email</span><span class="ti-field">display_name</span>
+          <span class="ti-field">role_id</span><span class="ti-field">is_active</span>
+        </div>
+      </div>
+      <div class="action-section">
+        <div class="action-label"><span class="badge-table">Azione tabella</span></div>
+        <div class="action-row">
+          <div class="col-btn">Invia reset password</div>
+          <div class="col-key">crm_users_send_reset_password</div>
+          <div class="col-desc">Aggiorna <code>updated_at</code> degli utenti selezionati (o tutti gli attivi), simulando il trigger per l'invio del token di reset. Ritorna il numero di utenti processati.</div>
+        </div>
+      </div>
+      <div class="action-section">
+        <div class="action-label"><span class="badge-col">Azione colonna</span></div>
+        <div class="action-row">
+          <div class="col-btn">Attiva/Disattiva utente</div>
+          <div class="col-key">crm_users_toggle_active</div>
+          <div class="col-desc">Inverte <code>is_active</code> dell'utente selezionato; restituisce <code>user_id</code> e nuovo stato nel payload.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════
+       RUOLI E FLUSSI
+  ════════════════════════════════ -->
+  <hr class="section-divider" />
+  <div class="section-header" id="g-ruoli">
+    <div class="group-icon" style="background:#f0f9ff;">👥</div>
+    <h2>Ruoli e flussi operativi</h2>
+  </div>
+
+  <p style="font-size:13px;color:#475569;margin-bottom:20px;">
+    Il sistema definisce 4 ruoli CRM sul database <strong>MetadataCRM</strong>. I permessi si combinano su tre livelli:
+    <strong>menu</strong> (visibilità voci), <strong>tabella</strong> (view/insert/edit/delete) e <strong>colonna</strong> (visibilità e modificabilità dei singoli campi).
+  </p>
+
+  <div class="perm-legend">
+    <span><span class="dot" style="background:#bbf7d0;border:1px solid #86efac;"></span> View + Insert + Edit + Delete</span>
+    <span><span class="dot" style="background:#fde68a;border:1px solid #fbbf24;"></span> View + Insert + Edit (no Delete)</span>
+    <span><span class="dot" style="background:#bfdbfe;border:1px solid #93c5fd;"></span> View only</span>
+    <span><span class="dot" style="background:#e2e8f0;border:1px solid #cbd5e1;"></span> Nessun accesso tabella</span>
+  </div>
+
+  <!-- ── ROLE 16: CRM Manager ── -->
+  <div class="role-card" id="role16">
+    <div class="role-card-header rc-manager">
+      <div class="role-avatar" style="background:rgba(255,255,255,.2);">🛡️</div>
+      <div>
+        <h3>CRM Manager</h3>
+        <div style="font-size:12px;opacity:.8;">Accesso completo a tutte le funzionalità</div>
+      </div>
+      <span class="role-id">id_ruolo=16</span>
+    </div>
+    <div class="role-card-body">
+      <div style="margin-top:14px;margin-bottom:10px;font-size:12px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.07em;">Permessi tabella</div>
+      <div class="perm-grid">
+        <div class="perm-item perm-full"><div class="perm-table">crm_accounts</div><div class="perm-icons">👁 ✏️ ➕ 🗑️</div></div>
+        <div class="perm-item perm-full"><div class="perm-table">crm_contacts</div><div class="perm-icons">👁 ✏️ ➕ 🗑️</div></div>
+        <div class="perm-item perm-full"><div class="perm-table">crm_leads</div><div class="perm-icons">👁 ✏️ ➕ 🗑️</div></div>
+        <div class="perm-item perm-full"><div class="perm-table">crm_opportunities</div><div class="perm-icons">👁 ✏️ ➕ 🗑️</div></div>
+        <div class="perm-item perm-full"><div class="perm-table">crm_opp_products</div><div class="perm-icons">👁 ✏️ ➕ 🗑️</div></div>
+        <div class="perm-item perm-full"><div class="perm-table">crm_activities</div><div class="perm-icons">👁 ✏️ ➕ 🗑️</div></div>
+        <div class="perm-item perm-full"><div class="perm-table">crm_notes</div><div class="perm-icons">👁 ✏️ ➕ 🗑️</div></div>
+        <div class="perm-item perm-full"><div class="perm-table">crm_cases</div><div class="perm-icons">👁 ✏️ ➕ 🗑️</div></div>
+        <div class="perm-item perm-full"><div class="perm-table">crm_products</div><div class="perm-icons">👁 ✏️ ➕ 🗑️</div></div>
+        <div class="perm-item perm-full"><div class="perm-table">crm_*_status/stage</div><div class="perm-icons">👁 ✏️ ➕ 🗑️</div></div>
+        <div class="perm-item perm-full"><div class="perm-table">crm_roles</div><div class="perm-icons">👁 ✏️ ➕ 🗑️</div></div>
+        <div class="perm-item perm-full"><div class="perm-table">crm_users</div><div class="perm-icons">👁 ✏️ ➕ 🗑️</div></div>
+      </div>
+      <div class="flow-section">
+        <div class="flow-title">Menu visibili</div>
+        <p style="font-size:13px;color:#334155;margin-bottom:12px;">Tutte le 27 voci di menu (5976–6003), incluse viste alternative (edit, dialog, chart, scheduler, spreadsheet) e il gruppo Configurazione CRM.</p>
+
+        <div class="flow-title">Flussi operativi tipici</div>
+        <ul class="flow-list">
+          <li><strong>Setup iniziale:</strong> Configurare <strong>Fasi opportunità</strong> (codici + probabilità) → Configurare <strong>Tipi attività</strong> → Configurare <strong>Stati case</strong> → eseguire <em>Configura transizioni</em> → Creare <strong>Utenti CRM</strong> con ruolo appropriato.</li>
+          <li><strong>Gestione anagrafica:</strong> Inserire <strong>Account</strong> → Aggiungere <strong>Contatti</strong> collegati → verificare duplicati con <em>Unisci duplicati account</em>.</li>
+          <li><strong>Pipeline commerciale:</strong> Importare <strong>Lead</strong> → assegnarli con <em>Assegnazione massiva lead</em> → convertire i qualificati con <em>Converti lead</em> → seguire le <strong>Opportunità</strong> nella pipeline → aggiungere <strong>Prodotti opportunità</strong> → <em>Ricalcola totali opportunità</em>.</li>
+          <li><strong>Monitoraggio:</strong> Consultare <strong>Pipeline chart</strong> e <strong>Lead analytics</strong> → aggiornare le fasi massive con <em>Aggiorna fase massiva</em> → aggiornare il <strong>Listino prodotti</strong> con <em>Aggiorna listino (+3%)</em>.</li>
+          <li><strong>Configurazione avanzata:</strong> Gestire <strong>Ruoli CRM</strong> (clone + matrice permessi) → Inviare <strong>reset password</strong> agli utenti → Attivare/Disattivare utenti.</li>
+        </ul>
+        <div class="flow-note">Il CRM Manager è l'unico ruolo con accesso in scrittura a <strong>Ruoli CRM</strong>, <strong>Utenti CRM</strong>, <strong>Fasi opportunità</strong>, <strong>Tipi attività</strong>, <strong>Stati case</strong> e <strong>Stati lead</strong>.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ROLE 17: CRM Sales ── -->
+  <div class="role-card" id="role17">
+    <div class="role-card-header rc-sales">
+      <div class="role-avatar" style="background:rgba(255,255,255,.2);">💰</div>
+      <div>
+        <h3>CRM Sales</h3>
+        <div style="font-size:12px;opacity:.8;">Pipeline commerciale e gestione lead/opportunità</div>
+      </div>
+      <span class="role-id">id_ruolo=17</span>
+    </div>
+    <div class="role-card-body">
+      <div style="margin-top:14px;margin-bottom:10px;font-size:12px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.07em;">Permessi tabella</div>
+      <div class="perm-grid">
+        <div class="perm-item perm-nomod"><div class="perm-table">crm_accounts</div><div class="perm-icons">👁 ✏️ ➕ <span style="color:#d1d5db">🗑️</span></div></div>
+        <div class="perm-item perm-nomod"><div class="perm-table">crm_contacts</div><div class="perm-icons">👁 ✏️ ➕ <span style="color:#d1d5db">🗑️</span></div></div>
+        <div class="perm-item perm-nomod"><div class="perm-table">crm_leads</div><div class="perm-icons">👁 ✏️ ➕ <span style="color:#d1d5db">🗑️</span></div></div>
+        <div class="perm-item perm-nomod"><div class="perm-table">crm_opportunities</div><div class="perm-icons">👁 ✏️ ➕ <span style="color:#d1d5db">🗑️</span></div></div>
+        <div class="perm-item perm-nomod"><div class="perm-table">crm_opp_products</div><div class="perm-icons">👁 ✏️ ➕ <span style="color:#d1d5db">🗑️</span></div></div>
+        <div class="perm-item perm-nomod"><div class="perm-table">crm_products</div><div class="perm-icons">👁 ✏️ ➕ <span style="color:#d1d5db">🗑️</span></div></div>
+        <div class="perm-item perm-none"><div class="perm-table">crm_activities</div><div class="perm-icons">— nessun accesso</div></div>
+        <div class="perm-item perm-none"><div class="perm-table">crm_notes</div><div class="perm-icons">— nessun accesso</div></div>
+        <div class="perm-item perm-none"><div class="perm-table">crm_cases</div><div class="perm-icons">— nessun accesso</div></div>
+        <div class="perm-item perm-none"><div class="perm-table">crm_*_status/stage</div><div class="perm-icons">— nessun accesso</div></div>
+        <div class="perm-item perm-none"><div class="perm-table">crm_roles/users</div><div class="perm-icons">— nessun accesso</div></div>
+      </div>
+      <div class="flow-section">
+        <div class="flow-title">Menu visibili</div>
+        <p style="font-size:13px;color:#334155;margin-bottom:12px;">Tutte le 27 voci di menu incluse chart e spreadsheet. Le voci di configurazione (Ruoli CRM, Utenti CRM, stati, fasi) sono visibili ma le tabelle sottostanti non hanno permessi di scrittura.</p>
+
+        <div class="flow-title">Flusso: gestione lead → opportunità</div>
+        <ul class="flow-list">
+          <li>Inserire un nuovo <strong>Lead</strong> in <code>/crm_leads/list</code>: compilare fonte, ragione sociale, nome/cognome, email, ricavo previsto.</li>
+          <li>Qualificare il lead cambiando <code>lead_status_id</code> → monitorare il funnel in <strong>Lead analytics</strong> (<code>/crm_leads/chart</code>).</li>
+          <li>Quando pronto, premere <em>Converti lead</em> (azione colonna): verranno automaticamente creati account, contatto e opportunità in fase <code>qualification</code>.</li>
+          <li>Aprire l'<strong>Opportunità</strong> creata → aggiungere righe in <strong>Prodotti opportunità</strong> con quantità e prezzo → applicare <em>Applica sconto standard</em> se necessario → eseguire <em>Ricalcola totali opportunità</em>.</li>
+          <li>Avanzare l'opportunità nelle fasi della pipeline → monitorare su <strong>Pipeline chart</strong>.</li>
+        </ul>
+        <div class="flow-title">Flusso: gestione anagrafica</div>
+        <ul class="flow-list">
+          <li>Inserire un nuovo <strong>Account</strong> con tutti i dati aziendali.</li>
+          <li>Aggiungere i <strong>Contatti</strong> dell'account (o usare <em>Nuovo contatto rapido</em> da dialog).</li>
+          <li>In caso di duplicati rilevati, richiedere al Manager l'esecuzione di <em>Unisci duplicati account</em>.</li>
+        </ul>
+        <div class="flow-note warn">CRM Sales <strong>non può eliminare</strong> record e <strong>non ha accesso</strong> ad attività, note, case e tabelle di configurazione (la modifica dei dati è consentita ma la cancellazione è riservata al Manager).</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ROLE 18: CRM Support ── -->
+  <div class="role-card" id="role18">
+    <div class="role-card-header rc-support">
+      <div class="role-avatar" style="background:rgba(255,255,255,.2);">🎧</div>
+      <div>
+        <h3>CRM Support</h3>
+        <div style="font-size:12px;opacity:.8;">Gestione case e supporto post-vendita</div>
+      </div>
+      <span class="role-id">id_ruolo=18</span>
+    </div>
+    <div class="role-card-body">
+      <div style="margin-top:14px;margin-bottom:10px;font-size:12px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.07em;">Permessi tabella</div>
+      <div class="perm-grid">
+        <div class="perm-item perm-nomod"><div class="perm-table">crm_accounts</div><div class="perm-icons">👁 ✏️ ➕ <span style="color:#d1d5db">🗑️</span></div></div>
+        <div class="perm-item perm-nomod"><div class="perm-table">crm_contacts</div><div class="perm-icons">👁 ✏️ ➕ <span style="color:#d1d5db">🗑️</span></div></div>
+        <div class="perm-item perm-nomod"><div class="perm-table">crm_cases</div><div class="perm-icons">👁 ✏️ ➕ <span style="color:#d1d5db">🗑️</span></div></div>
+        <div class="perm-item perm-nomod"><div class="perm-table">crm_activities</div><div class="perm-icons">👁 ✏️ ➕ <span style="color:#d1d5db">🗑️</span></div></div>
+        <div class="perm-item perm-nomod"><div class="perm-table">crm_notes</div><div class="perm-icons">👁 ✏️ ➕ <span style="color:#d1d5db">🗑️</span></div></div>
+        <div class="perm-item perm-none"><div class="perm-table">crm_leads</div><div class="perm-icons">— nessun accesso</div></div>
+        <div class="perm-item perm-none"><div class="perm-table">crm_opportunities</div><div class="perm-icons">— nessun accesso</div></div>
+        <div class="perm-item perm-none"><div class="perm-table">crm_opp_products</div><div class="perm-icons">— nessun accesso</div></div>
+        <div class="perm-item perm-none"><div class="perm-table">crm_products</div><div class="perm-icons">— nessun accesso</div></div>
+        <div class="perm-item perm-none"><div class="perm-table">crm_*_status/stage</div><div class="perm-icons">— nessun accesso</div></div>
+        <div class="perm-item perm-none"><div class="perm-table">crm_roles/users</div><div class="perm-icons">— nessun accesso</div></div>
+      </div>
+      <div class="flow-section">
+        <div class="flow-title">Menu visibili</div>
+        <p style="font-size:13px;color:#334155;margin-bottom:12px;">Tutte le voci tranne: <strong>Lead analytics</strong> (5999), <strong>Pipeline chart</strong> (6000), <strong>Righe opp. bulk</strong> (6002), <strong>Listino bulk</strong> (6003). Le sezioni Pipeline commerciale rimangono visibili ma in sola lettura a livello tabella.</p>
+
+        <div class="flow-title">Flusso: gestione case di supporto</div>
+        <ul class="flow-list">
+          <li>Il cliente segnala un problema → aprire un nuovo <strong>Case</strong> in <code>/crm_cases/list</code>: selezionare account, contatto richiedente, oggetto, priorità e stato iniziale.</li>
+          <li>Se nessun agente è assegnato, usare <em>Assegna case in carico</em> (azione tabella) per il bilanciamento automatico.</li>
+          <li>Aggiornare lo stato del case man mano che la lavorazione avanza (seguendo il workflow di <code>crm_case_status_transition</code>).</li>
+          <li>Registrare ogni interazione col cliente come nota in <strong>Note</strong>: collegare la nota al case e al contatto per mantenere la timeline completa.</li>
+          <li>Pianificare attività di follow-up in <strong>Attività</strong> (o <strong>Agenda attività</strong>): chiamata di verifica, email di aggiornamento, ecc.</li>
+          <li>A risoluzione avvenuta, premere <em>Chiudi case</em> (azione colonna) per impostare lo stato <code>closed/resolved</code>.</li>
+        </ul>
+        <div class="flow-title">Flusso: consultazione contesto cliente</div>
+        <ul class="flow-list">
+          <li>Aprire l'<strong>Account</strong> del cliente → premere <em>Apri scheda 360</em> per avere il quadro completo (opportunità, note, case, contatti).</li>
+          <li>Consultare le <strong>Note</strong> associate al case per il contesto storico → usare <em>Esporta timeline note</em> se necessario.</li>
+        </ul>
+        <div class="flow-note warn">CRM Support <strong>non ha accesso</strong> a lead, opportunità, prodotti e configurazione. Può consultare gli account in sola lettura per il contesto, ma non modificarli al di fuori di ciò che è consentito.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ROLE 19: CRM Readonly ── -->
+  <div class="role-card" id="role19">
+    <div class="role-card-header rc-readonly">
+      <div class="role-avatar" style="background:rgba(255,255,255,.2);">👁️</div>
+      <div>
+        <h3>CRM Readonly</h3>
+        <div style="font-size:12px;opacity:.8;">Accesso in sola lettura a tutti i dati CRM</div>
+      </div>
+      <span class="role-id">id_ruolo=19</span>
+    </div>
+    <div class="role-card-body">
+      <div style="margin-top:14px;margin-bottom:10px;font-size:12px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.07em;">Permessi tabella</div>
+      <div class="perm-grid">
+        <div class="perm-item perm-ro"><div class="perm-table">crm_accounts</div><div class="perm-icons">👁 solo lettura</div></div>
+        <div class="perm-item perm-ro"><div class="perm-table">crm_contacts</div><div class="perm-icons">👁 solo lettura</div></div>
+        <div class="perm-item perm-ro"><div class="perm-table">crm_leads</div><div class="perm-icons">👁 solo lettura</div></div>
+        <div class="perm-item perm-ro"><div class="perm-table">crm_opportunities</div><div class="perm-icons">👁 solo lettura</div></div>
+        <div class="perm-item perm-ro"><div class="perm-table">crm_opp_products</div><div class="perm-icons">👁 solo lettura</div></div>
+        <div class="perm-item perm-ro"><div class="perm-table">crm_activities</div><div class="perm-icons">👁 solo lettura</div></div>
+        <div class="perm-item perm-ro"><div class="perm-table">crm_notes</div><div class="perm-icons">👁 solo lettura</div></div>
+        <div class="perm-item perm-ro"><div class="perm-table">crm_cases</div><div class="perm-icons">👁 solo lettura</div></div>
+        <div class="perm-item perm-ro"><div class="perm-table">crm_products</div><div class="perm-icons">👁 solo lettura</div></div>
+        <div class="perm-item perm-ro"><div class="perm-table">crm_*_status/stage</div><div class="perm-icons">👁 solo lettura</div></div>
+        <div class="perm-item perm-ro"><div class="perm-table">crm_roles/users</div><div class="perm-icons">👁 solo lettura</div></div>
+      </div>
+      <div class="flow-section">
+        <div class="flow-title">Menu visibili</div>
+        <p style="font-size:13px;color:#334155;margin-bottom:12px;">Tutte le voci di lista standard + chart (<strong>Lead analytics</strong> 5999, <strong>Pipeline chart</strong> 6000). Non accessibili le viste di modifica rapida: <strong>Scheda account</strong> (5997), <strong>Nuovo contatto rapido</strong> (5998), <strong>Agenda attività</strong> (6001), <strong>Righe opp. bulk</strong> (6002), <strong>Listino bulk</strong> (6003).</p>
+
+        <div class="flow-title">Restrizioni colonne</div>
+        <p style="font-size:13px;color:#334155;margin-bottom:10px;">Tutte le colonne sono <code>muac_editable=0</code>: nessun campo è modificabile dall'interfaccia. Anche i pulsanti azione colonna (es. <em>Converti lead</em>, <em>Chiudi case</em>) risultano visibili ma disabilitati.</p>
+
+        <div class="flow-title">Casi d'uso tipici</div>
+        <ul class="flow-list">
+          <li>Consultare la <strong>Pipeline chart</strong> e <strong>Lead analytics</strong> per report e monitoraggio KPI senza poter modificare dati.</li>
+          <li>Navigare account, contatti, opportunità e case per rispondere a domande del management.</li>
+          <li>Esportare la timeline note con <em>Esporta timeline note</em> (azione tabella — il click viene eseguito ma senza effetti di scrittura, solo lettura).</li>
+        </ul>
+        <div class="flow-note">CRM Readonly è pensato per <strong>dirigenti, revisori o osservatori esterni</strong> che necessitano visibilità completa sui dati senza rischio di modifiche accidentali. Nessuna azione di scrittura è possibile a nessun livello.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════
+       RIEPILOGO ACTION KEYS
+  ════════════════════════════════ -->
+  <hr class="section-divider" />
+  <div class="section-header" id="riepilogo">
+    <div class="group-icon" style="background:#f8fafc;">📑</div>
+    <h2>Riepilogo action keys</h2>
+  </div>
+  <table class="summary-table">
+    <thead>
+      <tr><th>Action Key</th><th>Tipo</th><th>Pagina/e</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>crm_accounts_merge_duplicates</code></td><td><span class="badge-table">Tabella</span></td><td>Account, Scheda account</td></tr>
+      <tr><td><code>crm_accounts_open_360</code></td><td><span class="badge-col">Colonna</span></td><td>Account, Scheda account</td></tr>
+      <tr><td><code>crm_activities_complete_selected</code></td><td><span class="badge-table">Tabella</span></td><td>Attività, Agenda attività</td></tr>
+      <tr><td><code>crm_activities_mark_completed</code></td><td><span class="badge-col">Colonna</span></td><td>Attività, Agenda attività</td></tr>
+      <tr><td><code>crm_activity_type_reorder</code></td><td><span class="badge-table">Tabella</span></td><td>Tipi attività</td></tr>
+      <tr><td><code>crm_activity_type_show_linked</code></td><td><span class="badge-col">Colonna</span></td><td>Tipi attività</td></tr>
+      <tr><td><code>crm_case_status_configure_transitions</code></td><td><span class="badge-table">Tabella</span></td><td>Stati case</td></tr>
+      <tr><td><code>crm_case_status_show_items</code></td><td><span class="badge-col">Colonna</span></td><td>Stati case</td></tr>
+      <tr><td><code>crm_cases_mass_assign</code></td><td><span class="badge-table">Tabella</span></td><td>Case</td></tr>
+      <tr><td><code>crm_cases_close</code></td><td><span class="badge-col">Colonna</span></td><td>Case</td></tr>
+      <tr><td><code>crm_contacts_import_csv</code></td><td><span class="badge-table">Tabella</span></td><td>Contatti, Nuovo contatto rapido</td></tr>
+      <tr><td><code>crm_contacts_send_email</code></td><td><span class="badge-col">Colonna</span></td><td>Contatti, Nuovo contatto rapido</td></tr>
+      <tr><td><code>crm_lead_status_reorder</code></td><td><span class="badge-table">Tabella</span></td><td>Stati lead</td></tr>
+      <tr><td><code>crm_lead_status_show_usage</code></td><td><span class="badge-col">Colonna</span></td><td>Stati lead</td></tr>
+      <tr><td><code>crm_leads_mass_assign</code></td><td><span class="badge-table">Tabella</span></td><td>Lead, Lead analytics</td></tr>
+      <tr><td><code>crm_leads_convert</code></td><td><span class="badge-col">Colonna</span></td><td>Lead, Lead analytics</td></tr>
+      <tr><td><code>crm_notes_export_timeline</code></td><td><span class="badge-table">Tabella</span></td><td>Note</td></tr>
+      <tr><td><code>crm_notes_open_detail</code></td><td><span class="badge-col">Colonna</span></td><td>Note</td></tr>
+      <tr><td><code>crm_opportunities_mass_stage</code></td><td><span class="badge-table">Tabella</span></td><td>Opportunità, Pipeline chart</td></tr>
+      <tr><td><code>crm_opportunities_duplicate</code></td><td><span class="badge-col">Colonna</span></td><td>Opportunità, Pipeline chart</td></tr>
+      <tr><td><code>crm_opportunity_products_recalc_totals</code></td><td><span class="badge-table">Tabella</span></td><td>Prodotti opportunità, Righe bulk</td></tr>
+      <tr><td><code>crm_opportunity_products_apply_standard_discount</code></td><td><span class="badge-col">Colonna</span></td><td>Prodotti opportunità, Righe bulk</td></tr>
+      <tr><td><code>crm_opportunity_stage_recalc_probability</code></td><td><span class="badge-table">Tabella</span></td><td>Fasi opportunità</td></tr>
+      <tr><td><code>crm_opportunity_stage_show_items</code></td><td><span class="badge-col">Colonna</span></td><td>Fasi opportunità</td></tr>
+      <tr><td><code>crm_products_mass_price_update</code></td><td><span class="badge-table">Tabella</span></td><td>Prodotti, Listino bulk</td></tr>
+      <tr><td><code>crm_products_toggle_active</code></td><td><span class="badge-col">Colonna</span></td><td>Prodotti, Listino bulk</td></tr>
+      <tr><td><code>crm_roles_clone_role</code></td><td><span class="badge-table">Tabella</span></td><td>Ruoli CRM</td></tr>
+      <tr><td><code>crm_roles_open_permissions_matrix</code></td><td><span class="badge-col">Colonna</span></td><td>Ruoli CRM</td></tr>
+      <tr><td><code>crm_users_send_reset_password</code></td><td><span class="badge-table">Tabella</span></td><td>Utenti CRM</td></tr>
+      <tr><td><code>crm_users_toggle_active</code></td><td><span class="badge-col">Colonna</span></td><td>Utenti CRM</td></tr>
+    </tbody>
+  </table>
+
+</main>
+</div>
+
+<script>
+  const links = document.querySelectorAll('nav a[href^="#"]');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const match = document.querySelector('nav a[href="#' + e.target.id + '"]');
+        if (match) match.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-15% 0px -70% 0px' });
+  document.querySelectorAll('[id]').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
