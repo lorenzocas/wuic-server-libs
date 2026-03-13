@@ -3,6 +3,8 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
+    <PackageId>Wuic.Webcore</PackageId>
+    <Version>1.0.1</Version>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="Dapper\**" />

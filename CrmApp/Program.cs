@@ -151,6 +151,7 @@ internal static class Program
             .ConfigureWebHostDefaults(webBuilder =>
             {
                 webBuilder.UseStartup<WuicCore.Startup>();
+                webBuilder.UseSetting(WebHostDefaults.ApplicationKey, typeof(Program).Assembly.GetName().Name!);
                 webBuilder.UseIISIntegration();
                 webBuilder.UseKestrel();
                 webBuilder.UseUrls("http://0.0.0.0:5000");

@@ -14,6 +14,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using System.Collections;
 using WEB_UI_CRAFTER.Helpers;
 
 namespace System.WebCore
@@ -67,7 +68,7 @@ namespace System.WebCore
                 {
                     return new ContentResult()
                     {
-                        Content = JsonSerializer.Serialize(ret),
+                        Content = SerializeForContentResult(ret),
                         ContentType = "application/json"
                     };
                 }
@@ -640,6 +641,89 @@ namespace System.WebCore
             }
 
             return JsonSerializer.Serialize(value);
+        }
+
+        private static string SerializeForContentResult(object value)
+        {
+            try
+            {
+                return JsonSerializer.Serialize(value);
+            }
+            catch (NotSupportedException)
+            {
+                // Fallback for runtime-generated/trimmed anonymous shapes where STJ cannot read ctor parameter names.
+                object projected = ProjectToSerializableShape(value, new HashSet<object>(ReferenceEqualityComparer.Instance));
+                return JsonSerializer.Serialize(projected);
+            }
+        }
+
+        private static object ProjectToSerializableShape(object value, HashSet<object> visited)
+        {
+            if (value == null)
+            {
+                return null;
+            }
+
+            Type t = value.GetType();
+            if (t.IsPrimitive || t.IsEnum || value is string || value is decimal || value is DateTime || value is DateTimeOffset || value is TimeSpan || value is Guid)
+            {
+                return value;
+            }
+
+            if (value is JsonElement)
+            {
+                return value;
+            }
+
+            if (value is IDictionary dict)
+            {
+                Dictionary<string, object> map = new Dictionary<string, object>();
+                foreach (DictionaryEntry entry in dict)
+                {
+                    string key = entry.Key?.ToString() ?? string.Empty;
+                    map[key] = ProjectToSerializableShape(entry.Value, visited);
+                }
+                return map;
+            }
+
+            if (value is IEnumerable enumerable && value is not string)
+            {
+                List<object> list = new List<object>();
+                foreach (object item in enumerable)
+                {
+                    list.Add(ProjectToSerializableShape(item, visited));
+                }
+                return list;
+            }
+
+            if (!visited.Add(value))
+            {
+                return null;
+            }
+
+            Dictionary<string, object> obj = new Dictionary<string, object>();
+            foreach (PropertyInfo prop in t.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+            {
+                if (!prop.CanRead || prop.GetIndexParameters().Length > 0)
+                {
+                    continue;
+                }
+
+                object propValue = null;
+                try
+                {
+                    propValue = prop.GetValue(value);
+                }
+                catch
+                {
+                    continue;
+                }
+
+                obj[prop.Name] = ProjectToSerializableShape(propValue, visited);
+            }
+
+            visited.Remove(value);
+            return obj;
         }
 
         private static Dictionary<string, object> DeserializeToDictionary(string json)
