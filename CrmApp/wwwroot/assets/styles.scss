@@ -1,0 +1,496 @@
+@use 'wuic-framework-lib/theming' as styles;
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+/* You can add global styles to this file, and also import other style files */
+
+html,
+body {
+    height: 99%;
+}
+
+.busy-indicator {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    .pi-spinner {
+        font-size: 5rem;
+    }
+}
+
+.p-submenu-list {
+    z-index: 9999;
+}
+
+.p-button:focus {
+    box-shadow: none;
+}
+
+/*#region MenuBar*/
+
+.p-menubar-submenu {
+    z-index: 1400 !important;
+}
+
+/*#endregion MenuBar*/
+
+/*#region EditFormComponent*/
+
+.edit-form-content.p-dialog {
+    width: #{styles.$widget_edit_popup_width};
+    height: #{styles.$widget_edit_popup_height};
+}
+
+.edit-form-content {
+    .p-dialog-content {
+        overflow: hidden;
+        padding-bottom: 16px;
+        height: calc(100% - 80px);
+    }
+
+    .p-tablist {
+        display: inline-table;
+        height: 32px;
+    }
+
+    .p-tabpanels {
+        height: 100%;
+        overflow: hidden;
+        border-left: solid 1px #e5e7eb;
+        border-right: solid 1px #e5e7eb;
+        padding: 0 0 0 10px;
+    }
+
+    .p-tabpanel {
+        overflow-y: auto;
+        overflow-x: hidden;
+        height: 100%;
+    }
+
+    .p-tabpanel>div.row {
+        height: 100%;
+        overflow: auto;
+        width: 100%;
+        padding-bottom: 30px;
+        --bs-gutter-x: 0 !important;
+        padding-top: 5px;
+    }
+
+    .p-tabs.p-component {
+        height: calc(100% - 2px);
+        border-width: 2px;
+    }
+}
+
+wuic-edit-form {
+    height: 100%;
+    display: block;
+}
+
+.form-edit-wrapper {
+    height: 100%;
+
+}
+
+p-tabview {
+    height: 100%;
+    display: block;
+}
+
+.edit-form-button-bar li {
+    display: inline-block;
+    margin-right: 10px;
+}
+
+.p-element.p-autocomplete-input,
+.p-autocomplete.p-component.p-inputwrapper.p-autocomplete-dd {
+    width: 100%;
+}
+
+p-inputnumber,
+.p-inputnumber.p-component {
+    width: 100%;
+}
+
+/*#endregion EditFormComponent*/
+
+/*#region ListGridComponent*/
+
+.p-datatable {
+
+    .p-datatable-tbody>tr>td,
+    .p-datatable-thead>tr>th {
+        padding: 0.2rem 0.2rem;
+    }
+
+    .p-datatable-thead>tr>th .wuic-column-filter-wrap {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 4px;
+    }
+
+    .p-datatable-thead>tr>th .wuic-column-filter-wrap.wuic-column-filter-wrap-active {
+        background-color: rgba(59, 130, 246, 0.14) !important;
+        border-radius: 4px;
+        padding: 1px;
+    }
+}
+
+.list-grid-long-description-container {
+    height: 50px;
+    padding-bottom: 10px;
+    text-align: center;
+    font-size: larger;
+    font-weight: bold;
+}
+
+.list-grid-container {
+    width: 100%;
+    height: calc(100% - 50px);
+}
+
+i.page-header {
+    font-size: 3rem;
+}
+
+sortalticon {
+    display: none;
+}
+
+.grid-caption-bar p-button:not(:first-child) {
+    margin-left: 10px;
+}
+
+.nested-grid-container {
+    margin: auto;
+    padding: 10px;
+    background-color: silver;
+}
+
+.p-splitbutton.p-component {
+    height: 30px;
+}
+
+.list-grid-cell-text-content {
+    display: block;
+    overflow: hidden;
+    max-height: 50px;
+    width: inherit;
+    white-space: normal;
+}
+
+.grid-color-cell {
+    width: 20px;
+    height: 20px;
+    border: solid 1px black;
+}
+
+/*#endregion ListGridComponent*/
+
+/*#region MetadataEditor*/
+
+.metadata-editor.p-menubar.p-component {
+    height: 47px;
+}
+
+wuic-metadata-editor {
+    display: inline-block;
+}
+
+.p-menubar.metadata-editor .p-menubar-submenu {
+    max-height: min(60dvh, calc(100dvh - 8rem)) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    overscroll-behavior: contain;
+}
+
+/*#endregion MetadataEditor*/
+
+/*#region FilterBar*/
+
+.wuic-filter-bar {
+    border: solid 1px #e5e7eb;
+    border-radius: 6px;
+    padding: 0px;
+
+    .filter-item {
+        // display: inline-flex;
+        float: left;
+        margin-right: 10px;
+        padding: 10px;
+    }
+
+    .filter-buttons {
+        // display: inline;
+        float: right;
+        margin-right: 10px;
+        margin-top: 30px;
+
+        button {
+            vertical-align: text-top !important;
+            margin-right: 10px;
+        }
+    }
+
+    .p-inputtext.p-component {
+        width: 100%;
+    }
+
+    .filter-operators {
+        width: 100%;
+    }
+
+    .p-tabview .p-tabview-panels {
+        padding: 0;
+        min-height: 141px;
+    }
+}
+
+/*#endregion FilterBar*/
+
+/*#region Scheduler-FullCalendar*/
+
+full-calendar {
+    width: 100%;
+    height: 100%;
+}
+
+.scheduler-item {
+    background-color: var(--primary-color);
+
+    .item-description {
+        color: white;
+        // display: block;
+        padding: 5px;
+    }
+}
+
+/*#endregion Scheduler-FullCalendar*/
+
+/*#region CodeEditor*/
+
+.editor-widget.suggest-widget {
+    z-index: 20000 !important;
+}
+
+wuic-code-editor:hover .editor-btn {
+    visibility: visible;
+}
+
+/*#endregion CodeEditor*/
+
+/*#region Message and Toast*/
+
+.p-confirm-dialog-message {
+    display: block;
+    max-height: 100px;
+}
+
+/*#endregion CodeEditor*/
+
+/*#region Spreadsheet*/
+
+.jss_input.jss_focus {
+    display: none !important;
+}
+
+.spreadsheet-autocomplete-item:hover,
+.spreadsheet-autocomplete-item.selected {
+    background-color: blue;
+    color: white;
+}
+
+/*#endregion Spreadsheet*/
+
+/*#region Dynamic-template*/
+
+.dynamic-template {
+    width: 100%;
+}
+
+/*#endregion Dynamic-template*/
+
+/*#region MapComponent*/
+
+.gm-style-iw-d {
+    overflow: visible !important;
+    padding: 10px;
+}
+
+.gm-style-iw.gm-style-iw-c {
+    overflow: visible !important;
+}
+
+/*#endregion MapComponent*/
+
+/*#region TreeListComponent*/
+
+.p-tree.p-component {
+    height: 100%;
+}
+
+/*#endregion TreeListComponent*/
+
+/*#region Carousel*/
+
+p-image {
+    display: inline-block;
+}
+
+.p-carousel-container,
+.p-carousel-content,
+.p-carousel.p-component.p-carousel-horizontal,
+.p-carousel-items-container {
+    height: 100%;
+}
+
+.p-carousel-item {
+    margin: auto;
+}
+
+/*#endregion Carousel*/
+
+/*#region Designer*/
+
+.ngx-draggable::selection {
+    background: transparent;
+}
+
+.ngx-draggable::-moz-selection {
+    background: transparent;
+}
+
+.ngx-dragging::selection {
+    background: transparent;
+}
+
+.ngx-dragging::-moz-selection {
+    background: transparent;
+}
+
+.ngx-draggable {
+    cursor: move;
+}
+
+.ngx-dragging {
+    cursor: move;
+    -webkit-transition: none !important;
+    -moz-transition: none !important;
+    -o-transition: none !important;
+    transition: none !important;
+}
+
+$handle-border-size: 7px;
+$handle-border-offset: -5px;
+
+$handle-corner-size: 12px;
+$handle-corner-offset: 1px;
+
+.ng-resizable {
+    position: relative;
+}
+
+.ng-resizable-handle {
+    position: absolute;
+    font-size: 0.1px;
+    -ms-touch-action: none;
+    touch-action: none;
+    display: none;
+
+    &.ng-resizable-e {
+        cursor: e-resize;
+        width: $handle-border-size;
+        right: $handle-border-offset;
+        height: 100%;
+        top: 0;
+    }
+
+    &.ng-resizable-w {
+        cursor: w-resize;
+        width: $handle-border-size;
+        left: $handle-border-offset;
+        height: 100%;
+        top: 0;
+    }
+
+    &.ng-resizable-s {
+        cursor: s-resize;
+        height: $handle-border-size;
+        bottom: $handle-border-offset;
+        width: 100%;
+        left: 0;
+    }
+
+    &.ng-resizable-n {
+        cursor: n-resize;
+        height: $handle-border-size;
+        top: $handle-border-offset;
+        width: 100%;
+        left: 0;
+    }
+
+    &.ng-resizable-se {
+        cursor: se-resize;
+        width: $handle-corner-size;
+        height: $handle-corner-size;
+        right: $handle-corner-offset;
+        bottom: $handle-corner-offset;
+    }
+
+    &.ng-resizable-sw {
+        cursor: sw-resize;
+        width: $handle-corner-size;
+        height: $handle-corner-size;
+        left: $handle-corner-offset;
+        bottom: $handle-corner-offset;
+    }
+
+    &.ng-resizable-ne {
+        cursor: ne-resize;
+        width: $handle-corner-size;
+        height: $handle-corner-size;
+        right: $handle-corner-offset;
+        top: $handle-corner-offset;
+    }
+
+    &.ng-resizable-nw {
+        cursor: nw-resize;
+        width: $handle-corner-size;
+        height: $handle-corner-size;
+        left: $handle-corner-offset;
+        top: $handle-corner-offset;
+    }
+}
+
+*:hover>.ng-resizable-handle {
+    display: block;
+}
+
+.ng-resizable-diagonal {
+    box-sizing: border-box;
+    width: 0;
+    height: 0;
+    border-bottom: $handle-corner-size solid #aaa;
+    border-left: $handle-corner-size solid transparent;
+}
+
+/*#endregion Designer*/
+
+/*#region custom-css*/
+
+.test-row {
+    background-color: red !important;
+}
+
+.test-cell {
+    background-color: green !important;
+    color: white !important;
+}
+
+/*#endregion custom-css*/

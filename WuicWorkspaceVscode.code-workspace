@@ -23,6 +23,9 @@
 		},
 		{
 			"path": "mysql"
+		},
+		{
+			"path": "CrmApp"
 		}
 	],
 	"settings": {
@@ -33,6 +36,7 @@
 			"p/csharp",
 			"p/typescript"
 		],
-		"semgrep.scan.onlyGitDirty": false
+		"semgrep.scan.onlyGitDirty": false,
+		"semgrep.scan.secrets": false
 	}
 }

@@ -1,0 +1,45 @@
+import { OnDestroy } from '@angular/core';
+import { DataSourceComponent } from './../data-source/data-source.component';
+import { ActivatedRoute, Router } from '@angular/router';
+import { DynamicDialogRef, DynamicDialogConfig } from 'primeng/dynamicdialog';
+import { BehaviorSubject } from 'rxjs';
+import { MetadatiColonna } from '../../class/metadati_colonna';
+import { MetaInfo } from '../../class/metaInfo';
+import { MetadatiCustomActionTabella } from '../../class/metadati_custom_actions_tabelle';
+import { WtoolboxService } from '../../service/wtoolbox.service';
+import * as i0 from "@angular/core";
+export declare class ParametricDialogComponent implements OnDestroy {
+    ref: DynamicDialogRef;
+    config: DynamicDialogConfig;
+    private route;
+    private router;
+    datasource: BehaviorSubject<DataSourceComponent>;
+    hardcodedDatasource: DataSourceComponent;
+    record: any;
+    metas: MetadatiColonna[];
+    metaInfo: MetaInfo;
+    routeName: BehaviorSubject<string>;
+    pristine: any;
+    formTemplate: any;
+    wtoolbox: typeof WtoolboxService;
+    private conditionsBootstrapped;
+    private fetchInfoSubscription?;
+    private recordValueSubscriptions;
+    private disableCallbacksRunning;
+    private disableCallbacksPending;
+    constructor(ref: DynamicDialogRef, config: DynamicDialogConfig, route: ActivatedRoute, router: Router);
+    ngOnInit(): void;
+    private bootstrapConditionalActions;
+    ngAfterViewInit(): void;
+    ngOnDestroy(): void;
+    parseData(data: any): any;
+    parseColumns(columns: MetadatiColonna[]): MetadatiColonna[];
+    fieldByTab(metas: MetadatiColonna[], tab: any): MetadatiColonna[];
+    execute($event: any, item: MetadatiCustomActionTabella): void;
+    private clearRecordValueSubscriptions;
+    private setupRecordValueSubscriptions;
+    private recomputeActionDisabledState;
+    static ɵfac: i0.ɵɵFactoryDeclaration<ParametricDialogComponent, never>;
+    static ɵcmp: i0.ɵɵComponentDeclaration<ParametricDialogComponent, "wuic-parametric-dialog", never, { "datasource": { "alias": "datasource"; "required": false; }; "hardcodedDatasource": { "alias": "hardcodedDatasource"; "required": false; }; }, {}, never, never, true, never>;
+}
+//# sourceMappingURL=parametric-dialog.component.d.ts.map
