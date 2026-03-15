@@ -29,4 +29,6 @@
 **/RuntimeEfCore-master/
 **/.nuget/
 **/MySqlDB/
-**/NugetFeed/**
+NugetFeed/
+codebase_docs/
+codebase_embeddings/

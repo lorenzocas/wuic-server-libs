@@ -3,14 +3,23 @@ param(
     [string]$ExtractScript = "c:\src\Wuic\codebase_docs\extract_codebase.py",
     [string]$BuildScript = "c:\src\Wuic\codebase_embeddings\generate_embeddings.py",
     [string]$EvalScript = "c:\src\Wuic\codebase_embeddings\evaluate_rag.py",
+    [string]$EmbedModel = "BAAI/bge-m3",
     [string]$ChunksJsonl = "c:\src\Wuic\codebase_docs\code_chunks.jsonl",
     [string]$IndexDir = "c:\src\Wuic\codebase_embeddings\index",
     [string]$EvalDir = "c:\src\Wuic\codebase_embeddings",
     [string]$EvalPattern = "eval_queries*.jsonl",
-    [int]$TopK = 8,
+    [int]$TopK = 5,
     [string]$TopKList = "3,5,8,10",
     [string]$HfToken = "",
     [string]$HfTokenEnv = "RAG_HF_TOKEN",
+    [double]$AlphaVector = 0.55,
+    [double]$AlphaBm25 = 0.45,
+    [switch]$AdaptiveAlpha,
+    [double]$AlphaVectorTechnical = 0.10,
+    [double]$AlphaVectorDescriptive = 0.75,
+    [double]$RerankSymbolWeight = 1.30,
+    [double]$RerankPathWeight = 0.80,
+    [double]$RerankTextOverlapWeight = 0.90,
     [string]$SummaryOutput = "c:\src\Wuic\codebase_embeddings\eval_all_sets_summary.json",
     [string]$HistoryPath = "c:\src\Wuic\codebase_embeddings\eval_all_sets_history.jsonl",
     [switch]$SkipExtract,
@@ -76,6 +85,19 @@ function Load-PreviousRun {
     return ($lines[-1] | ConvertFrom-Json)
 }
 
+function Build-AdaptiveArgs {
+    $args = @()
+    if ($AdaptiveAlpha) { $args += "--adaptive-alpha" }
+    $args += @(
+        "--alpha-vector-technical", "$AlphaVectorTechnical",
+        "--alpha-vector-descriptive", "$AlphaVectorDescriptive",
+        "--rerank-symbol-weight", "$RerankSymbolWeight",
+        "--rerank-path-weight", "$RerankPathWeight",
+        "--rerank-text-overlap-weight", "$RerankTextOverlapWeight"
+    )
+    return $args
+}
+
 Ensure-FileExists -Path $ExtractScript -Hint "Check path to extract_codebase.py"
 Ensure-FileExists -Path $BuildScript -Hint "Check path to generate_embeddings.py"
 Ensure-FileExists -Path $EvalScript -Hint "Check path to evaluate_rag.py"
@@ -102,7 +124,7 @@ Ensure-FileExists -Path $ChunksJsonl -Hint "Missing code chunks. Run extract ste
 
 if (-not $SkipBuild) {
     Run-Step -Name "Build hybrid index" -Action {
-        Invoke-PythonChecked $BuildScript build --input-jsonl $ChunksJsonl --output-dir $IndexDir --hf-token-env $HfTokenEnv
+        Invoke-PythonChecked $BuildScript build --input-jsonl $ChunksJsonl --output-dir $IndexDir --model $EmbedModel --hf-token-env $HfTokenEnv
     }
 }
 
@@ -119,12 +141,22 @@ if (-not $evalSets -or $evalSets.Count -eq 0) {
 
 $run = [ordered]@{
     timestamp_utc = [DateTime]::UtcNow.ToString("o")
+    embed_model = $EmbedModel
     top_ks = $topKs
+    alpha_vector = $AlphaVector
+    alpha_bm25 = $AlphaBm25
+    adaptive_alpha = [bool]$AdaptiveAlpha
+    alpha_vector_technical = $AlphaVectorTechnical
+    alpha_vector_descriptive = $AlphaVectorDescriptive
+    rerank_symbol_weight = $RerankSymbolWeight
+    rerank_path_weight = $RerankPathWeight
+    rerank_text_overlap_weight = $RerankTextOverlapWeight
     sets = @()
     overall = @{}
 }
 
 Run-Step -Name "Evaluate all sets" -Action {
+    $adaptiveArgs = Build-AdaptiveArgs
     foreach ($set in $evalSets) {
         $setResult = [ordered]@{
             set_name = $set.Name
@@ -134,13 +166,16 @@ Run-Step -Name "Evaluate all sets" -Action {
         foreach ($k in $topKs) {
             $safeSetName = [System.IO.Path]::GetFileNameWithoutExtension($set.Name)
             $outPath = Join-Path $EvalDir ("eval_results_{0}_top{1}.json" -f $safeSetName, $k)
-            Invoke-PythonChecked $EvalScript --index-dir $IndexDir --eval-file $set.FullName --top-k $k --output-json $outPath --hf-token-env $HfTokenEnv
+            Invoke-PythonChecked $EvalScript --index-dir $IndexDir --eval-file $set.FullName --top-k $k --output-json $outPath --hf-token-env $HfTokenEnv --alpha-vector $AlphaVector --alpha-bm25 $AlphaBm25 @adaptiveArgs
             $m = Load-Json -Path $outPath
             if ($null -eq $m) { throw "Could not parse eval output $outPath" }
             $setResult.metrics_by_k["$k"] = [ordered]@{
                 total_cases = [int]$m.total_cases
                 hit = [double]$m."hit@$k"
                 mrr = [double]$m.mrr
+                alpha_vector = [double]$m.alpha_vector
+                alpha_bm25 = [double]$m.alpha_bm25
+                adaptive_alpha = [bool]$m.adaptive_alpha
                 output_json = $outPath
             }
         }

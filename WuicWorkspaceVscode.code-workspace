@@ -26,6 +26,12 @@
 		},
 		{
 			"path": "CrmApp"
+		},
+		{
+			"path": "codebase_docs"
+		},
+		{
+			"path": "codebase_embeddings"
 		}
 	],
 	"settings": {
@@ -37,6 +43,7 @@
 			"p/typescript"
 		],
 		"semgrep.scan.onlyGitDirty": false,
-		"semgrep.scan.secrets": false
+		"semgrep.scan.secrets": false,
+		"chatgpt.openOnStartup": true
 	}
 }

@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-from generate_embeddings import search
+from generate_embeddings import load_index, search_loaded
 
 
 def load_eval_cases(path: Path) -> List[Dict]:
@@ -58,10 +58,26 @@ def evaluate_case(results: List[Dict], expected_rules: List[Dict]) -> Tuple[bool
     return True, 1.0 / first_hit_rank, first_hit_rank
 
 
-def run_eval(index_dir: Path, eval_file: Path, top_k: int, hf_token: str = "", hf_token_env: str = "RAG_HF_TOKEN") -> Dict:
+def run_eval(
+    index_dir: Path,
+    eval_file: Path,
+    top_k: int,
+    hf_token: str = "",
+    hf_token_env: str = "RAG_HF_TOKEN",
+    alpha_vector: float = 0.65,
+    alpha_bm25: float = 0.35,
+    adaptive_alpha: bool = False,
+    alpha_vector_technical: float = 0.20,
+    alpha_vector_descriptive: float = 0.80,
+    rerank_symbol_weight: float = 1.35,
+    rerank_path_weight: float = 0.85,
+    rerank_text_overlap_weight: float = 1.00,
+) -> Dict:
     cases = load_eval_cases(eval_file)
     if not cases:
         raise RuntimeError(f"No eval cases found in {eval_file}")
+
+    model, vectors, docs, bm25 = load_index(index_dir, hf_token=hf_token, hf_token_env=hf_token_env)
 
     hit_count = 0
     reciprocal_sum = 0.0
@@ -73,12 +89,21 @@ def run_eval(index_dir: Path, eval_file: Path, top_k: int, hf_token: str = "", h
         if not expected:
             raise ValueError(f"Case without expected rules: {case}")
 
-        results = search(
-            index_dir=index_dir,
+        results = search_loaded(
+            model=model,
+            vectors=vectors,
+            docs=docs,
+            bm25=bm25,
             query=query,
             top_k=top_k,
-            hf_token=hf_token,
-            hf_token_env=hf_token_env,
+            alpha_vector=alpha_vector,
+            alpha_bm25=alpha_bm25,
+            adaptive_alpha=adaptive_alpha,
+            alpha_vector_technical=alpha_vector_technical,
+            alpha_vector_descriptive=alpha_vector_descriptive,
+            rerank_symbol_weight=rerank_symbol_weight,
+            rerank_path_weight=rerank_path_weight,
+            rerank_text_overlap_weight=rerank_text_overlap_weight,
         )
         hit, rr, rank = evaluate_case(results, expected)
 
@@ -100,6 +125,14 @@ def run_eval(index_dir: Path, eval_file: Path, top_k: int, hf_token: str = "", h
         "total_cases": total,
         f"hit@{top_k}": hit_count / total,
         "mrr": reciprocal_sum / total,
+        "alpha_vector": alpha_vector,
+        "alpha_bm25": alpha_bm25,
+        "adaptive_alpha": adaptive_alpha,
+        "alpha_vector_technical": alpha_vector_technical,
+        "alpha_vector_descriptive": alpha_vector_descriptive,
+        "rerank_symbol_weight": rerank_symbol_weight,
+        "rerank_path_weight": rerank_path_weight,
+        "rerank_text_overlap_weight": rerank_text_overlap_weight,
         "details": details,
     }
     return metrics
@@ -113,6 +146,14 @@ def main():
     parser.add_argument("--output-json", default=r"c:/src/Wuic/codebase_embeddings/eval_results.json")
     parser.add_argument("--hf-token", default="")
     parser.add_argument("--hf-token-env", default="RAG_HF_TOKEN")
+    parser.add_argument("--alpha-vector", type=float, default=0.65)
+    parser.add_argument("--alpha-bm25", type=float, default=0.35)
+    parser.add_argument("--adaptive-alpha", action="store_true")
+    parser.add_argument("--alpha-vector-technical", type=float, default=0.20)
+    parser.add_argument("--alpha-vector-descriptive", type=float, default=0.80)
+    parser.add_argument("--rerank-symbol-weight", type=float, default=1.35)
+    parser.add_argument("--rerank-path-weight", type=float, default=0.85)
+    parser.add_argument("--rerank-text-overlap-weight", type=float, default=1.00)
     args = parser.parse_args()
 
     metrics = run_eval(
@@ -121,6 +162,14 @@ def main():
         args.top_k,
         hf_token=args.hf_token,
         hf_token_env=args.hf_token_env,
+        alpha_vector=args.alpha_vector,
+        alpha_bm25=args.alpha_bm25,
+        adaptive_alpha=args.adaptive_alpha,
+        alpha_vector_technical=args.alpha_vector_technical,
+        alpha_vector_descriptive=args.alpha_vector_descriptive,
+        rerank_symbol_weight=args.rerank_symbol_weight,
+        rerank_path_weight=args.rerank_path_weight,
+        rerank_text_overlap_weight=args.rerank_text_overlap_weight,
     )
     output_path = Path(args.output_json)
     output_path.parent.mkdir(parents=True, exist_ok=True)

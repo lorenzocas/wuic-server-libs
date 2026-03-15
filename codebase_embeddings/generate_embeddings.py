@@ -12,8 +12,9 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 
 
-DEFAULT_MODEL = "all-MiniLM-L6-v2"
+DEFAULT_MODEL = "BAAI/bge-m3"
 TOKEN_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_\.]{1,}")
+TECH_TOKEN_RE = re.compile(r"(^mc_|^md_|^wg_|^mm_|_id$|^get[A-Z]|^set[A-Z]|^save[A-Z]|^load[A-Z]|^suggest[A-Z]|^parse[A-Z]|^build[A-Z])")
 
 
 def tokenize(text: str) -> List[str]:
@@ -122,6 +123,24 @@ def rrf_fuse(rankings: List[List[int]], k: int = 60) -> Dict[int, float]:
     return fused
 
 
+def query_technicality_score(query: str) -> float:
+    q = query or ""
+    q_tokens = tokenize(q)
+    if not q_tokens:
+        return 0.0
+
+    score = 0.0
+    for t in q_tokens:
+        if TECH_TOKEN_RE.search(t):
+            score += 1.0
+        if "_" in t or "." in t:
+            score += 0.5
+        if t in {"sql", "stored", "metadata", "metadati", "route", "callback", "lookup", "workflow"}:
+            score += 0.35
+    capped = min(score / max(1.0, len(q_tokens) * 0.8), 1.0)
+    return max(0.0, min(1.0, capped))
+
+
 def build_index(
     input_jsonl: Path,
     output_dir: Path,
@@ -162,50 +181,43 @@ def build_index(
     print(f"[build] docs={len(docs)} dim={vectors_norm.shape[1]} output={output_dir}")
 
 
-def load_index(index_dir: Path):
+def load_index(index_dir: Path, hf_token: str = "", hf_token_env: str = "RAG_HF_TOKEN"):
     vectors = np.load(index_dir / "vectors.npy")
     docs = load_chunks(index_dir / "metadata.jsonl")
     with (index_dir / "bm25.pkl").open("rb") as f:
         bm25 = pickle.load(f)
     with (index_dir / "index_config.json").open("r", encoding="utf-8") as f:
         cfg = json.load(f)
-    token = resolve_hf_token()
+    token = resolve_hf_token(hf_token, hf_token_env)
     model = load_sentence_transformer(cfg["model_name"], token)
     return model, vectors, docs, bm25
 
 
-def rerank_light(query: str, docs: List[dict], candidate_ids: List[int]) -> List[int]:
-    q_tokens = set(tokenize(query))
-    if not q_tokens:
-        return candidate_ids
-    scored = []
-    for i in candidate_ids:
-        text = docs[i].get("text", "")
-        toks = tokenize(text)
-        overlap = len(q_tokens.intersection(toks))
-        symbol_bonus = 0
-        sname = (docs[i].get("symbol_name") or "").lower()
-        for t in q_tokens:
-            if t in sname:
-                symbol_bonus += 1
-        scored.append((i, overlap + symbol_bonus * 0.75))
-    scored.sort(key=lambda x: x[1], reverse=True)
-    return [i for i, _ in scored]
-
-
-def search(
-    index_dir: Path,
+def search_loaded(
+    model: SentenceTransformer,
+    vectors: np.ndarray,
+    docs: List[dict],
+    bm25: Dict,
     query: str,
     top_k: int = 8,
     alpha_vector: float = 0.65,
     alpha_bm25: float = 0.35,
-    hf_token: str = "",
-    hf_token_env: str = "RAG_HF_TOKEN",
+    adaptive_alpha: bool = False,
+    alpha_vector_technical: float = 0.20,
+    alpha_vector_descriptive: float = 0.80,
+    rerank_symbol_weight: float = 1.35,
+    rerank_path_weight: float = 0.85,
+    rerank_text_overlap_weight: float = 1.00,
 ):
-    token = resolve_hf_token(hf_token, hf_token_env)
-    if token:
-        os.environ["HF_TOKEN"] = token
-    model, vectors, docs, bm25 = load_index(index_dir)
+    eff_alpha_vector = alpha_vector
+    eff_alpha_bm25 = alpha_bm25
+    if adaptive_alpha:
+        tech_score = query_technicality_score(query)
+        # technical query -> lower vector weight, descriptive query -> higher vector weight
+        eff_alpha_vector = alpha_vector_descriptive * (1.0 - tech_score) + alpha_vector_technical * tech_score
+        eff_alpha_vector = float(max(0.0, min(1.0, eff_alpha_vector)))
+        eff_alpha_bm25 = 1.0 - eff_alpha_vector
+
     vec = vector_scores(query, model, vectors)
     lex = bm25_scores(query, bm25)
 
@@ -215,12 +227,19 @@ def search(
 
     blended = []
     for doc_id, rrf_score in fused.items():
-        s = alpha_vector * float(vec[doc_id]) + alpha_bm25 * float(lex[doc_id]) + rrf_score
+        s = eff_alpha_vector * float(vec[doc_id]) + eff_alpha_bm25 * float(lex[doc_id]) + rrf_score
         blended.append((doc_id, s))
     blended.sort(key=lambda x: x[1], reverse=True)
 
     candidates = [doc_id for doc_id, _ in blended[: max(30, top_k * 4)]]
-    reranked = rerank_light(query, docs, candidates)[:top_k]
+    reranked = rerank_light(
+        query,
+        docs,
+        candidates,
+        symbol_weight=rerank_symbol_weight,
+        path_weight=rerank_path_weight,
+        text_overlap_weight=rerank_text_overlap_weight,
+    )[:top_k]
 
     results = []
     for i in reranked:
@@ -243,6 +262,92 @@ def search(
     return results
 
 
+def rerank_light(
+    query: str,
+    docs: List[dict],
+    candidate_ids: List[int],
+    symbol_weight: float = 1.35,
+    path_weight: float = 0.85,
+    text_overlap_weight: float = 1.00,
+) -> List[int]:
+    return rerank_light_weighted(
+        query,
+        docs,
+        candidate_ids,
+        symbol_weight=symbol_weight,
+        path_weight=path_weight,
+        text_overlap_weight=text_overlap_weight,
+    )
+
+
+def rerank_light_weighted(
+    query: str,
+    docs: List[dict],
+    candidate_ids: List[int],
+    symbol_weight: float = 1.35,
+    path_weight: float = 0.85,
+    text_overlap_weight: float = 1.00,
+) -> List[int]:
+    q_tokens = set(tokenize(query))
+    if not q_tokens:
+        return candidate_ids
+    scored = []
+    for i in candidate_ids:
+        text = docs[i].get("text", "")
+        toks = tokenize(text)
+        overlap = len(q_tokens.intersection(toks)) * text_overlap_weight
+        symbol_bonus = 0.0
+        path_bonus = 0.0
+        sname = (docs[i].get("symbol_name") or "").lower()
+        rpath = (docs[i].get("rel_path") or "").lower()
+        for t in q_tokens:
+            if t in sname:
+                symbol_bonus += symbol_weight
+            if t in rpath:
+                path_bonus += path_weight
+        exact_symbol = 1.25 if sname and (sname in (query or "").lower()) else 0.0
+        scored.append((i, overlap + symbol_bonus + path_bonus + exact_symbol))
+    scored.sort(key=lambda x: x[1], reverse=True)
+    return [i for i, _ in scored]
+
+
+def search(
+    index_dir: Path,
+    query: str,
+    top_k: int = 8,
+    alpha_vector: float = 0.65,
+    alpha_bm25: float = 0.35,
+    adaptive_alpha: bool = False,
+    alpha_vector_technical: float = 0.20,
+    alpha_vector_descriptive: float = 0.80,
+    rerank_symbol_weight: float = 1.35,
+    rerank_path_weight: float = 0.85,
+    rerank_text_overlap_weight: float = 1.00,
+    hf_token: str = "",
+    hf_token_env: str = "RAG_HF_TOKEN",
+):
+    token = resolve_hf_token(hf_token, hf_token_env)
+    if token:
+        os.environ["HF_TOKEN"] = token
+    model, vectors, docs, bm25 = load_index(index_dir, hf_token=token, hf_token_env=hf_token_env)
+    return search_loaded(
+        model=model,
+        vectors=vectors,
+        docs=docs,
+        bm25=bm25,
+        query=query,
+        top_k=top_k,
+        alpha_vector=alpha_vector,
+        alpha_bm25=alpha_bm25,
+        adaptive_alpha=adaptive_alpha,
+        alpha_vector_technical=alpha_vector_technical,
+        alpha_vector_descriptive=alpha_vector_descriptive,
+        rerank_symbol_weight=rerank_symbol_weight,
+        rerank_path_weight=rerank_path_weight,
+        rerank_text_overlap_weight=rerank_text_overlap_weight,
+    )
+
+
 def cmd_build(args):
     build_index(
         input_jsonl=Path(args.input_jsonl),
@@ -259,6 +364,14 @@ def cmd_query(args):
         Path(args.index_dir),
         args.query,
         top_k=args.top_k,
+        alpha_vector=args.alpha_vector,
+        alpha_bm25=args.alpha_bm25,
+        adaptive_alpha=args.adaptive_alpha,
+        alpha_vector_technical=args.alpha_vector_technical,
+        alpha_vector_descriptive=args.alpha_vector_descriptive,
+        rerank_symbol_weight=args.rerank_symbol_weight,
+        rerank_path_weight=args.rerank_path_weight,
+        rerank_text_overlap_weight=args.rerank_text_overlap_weight,
         hf_token=args.hf_token,
         hf_token_env=args.hf_token_env,
     )
@@ -282,6 +395,14 @@ def main():
     p_query.add_argument("--index-dir", default=r"c:/src/Wuic/codebase_embeddings/index")
     p_query.add_argument("--query", required=True)
     p_query.add_argument("--top-k", type=int, default=8)
+    p_query.add_argument("--alpha-vector", type=float, default=0.65)
+    p_query.add_argument("--alpha-bm25", type=float, default=0.35)
+    p_query.add_argument("--adaptive-alpha", action="store_true")
+    p_query.add_argument("--alpha-vector-technical", type=float, default=0.20)
+    p_query.add_argument("--alpha-vector-descriptive", type=float, default=0.80)
+    p_query.add_argument("--rerank-symbol-weight", type=float, default=1.35)
+    p_query.add_argument("--rerank-path-weight", type=float, default=0.85)
+    p_query.add_argument("--rerank-text-overlap-weight", type=float, default=1.00)
     p_query.add_argument("--hf-token", default="")
     p_query.add_argument("--hf-token-env", default="RAG_HF_TOKEN")
     p_query.set_defaults(func=cmd_query)

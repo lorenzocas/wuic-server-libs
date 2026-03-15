@@ -3,6 +3,7 @@ param(
     [string]$ExtractScript = "c:\src\Wuic\codebase_docs\extract_codebase.py",
     [string]$BuildScript = "c:\src\Wuic\codebase_embeddings\generate_embeddings.py",
     [string]$EvalScript = "c:\src\Wuic\codebase_embeddings\evaluate_rag.py",
+    [string]$EmbedModel = "BAAI/bge-m3",
     [string]$ChunksJsonl = "c:\src\Wuic\codebase_docs\code_chunks.jsonl",
     [string]$IndexDir = "c:\src\Wuic\codebase_embeddings\index",
     [string]$EvalFile = "c:\src\Wuic\codebase_embeddings\eval_queries.jsonl",
@@ -10,7 +11,15 @@ param(
     [string]$EvalHistory = "c:\src\Wuic\codebase_embeddings\eval_results_history.jsonl",
     [string]$HfToken = "",
     [string]$HfTokenEnv = "RAG_HF_TOKEN",
-    [int]$TopK = 8,
+    [double]$AlphaVector = 0.55,
+    [double]$AlphaBm25 = 0.45,
+    [switch]$AdaptiveAlpha,
+    [double]$AlphaVectorTechnical = 0.10,
+    [double]$AlphaVectorDescriptive = 0.75,
+    [double]$RerankSymbolWeight = 1.30,
+    [double]$RerankPathWeight = 0.80,
+    [double]$RerankTextOverlapWeight = 0.90,
+    [int]$TopK = 5,
     [string]$TopKList = "",
     [switch]$SkipDb
 )
@@ -94,7 +103,10 @@ function Parse-TopKs {
 
     $vals = @()
     foreach ($part in ($TopKList -split ",")) {
-        $p = ($part ?? "").Trim()
+        $p = ""
+        if ($null -ne $part) {
+            $p = ([string]$part).Trim()
+        }
         if ([string]::IsNullOrWhiteSpace($p)) { continue }
         $n = 0
         if ([int]::TryParse($p, [ref]$n) -and $n -gt 0) {
@@ -107,6 +119,19 @@ function Parse-TopKs {
     }
 
     return ($vals | Sort-Object -Unique)
+}
+
+function Build-AdaptiveArgs {
+    $args = @()
+    if ($AdaptiveAlpha) { $args += "--adaptive-alpha" }
+    $args += @(
+        "--alpha-vector-technical", "$AlphaVectorTechnical",
+        "--alpha-vector-descriptive", "$AlphaVectorDescriptive",
+        "--rerank-symbol-weight", "$RerankSymbolWeight",
+        "--rerank-path-weight", "$RerankPathWeight",
+        "--rerank-text-overlap-weight", "$RerankTextOverlapWeight"
+    )
+    return $args
 }
 
 Ensure-FileExists -Path $ExtractScript -Hint "Check path to extract_codebase.py"
@@ -138,7 +163,7 @@ Run-Step -Name "Extract chunks" -Action {
 Ensure-FileExists -Path $ChunksJsonl -Hint "Extraction did not produce code_chunks.jsonl. Run extract_codebase.py manually and verify errors."
 
 Run-Step -Name "Build hybrid index" -Action {
-    Invoke-PythonChecked $BuildScript build --input-jsonl $ChunksJsonl --output-dir $IndexDir --hf-token-env $HfTokenEnv
+    Invoke-PythonChecked $BuildScript build --input-jsonl $ChunksJsonl --output-dir $IndexDir --model $EmbedModel --hf-token-env $HfTokenEnv
 }
 
 Ensure-FileExists -Path (Join-Path $IndexDir "vectors.npy") -Hint "Index build did not produce vectors.npy."
@@ -153,6 +178,7 @@ Ensure-FileExists -Path (Join-Path $IndexDir "metadata.jsonl") -Hint "Index buil
  }
 
 Run-Step -Name "Evaluate index" -Action {
+    $adaptiveArgs = Build-AdaptiveArgs
     foreach ($k in $topKs) {
         $targetOutput = if ($topKs.Count -gt 1) {
             [System.IO.Path]::ChangeExtension($EvalOutput, $null) + "_top$k.json"
@@ -161,7 +187,7 @@ Run-Step -Name "Evaluate index" -Action {
             $EvalOutput
         }
 
-        Invoke-PythonChecked $EvalScript --index-dir $IndexDir --eval-file $EvalFile --top-k $k --output-json $targetOutput --hf-token-env $HfTokenEnv
+        Invoke-PythonChecked $EvalScript --index-dir $IndexDir --eval-file $EvalFile --top-k $k --output-json $targetOutput --hf-token-env $HfTokenEnv --alpha-vector $AlphaVector --alpha-bm25 $AlphaBm25 @adaptiveArgs
         $metrics = Load-Metrics -Path $targetOutput
         if ($null -eq $metrics) {
             throw "Could not load metrics from $targetOutput"
@@ -172,6 +198,9 @@ Run-Step -Name "Evaluate index" -Action {
             hit = $metrics."hit@$k"
             mrr = $metrics.mrr
             total_cases = $metrics.total_cases
+            alpha_vector = $metrics.alpha_vector
+            alpha_bm25 = $metrics.alpha_bm25
+            adaptive_alpha = $metrics.adaptive_alpha
         }
         $multiSummary.runs += $run
     }
@@ -204,8 +233,17 @@ Write-Summary -Current $currentMetrics -Previous $previousMetrics -TopK $TopK
 
 $historyEntry = [ordered]@{
     timestamp_utc = [DateTime]::UtcNow.ToString("o")
+    embed_model   = $EmbedModel
     top_k         = $TopK
     top_k_list    = $topKs
+    alpha_vector  = $AlphaVector
+    alpha_bm25    = $AlphaBm25
+    adaptive_alpha = [bool]$AdaptiveAlpha
+    alpha_vector_technical = $AlphaVectorTechnical
+    alpha_vector_descriptive = $AlphaVectorDescriptive
+    rerank_symbol_weight = $RerankSymbolWeight
+    rerank_path_weight = $RerankPathWeight
+    rerank_text_overlap_weight = $RerankTextOverlapWeight
     metrics       = $currentMetrics
 }
 

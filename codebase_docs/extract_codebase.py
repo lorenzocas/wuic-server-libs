@@ -227,6 +227,68 @@ def db_connection_from_env(env_key: str) -> Optional[str]:
     return val if val else None
 
 
+def parse_connection_kv(conn_str: str) -> dict:
+    out = {}
+    for part in (conn_str or "").split(";"):
+        segment = part.strip()
+        if not segment or "=" not in segment:
+            continue
+        k, v = segment.split("=", 1)
+        out[k.strip().lower()] = v.strip()
+    return out
+
+
+def to_bool_str(value: str, default: str = "no") -> str:
+    if value is None:
+        return default
+    v = str(value).strip().lower()
+    if v in {"true", "1", "yes", "y", "sspi"}:
+        return "yes"
+    if v in {"false", "0", "no", "n"}:
+        return "no"
+    return default
+
+
+def normalize_to_pyodbc_conn_str(conn_str: str) -> str:
+    raw = (conn_str or "").strip()
+    if not raw:
+        return raw
+
+    kv = parse_connection_kv(raw)
+    # Already an ODBC string
+    if "driver" in kv:
+        return raw
+
+    # ADO.NET style -> ODBC style
+    driver = os.getenv("RAG_ODBC_DRIVER", "ODBC Driver 17 for SQL Server").strip()
+    server = kv.get("data source") or kv.get("server") or ""
+    database = kv.get("initial catalog") or kv.get("database") or ""
+    uid = kv.get("user id") or kv.get("uid") or ""
+    pwd = kv.get("password") or kv.get("pwd") or ""
+    integrated = to_bool_str(kv.get("integrated security"), default="no")
+    encrypt = to_bool_str(kv.get("encrypt"), default="no")
+    trust = to_bool_str(kv.get("trustservercertificate"), default="yes")
+
+    parts = [
+        f"Driver={{{driver}}}",
+        f"Server={server}",
+    ]
+    if database:
+        parts.append(f"Database={database}")
+
+    if integrated == "yes":
+        parts.append("Trusted_Connection=yes")
+    else:
+        if uid:
+            parts.append(f"UID={uid}")
+        if pwd:
+            parts.append(f"PWD={pwd}")
+
+    parts.append(f"Encrypt={encrypt}")
+    parts.append(f"TrustServerCertificate={trust}")
+    return ";".join(parts) + ";"
+
+
 def stringify_cell(value) -> str:
     if value is None:
         return ""
@@ -238,7 +300,8 @@ def stringify_cell(value) -> str:
 def extract_db_chunks(conn_str: str, output_jsonl: Path, db_label: str, max_rows: int = 80) -> int:
     import pyodbc
 
-    conn = pyodbc.connect(conn_str)
+    normalized_conn = normalize_to_pyodbc_conn_str(conn_str)
+    conn = pyodbc.connect(normalized_conn)
     cursor = conn.cursor()
     cursor.execute("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE'")
     tables = [row[0] for row in cursor.fetchall()]
