@@ -1,0 +1,50 @@
+{"query":"come viene costruito il metadata completo della tabella per una route", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"getTableMetadata"}]}
+{"query":"endpoint server che legge i dati flat paginati di una route", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"getFlatRecordData"}]}
+{"query":"lookup combo data lato server con sort e filter", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"getFlatRecordComboData"}]}
+{"query":"lettura dati da stored procedure con paging", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"getFlatDataFromStored"}]}
+{"query":"esecuzione stored procedure generica con parametri dinamici", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"executeStoredProcedure"}]}
+{"query":"export excel server side dalla grid", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"ExportFlatRecordDataSrv"}]}
+{"query":"export pdf report da route e nome report", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"ExportPdfFlatRecordDataSrv"}]}
+{"query":"salvataggio update record dinamico in base ai metadati", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"updateRecord"}]}
+{"query":"inserimento nuovo record con metadata route", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"insertRecord"}]}
+{"query":"cancellazione logica o fisica record da api metadata", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"deleteRecord"}]}
+{"query":"ripristino record dopo delete logica", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"restoreRecord"}]}
+{"query":"batch save multiplo di entita con route", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"batchRecord"}]}
+{"query":"quali metodi admin menu sono disponibili lato server", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"getMenuAdminMethods"}]}
+{"query":"riordino menu con source target e parent", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"reorderMenu"}]}
+{"query":"aggiunta voce menu completa caption url", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"addMenuFull"}]}
+{"query":"lettura menu autorizzato per utente", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"getMenuByUserID"}]}
+{"query":"traduzioni applicative da tabella _wuic_translations", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"GetTranslation"}]}
+{"query":"flush cache metadati per route", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"FlushCache"}]}
+{"query":"mapping metadati da route sorgente a route target", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"mapMetadata"}]}
+{"query":"suggerimento callback custom action tabella basato su md_action_type", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"suggestTableActionCallback"}]}
+{"query":"suggerimento configurazione lookup per colonna metadata", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"suggestLookup"}]}
+{"query":"suggerimento filtro default per lookup", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"suggestLookupDefaultFilter"}]}
+{"query":"regola condizionale update della tabella", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"suggestConditionalUpdateRule"}]}
+{"query":"elenco workflow graph salvati nel repository", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"getWorkflowGraphs"}]}
+{"query":"salvataggio workflow graph con route metadata json", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"saveWorkflowGraph"}]}
+{"query":"caricamento workflow graph con nodi e route metadata", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"loadWorkflowGraph"}]}
+{"query":"rinomina workflow graph per chiave", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"renameWorkflowGraph"}]}
+{"query":"elimina workflow graph by graph_key", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"deleteWorkflowGraph"}]}
+{"query":"lista dashboard per tipo designMode", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"getDashboards"}]}
+{"query":"save dashboard con boardcontent e fogli css associati", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"saveDashboard"}]}
+{"query":"load dashboard da board_route", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"loadDashboard"}]}
+{"query":"delete dashboard con cleanup dom_board_element e dom_board_sheet", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"deleteDashboard"}]}
+{"query":"autocomplete sql objects per code editor", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"AutocompleteSqlObjects"}]}
+{"query":"suggest callback azione tabella lato frontend metadata editor", "expected":[{"rel_path_contains":"wuic-framework-lib/src/lib/service/wtoolbox.service.ts","symbol_name":"suggestTableActionCallback"}]}
+{"query":"suggest configurazione lookup lato client", "expected":[{"rel_path_contains":"wuic-framework-lib/src/lib/service/wtoolbox.service.ts","symbol_name":"suggestLookup"}]}
+{"query":"suggest filtro default lookup lato client", "expected":[{"rel_path_contains":"wuic-framework-lib/src/lib/service/wtoolbox.service.ts","symbol_name":"suggestLookupDefaultFilter"}]}
+{"query":"suggest proprietà bag della colonna in editor metadata", "expected":[{"rel_path_contains":"wuic-framework-lib/src/lib/service/wtoolbox.service.ts","symbol_name":"suggestColumnPropsBag"}]}
+{"query":"suggest proprietà bag della tabella in editor metadata", "expected":[{"rel_path_contains":"wuic-framework-lib/src/lib/service/wtoolbox.service.ts","symbol_name":"suggestTablePropsBag"}]}
+{"query":"lookup hierarchy by id per universe builder client", "expected":[{"rel_path_contains":"wuic-framework-lib/src/lib/service/wtoolbox.service.ts","symbol_name":"getLookupListByID"}]}
+{"query":"lookup hierarchy by route per universe builder client", "expected":[{"rel_path_contains":"wuic-framework-lib/src/lib/service/wtoolbox.service.ts","symbol_name":"getLookupListByRoute"}]}
+{"query":"suggest callback default value per campo", "expected":[{"rel_path_contains":"wuic-framework-lib/src/lib/service/wtoolbox.service.ts","symbol_name":"suggestDefaultValueCallback"}]}
+{"query":"suggest validazione custom per campo", "expected":[{"rel_path_contains":"wuic-framework-lib/src/lib/service/wtoolbox.service.ts","symbol_name":"suggestCustomValidation"}]}
+{"query":"caricamento metadati route con cache locale lato client", "expected":[{"rel_path_contains":"wuic-framework-lib/src/lib/service/metadata-provider.service.ts","symbol_name":"getMetadati"}]}
+{"query":"traduzione metadati client via resources tableMetadata", "expected":[{"rel_path_contains":"wuic-framework-lib/src/lib/service/metadata-provider.service.ts","symbol_name":"translate_meta"}]}
+{"query":"lettura menu utente con cache localStorage", "expected":[{"rel_path_contains":"wuic-framework-lib/src/lib/service/metadata-provider.service.ts","symbol_name":"getMenuByUserID"}]}
+{"query":"lettura custom settings utente dal backend e cache locale", "expected":[{"rel_path_contains":"wuic-framework-lib/src/lib/service/metadata-provider.service.ts","symbol_name":"readCustomSettings"}]}
+{"query":"lista report per route con caching temporale", "expected":[{"rel_path_contains":"wuic-framework-lib/src/lib/service/metadata-provider.service.ts","symbol_name":"getReportList"}]}
+{"query":"runtime metadata setRouteMetadata workflow", "expected":[{"rel_path_contains":"wuic-framework-lib/src/lib/service/workflow-runtime-metadata.service.ts","symbol_name":"setRouteMetadata"}]}
+{"query":"attivazione metadata di navigazione linked action", "expected":[{"rel_path_contains":"wuic-framework-lib/src/lib/service/workflow-runtime-metadata.service.ts","symbol_name":"activateLinkedNavigationMetadata"}]}
+{"query":"consumo metadata pending per route/action runtime", "expected":[{"rel_path_contains":"wuic-framework-lib/src/lib/service/workflow-runtime-metadata.service.ts","symbol_name":"consumePendingRouteMetadata"}]}
