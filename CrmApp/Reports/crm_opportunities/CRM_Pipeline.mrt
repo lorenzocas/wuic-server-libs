@@ -1,0 +1,147 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<StiSerializer version="1.02" type="Net" application="StiReport">
+  <CalculationMode>Interpretation</CalculationMode>
+  <Dictionary Ref="1" type="Dictionary" isKey="true">
+    <BusinessObjects isList="true" count="0" />
+    <Databases isList="true" count="1">
+      <Connessione Ref="2" type="Stimulsoft.Report.Dictionary.StiSqlDatabase" isKey="true">
+        <Alias>Connessione</Alias>
+        <ConnectionStringEncrypted>9HTfAtVX84V6Xr2E5Ux3Z8R42YxOfHvdb1yh9HFs4z/VFNnryFfTyOkT0djldOcfw8SVKMdKw/npfPW9YyXkP8Ya9w9NXdmB41zZzOpJdxfVWmUJzWjT1WNa7ZxjBGUvx1ZpaFlMu816CO3M5VAla8J42QnWVkuZy1zJmOoc4F7VyPsoxmRLhWlhJdxqLGUvxWr1bcZWE8XhR029ZxzkJ9Na9apWS3uk4hWl7GOE617FVPVtT2jS3eJJ6NxnROM=</ConnectionStringEncrypted>
+        <Name>Connessione</Name>
+      </Connessione>
+    </Databases>
+    <DataSources isList="true" count="1">
+      <crm_opportunities Ref="3" type="Stimulsoft.Report.Dictionary.StiSqlSource" isKey="true">
+        <Alias>crm_opportunities</Alias>
+        <Columns isList="true" count="17">
+          <value>crm_accounts___account_name__account_id,Account,System.String</value>
+          <value>account_id,account_id_id_lookup,System.Double</value>
+          <value>expected_close_date,Chiusura_prevista,System.DateTime</value>
+          <value>crm_contacts___first_name__contact_id,Contatto,System.String</value>
+          <value>contact_id,contact_id_id_lookup,System.Double</value>
+          <value>created_at,Data_creazione,System.DateTime</value>
+          <value>updated_at,Data_modifica,System.DateTime</value>
+          <value>crm_opportunity_stage___stage_code__stage_id,Fase,System.String</value>
+          <value>stage_id,stage_id_id_lookup,System.Double</value>
+          <value>amount,Importo,System.Double</value>
+          <value>crm_leads___source__lead_id,Lead,System.String</value>
+          <value>lead_id,lead_id_id_lookup,System.Double</value>
+          <value>opportunity_id,Opportunita,System.Double</value>
+          <value>crm_users___username__owner_user_id,Proprietario,System.String</value>
+          <value>owner_user_id,owner_user_id_id_lookup,System.Double</value>
+          <value>Stato_Record,Stato_record,System.Double</value>
+          <value>title,Titolo,System.String</value>
+        </Columns>
+        <CommandTimeout>300</CommandTimeout>
+        <Dictionary isRef="1" />
+        <Key>0606a6f7266e466ea2e4ad4e4e134f34</Key>
+        <Name>crm_opportunities</Name>
+        <NameInSource>Connessione</NameInSource>
+        <Parameters isList="true" count="0" />
+        <SqlCommand>SELECT [AdvancedCRM].[dbo].[crm_opportunities].[opportunity_id] AS [opportunity_id],  [account_id_crm_accounts].[account_name] AS [crm_accounts___account_name__account_id], [AdvancedCRM].[dbo].[crm_opportunities].[account_id] AS [account_id],  [contact_id_crm_contacts].[first_name] AS [crm_contacts___first_name__contact_id], [AdvancedCRM].[dbo].[crm_opportunities].[contact_id] AS [contact_id], [AdvancedCRM].[dbo].[crm_opportunities].[title] AS [title], [AdvancedCRM].[dbo].[crm_opportunities].[amount] AS [amount], [AdvancedCRM].[dbo].[crm_opportunities].[expected_close_date] AS [expected_close_date],  [stage_id_crm_opportunity_stage].[stage_code] AS [crm_opportunity_stage___stage_code__stage_id], [AdvancedCRM].[dbo].[crm_opportunities].[stage_id] AS [stage_id],  [owner_user_id_crm_users].[username] AS [crm_users___username__owner_user_id], [AdvancedCRM].[dbo].[crm_opportunities].[owner_user_id] AS [owner_user_id],  [lead_id_crm_leads].[source] AS [crm_leads___source__lead_id], [AdvancedCRM].[dbo].[crm_opportunities].[lead_id] AS [lead_id], [AdvancedCRM].[dbo].[crm_opportunities].[Stato_Record] AS [Stato_Record], [AdvancedCRM].[dbo].[crm_opportunities].[created_at] AS [created_at], [AdvancedCRM].[dbo].[crm_opportunities].[updated_at] AS [updated_at],  ''  AS [btn_crm_opportunities_duplicate] FROM [AdvancedCRM].[dbo].[crm_opportunities]   LEFT JOIN [AdvancedCRM].[dbo].[crm_accounts] AS [account_id_crm_accounts] ON [AdvancedCRM].[dbo].[crm_opportunities].[account_id] = [account_id_crm_accounts].[account_id]   LEFT JOIN [AdvancedCRM].[dbo].[crm_contacts] AS [contact_id_crm_contacts] ON [AdvancedCRM].[dbo].[crm_opportunities].[contact_id] = [contact_id_crm_contacts].[contact_id]   LEFT JOIN [AdvancedCRM].[dbo].[crm_opportunity_stage] AS [stage_id_crm_opportunity_stage] ON [AdvancedCRM].[dbo].[crm_opportunities].[stage_id] = [stage_id_crm_opportunity_stage].[stage_id]   LEFT JOIN [AdvancedCRM].[dbo].[crm_users] AS [owner_user_id_crm_users] ON [AdvancedCRM].[dbo].[crm_opportunities].[owner_user_id] = [owner_user_id_crm_users].[user_id]   LEFT JOIN [AdvancedCRM].[dbo].[crm_leads] AS [lead_id_crm_leads] ON [AdvancedCRM].[dbo].[crm_opportunities].[lead_id] = [lead_id_crm_leads].[lead_id]     ORDER BY [AdvancedCRM].[dbo].[crm_opportunities].opportunity_id ASC </SqlCommand>
+      </crm_opportunities>
+    </DataSources>
+    <Relations isList="true" count="0" />
+    <Report isRef="0" />
+    <Resources isList="true" count="0" />
+    <UserFunctions isList="true" count="0" />
+    <Variables isList="true" count="0" />
+  </Dictionary>
+  <EngineVersion>EngineV2</EngineVersion>
+  <GlobalizationStrings isList="true" count="0" />
+  <Key>919abf221a7b401ab3e30801d7bca919</Key>
+  <MetaTags isList="true" count="0" />
+  <Pages isList="true" count="1">
+    <Page1 Ref="4" type="Page" isKey="true">
+      <Border>None;Black;2;Solid;False;4;Black</Border>
+      <Brush>Transparent</Brush>
+      <Components isList="true" count="3">
+        <ReportTitleBand2 Ref="5" type="ReportTitleBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>0,0,0,0.6</ClientRectangle>
+          <Components isList="true" count="0" />
+          <Conditions isList="true" count="0" />
+          <Expressions isList="true" count="0" />
+          <Name>ReportTitleBand2</Name>
+          <Page isRef="4" />
+          <Parent isRef="4" />
+        </ReportTitleBand2>
+        <crm_opportunities_header Ref="6" type="HeaderBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>0,0,0,0.6</ClientRectangle>
+          <Components isList="true" count="0" />
+          <Conditions isList="true" count="0" />
+          <Expressions isList="true" count="0" />
+          <Name>crm_opportunities_header</Name>
+          <Page isRef="4" />
+          <Parent isRef="4" />
+        </crm_opportunities_header>
+        <crm_opportunities_data Ref="7" type="DataBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <BusinessObjectGuid isNull="true" />
+          <ClientRectangle>0,0,0,0.6</ClientRectangle>
+          <Components isList="true" count="0" />
+          <Conditions isList="true" count="0" />
+          <DataSourceName>crm_opportunities</DataSourceName>
+          <Expressions isList="true" count="0" />
+          <Filters isList="true" count="0" />
+          <Name>crm_opportunities_data</Name>
+          <Page isRef="4" />
+          <Parent isRef="4" />
+          <PrintIfDetailEmpty>True</PrintIfDetailEmpty>
+          <Sort isList="true" count="0" />
+        </crm_opportunities_data>
+      </Components>
+      <Conditions isList="true" count="0" />
+      <Expressions isList="true" count="0" />
+      <Guid>483f5a7d41b04591b1487d09b60a6e19</Guid>
+      <Margins>1,1,1,1</Margins>
+      <Name>Page1</Name>
+      <PageHeight>29.7</PageHeight>
+      <PageWidth>21</PageWidth>
+      <Report isRef="0" />
+    </Page1>
+  </Pages>
+  <ReferencedAssemblies isList="true" count="8">
+    <value>System.Dll</value>
+    <value>System.Drawing.Dll</value>
+    <value>System.Windows.Forms.Dll</value>
+    <value>System.Data.Dll</value>
+    <value>System.Xml.Dll</value>
+    <value>Stimulsoft.Controls.Dll</value>
+    <value>Stimulsoft.Base.Dll</value>
+    <value>Stimulsoft.Report.Dll</value>
+  </ReferencedAssemblies>
+  <ReportAlias>Report</ReportAlias>
+  <ReportChanged>3/16/2026 4:45:03 PM</ReportChanged>
+  <ReportCreated>3/16/2026 4:45:03 PM</ReportCreated>
+  <ReportGuid>d8a157a5f22042dfb174cd2e276742c0</ReportGuid>
+  <ReportName>Report</ReportName>
+  <ReportUnit>Centimeters</ReportUnit>
+  <ReportVersion>2024.4.3.0</ReportVersion>
+  <Script>using System;
+using System.Drawing;
+using System.Windows.Forms;
+using System.Data;
+using Stimulsoft.Controls;
+using Stimulsoft.Base.Drawing;
+using Stimulsoft.Report;
+using Stimulsoft.Report.Dialogs;
+using Stimulsoft.Report.Components;
+
+namespace Reports
+{
+    public class Report : Stimulsoft.Report.StiReport
+    {
+        public Report()        {
+            this.InitializeComponent();
+        }
+
+        #region StiReport Designer generated code - do not modify
+        #endregion StiReport Designer generated code - do not modify
+    }
+}
+</Script>
+  <ScriptLanguage>CSharp</ScriptLanguage>
+  <Styles isList="true" count="0" />
+</StiSerializer>

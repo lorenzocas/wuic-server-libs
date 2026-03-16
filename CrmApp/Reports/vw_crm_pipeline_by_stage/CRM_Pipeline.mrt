@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<StiSerializer version="1.02" type="Net" application="StiReport">
+  <CalculationMode>Interpretation</CalculationMode>
+  <Dictionary Ref="1" type="Dictionary" isKey="true">
+    <BusinessObjects isList="true" count="0" />
+    <Databases isList="true" count="1">
+      <Connessione Ref="2" type="Stimulsoft.Report.Dictionary.StiSqlDatabase" isKey="true">
+        <Alias>Connessione</Alias>
+        <ConnectionStringEncrypted>1FJlCcloS+1iXI2I5FglC8RqzW3JW0PZYUe9mGIl4GPAePfrTnFL3ctEvfBiPeNG30DBiclK091hTe2YanTgP5B08QJNZPv9aVuhXGFsp2fg8rUJxUrzvGJHjRxNJaQf337N609Ue81iXJzMYBhle9Fw2UjNWUvtRUnNiMNJZRvEOvcCVFHzhWIT7dzqcCUvw/L9iU5WkqRiRKVQanjgj8Ng3etGTXMV4UQ=</ConnectionStringEncrypted>
+        <Name>Connessione</Name>
+      </Connessione>
+    </Databases>
+    <DataSources isList="true" count="1">
+      <crm_opportunities Ref="3" type="Stimulsoft.Report.Dictionary.StiSqlSource" isKey="true">
+        <Alias>crm_opportunities</Alias>
+        <Columns isList="true" count="6">
+          <value>stage_id,System.Int32</value>
+          <value>stage_code,System.String</value>
+          <value>stage_name,System.String</value>
+          <value>win_probability,System.Decimal</value>
+          <value>opportunities_count,System.Int32</value>
+          <value>total_amount,System.Decimal</value>
+        </Columns>
+        <CommandTimeout>300</CommandTimeout>
+        <Dictionary isRef="1" />
+        <Key>c8fcfb3507ea4f83a0c9988d8b9a0011</Key>
+        <Name>crm_opportunities</Name>
+        <NameInSource>Connessione</NameInSource>
+        <Parameters isList="true" count="0" />
+        <SqlCommand>SELECT stage_id, stage_code, stage_name, win_probability, opportunities_count, total_amount FROM [AdvancedCRM].[dbo].[vw_crm_pipeline_by_stage] ORDER BY total_amount DESC, stage_name ASC</SqlCommand>
+      </crm_opportunities>
+    </DataSources>
+    <Relations isList="true" count="0" />
+    <Report isRef="0" />
+    <Resources isList="true" count="0" />
+    <UserFunctions isList="true" count="0" />
+    <Variables isList="true" count="0" />
+  </Dictionary>
+  <EngineVersion>EngineV2</EngineVersion>
+  <GlobalizationStrings isList="true" count="0" />
+  <Key>62e839bd2abc4e4cb4ea6ff4d0815eed</Key>
+  <MetaTags isList="true" count="0" />
+  <Pages isList="true" count="1">
+    <Page1 Ref="4" type="Page" isKey="true">
+      <Border>None;Black;2;Solid;False;4;Black</Border>
+      <Brush>Transparent</Brush>
+      <Components isList="true" count="3">
+        <ReportTitleBand1 Ref="5" type="ReportTitleBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>0,0.4,19,0.8</ClientRectangle>
+          <Components isList="true" count="1">
+            <TextTitle Ref="6" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>0,0,19,0.8</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,12,Bold</Font>
+              <HorAlignment>Center</HorAlignment>
+              <Name>TextTitle</Name>
+              <Page isRef="4" />
+              <Parent isRef="5" />
+              <Text>Pipeline commerciale</Text>
+              <TextBrush>Black</TextBrush>
+              <VertAlignment>Center</VertAlignment>
+            </TextTitle>
+          </Components>
+          <Conditions isList="true" count="0" />
+          <Expressions isList="true" count="0" />
+          <Name>ReportTitleBand1</Name>
+          <Page isRef="4" />
+          <Parent isRef="4" />
+        </ReportTitleBand1>
+        <pipeline_header Ref="7" type="HeaderBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>0,1.6,19,0.6</ClientRectangle>
+          <Components isList="true" count="3">
+            <TextH1 Ref="8" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>0.2,0,7.5,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,9,Bold</Font>
+              <Name>TextH1</Name>
+              <Page isRef="4" />
+              <Parent isRef="7" />
+              <Text>Fase</Text>
+              <TextBrush>Black</TextBrush>
+            </TextH1>
+            <TextH2 Ref="9" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>8.2,0,4,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,9,Bold</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>TextH2</Name>
+              <Page isRef="4" />
+              <Parent isRef="7" />
+              <Text>Opportunita</Text>
+              <TextBrush>Black</TextBrush>
+            </TextH2>
+            <TextH3 Ref="10" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>12.8,0,6,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,9,Bold</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>TextH3</Name>
+              <Page isRef="4" />
+              <Parent isRef="7" />
+              <Text>Valore pipeline</Text>
+              <TextBrush>Black</TextBrush>
+            </TextH3>
+          </Components>
+          <Conditions isList="true" count="0" />
+          <Expressions isList="true" count="0" />
+          <Name>pipeline_header</Name>
+          <Page isRef="4" />
+          <Parent isRef="4" />
+        </pipeline_header>
+        <pipeline_data Ref="11" type="DataBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <BusinessObjectGuid isNull="true" />
+          <ClientRectangle>0,2.6,19,0.6</ClientRectangle>
+          <Components isList="true" count="3">
+            <TextD1 Ref="12" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>0.2,0,7.5,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,9</Font>
+              <Name>TextD1</Name>
+              <Page isRef="4" />
+              <Parent isRef="11" />
+              <Text>{crm_opportunities.stage_name}</Text>
+              <TextBrush>Black</TextBrush>
+            </TextD1>
+            <TextD2 Ref="13" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>8.2,0,4,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,9</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>TextD2</Name>
+              <Page isRef="4" />
+              <Parent isRef="11" />
+              <Text>{crm_opportunities.opportunities_count}</Text>
+              <TextBrush>Black</TextBrush>
+            </TextD2>
+            <TextD3 Ref="14" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>12.8,0,6,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,9</Font>
+              <Format>Currency</Format>
+              <HorAlignment>Right</HorAlignment>
+              <Name>TextD3</Name>
+              <Page isRef="4" />
+              <Parent isRef="11" />
+              <Text>{crm_opportunities.total_amount}</Text>
+              <TextBrush>Black</TextBrush>
+            </TextD3>
+          </Components>
+          <Conditions isList="true" count="0" />
+          <DataSourceName>crm_opportunities</DataSourceName>
+          <Expressions isList="true" count="0" />
+          <Filters isList="true" count="0" />
+          <Name>pipeline_data</Name>
+          <Page isRef="4" />
+          <Parent isRef="4" />
+          <PrintIfDetailEmpty>True</PrintIfDetailEmpty>
+          <Sort isList="true" count="0" />
+        </pipeline_data>
+      </Components>
+      <Conditions isList="true" count="0" />
+      <Expressions isList="true" count="0" />
+      <Guid>0e30cf0a72af40368d2dd4b953d4b5d7</Guid>
+      <Margins>1,1,1,1</Margins>
+      <Name>Page1</Name>
+      <PageHeight>29.7</PageHeight>
+      <PageWidth>21</PageWidth>
+      <Report isRef="0" />
+    </Page1>
+  </Pages>
+  <ReferencedAssemblies isList="true" count="8">
+    <value>System.Dll</value>
+    <value>System.Drawing.Dll</value>
+    <value>System.Windows.Forms.Dll</value>
+    <value>System.Data.Dll</value>
+    <value>System.Xml.Dll</value>
+    <value>Stimulsoft.Controls.Dll</value>
+    <value>Stimulsoft.Base.Dll</value>
+    <value>Stimulsoft.Report.Dll</value>
+  </ReferencedAssemblies>
+  <ReportAlias>Pipeline commerciale</ReportAlias>
+  <ReportChanged>3/16/2026 11:00:00 AM</ReportChanged>
+  <ReportCreated>3/16/2026 11:00:00 AM</ReportCreated>
+  <ReportFile>C:\\src\\Wuic\\CrmApp\\Reports\\vw_crm_pipeline_by_stage\\CRM_Pipeline.mrt</ReportFile>
+  <ReportGuid>f58a7cfe9f964b86b47acdbf2d4fe2f0</ReportGuid>
+  <ReportName>CRM_Pipeline</ReportName>
+  <ReportUnit>Centimeters</ReportUnit>
+  <ReportVersion>2024.4.3.0</ReportVersion>
+  <Script>using System;
+using System.Drawing;
+using System.Windows.Forms;
+using System.Data;
+using Stimulsoft.Controls;
+using Stimulsoft.Base.Drawing;
+using Stimulsoft.Report;
+using Stimulsoft.Report.Dialogs;
+using Stimulsoft.Report.Components;
+
+namespace Reports
+{
+    public class Report : Stimulsoft.Report.StiReport
+    {
+        public Report()        {
+            this.InitializeComponent();
+        }
+
+        #region StiReport Designer generated code - do not modify
+        #endregion StiReport Designer generated code - do not modify
+    }
+}
+</Script>
+  <ScriptLanguage>CSharp</ScriptLanguage>
+  <Styles isList="true" count="0" />
+</StiSerializer>
+

@@ -48,7 +48,14 @@ crea la "Dashboard KPI personalizzabile" come descritto in descritto in C:\src\W
 si, devi usare il data-repeater.component con action "list" o "chart" definendo le md_props_bags relative agli archetype (per il chart), devi usare il datasource.component per recuperare i dati e bindarli. Se il caso devi scaffoldare le nuove viste e poi usarle come route dei datasource che usi nella dashboard.
 devi generare boardcontent come albero di tool designer nativi (con nodi DATASOURCE + DATAREPEATER, ... separati) in modo che possano essere aperti ed editati nel designer.
 
+
+Aggiungi un report "Pipeline commerciale" a CrmApp segui l'esempio dei report qui  "C:\src\Wuic\KonvergenceCore\Reports" e collegalo alla route corretta. Crea cartella Reports e rispetta la struttura subfolder per route. genera opportunamente l'xml nel file .mrt
+
+
 ---------------------------------------------------------------------------------------
+
+
+
 
 ...aggiungo un test script che invoca automaticamente tutte le action key e stampa esito/payload sintetico.
  

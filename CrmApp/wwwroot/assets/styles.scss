@@ -118,6 +118,77 @@ p-inputnumber,
     width: 100%;
 }
 
+/* TabView visual style for dashboard runtime + designer (theme-aware) */
+:is(wuic-dashboard, wuic-designer) {
+    .p-tabview {
+        border: 1px solid var(--p-content-border-color, var(--surface-border));
+        border-radius: var(--p-border-radius, 6px);
+        background: var(--p-content-background, var(--surface-card));
+        color: var(--p-text-color, var(--text-color));
+        overflow: hidden;
+    }
+
+    .p-tabview-nav-container {
+        border-bottom: 1px solid var(--p-content-border-color, var(--surface-border));
+        background: var(--p-content-background, var(--surface-card));
+    }
+
+    .p-tabview-nav {
+        margin: 0;
+        padding: 0 0.35rem;
+        gap: 0;
+    }
+
+    .p-tabview-nav li {
+        list-style: none;
+        position: relative;
+    }
+
+    .p-tabview-nav li .p-tabview-nav-link {
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        color: var(--p-text-color, var(--text-color));
+        font-weight: 600;
+        padding: 0.6rem 0.9rem;
+        transition: background-color 120ms ease, box-shadow 120ms ease, color 120ms ease;
+        box-shadow: none;
+        opacity: 0.8;
+    }
+
+    .p-tabview-nav li+li::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0.55rem;
+        bottom: 0.55rem;
+        width: 1px;
+        background: var(--p-content-border-color, var(--surface-border));
+    }
+
+    .p-tabview-nav li.p-highlight .p-tabview-nav-link {
+        background: color-mix(in srgb, var(--p-primary-color, #3b82f6) 12%, var(--p-content-background, var(--surface-card)));
+        color: var(--p-primary-color, #3b82f6);
+        box-shadow: inset 0 -2px 0 var(--p-primary-color, #3b82f6), 0 2px 6px color-mix(in srgb, var(--p-primary-color, #3b82f6) 20%, transparent);
+        opacity: 1;
+    }
+
+    .p-tabview-panels {
+        border-top: 1px solid var(--p-content-border-color, var(--surface-border));
+        background: var(--p-content-background, var(--surface-card));
+        padding: 0.65rem;
+        min-height: 120px;
+    }
+
+    .p-tabview-panel {
+        border: 1px solid color-mix(in srgb, var(--p-content-border-color, var(--surface-border)) 75%, transparent);
+        border-radius: var(--p-border-radius, 6px);
+        background: var(--p-content-background, var(--surface-card));
+        min-height: 90px;
+        padding: 0.5rem;
+    }
+}
+
 /*#endregion EditFormComponent*/
 
 /*#region ListGridComponent*/
@@ -468,9 +539,10 @@ $handle-corner-offset: 1px;
     }
 }
 
-*:hover>.ng-resizable-handle {
+body.wuic-designer-edit-mode *:hover>.ng-resizable-handle {
     display: block;
 }
+
 
 .ng-resizable-diagonal {
     box-sizing: border-box;
