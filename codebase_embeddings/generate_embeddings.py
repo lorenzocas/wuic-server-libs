@@ -1,9 +1,11 @@
 import argparse
+import hashlib
 import json
 import math
 import os
 import pickle
 import re
+import time
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Dict, List, Tuple
@@ -61,6 +63,23 @@ def load_chunks(jsonl_path: Path) -> List[dict]:
                 continue
             docs.append(json.loads(line))
     return docs
+
+
+def write_json(path: Path, payload: dict):
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def compute_docs_fingerprint(docs: List[dict]) -> str:
+    h = hashlib.sha1()
+    h.update(str(len(docs)).encode("utf-8"))
+    for d in docs:
+        h.update(b"|")
+        h.update(str(d.get("chunk_id", "")).encode("utf-8"))
+        h.update(b"#")
+        h.update(str(d.get("symbol_name", "")).encode("utf-8"))
+        h.update(b"#")
+        h.update(str(d.get("rel_path", "")).encode("utf-8"))
+    return h.hexdigest()
 
 
 def build_bm25(docs: List[dict]) -> Dict:
@@ -148,21 +167,114 @@ def build_index(
     batch_size: int = 64,
     hf_token: str = "",
     hf_token_env: str = "RAG_HF_TOKEN",
+    resume_build: bool = False,
 ):
     docs = load_chunks(input_jsonl)
     if not docs:
         raise RuntimeError(f"No chunks found in {input_jsonl}")
 
+    output_dir.mkdir(parents=True, exist_ok=True)
+    vectors_path = output_dir / "vectors.npy"
+    checkpoint_path = output_dir / "build_checkpoint.json"
+
+    input_jsonl_r = str(input_jsonl.resolve())
+    st = input_jsonl.stat()
+    docs_fingerprint = compute_docs_fingerprint(docs)
+    build_signature = {
+        "model_name": model_name,
+        "input_jsonl": input_jsonl_r,
+        "input_size": int(st.st_size),
+        "n_docs": len(docs),
+        "docs_fingerprint": docs_fingerprint,
+    }
+
     token = resolve_hf_token(hf_token, hf_token_env)
     model = load_sentence_transformer(model_name, token)
     texts = [d.get("text", "") for d in docs]
-    vectors = model.encode(texts, batch_size=batch_size, show_progress_bar=True, convert_to_numpy=True).astype(np.float32)
-    vectors_norm = normalize_vectors(vectors)
+    n_docs = len(texts)
+
+    start_idx = 0
+    dim = 0
+    vectors_norm = None
+
+    if resume_build and checkpoint_path.exists() and vectors_path.exists():
+        try:
+            checkpoint = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+            signature_ok = (
+                checkpoint.get("model_name") == build_signature["model_name"]
+                and checkpoint.get("input_jsonl") == build_signature["input_jsonl"]
+                and int(checkpoint.get("n_docs", -1)) == build_signature["n_docs"]
+                and str(checkpoint.get("docs_fingerprint", "")) == build_signature["docs_fingerprint"]
+            )
+            if signature_ok:
+                start_idx = max(0, min(n_docs, int(checkpoint.get("next_index", 0))))
+                dim = int(checkpoint.get("dim", 0))
+                vectors_norm = np.load(vectors_path, mmap_mode="r+")
+                if vectors_norm.shape != (n_docs, dim):
+                    vectors_norm = None
+                    start_idx = 0
+                    dim = 0
+                else:
+                    print(f"[build] resume enabled: reusing vectors up to index {start_idx}/{n_docs}")
+            else:
+                print("[build] resume checkpoint ignored: input/model changed")
+        except Exception:
+            vectors_norm = None
+            start_idx = 0
+            dim = 0
+
+    if vectors_norm is None:
+        probe = model.encode([texts[0]], batch_size=1, show_progress_bar=False, convert_to_numpy=True).astype(np.float32)
+        dim = int(probe.shape[1])
+        vectors_norm = np.lib.format.open_memmap(vectors_path, mode="w+", dtype=np.float32, shape=(n_docs, dim))
+        start_idx = 0
+        if resume_build:
+            write_json(
+                checkpoint_path,
+                {
+                    **build_signature,
+                    "dim": dim,
+                    "next_index": start_idx,
+                },
+            )
+
+    if start_idx < n_docs:
+        total_batches = math.ceil(n_docs / batch_size) if batch_size > 0 else 0
+        start_batch = math.ceil(start_idx / batch_size) if batch_size > 0 else 0
+        t0 = time.time()
+        for i in range(start_idx, n_docs, batch_size):
+            j = min(i + batch_size, n_docs)
+            batch_vec = model.encode(
+                texts[i:j],
+                batch_size=batch_size,
+                show_progress_bar=False,
+                convert_to_numpy=True,
+            ).astype(np.float32)
+            vectors_norm[i:j] = normalize_vectors(batch_vec)
+            vectors_norm.flush()
+            if resume_build:
+                write_json(
+                    checkpoint_path,
+                    {
+                        **build_signature,
+                        "dim": dim,
+                        "next_index": j,
+                    },
+                )
+            current_batch = (j + batch_size - 1) // batch_size
+            elapsed = max(1e-6, time.time() - t0)
+            docs_done = max(0, j - start_idx)
+            docs_total = max(1, n_docs - start_idx)
+            docs_per_sec = docs_done / elapsed
+            eta_sec = int(max(0.0, (docs_total - docs_done) / max(docs_per_sec, 1e-6)))
+            print(
+                f"[build] batch {current_batch}/{total_batches} "
+                f"(docs {j}/{n_docs}, start {start_batch}/{total_batches}, "
+                f"speed {docs_per_sec:.1f} docs/s, eta {eta_sec}s)"
+            )
 
     bm25 = build_bm25(docs)
 
-    output_dir.mkdir(parents=True, exist_ok=True)
-    np.save(output_dir / "vectors.npy", vectors_norm)
     with (output_dir / "metadata.jsonl").open("w", encoding="utf-8") as f:
         for d in docs:
             f.write(json.dumps(d, ensure_ascii=False) + "\n")
@@ -174,11 +286,17 @@ def build_index(
                 "model_name": model_name,
                 "n_docs": len(docs),
                 "input_jsonl": str(input_jsonl),
+                "batch_size": batch_size,
             },
             f,
             indent=2,
         )
-    print(f"[build] docs={len(docs)} dim={vectors_norm.shape[1]} output={output_dir}")
+    if checkpoint_path.exists():
+        try:
+            checkpoint_path.unlink()
+        except OSError:
+            pass
+    print(f"[build] docs={len(docs)} dim={dim} output={output_dir}")
 
 
 def load_index(index_dir: Path, hf_token: str = "", hf_token_env: str = "RAG_HF_TOKEN"):
@@ -356,6 +474,7 @@ def cmd_build(args):
         batch_size=args.batch_size,
         hf_token=args.hf_token,
         hf_token_env=args.hf_token_env,
+        resume_build=args.resume_build,
     )
 
 
@@ -387,6 +506,7 @@ def main():
     p_build.add_argument("--output-dir", default=r"c:/src/Wuic/codebase_embeddings/index")
     p_build.add_argument("--model", default=os.getenv("RAG_EMBED_MODEL", DEFAULT_MODEL))
     p_build.add_argument("--batch-size", type=int, default=64)
+    p_build.add_argument("--resume-build", action="store_true")
     p_build.add_argument("--hf-token", default="")
     p_build.add_argument("--hf-token-env", default="RAG_HF_TOKEN")
     p_build.set_defaults(func=cmd_build)

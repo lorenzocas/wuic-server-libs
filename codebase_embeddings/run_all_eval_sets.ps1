@@ -1,9 +1,11 @@
 param(
+    [string]$PythonExe = "c:\src\Wuic\KonvergenceCore\.venv\Scripts\python.exe",
     [string]$RootDir = "c:\src\Wuic",
     [string]$ExtractScript = "c:\src\Wuic\codebase_docs\extract_codebase.py",
     [string]$BuildScript = "c:\src\Wuic\codebase_embeddings\generate_embeddings.py",
     [string]$EvalScript = "c:\src\Wuic\codebase_embeddings\evaluate_rag.py",
     [string]$EmbedModel = "BAAI/bge-m3",
+    [int]$EmbedBatchSize = 8,
     [string]$ChunksJsonl = "c:\src\Wuic\codebase_docs\code_chunks.jsonl",
     [string]$IndexDir = "c:\src\Wuic\codebase_embeddings\index",
     [string]$EvalDir = "c:\src\Wuic\codebase_embeddings",
@@ -12,19 +14,20 @@ param(
     [string]$TopKList = "3,5,8,10",
     [string]$HfToken = "",
     [string]$HfTokenEnv = "RAG_HF_TOKEN",
-    [double]$AlphaVector = 0.55,
-    [double]$AlphaBm25 = 0.45,
+    [double]$AlphaVector = 0.45,
+    [double]$AlphaBm25 = 0.55,
     [switch]$AdaptiveAlpha,
-    [double]$AlphaVectorTechnical = 0.10,
-    [double]$AlphaVectorDescriptive = 0.75,
-    [double]$RerankSymbolWeight = 1.30,
-    [double]$RerankPathWeight = 0.80,
-    [double]$RerankTextOverlapWeight = 0.90,
+    [double]$AlphaVectorTechnical = 0.05,
+    [double]$AlphaVectorDescriptive = 0.70,
+    [double]$RerankSymbolWeight = 1.10,
+    [double]$RerankPathWeight = 0.60,
+    [double]$RerankTextOverlapWeight = 0.80,
     [string]$SummaryOutput = "c:\src\Wuic\codebase_embeddings\eval_all_sets_summary.json",
     [string]$HistoryPath = "c:\src\Wuic\codebase_embeddings\eval_all_sets_history.jsonl",
     [switch]$SkipExtract,
     [switch]$SkipBuild,
-    [switch]$SkipDb
+    [switch]$SkipDb,
+    [switch]$NoBuildResume
 )
 
 $ErrorActionPreference = "Stop"
@@ -48,9 +51,9 @@ function Run-Step {
 
 function Invoke-PythonChecked {
     param([Parameter(ValueFromRemainingArguments = $true)] [string[]]$Args)
-    & python @Args
+    & $PythonExe @Args
     if ($LASTEXITCODE -ne 0) {
-        throw "Python command failed (exit code $LASTEXITCODE): python $($Args -join ' ')"
+        throw "Python command failed (exit code $LASTEXITCODE): $PythonExe $($Args -join ' ')"
     }
 }
 
@@ -82,7 +85,17 @@ function Load-PreviousRun {
     if (-not (Test-Path $Path)) { return $null }
     $lines = Get-Content $Path
     if (-not $lines -or $lines.Count -eq 0) { return $null }
-    return ($lines[-1] | ConvertFrom-Json)
+    for ($i = $lines.Count - 1; $i -ge 0; $i--) {
+        $line = [string]$lines[$i]
+        if ([string]::IsNullOrWhiteSpace($line)) { continue }
+        try {
+            return ($line | ConvertFrom-Json)
+        }
+        catch {
+            continue
+        }
+    }
+    return $null
 }
 
 function Build-AdaptiveArgs {
@@ -124,7 +137,17 @@ Ensure-FileExists -Path $ChunksJsonl -Hint "Missing code chunks. Run extract ste
 
 if (-not $SkipBuild) {
     Run-Step -Name "Build hybrid index" -Action {
-        Invoke-PythonChecked $BuildScript build --input-jsonl $ChunksJsonl --output-dir $IndexDir --model $EmbedModel --hf-token-env $HfTokenEnv
+        $buildArgs = @(
+            $BuildScript,
+            "build",
+            "--input-jsonl", $ChunksJsonl,
+            "--output-dir", $IndexDir,
+            "--model", $EmbedModel,
+            "--batch-size", "$EmbedBatchSize",
+            "--hf-token-env", $HfTokenEnv
+        )
+        if (-not $NoBuildResume) { $buildArgs += "--resume-build" }
+        Invoke-PythonChecked @buildArgs
     }
 }
 
@@ -142,6 +165,8 @@ if (-not $evalSets -or $evalSets.Count -eq 0) {
 $run = [ordered]@{
     timestamp_utc = [DateTime]::UtcNow.ToString("o")
     embed_model = $EmbedModel
+    embed_batch_size = $EmbedBatchSize
+    build_resume = (-not [bool]$NoBuildResume)
     top_ks = $topKs
     alpha_vector = $AlphaVector
     alpha_bm25 = $AlphaBm25

@@ -1,9 +1,11 @@
 param(
+    [string]$PythonExe = "c:\src\Wuic\KonvergenceCore\.venv\Scripts\python.exe",
     [string]$RootDir = "c:\src\Wuic",
     [string]$ExtractScript = "c:\src\Wuic\codebase_docs\extract_codebase.py",
     [string]$BuildScript = "c:\src\Wuic\codebase_embeddings\generate_embeddings.py",
     [string]$EvalScript = "c:\src\Wuic\codebase_embeddings\evaluate_rag.py",
     [string]$EmbedModel = "BAAI/bge-m3",
+    [int]$EmbedBatchSize = 8,
     [string]$ChunksJsonl = "c:\src\Wuic\codebase_docs\code_chunks.jsonl",
     [string]$IndexDir = "c:\src\Wuic\codebase_embeddings\index",
     [string]$EvalFile = "c:\src\Wuic\codebase_embeddings\eval_queries.jsonl",
@@ -11,17 +13,18 @@ param(
     [string]$EvalHistory = "c:\src\Wuic\codebase_embeddings\eval_results_history.jsonl",
     [string]$HfToken = "",
     [string]$HfTokenEnv = "RAG_HF_TOKEN",
-    [double]$AlphaVector = 0.55,
-    [double]$AlphaBm25 = 0.45,
+    [double]$AlphaVector = 0.45,
+    [double]$AlphaBm25 = 0.55,
     [switch]$AdaptiveAlpha,
-    [double]$AlphaVectorTechnical = 0.10,
-    [double]$AlphaVectorDescriptive = 0.75,
-    [double]$RerankSymbolWeight = 1.30,
-    [double]$RerankPathWeight = 0.80,
-    [double]$RerankTextOverlapWeight = 0.90,
+    [double]$AlphaVectorTechnical = 0.05,
+    [double]$AlphaVectorDescriptive = 0.70,
+    [double]$RerankSymbolWeight = 1.10,
+    [double]$RerankPathWeight = 0.60,
+    [double]$RerankTextOverlapWeight = 0.80,
     [int]$TopK = 5,
     [string]$TopKList = "",
-    [switch]$SkipDb
+    [switch]$SkipDb,
+    [switch]$NoBuildResume
 )
 
 $ErrorActionPreference = "Stop"
@@ -45,9 +48,9 @@ function Run-Step {
 
 function Invoke-PythonChecked {
     param([Parameter(ValueFromRemainingArguments = $true)] [string[]]$Args)
-    & python @Args
+    & $PythonExe @Args
     if ($LASTEXITCODE -ne 0) {
-        throw "Python command failed (exit code $LASTEXITCODE): python $($Args -join ' ')"
+        throw "Python command failed (exit code $LASTEXITCODE): $PythonExe $($Args -join ' ')"
     }
 }
 
@@ -163,7 +166,17 @@ Run-Step -Name "Extract chunks" -Action {
 Ensure-FileExists -Path $ChunksJsonl -Hint "Extraction did not produce code_chunks.jsonl. Run extract_codebase.py manually and verify errors."
 
 Run-Step -Name "Build hybrid index" -Action {
-    Invoke-PythonChecked $BuildScript build --input-jsonl $ChunksJsonl --output-dir $IndexDir --model $EmbedModel --hf-token-env $HfTokenEnv
+    $buildArgs = @(
+        $BuildScript,
+        "build",
+        "--input-jsonl", $ChunksJsonl,
+        "--output-dir", $IndexDir,
+        "--model", $EmbedModel,
+        "--batch-size", "$EmbedBatchSize",
+        "--hf-token-env", $HfTokenEnv
+    )
+    if (-not $NoBuildResume) { $buildArgs += "--resume-build" }
+    Invoke-PythonChecked @buildArgs
 }
 
 Ensure-FileExists -Path (Join-Path $IndexDir "vectors.npy") -Hint "Index build did not produce vectors.npy."
@@ -234,6 +247,8 @@ Write-Summary -Current $currentMetrics -Previous $previousMetrics -TopK $TopK
 $historyEntry = [ordered]@{
     timestamp_utc = [DateTime]::UtcNow.ToString("o")
     embed_model   = $EmbedModel
+    embed_batch_size = $EmbedBatchSize
+    build_resume = (-not [bool]$NoBuildResume)
     top_k         = $TopK
     top_k_list    = $topKs
     alpha_vector  = $AlphaVector

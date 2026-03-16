@@ -1,1147 +1,1834 @@
 <!DOCTYPE html>
 <html lang="it">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CrmApp — Feature Roadmap</title>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.6; color: #1e293b; background: #f1f5f9; }
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #1e293b;
+      background: #f1f5f9;
+    }
 
     /* ── Layout ── */
-    .layout { display: flex; min-height: 100vh; }
+    .layout {
+      display: flex;
+      min-height: 100vh;
+    }
 
     /* ── Sidebar ── */
-    nav { width: 260px; min-width: 260px; background: #0f172a; color: #cbd5e1; position: sticky; top: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; }
-    nav::-webkit-scrollbar { width: 4px; }
-    nav::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
-    .nav-brand { padding: 18px 16px 10px; border-bottom: 1px solid #1e293b; }
-    .nav-brand h1 { font-size: 14px; font-weight: 700; color: #f8fafc; }
-    .nav-brand p { font-size: 11px; color: #64748b; margin-top: 2px; }
-    .nav-section { padding: 12px 16px 3px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: #475569; }
-    nav a { display: flex; align-items: center; gap: 7px; padding: 5px 14px 5px 20px; color: #94a3b8; text-decoration: none; font-size: 12.5px; border-left: 2px solid transparent; transition: all .12s; }
-    nav a:hover { background: #1e293b; color: #e2e8f0; border-left-color: #6366f1; }
-    nav a.active { background: #1e3a5f; color: #818cf8; border-left-color: #6366f1; font-weight: 600; }
-    .nav-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    nav {
+      width: 260px;
+      min-width: 260px;
+      background: #0f172a;
+      color: #cbd5e1;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    nav::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    nav::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 2px;
+    }
+
+    .nav-brand {
+      padding: 18px 16px 10px;
+      border-bottom: 1px solid #1e293b;
+    }
+
+    .nav-brand h1 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+
+    .nav-brand p {
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    .nav-section {
+      padding: 12px 16px 3px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: #475569;
+    }
+
+    nav a {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 14px 5px 20px;
+      color: #94a3b8;
+      text-decoration: none;
+      font-size: 12.5px;
+      border-left: 2px solid transparent;
+      transition: all .12s;
+    }
+
+    nav a:hover {
+      background: #1e293b;
+      color: #e2e8f0;
+      border-left-color: #6366f1;
+    }
+
+    nav a.active {
+      background: #1e3a5f;
+      color: #818cf8;
+      border-left-color: #6366f1;
+      font-weight: 600;
+    }
+
+    .nav-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
 
     /* ── Main ── */
-    main { flex: 1; padding: 32px 40px; }
+    main {
+      flex: 1;
+      padding: 32px 40px;
+    }
 
     /* ── Page header ── */
-    .page-header { margin-bottom: 28px; }
-    .page-header h1 { font-size: 22px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 10px; }
-    .page-header .sub { font-size: 13px; color: #64748b; margin-top: 4px; }
-    .page-header .sub code { background: #e2e8f0; padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+    .page-header {
+      margin-bottom: 28px;
+    }
+
+    .page-header h1 {
+      font-size: 22px;
+      font-weight: 800;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .page-header .sub {
+      font-size: 13px;
+      color: #64748b;
+      margin-top: 4px;
+    }
+
+    .page-header .sub code {
+      background: #e2e8f0;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 11px;
+    }
 
     /* ── Stats bar ── */
-    .stats-bar { display: flex; gap: 12px; margin-bottom: 28px; flex-wrap: wrap; }
-    .stat-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 18px; min-width: 100px; text-align: center; }
-    .stat-card .stat-num { font-size: 24px; font-weight: 800; }
-    .stat-card .stat-label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: .06em; }
-    .stat-todo    .stat-num { color: #6366f1; }
-    .stat-high    .stat-num { color: #ef4444; }
-    .stat-medium  .stat-num { color: #f59e0b; }
-    .stat-low     .stat-num { color: #22c55e; }
+    .stats-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+
+    .stat-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px 18px;
+      min-width: 100px;
+      text-align: center;
+    }
+
+    .stat-card .stat-num {
+      font-size: 24px;
+      font-weight: 800;
+    }
+
+    .stat-card .stat-label {
+      font-size: 11px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .stat-todo .stat-num {
+      color: #6366f1;
+    }
+
+    .stat-high .stat-num {
+      color: #ef4444;
+    }
+
+    .stat-medium .stat-num {
+      color: #f59e0b;
+    }
+
+    .stat-low .stat-num {
+      color: #22c55e;
+    }
 
     /* ── Filter bar ── */
-    .filter-bar { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
-    .filter-bar span { font-size: 12px; color: #64748b; font-weight: 600; margin-right: 4px; }
-    .filter-btn { border: 1px solid #e2e8f0; background: #fff; border-radius: 99px; padding: 4px 12px; font-size: 12px; color: #475569; cursor: pointer; transition: all .15s; }
-    .filter-btn:hover { border-color: #6366f1; color: #6366f1; }
-    .filter-btn.on { background: #6366f1; border-color: #6366f1; color: #fff; }
+    .filter-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .filter-bar span {
+      font-size: 12px;
+      color: #64748b;
+      font-weight: 600;
+      margin-right: 4px;
+    }
+
+    .filter-btn {
+      border: 1px solid #e2e8f0;
+      background: #fff;
+      border-radius: 99px;
+      padding: 4px 12px;
+      font-size: 12px;
+      color: #475569;
+      cursor: pointer;
+      transition: all .15s;
+    }
+
+    .filter-btn:hover {
+      border-color: #6366f1;
+      color: #6366f1;
+    }
+
+    .filter-btn.on {
+      background: #6366f1;
+      border-color: #6366f1;
+      color: #fff;
+    }
 
     /* ── Section header ── */
-    .section-header { display: flex; align-items: center; gap: 10px; margin: 32px 0 14px; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0; }
-    .section-icon { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
-    .section-header h2 { font-size: 16px; font-weight: 700; color: #0f172a; }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 32px 0 14px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    .section-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .section-header h2 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0f172a;
+    }
 
     /* ── Feature card ── */
-    .feature-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 14px; overflow: hidden; transition: box-shadow .15s; }
-    .feature-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.07); }
-    .feature-card.done { opacity: .6; }
+    .feature-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      margin-bottom: 14px;
+      overflow: hidden;
+      transition: box-shadow .15s;
+    }
 
-    .fc-header { display: flex; align-items: flex-start; gap: 12px; padding: 14px 18px 10px; cursor: pointer; }
-    .fc-header-left { flex: 1; }
-    .fc-title { font-size: 14px; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .fc-sub { font-size: 12.5px; color: #64748b; margin-top: 3px; }
-    .fc-badges { display: flex; gap: 5px; align-items: center; flex-shrink: 0; flex-wrap: wrap; }
-    .fc-toggle { color: #94a3b8; font-size: 12px; flex-shrink: 0; margin-top: 2px; transition: transform .2s; }
-    .fc-toggle.open { transform: rotate(180deg); }
+    .feature-card:hover {
+      box-shadow: 0 4px 16px rgba(0, 0, 0, .07);
+    }
 
-    .fc-body { padding: 0 18px 16px; border-top: 1px solid #f1f5f9; display: none; }
-    .fc-body.open { display: block; padding-top: 14px; }
+    .feature-card.done {
+      opacity: .6;
+    }
+
+    .fc-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px 18px 10px;
+      cursor: pointer;
+    }
+
+    .fc-header-left {
+      flex: 1;
+    }
+
+    .fc-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .fc-sub {
+      font-size: 12.5px;
+      color: #64748b;
+      margin-top: 3px;
+    }
+
+    .fc-badges {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    .fc-toggle {
+      color: #94a3b8;
+      font-size: 12px;
+      flex-shrink: 0;
+      margin-top: 2px;
+      transition: transform .2s;
+    }
+
+    .fc-toggle.open {
+      transform: rotate(180deg);
+    }
+
+    .fc-body {
+      padding: 0 18px 16px;
+      border-top: 1px solid #f1f5f9;
+      display: none;
+    }
+
+    .fc-body.open {
+      display: block;
+      padding-top: 14px;
+    }
 
     /* ── Badges ── */
-    .badge { display: inline-flex; align-items: center; gap: 3px; border-radius: 99px; font-size: 10px; font-weight: 700; padding: 2px 8px; text-transform: uppercase; letter-spacing: .06em; }
-    .b-alta    { background: #fee2e2; color: #b91c1c; }
-    .b-media   { background: #fef9c3; color: #a16207; }
-    .b-bassa   { background: #dcfce7; color: #15803d; }
-    .b-s       { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
-    .b-m       { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
-    .b-l       { background: #faf5ff; color: #7c3aed; border: 1px solid #e9d5ff; }
-    .b-xl      { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
-    .b-todo    { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
-    .b-wip     { background: #eff6ff; color: #2563eb; border: 1px solid #93c5fd; }
-    .b-done    { background: #f0fdf4; color: #15803d; border: 1px solid #86efac; }
-    .b-blocked { background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; }
-    .b-net     { background: #f0fdf4; color: #065f46; border: 1px solid #6ee7b7; }
-    .b-ng      { background: #fff7ed; color: #9a3412; border: 1px solid #fdba74; }
-    .b-sql     { background: #f5f3ff; color: #6d28d9; border: 1px solid #c4b5fd; }
-    .b-meta    { background: #ecfeff; color: #0e7490; border: 1px solid #67e8f9; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      border-radius: 99px;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .b-alta {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+
+    .b-media {
+      background: #fef9c3;
+      color: #a16207;
+    }
+
+    .b-bassa {
+      background: #dcfce7;
+      color: #15803d;
+    }
+
+    .b-s {
+      background: #f0fdf4;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+
+    .b-m {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+    }
+
+    .b-l {
+      background: #faf5ff;
+      color: #7c3aed;
+      border: 1px solid #e9d5ff;
+    }
+
+    .b-xl {
+      background: #fff7ed;
+      color: #c2410c;
+      border: 1px solid #fed7aa;
+    }
+
+    .b-todo {
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+    }
+
+    .b-wip {
+      background: #eff6ff;
+      color: #2563eb;
+      border: 1px solid #93c5fd;
+    }
+
+    .b-done {
+      background: #f0fdf4;
+      color: #15803d;
+      border: 1px solid #86efac;
+    }
+
+    .b-blocked {
+      background: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #fca5a5;
+    }
+
+    .b-net {
+      background: #f0fdf4;
+      color: #065f46;
+      border: 1px solid #6ee7b7;
+    }
+
+    .b-ng {
+      background: #fff7ed;
+      color: #9a3412;
+      border: 1px solid #fdba74;
+    }
+
+    .b-sql {
+      background: #f5f3ff;
+      color: #6d28d9;
+      border: 1px solid #c4b5fd;
+    }
+
+    .b-meta {
+      background: #ecfeff;
+      color: #0e7490;
+      border: 1px solid #67e8f9;
+    }
 
     /* ── Plan steps ── */
-    .plan { margin-top: 12px; }
-    .plan-section { margin-bottom: 12px; }
-    .plan-section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #64748b; margin-bottom: 6px; display: flex; align-items: center; gap: 5px; }
-    .plan-steps { list-style: none; counter-reset: ps; }
-    .plan-steps li { counter-increment: ps; display: flex; gap: 10px; margin-bottom: 6px; font-size: 12.5px; color: #334155; }
-    .plan-steps li::before { content: counter(ps); min-width: 20px; height: 20px; border-radius: 50%; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
-    .ps-net   .plan-steps li::before { background: #d1fae5; color: #065f46; }
-    .ps-ng    .plan-steps li::before { background: #ffedd5; color: #9a3412; }
-    .ps-sql   .plan-steps li::before { background: #ede9fe; color: #5b21b6; }
-    .ps-meta  .plan-steps li::before { background: #cffafe; color: #0e7490; }
-    .plan-steps li code { background: #f1f5f9; padding: 1px 4px; border-radius: 3px; font-size: 11px; font-family: 'Consolas', monospace; }
-    .plan-steps li strong { color: #0f172a; }
-    .plan-note { font-size: 12px; background: #fefce8; border-left: 3px solid #fbbf24; color: #92400e; padding: 7px 11px; border-radius: 0 5px 5px 0; margin-top: 8px; }
-    .plan-note.dep { background: #f0f9ff; border-left-color: #38bdf8; color: #0c4a6e; }
+    .plan {
+      margin-top: 12px;
+    }
+
+    .plan-section {
+      margin-bottom: 12px;
+    }
+
+    .plan-section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: #64748b;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .plan-steps {
+      list-style: none;
+      counter-reset: ps;
+    }
+
+    .plan-steps li {
+      counter-increment: ps;
+      display: flex;
+      gap: 10px;
+      margin-bottom: 6px;
+      font-size: 12.5px;
+      color: #334155;
+    }
+
+    .plan-steps li::before {
+      content: counter(ps);
+      min-width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      font-size: 10px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .ps-net .plan-steps li::before {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .ps-ng .plan-steps li::before {
+      background: #ffedd5;
+      color: #9a3412;
+    }
+
+    .ps-sql .plan-steps li::before {
+      background: #ede9fe;
+      color: #5b21b6;
+    }
+
+    .ps-meta .plan-steps li::before {
+      background: #cffafe;
+      color: #0e7490;
+    }
+
+    .plan-steps li code {
+      background: #f1f5f9;
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-size: 11px;
+      font-family: 'Consolas', monospace;
+    }
+
+    .plan-steps li strong {
+      color: #0f172a;
+    }
+
+    .plan-note {
+      font-size: 12px;
+      background: #fefce8;
+      border-left: 3px solid #fbbf24;
+      color: #92400e;
+      padding: 7px 11px;
+      border-radius: 0 5px 5px 0;
+      margin-top: 8px;
+    }
+
+    .plan-note.dep {
+      background: #f0f9ff;
+      border-left-color: #38bdf8;
+      color: #0c4a6e;
+    }
 
     /* ── Dependency tag ── */
-    .dep-tag { display: inline-flex; align-items: center; gap: 3px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 10px; color: #64748b; padding: 1px 6px; font-family: 'Consolas', monospace; }
+    .dep-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      font-size: 10px;
+      color: #64748b;
+      padding: 1px 6px;
+      font-family: 'Consolas', monospace;
+    }
 
     /* Color dots for nav */
-    .d-analytics { background: #818cf8; }
-    .d-pipeline  { background: #34d399; }
-    .d-ux        { background: #fb923c; }
-    .d-int       { background: #38bdf8; }
-    .d-cfg       { background: #a78bfa; }
-    .d-sec       { background: #f87171; }
+    .d-analytics {
+      background: #818cf8;
+    }
+
+    .d-pipeline {
+      background: #34d399;
+    }
+
+    .d-ux {
+      background: #fb923c;
+    }
+
+    .d-int {
+      background: #38bdf8;
+    }
+
+    .d-cfg {
+      background: #a78bfa;
+    }
+
+    .d-sec {
+      background: #f87171;
+    }
   </style>
 </head>
+
 <body>
-<div class="layout">
+  <div class="layout">
 
-<!-- ── SIDEBAR ── -->
-<nav>
-  <div class="nav-brand">
-    <h1>CrmApp Roadmap</h1>
-    <p>Feature backlog &amp; piani di implementazione</p>
-  </div>
+    <!-- ── SIDEBAR ── -->
+    <nav>
+      <div class="nav-brand">
+        <h1>CrmApp Roadmap</h1>
+        <p>Feature backlog &amp; piani di implementazione</p>
+      </div>
 
-  <div class="nav-section">Analytics &amp; Reporting</div>
-  <a href="#f01"><span class="nav-dot d-analytics"></span>Dashboard KPI</a>
-  <a href="#f02"><span class="nav-dot d-analytics"></span>Report Stimulsoft</a>
-  <a href="#f03"><span class="nav-dot d-analytics"></span>Forecast vendite</a>
-  <a href="#f04"><span class="nav-dot d-analytics"></span>Export Excel / CSV</a>
+      <div class="nav-section">Analytics &amp; Reporting</div>
+      <a href="#f01"><span class="nav-dot d-analytics"></span>Dashboard KPI</a>
+      <a href="#f02"><span class="nav-dot d-analytics"></span>Report Stimulsoft</a>
+      <a href="#f03"><span class="nav-dot d-analytics"></span>Forecast vendite</a>
+      <a href="#f04"><span class="nav-dot d-analytics"></span>Export Excel / CSV</a>
 
-  <div class="nav-section">Pipeline &amp; Operatività</div>
-  <a href="#f05"><span class="nav-dot d-pipeline"></span>Kanban pipeline</a>
-  <a href="#f06"><span class="nav-dot d-pipeline"></span>Wizard nuova opportunità</a>
-  <a href="#f07"><span class="nav-dot d-pipeline"></span>Import massivo lead CSV</a>
-  <a href="#f08"><span class="nav-dot d-pipeline"></span>Workflow automatico case</a>
-  <a href="#f09"><span class="nav-dot d-pipeline"></span>Allegati su case/opportunità</a>
+      <div class="nav-section">Pipeline &amp; Operatività</div>
+      <a href="#f05"><span class="nav-dot d-pipeline"></span>Kanban pipeline</a>
+      <a href="#f06"><span class="nav-dot d-pipeline"></span>Wizard nuova opportunità</a>
+      <a href="#f07"><span class="nav-dot d-pipeline"></span>Import massivo lead CSV</a>
+      <a href="#f08"><span class="nav-dot d-pipeline"></span>Workflow automatico case</a>
+      <a href="#f09"><span class="nav-dot d-pipeline"></span>Allegati su case/opportunità</a>
 
-  <div class="nav-section">UX &amp; Visualizzazione</div>
-  <a href="#f10"><span class="nav-dot d-ux"></span>Mappa geografica account</a>
-  <a href="#f11"><span class="nav-dot d-ux"></span>Scheduler drag &amp; drop</a>
-  <a href="#f12"><span class="nav-dot d-ux"></span>Regole visive condizionali</a>
-  <a href="#f13"><span class="nav-dot d-ux"></span>Notifiche in-app</a>
+      <div class="nav-section">UX &amp; Visualizzazione</div>
+      <a href="#f10"><span class="nav-dot d-ux"></span>Mappa geografica account</a>
+      <a href="#f11"><span class="nav-dot d-ux"></span>Scheduler drag &amp; drop</a>
+      <a href="#f12"><span class="nav-dot d-ux"></span>Regole visive condizionali</a>
+      <a href="#f13"><span class="nav-dot d-ux"></span>Notifiche in-app</a>
 
-  <div class="nav-section">Integrazioni</div>
-  <a href="#f14"><span class="nav-dot d-int"></span>Email SMTP reale</a>
-  <a href="#f15"><span class="nav-dot d-int"></span>Audit trail / changelog</a>
-  <a href="#f16"><span class="nav-dot d-int"></span>API webhook outbound</a>
+      <div class="nav-section">Integrazioni</div>
+      <a href="#f14"><span class="nav-dot d-int"></span>Email SMTP reale</a>
+      <a href="#f15"><span class="nav-dot d-int"></span>Audit trail / changelog</a>
+      <a href="#f16"><span class="nav-dot d-int"></span>API webhook outbound</a>
 
-  <div class="nav-section">Configurazione</div>
-  <a href="#f17"><span class="nav-dot d-cfg"></span>Multi-tenancy / Universi</a>
-  <a href="#f18"><span class="nav-dot d-cfg"></span>Internazionalizzazione</a>
-  <a href="#f19"><span class="nav-dot d-cfg"></span>SLA e priorità automatiche</a>
+      <div class="nav-section">Configurazione</div>
+      <a href="#f17"><span class="nav-dot d-cfg"></span>Multi-tenancy / Universi</a>
+      <a href="#f18"><span class="nav-dot d-cfg"></span>Internazionalizzazione</a>
+      <a href="#f19"><span class="nav-dot d-cfg"></span>SLA e priorità automatiche</a>
 
-  <div class="nav-section">Sicurezza</div>
-  <a href="#f20"><span class="nav-dot d-sec"></span>Hashing password sicuro</a>
-  <a href="#f21"><span class="nav-dot d-sec"></span>OAuth / SSO Google</a>
-  <a href="#f22"><span class="nav-dot d-sec"></span>Rate limiting API</a>
-</nav>
+      <div class="nav-section">Sicurezza</div>
+      <a href="#f20"><span class="nav-dot d-sec"></span>Hashing password sicuro</a>
+      <a href="#f21"><span class="nav-dot d-sec"></span>OAuth / SSO Google</a>
+      <a href="#f22"><span class="nav-dot d-sec"></span>Rate limiting API</a>
+    </nav>
 
-<!-- ── MAIN ── -->
-<main>
+    <!-- ── MAIN ── -->
+    <main>
 
-  <div class="page-header">
-    <h1>🗂️ CrmApp — Feature Roadmap</h1>
-    <div class="sub">
-      Framework: <code>KonvergenceCore .NET 10</code> + <code>wuic-framework-lib Angular 21</code> &mdash;
-      DB: <code>AdvancedCRM</code> + <code>MetadataCRM</code>
-    </div>
-  </div>
+      <div class="page-header">
+        <h1>🗂️ CrmApp — Feature Roadmap</h1>
+        <div class="sub">
+          Framework: <code>KonvergenceCore .NET 10</code> + <code>wuic-framework-lib Angular 21</code> &mdash;
+          DB: <code>AdvancedCRM</code> + <code>MetadataCRM</code>
+        </div>
+      </div>
 
-  <div class="stats-bar">
-    <div class="stat-card stat-todo"><div class="stat-num">22</div><div class="stat-label">Feature totali</div></div>
-    <div class="stat-card stat-high"><div class="stat-num">8</div><div class="stat-label">Priorità Alta</div></div>
-    <div class="stat-card stat-medium"><div class="stat-num">9</div><div class="stat-label">Priorità Media</div></div>
-    <div class="stat-card stat-low"><div class="stat-num">5</div><div class="stat-label">Priorità Bassa</div></div>
-  </div>
+      <div class="stats-bar">
+        <div class="stat-card stat-todo">
+          <div class="stat-num">22</div>
+          <div class="stat-label">Feature totali</div>
+        </div>
+        <div class="stat-card stat-high">
+          <div class="stat-num">8</div>
+          <div class="stat-label">Priorità Alta</div>
+        </div>
+        <div class="stat-card stat-medium">
+          <div class="stat-num">9</div>
+          <div class="stat-label">Priorità Media</div>
+        </div>
+        <div class="stat-card stat-low">
+          <div class="stat-num">5</div>
+          <div class="stat-label">Priorità Bassa</div>
+        </div>
+      </div>
 
-  <div class="filter-bar">
-    <span>Filtra:</span>
-    <button class="filter-btn on" onclick="filterCards('all',this)">Tutte</button>
-    <button class="filter-btn" onclick="filterCards('alta',this)">🔴 Alta</button>
-    <button class="filter-btn" onclick="filterCards('media',this)">🟡 Media</button>
-    <button class="filter-btn" onclick="filterCards('bassa',this)">🟢 Bassa</button>
-    <button class="filter-btn" onclick="filterCards('s',this)">S (giorni)</button>
-    <button class="filter-btn" onclick="filterCards('m',this)">M (1–2 sett.)</button>
-    <button class="filter-btn" onclick="filterCards('l',this)">L (3–4 sett.)</button>
-    <button class="filter-btn" onclick="filterCards('xl',this)">XL (mese+)</button>
-  </div>
+      <div class="filter-bar">
+        <span>Filtra:</span>
+        <button class="filter-btn on" onclick="filterCards('all',this)">Tutte</button>
+        <button class="filter-btn" onclick="filterCards('alta',this)">🔴 Alta</button>
+        <button class="filter-btn" onclick="filterCards('media',this)">🟡 Media</button>
+        <button class="filter-btn" onclick="filterCards('bassa',this)">🟢 Bassa</button>
+        <button class="filter-btn" onclick="filterCards('s',this)">S (giorni)</button>
+        <button class="filter-btn" onclick="filterCards('m',this)">M (1–2 sett.)</button>
+        <button class="filter-btn" onclick="filterCards('l',this)">L (3–4 sett.)</button>
+        <button class="filter-btn" onclick="filterCards('xl',this)">XL (mese+)</button>
+      </div>
 
-  <!-- ══════════════════════════════════════
+      <!-- ══════════════════════════════════════
        ANALYTICS & REPORTING
   ══════════════════════════════════════ -->
-  <div class="section-header" id="s-analytics">
-    <div class="section-icon" style="background:#eef2ff;">📊</div>
-    <h2>Analytics &amp; Reporting</h2>
-  </div>
+      <div class="section-header" id="s-analytics">
+        <div class="section-icon" style="background:#eef2ff;">📊</div>
+        <h2>Analytics &amp; Reporting</h2>
+      </div>
 
-  <!-- F01 Dashboard KPI -->
-  <div class="feature-card" data-priority="alta" data-effort="l" id="f01">
-    <div class="fc-header" onclick="toggle(this)">
-      <div class="fc-header-left">
-        <div class="fc-title">
-          📊 Dashboard KPI personalizzabile
-          <span class="badge b-alta">Alta</span>
+      <!-- F01 Dashboard KPI -->
+      <div class="feature-card" data-priority="alta" data-effort="l" id="f01">
+        <div class="fc-header" onclick="toggle(this)">
+          <div class="fc-header-left">
+            <div class="fc-title">
+              📊 Dashboard KPI personalizzabile
+              <span class="badge b-alta">Alta</span>
+            </div>
+            <div class="fc-sub">Home page del CRM con widget interattivi: lead per stato, pipeline per fase, attività in
+              scadenza, top account per fatturato.</div>
+          </div>
+          <div class="fc-badges">
+            <span class="badge b-l">L</span>
+            <span class="badge b-todo">Todo</span>
+            <span class="badge b-net">NET</span>
+            <span class="badge b-ng">Angular</span>
+            <span class="badge b-meta">Metadata</span>
+          </div>
+          <div class="fc-toggle">▼</div>
         </div>
-        <div class="fc-sub">Home page del CRM con widget interattivi: lead per stato, pipeline per fase, attività in scadenza, top account per fatturato.</div>
-      </div>
-      <div class="fc-badges">
-        <span class="badge b-l">L</span>
-        <span class="badge b-todo">Todo</span>
-        <span class="badge b-net">NET</span>
-        <span class="badge b-ng">Angular</span>
-        <span class="badge b-meta">Metadata</span>
-      </div>
-      <div class="fc-toggle">▼</div>
-    </div>
-    <div class="fc-body">
-      <div class="plan">
+        <div class="fc-body">
+          <div class="plan">
 
-        <div class="plan-section ps-sql">
-          <div class="plan-section-title"><span class="badge b-sql">SQL</span> AdvancedCRM</div>
-          <ul class="plan-steps">
-            <li>Creare la stored procedure <code>crm_sp_dashboard_kpi</code> che restituisce in un unico JSON: conteggio lead per <code>lead_status_id</code>, somma <code>amount</code> per <code>stage_id</code>, attività scadute oggi, top 5 account per opportunità.</li>
-            <li>Creare le view di supporto: <code>vw_crm_lead_funnel</code>, <code>vw_crm_pipeline_by_stage</code>, <code>vw_crm_activities_overdue</code>.</li>
-          </ul>
-        </div>
+            <div class="plan-section ps-sql">
+              <div class="plan-section-title"><span class="badge b-sql">SQL</span> AdvancedCRM</div>
+              <ul class="plan-steps">
+                <li>Creare la stored procedure <code>crm_sp_dashboard_kpi</code> che restituisce in un unico JSON:
+                  conteggio lead per <code>lead_status_id</code>, somma <code>amount</code> per <code>stage_id</code>,
+                  attività scadute oggi, top 5 account per opportunità.</li>
+                <li>Creare le view di supporto: <code>vw_crm_lead_funnel</code>, <code>vw_crm_pipeline_by_stage</code>,
+                  <code>vw_crm_activities_overdue</code>.</li>
+              </ul>
+            </div>
 
-        <div class="plan-section ps-meta">
-          <div class="plan-section-title"><span class="badge b-meta">Metadata</span> MetadataCRM — domBoard</div>
-          <ul class="plan-steps">
-            <li>Inserire in <code>domBoard</code> una riga per la dashboard principale <strong>CRM Home</strong> con layout a 3 colonne.</li>
-            <li>Inserire in <code>domBoardSheet</code> i fogli: <em>Funnel Lead</em>, <em>Pipeline</em>, <em>Attività del giorno</em>, <em>Top Account</em>.</li>
-            <li>Inserire in <code>domBoardElement</code> i singoli widget: collegare ogni elemento a una <code>md_id</code> e a <code>ChartOptions</code> (tipo: bar, pie, line).</li>
-          </ul>
-        </div>
+            <div class="plan-section ps-meta">
+              <div class="plan-section-title"><span class="badge b-meta">Metadata</span> MetadataCRM — domBoard</div>
+              <ul class="plan-steps">
+                <li>Inserire in <code>domBoard</code> una riga per la dashboard principale <strong>CRM Home</strong> con
+                  layout a 3 colonne. Popolare opportunamente il campo [boardcontent] di [MetadataCRM].[dbo].[dom_board]
+                  con il json necessario a rappresentare i widget e le sezioni della dashboard (considerando il
+                  funzionamento dei component angular designer e dashboard che si occupano del rendering).</li>
+              </ul>
+            </div>
 
-        <div class="plan-section ps-net">
-          <div class="plan-section-title"><span class="badge b-net">NET</span> CrmActionsController</div>
-          <ul class="plan-steps">
-            <li>Aggiungere action key <code>crm_dashboard_load_kpi</code> alla SP <code>crm_sp_execute_action</code>: esegue <code>crm_sp_dashboard_kpi</code> e restituisce il JSON nel campo <code>payload</code>.</li>
-          </ul>
-        </div>
+            <div class="plan-section ps-net">
+              <div class="plan-section-title"><span class="badge b-net">NET</span> CrmActionsController</div>
+              <ul class="plan-steps">
+                <li>Aggiungere action key <code>crm_dashboard_load_kpi</code> alla SP
+                  <code>crm_sp_execute_action</code>: esegue <code>crm_sp_dashboard_kpi</code> e restituisce il JSON nel
+                  campo <code>payload</code>.</li>
+              </ul>
+            </div>
 
-        <div class="plan-section ps-ng">
-          <div class="plan-section-title"><span class="badge b-ng">Angular</span> wuic dashboard.component</div>
-          <ul class="plan-steps">
-            <li>Aggiungere voce di menu <em>Home CRM</em> (mm_id nuovo) con route <code>/crm_home/dashboard</code> e <code>mm_parent_id=5992</code> o null (gruppo root).</li>
-            <li>Configurare il componente <code>dashboard.component</code> già disponibile nella lib wuic puntandolo a <code>domBoard</code> della Home CRM.</li>
-            <li>I singoli widget chart usano <code>chart-list.component</code> con <code>ChartOptions</code>: sorgente dati via OData su <code>vw_crm_lead_funnel</code>.</li>
-            <li>Aggiungere il widget <em>Attività in scadenza oggi</em> con <code>list-grid.component</code> filtrato su <code>due_date = today AND completed = 0</code>.</li>
-          </ul>
-        </div>
+            <div class="plan-section ps-ng">
+              <div class="plan-section-title"><span class="badge b-ng">Angular</span> wuic dashboard.component</div>
+              <ul class="plan-steps">
+                <li>Aggiungere voce di menu <em>Home CRM</em> (mm_id nuovo) con route <code>/crm_home/dashboard</code> e
+                  <code>mm_parent_id=5992</code> o null (gruppo root).</li>
+                <li>Configurare il componente <code>dashboard.component</code> già disponibile nella lib wuic puntandolo
+                  a <code>domBoard</code> della Home CRM.</li>
+                <li>I singoli widget chart usano <code>chart-list.component</code> con <code>ChartOptions</code>:
+                  sorgente dati via OData su <code>vw_crm_lead_funnel</code>.</li>
+                <li>Aggiungere il widget <em>Attività in scadenza oggi</em> con <code>list-grid.component</code>
+                  filtrato su <code>due_date = today AND completed = 0</code>.</li>
+              </ul>
+            </div>
 
-        <div class="plan-note dep">Dipende da: viste SQL di aggregazione. Richiede permessi menu per tutti i ruoli (aggiunte in <code>_mtdt__tnt__trizzazioni__menus</code>).</div>
+            <div class="plan-note dep">Dipende da: viste SQL di aggregazione. Richiede permessi menu per tutti i ruoli
+              (aggiunte in <code>_mtdt__tnt__trizzazioni__menus</code>).</div>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
 
-  <!-- F02 Report Stimulsoft -->
-  <div class="feature-card" data-priority="alta" data-effort="m" id="f02">
-    <div class="fc-header" onclick="toggle(this)">
-      <div class="fc-header-left">
-        <div class="fc-title">📄 Report Stimulsoft integrati <span class="badge b-alta">Alta</span></div>
-        <div class="fc-sub">Report PDF stampabili: Pipeline commerciale, Attività per utente, Clienti per area, Forecast mensile.</div>
-      </div>
-      <div class="fc-badges">
-        <span class="badge b-m">M</span>
-        <span class="badge b-todo">Todo</span>
-        <span class="badge b-net">NET</span>
-        <span class="badge b-ng">Angular</span>
-      </div>
-      <div class="fc-toggle">▼</div>
-    </div>
-    <div class="fc-body">
-      <div class="plan">
-        <div class="plan-section ps-net">
-          <div class="plan-section-title"><span class="badge b-net">NET</span> KonvergenceCore ReportViewerController</div>
-          <ul class="plan-steps">
-            <li><code>ReportDesignerController</code> e <code>ReportViewerController</code> sono già presenti e funzionanti in KonvergenceCore. Non occorre alcun controller custom.</li>
-            <li>Creare i file <code>.mrt</code> (Stimulsoft report template) per: <strong>CRM_Pipeline.mrt</strong>, <strong>CRM_Attivita.mrt</strong>, <strong>CRM_Forecast.mrt</strong> usando il designer integrato.</li>
-            <li>I datasource dei report si connettono direttamente a <code>DataSQLConnection</code> via query SQL sui view <code>vw_crm_pipeline_by_stage</code>, <code>vw_crm_account_360</code>.</li>
-            <li>Inserire i template nella tabella <code>Report</code> su MetadataCRM con i parametri di scheduling se necessari.</li>
-          </ul>
+      <!-- F02 Report Stimulsoft -->
+      <div class="feature-card" data-priority="alta" data-effort="m" id="f02">
+        <div class="fc-header" onclick="toggle(this)">
+          <div class="fc-header-left">
+            <div class="fc-title">📄 Report Stimulsoft integrati <span class="badge b-alta">Alta</span></div>
+            <div class="fc-sub">Report PDF stampabili: Pipeline commerciale, Attività per utente, Clienti per area,
+              Forecast mensile.</div>
+          </div>
+          <div class="fc-badges">
+            <span class="badge b-m">M</span>
+            <span class="badge b-todo">Todo</span>
+            <span class="badge b-net">NET</span>
+            <span class="badge b-ng">Angular</span>
+          </div>
+          <div class="fc-toggle">▼</div>
         </div>
-        <div class="plan-section ps-ng">
-          <div class="plan-section-title"><span class="badge b-ng">Angular</span> report-viewer.component</div>
-          <ul class="plan-steps">
-            <li>Aggiungere voce di menu <em>Report CRM</em> con viste dedicate (route: <code>/crm_reports/viewer</code>).</li>
-            <li>Usare <code>report-viewer.component</code> dalla lib wuic, già configurato per puntare a <code>/api/ReportViewer</code>.</li>
-            <li>Limitare l'accesso ai report al ruolo <strong>CRM Manager</strong> e <strong>CRM Readonly</strong> (sola visualizzazione) via <code>_mtdt__tnt__trizzazioni__menus</code>.</li>
-          </ul>
+        <div class="fc-body">
+          <div class="plan">
+            <div class="plan-section ps-net">
+              <div class="plan-section-title"><span class="badge b-net">NET</span> KonvergenceCore
+                ReportViewerController</div>
+              <ul class="plan-steps">
+                <li><code>ReportDesignerController</code> e <code>ReportViewerController</code> sono già presenti e
+                  funzionanti in KonvergenceCore. Non occorre alcun controller custom.</li>
+                <li>Creare i file <code>.mrt</code> (Stimulsoft report template) per: <strong>CRM_Pipeline.mrt</strong>,
+                  <strong>CRM_Attivita.mrt</strong>, <strong>CRM_Forecast.mrt</strong> usando il designer integrato.
+                </li>
+                <li>I datasource dei report si connettono direttamente a <code>DataSQLConnection</code> via query SQL
+                  sui view <code>vw_crm_pipeline_by_stage</code>, <code>vw_crm_account_360</code>.</li>
+                <li>Inserire i template nella tabella <code>Report</code> su MetadataCRM con i parametri di scheduling
+                  se necessari.</li>
+              </ul>
+            </div>
+            <div class="plan-section ps-ng">
+              <div class="plan-section-title"><span class="badge b-ng">Angular</span> report-viewer.component</div>
+              <ul class="plan-steps">
+                <li>Aggiungere voce di menu <em>Report CRM</em> con viste dedicate (route:
+                  <code>/crm_reports/viewer</code>).</li>
+                <li>Usare <code>report-viewer.component</code> dalla lib wuic, già configurato per puntare a
+                  <code>/api/ReportViewer</code>.</li>
+                <li>Limitare l'accesso ai report al ruolo <strong>CRM Manager</strong> e <strong>CRM Readonly</strong>
+                  (sola visualizzazione) via <code>_mtdt__tnt__trizzazioni__menus</code>.</li>
+              </ul>
+            </div>
+            <div class="plan-note">Stimulsoft <strong>è già una dipendenza NuGet</strong> in KonvergenceCore. I
+              controller esistono. Il lavoro è sulla progettazione dei template <code>.mrt</code> e dei datasource.
+            </div>
+          </div>
         </div>
-        <div class="plan-note">Stimulsoft <strong>è già una dipendenza NuGet</strong> in KonvergenceCore. I controller esistono. Il lavoro è sulla progettazione dei template <code>.mrt</code> e dei datasource.</div>
       </div>
-    </div>
-  </div>
 
-  <!-- F03 Forecast -->
-  <div class="feature-card" data-priority="media" data-effort="m" id="f03">
-    <div class="fc-header" onclick="toggle(this)">
-      <div class="fc-header-left">
-        <div class="fc-title">📈 Forecast vendite per periodo <span class="badge b-media">Media</span></div>
-        <div class="fc-sub">Vista aggregata del fatturato atteso per mese/trimestre, pesato per <code>win_probability</code> della fase. Confronto con periodi precedenti.</div>
-      </div>
-      <div class="fc-badges">
-        <span class="badge b-m">M</span>
-        <span class="badge b-todo">Todo</span>
-        <span class="badge b-sql">SQL</span>
-        <span class="badge b-ng">Angular</span>
-      </div>
-      <div class="fc-toggle">▼</div>
-    </div>
-    <div class="fc-body">
-      <div class="plan">
-        <div class="plan-section ps-sql">
-          <div class="plan-section-title"><span class="badge b-sql">SQL</span> AdvancedCRM</div>
-          <ul class="plan-steps">
-            <li>Creare view <code>vw_crm_forecast_monthly</code>: <code>FORMAT(expected_close_date,'yyyy-MM') AS mese</code>, <code>SUM(amount * win_probability / 100.0) AS forecast_pesato</code>, <code>SUM(amount) AS pipeline_lordo</code>, raggruppato per mese e <code>owner_user_id</code>.</li>
-            <li>Aggiungere action key <code>crm_forecast_load</code> alla SP <code>crm_sp_execute_action</code>: restituisce i dati della view per i prossimi 12 mesi nel payload JSON.</li>
-          </ul>
+      <!-- F03 Forecast -->
+      <div class="feature-card" data-priority="media" data-effort="m" id="f03">
+        <div class="fc-header" onclick="toggle(this)">
+          <div class="fc-header-left">
+            <div class="fc-title">📈 Forecast vendite per periodo <span class="badge b-media">Media</span></div>
+            <div class="fc-sub">Vista aggregata del fatturato atteso per mese/trimestre, pesato per
+              <code>win_probability</code> della fase. Confronto con periodi precedenti.</div>
+          </div>
+          <div class="fc-badges">
+            <span class="badge b-m">M</span>
+            <span class="badge b-todo">Todo</span>
+            <span class="badge b-sql">SQL</span>
+            <span class="badge b-ng">Angular</span>
+          </div>
+          <div class="fc-toggle">▼</div>
         </div>
-        <div class="plan-section ps-meta">
-          <div class="plan-section-title"><span class="badge b-meta">Metadata</span> MetadataCRM</div>
-          <ul class="plan-steps">
-            <li>Scaffoldare <code>vw_crm_forecast_monthly</code> come nuova <code>_metadati__tabelle</code> (readonly, route: <code>crm_forecast</code>).</li>
-            <li>Aggiungere voce menu <em>Forecast vendite</em> (mm_parent_id=5993, Pipeline commerciale).</li>
-          </ul>
-        </div>
-        <div class="plan-section ps-ng">
-          <div class="plan-section-title"><span class="badge b-ng">Angular</span> chart-list.component</div>
-          <ul class="plan-steps">
-            <li>Configurare <code>chart-list.component</code> con <code>ChartOptions</code>: tipo <code>bar</code> (stacked) per pipeline lordo vs forecast pesato per mese.</li>
-            <li>Aggiungere selector per filtrare per <code>owner_user_id</code> (combo utenti CRM).</li>
-          </ul>
+        <div class="fc-body">
+          <div class="plan">
+            <div class="plan-section ps-sql">
+              <div class="plan-section-title"><span class="badge b-sql">SQL</span> AdvancedCRM</div>
+              <ul class="plan-steps">
+                <li>Creare view <code>vw_crm_forecast_monthly</code>:
+                  <code>FORMAT(expected_close_date,'yyyy-MM') AS mese</code>,
+                  <code>SUM(amount * win_probability / 100.0) AS forecast_pesato</code>,
+                  <code>SUM(amount) AS pipeline_lordo</code>, raggruppato per mese e <code>owner_user_id</code>.</li>
+                <li>Aggiungere action key <code>crm_forecast_load</code> alla SP <code>crm_sp_execute_action</code>:
+                  restituisce i dati della view per i prossimi 12 mesi nel payload JSON.</li>
+              </ul>
+            </div>
+            <div class="plan-section ps-meta">
+              <div class="plan-section-title"><span class="badge b-meta">Metadata</span> MetadataCRM</div>
+              <ul class="plan-steps">
+                <li>Scaffoldare <code>vw_crm_forecast_monthly</code> come nuova <code>_metadati__tabelle</code>
+                  (readonly, route: <code>crm_forecast</code>).</li>
+                <li>Aggiungere voce menu <em>Forecast vendite</em> (mm_parent_id=5993, Pipeline commerciale).</li>
+              </ul>
+            </div>
+            <div class="plan-section ps-ng">
+              <div class="plan-section-title"><span class="badge b-ng">Angular</span> chart-list.component</div>
+              <ul class="plan-steps">
+                <li>Configurare <code>chart-list.component</code> con <code>ChartOptions</code>: tipo <code>bar</code>
+                  (stacked) per pipeline lordo vs forecast pesato per mese.</li>
+                <li>Aggiungere selector per filtrare per <code>owner_user_id</code> (combo utenti CRM).</li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- F04 Export -->
-  <div class="feature-card" data-priority="alta" data-effort="s" id="f04">
-    <div class="fc-header" onclick="toggle(this)">
-      <div class="fc-header-left">
-        <div class="fc-title">📥 Export Excel / CSV per ogni lista <span class="badge b-alta">Alta</span></div>
-        <div class="fc-sub">Pulsante di esportazione integrato nelle griglie: lead, opportunità, contatti, case — con filtri correnti applicati.</div>
-      </div>
-      <div class="fc-badges">
-        <span class="badge b-s">S</span>
-        <span class="badge b-todo">Todo</span>
-        <span class="badge b-meta">Metadata</span>
-        <span class="badge b-net">NET</span>
-      </div>
-      <div class="fc-toggle">▼</div>
-    </div>
-    <div class="fc-body">
-      <div class="plan">
-        <div class="plan-section ps-meta">
-          <div class="plan-section-title"><span class="badge b-meta">Metadata</span> MetadataCRM — _metadati__tabelle</div>
-          <ul class="plan-steps">
-            <li>Per ogni tabella CRM, impostare la colonna <code>mdexport</code> (o equivalente in <code>_metadati__tabelle</code>) a <code>1</code> per abilitare il pulsante di esportazione già gestito da <code>list-grid.component</code>.</li>
-            <li>Verificare che le colonne da escludere dall'export (es. <code>Stato_Record</code>, FK interne) abbiano <code>mchideinexport=1</code> in <code>_metadati__colonne</code>.</li>
-          </ul>
+      <!-- F04 Export -->
+      <div class="feature-card" data-priority="alta" data-effort="s" id="f04">
+        <div class="fc-header" onclick="toggle(this)">
+          <div class="fc-header-left">
+            <div class="fc-title">📥 Export Excel / CSV per ogni lista <span class="badge b-alta">Alta</span></div>
+            <div class="fc-sub">Pulsante di esportazione integrato nelle griglie: lead, opportunità, contatti, case —
+              con filtri correnti applicati.</div>
+          </div>
+          <div class="fc-badges">
+            <span class="badge b-s">S</span>
+            <span class="badge b-todo">Todo</span>
+            <span class="badge b-meta">Metadata</span>
+            <span class="badge b-net">NET</span>
+          </div>
+          <div class="fc-toggle">▼</div>
         </div>
-        <div class="plan-section ps-net">
-          <div class="plan-section-title"><span class="badge b-net">NET</span> ExcelUtils (già in KonvergenceCore)</div>
-          <ul class="plan-steps">
-            <li>L'infrastruttura di export Excel è già disponibile in <code>KonvergenceCore/Helpers/ExcelUtils.cs</code> e <code>ExcelFileController.cs</code>. Verificare che l'endpoint sia attivo e che la cartella <code>wwwroot/Tmp_export</code> esista.</li>
-            <li>Per CSV: KonvergenceCore usa <code>GenericParsing.Standard</code>. Il MetaServiceController espone già l'endpoint di export; assicurarsi che le route CRM siano incluse.</li>
-          </ul>
+        <div class="fc-body">
+          <div class="plan">
+            <div class="plan-section ps-meta">
+              <div class="plan-section-title"><span class="badge b-meta">Metadata</span> MetadataCRM —
+                _metadati__tabelle</div>
+              <ul class="plan-steps">
+                <li>Per ogni tabella CRM, impostare la colonna <code>mdexport</code> (o equivalente in
+                  <code>_metadati__tabelle</code>) a <code>1</code> per abilitare il pulsante di esportazione già
+                  gestito da <code>list-grid.component</code>.</li>
+                <li>Verificare che le colonne da escludere dall'export (es. <code>Stato_Record</code>, FK interne)
+                  abbiano <code>mchideinexport=1</code> in <code>_metadati__colonne</code>.</li>
+              </ul>
+            </div>
+            <div class="plan-section ps-net">
+              <div class="plan-section-title"><span class="badge b-net">NET</span> ExcelUtils (già in KonvergenceCore)
+              </div>
+              <ul class="plan-steps">
+                <li>L'infrastruttura di export Excel è già disponibile in
+                  <code>KonvergenceCore/Helpers/ExcelUtils.cs</code> e <code>ExcelFileController.cs</code>. Verificare
+                  che l'endpoint sia attivo e che la cartella <code>wwwroot/Tmp_export</code> esista.</li>
+                <li>Per CSV: KonvergenceCore usa <code>GenericParsing.Standard</code>. Il MetaServiceController espone
+                  già l'endpoint di export; assicurarsi che le route CRM siano incluse.</li>
+              </ul>
+            </div>
+            <div class="plan-note">Questa feature è in gran parte <strong>già implementata</strong> nel framework.
+              Richiede solo configurazione metadata (flag su tabelle/colonne) senza nuovo codice.</div>
+          </div>
         </div>
-        <div class="plan-note">Questa feature è in gran parte <strong>già implementata</strong> nel framework. Richiede solo configurazione metadata (flag su tabelle/colonne) senza nuovo codice.</div>
       </div>
-    </div>
-  </div>
 
-  <!-- ══════════════════════════════════════
+      <!-- ══════════════════════════════════════
        PIPELINE & OPERATIVITÀ
   ══════════════════════════════════════ -->
-  <div class="section-header" id="s-pipeline">
-    <div class="section-icon" style="background:#f0fdf4;">🚀</div>
-    <h2>Pipeline &amp; Operatività</h2>
-  </div>
+      <div class="section-header" id="s-pipeline">
+        <div class="section-icon" style="background:#f0fdf4;">🚀</div>
+        <h2>Pipeline &amp; Operatività</h2>
+      </div>
 
-  <!-- F05 Kanban -->
-  <div class="feature-card" data-priority="alta" data-effort="l" id="f05">
-    <div class="fc-header" onclick="toggle(this)">
-      <div class="fc-header-left">
-        <div class="fc-title">🗃️ Kanban pipeline opportunità <span class="badge b-alta">Alta</span></div>
-        <div class="fc-sub">Vista a colonne drag-and-drop della pipeline: ogni colonna è una fase, le card mostrano titolo, account e importo. Trascinare una card sposta l'opportunità di fase.</div>
-      </div>
-      <div class="fc-badges">
-        <span class="badge b-l">L</span>
-        <span class="badge b-todo">Todo</span>
-        <span class="badge b-net">NET</span>
-        <span class="badge b-ng">Angular</span>
-        <span class="badge b-sql">SQL</span>
-      </div>
-      <div class="fc-toggle">▼</div>
-    </div>
-    <div class="fc-body">
-      <div class="plan">
-        <div class="plan-section ps-sql">
-          <div class="plan-section-title"><span class="badge b-sql">SQL</span> AdvancedCRM</div>
-          <ul class="plan-steps">
-            <li>Aggiungere action key <code>crm_opportunity_move_stage</code> alla SP: riceve <code>opportunity_id</code> e <code>stage_id</code> dal payload <code>@current_record</code>, aggiorna <code>crm_opportunities.stage_id</code>, ricalcola <code>amount</code> se necessario.</li>
-          </ul>
+      <!-- F05 Kanban -->
+      <div class="feature-card" data-priority="alta" data-effort="l" id="f05">
+        <div class="fc-header" onclick="toggle(this)">
+          <div class="fc-header-left">
+            <div class="fc-title">🗃️ Kanban pipeline opportunità <span class="badge b-alta">Alta</span></div>
+            <div class="fc-sub">Vista a colonne drag-and-drop della pipeline: ogni colonna è una fase, le card mostrano
+              titolo, account e importo. Trascinare una card sposta l'opportunità di fase.</div>
+          </div>
+          <div class="fc-badges">
+            <span class="badge b-l">L</span>
+            <span class="badge b-todo">Todo</span>
+            <span class="badge b-net">NET</span>
+            <span class="badge b-ng">Angular</span>
+            <span class="badge b-sql">SQL</span>
+          </div>
+          <div class="fc-toggle">▼</div>
         </div>
-        <div class="plan-section ps-meta">
-          <div class="plan-section-title"><span class="badge b-meta">Metadata</span> MetadataCRM</div>
-          <ul class="plan-steps">
-            <li>Aggiungere voce menu <em>Pipeline Kanban</em> (mm_id nuovo, route <code>/crm_opportunities/kanban</code>, mm_parent_id=5993).</li>
-            <li>Configurare <code>domBoard</code> + <code>domBoardSheet</code> per il kanban: ogni sheet corrisponde a una fase, gli elementi sono le opportunità.</li>
-          </ul>
-        </div>
-        <div class="plan-section ps-ng">
-          <div class="plan-section-title"><span class="badge b-ng">Angular</span> dynamic-dashboard-template / custom</div>
-          <ul class="plan-steps">
-            <li>Usare <code>dynamic-dashboard-template.component</code> con un template kanban personalizzato, oppure creare un componente <code>crm-kanban.component</code> che itera le fasi da OData (<code>/crm_opportunity_stage</code>) e le opportunità per fase.</li>
-            <li>Il drag &amp; drop tra colonne chiama <code>POST /api/CrmActions/execute/crm_opportunity_move_stage</code> con <code>currentRecord = { opportunity_id, stage_id }</code>.</li>
-            <li>Registrare il nuovo componente nell'<code>AppModule</code> e nella route <code>/crm_opportunities/kanban</code>.</li>
-            <li>Limitare la visibilità ai ruoli Manager e Sales (nessun drag per Readonly, solo visualizzazione).</li>
-          </ul>
+        <div class="fc-body">
+          <div class="plan">
+            <div class="plan-section ps-sql">
+              <div class="plan-section-title"><span class="badge b-sql">SQL</span> AdvancedCRM</div>
+              <ul class="plan-steps">
+                <li>Aggiungere action key <code>crm_opportunity_move_stage</code> alla SP: riceve
+                  <code>opportunity_id</code> e <code>stage_id</code> dal payload <code>@current_record</code>, aggiorna
+                  <code>crm_opportunities.stage_id</code>, ricalcola <code>amount</code> se necessario.</li>
+              </ul>
+            </div>
+            <div class="plan-section ps-meta">
+              <div class="plan-section-title"><span class="badge b-meta">Metadata</span> MetadataCRM</div>
+              <ul class="plan-steps">
+                <li>Aggiungere voce menu <em>Pipeline Kanban</em> (mm_id nuovo, route
+                  <code>/crm_opportunities/kanban</code>, mm_parent_id=5993).</li>
+                <li>Configurare <code>domBoard</code> + <code>domBoardSheet</code> per il kanban: ogni sheet corrisponde
+                  a una fase, gli elementi sono le opportunità.</li>
+              </ul>
+            </div>
+            <div class="plan-section ps-ng">
+              <div class="plan-section-title"><span class="badge b-ng">Angular</span> dynamic-dashboard-template /
+                custom</div>
+              <ul class="plan-steps">
+                <li>Usare <code>dynamic-dashboard-template.component</code> con un template kanban personalizzato,
+                  oppure creare un componente <code>crm-kanban.component</code> che itera le fasi da OData
+                  (<code>/crm_opportunity_stage</code>) e le opportunità per fase.</li>
+                <li>Il drag &amp; drop tra colonne chiama
+                  <code>POST /api/CrmActions/execute/crm_opportunity_move_stage</code> con
+                  <code>currentRecord = { opportunity_id, stage_id }</code>.</li>
+                <li>Registrare il nuovo componente nell'<code>AppModule</code> e nella route
+                  <code>/crm_opportunities/kanban</code>.</li>
+                <li>Limitare la visibilità ai ruoli Manager e Sales (nessun drag per Readonly, solo visualizzazione).
+                </li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- F06 Wizard nuova opportunità -->
-  <div class="feature-card" data-priority="media" data-effort="m" id="f06">
-    <div class="fc-header" onclick="toggle(this)">
-      <div class="fc-header-left">
-        <div class="fc-title">🧙 Wizard multi-step nuova opportunità <span class="badge b-media">Media</span></div>
-        <div class="fc-sub">Procedura guidata: Step 1 – cerca/crea account → Step 2 – cerca/crea contatto → Step 3 – dati opportunità → Step 4 – aggiungi prodotti → Conferma.</div>
-      </div>
-      <div class="fc-badges">
-        <span class="badge b-m">M</span>
-        <span class="badge b-todo">Todo</span>
-        <span class="badge b-meta">Metadata</span>
-        <span class="badge b-ng">Angular</span>
-      </div>
-      <div class="fc-toggle">▼</div>
-    </div>
-    <div class="fc-body">
-      <div class="plan">
-        <div class="plan-section ps-meta">
-          <div class="plan-section-title"><span class="badge b-meta">Metadata</span> MetadataCRM — _metadati__wizard</div>
-          <ul class="plan-steps">
-            <li>Inserire un nuovo wizard in <code>_metadati__wizard</code> con nome <em>CRM Nuova Opportunità</em> e 4 step.</li>
-            <li>Inserire in <code>_metadati__wizard__tabelle</code>: Step 1 → <code>crm_accounts</code> (ricerca/crea), Step 2 → <code>crm_contacts</code> (filtro su account selezionato), Step 3 → <code>crm_opportunities</code> (insert), Step 4 → <code>crm_opportunity_products</code> (griglia nested).</li>
-            <li>Aggiungere voce menu <em>Nuova opportunità guidata</em> con route <code>/crm_opportunities/wizard</code> e <code>mm_parent_id=5993</code>.</li>
-          </ul>
+      <!-- F06 Wizard nuova opportunità -->
+      <div class="feature-card" data-priority="media" data-effort="m" id="f06">
+        <div class="fc-header" onclick="toggle(this)">
+          <div class="fc-header-left">
+            <div class="fc-title">🧙 Wizard multi-step nuova opportunità <span class="badge b-media">Media</span></div>
+            <div class="fc-sub">Procedura guidata: Step 1 – cerca/crea account → Step 2 – cerca/crea contatto → Step 3 –
+              dati opportunità → Step 4 – aggiungi prodotti → Conferma.</div>
+          </div>
+          <div class="fc-badges">
+            <span class="badge b-m">M</span>
+            <span class="badge b-todo">Todo</span>
+            <span class="badge b-meta">Metadata</span>
+            <span class="badge b-ng">Angular</span>
+          </div>
+          <div class="fc-toggle">▼</div>
         </div>
-        <div class="plan-section ps-ng">
-          <div class="plan-section-title"><span class="badge b-ng">Angular</span> parametric-dialog / wizard</div>
-          <ul class="plan-steps">
-            <li>Il wizard metadata è già gestito dal framework via <code>_metadati__wizard</code>: nessun componente custom necessario se il wizard è configurato correttamente nei metadati.</li>
-            <li>Verificare che <code>parametric-dialog.component</code> sia usato per la selezione account/contatto con lookup.</li>
-            <li>Al termine del wizard, invocare action key <code>crm_opportunity_products_recalc_totals</code> per aggiornare il totale.</li>
-          </ul>
+        <div class="fc-body">
+          <div class="plan">
+            <div class="plan-section ps-meta">
+              <div class="plan-section-title"><span class="badge b-meta">Metadata</span> MetadataCRM — _metadati__wizard
+              </div>
+              <ul class="plan-steps">
+                <li>Inserire un nuovo wizard in <code>_metadati__wizard</code> con nome <em>CRM Nuova Opportunità</em> e
+                  4 step.</li>
+                <li>Inserire in <code>_metadati__wizard__tabelle</code>: Step 1 → <code>crm_accounts</code>
+                  (ricerca/crea), Step 2 → <code>crm_contacts</code> (filtro su account selezionato), Step 3 →
+                  <code>crm_opportunities</code> (insert), Step 4 → <code>crm_opportunity_products</code> (griglia
+                  nested).</li>
+                <li>Aggiungere voce menu <em>Nuova opportunità guidata</em> con route
+                  <code>/crm_opportunities/wizard</code> e <code>mm_parent_id=5993</code>.</li>
+              </ul>
+            </div>
+            <div class="plan-section ps-ng">
+              <div class="plan-section-title"><span class="badge b-ng">Angular</span> parametric-dialog / wizard</div>
+              <ul class="plan-steps">
+                <li>Il wizard metadata è già gestito dal framework via <code>_metadati__wizard</code>: nessun componente
+                  custom necessario se il wizard è configurato correttamente nei metadati.</li>
+                <li>Verificare che <code>parametric-dialog.component</code> sia usato per la selezione account/contatto
+                  con lookup.</li>
+                <li>Al termine del wizard, invocare action key <code>crm_opportunity_products_recalc_totals</code> per
+                  aggiornare il totale.</li>
+              </ul>
+            </div>
+            <div class="plan-note">Il sistema wizard di Wuic (<code>_metadati__wizard</code>,
+              <code>_metadati__wizard__tabelle</code>) è già integrato nel framework. L'implementazione è principalmente
+              <strong>configurazione metadata</strong> senza codice custom.</div>
+          </div>
         </div>
-        <div class="plan-note">Il sistema wizard di Wuic (<code>_metadati__wizard</code>, <code>_metadati__wizard__tabelle</code>) è già integrato nel framework. L'implementazione è principalmente <strong>configurazione metadata</strong> senza codice custom.</div>
       </div>
-    </div>
-  </div>
 
-  <!-- F07 Import massivo lead CSV -->
-  <div class="feature-card" data-priority="alta" data-effort="m" id="f07">
-    <div class="fc-header" onclick="toggle(this)">
-      <div class="fc-header-left">
-        <div class="fc-title">📤 Import massivo lead da file CSV/Excel <span class="badge b-alta">Alta</span></div>
-        <div class="fc-sub">Upload di un file CSV o Excel con colonna mapping automatico e preview prima del commit. Attualmente l'azione <code>crm_contacts_import_csv</code> importa solo da lead già esistenti.</div>
-      </div>
-      <div class="fc-badges">
-        <span class="badge b-m">M</span>
-        <span class="badge b-todo">Todo</span>
-        <span class="badge b-net">NET</span>
-        <span class="badge b-sql">SQL</span>
-        <span class="badge b-ng">Angular</span>
-      </div>
-      <div class="fc-toggle">▼</div>
-    </div>
-    <div class="fc-body">
-      <div class="plan">
-        <div class="plan-section ps-net">
-          <div class="plan-section-title"><span class="badge b-net">NET</span> Nuovo controller CrmImportController</div>
-          <ul class="plan-steps">
-            <li>Creare <code>Controllers/CrmImportController.cs</code> con due endpoint: <code>POST /api/CrmImport/preview</code> (riceve file, restituisce JSON anteprima prime 20 righe con mapping colonne) e <code>POST /api/CrmImport/commit</code> (esegue l'import effettivo).</li>
-            <li>Usare <code>ExcelUtils</code> già presente in KonvergenceCore per leggere .xlsx; usare <code>GenericParsing</code> per .csv.</li>
-            <li>Il metodo <code>commit</code> chiama <code>crm_sp_import_leads_bulk</code> passando il JSON dei record mappati.</li>
-          </ul>
+      <!-- F07 Import massivo lead CSV -->
+      <div class="feature-card" data-priority="alta" data-effort="m" id="f07">
+        <div class="fc-header" onclick="toggle(this)">
+          <div class="fc-header-left">
+            <div class="fc-title">📤 Import massivo lead da file CSV/Excel <span class="badge b-alta">Alta</span></div>
+            <div class="fc-sub">Upload di un file CSV o Excel con colonna mapping automatico e preview prima del commit.
+              Attualmente l'azione <code>crm_contacts_import_csv</code> importa solo da lead già esistenti.</div>
+          </div>
+          <div class="fc-badges">
+            <span class="badge b-m">M</span>
+            <span class="badge b-todo">Todo</span>
+            <span class="badge b-net">NET</span>
+            <span class="badge b-sql">SQL</span>
+            <span class="badge b-ng">Angular</span>
+          </div>
+          <div class="fc-toggle">▼</div>
         </div>
-        <div class="plan-section ps-sql">
-          <div class="plan-section-title"><span class="badge b-sql">SQL</span> AdvancedCRM</div>
-          <ul class="plan-steps">
-            <li>Creare SP <code>crm_sp_import_leads_bulk</code>: riceve <code>@json nvarchar(max)</code> con array di lead, usa <code>OPENJSON</code> per inserimento bulk in <code>crm_leads</code>, restituisce conteggio inseriti/duplicati saltati.</li>
-            <li>Aggiungere action key <code>crm_leads_import_file</code> a <code>crm_sp_execute_action</code> come wrapper.</li>
-          </ul>
-        </div>
-        <div class="plan-section ps-ng">
-          <div class="plan-section-title"><span class="badge b-ng">Angular</span> upload-editor / parametric-dialog</div>
-          <ul class="plan-steps">
-            <li>Aggiungere azione tabella sulla pagina Lead con pulsante <em>Importa da file</em> che apre un <code>parametric-dialog.component</code> con step: upload file (usa <code>upload-editor.component</code>) → preview griglia → conferma.</li>
-            <li>Il callback dell'azione chiama <code>/api/CrmImport/preview</code>, mostra la griglia di anteprima, poi su conferma chiama <code>/api/CrmImport/commit</code>.</li>
-          </ul>
+        <div class="fc-body">
+          <div class="plan">
+            <div class="plan-section ps-net">
+              <div class="plan-section-title"><span class="badge b-net">NET</span> Nuovo controller CrmImportController
+              </div>
+              <ul class="plan-steps">
+                <li>Creare <code>Controllers/CrmImportController.cs</code> con due endpoint:
+                  <code>POST /api/CrmImport/preview</code> (riceve file, restituisce JSON anteprima prime 20 righe con
+                  mapping colonne) e <code>POST /api/CrmImport/commit</code> (esegue l'import effettivo).</li>
+                <li>Usare <code>ExcelUtils</code> già presente in KonvergenceCore per leggere .xlsx; usare
+                  <code>GenericParsing</code> per .csv.</li>
+                <li>Il metodo <code>commit</code> chiama <code>crm_sp_import_leads_bulk</code> passando il JSON dei
+                  record mappati.</li>
+              </ul>
+            </div>
+            <div class="plan-section ps-sql">
+              <div class="plan-section-title"><span class="badge b-sql">SQL</span> AdvancedCRM</div>
+              <ul class="plan-steps">
+                <li>Creare SP <code>crm_sp_import_leads_bulk</code>: riceve <code>@json nvarchar(max)</code> con array
+                  di lead, usa <code>OPENJSON</code> per inserimento bulk in <code>crm_leads</code>, restituisce
+                  conteggio inseriti/duplicati saltati.</li>
+                <li>Aggiungere action key <code>crm_leads_import_file</code> a <code>crm_sp_execute_action</code> come
+                  wrapper.</li>
+              </ul>
+            </div>
+            <div class="plan-section ps-ng">
+              <div class="plan-section-title"><span class="badge b-ng">Angular</span> upload-editor / parametric-dialog
+              </div>
+              <ul class="plan-steps">
+                <li>Aggiungere azione tabella sulla pagina Lead con pulsante <em>Importa da file</em> che apre un
+                  <code>parametric-dialog.component</code> con step: upload file (usa
+                  <code>upload-editor.component</code>) → preview griglia → conferma.</li>
+                <li>Il callback dell'azione chiama <code>/api/CrmImport/preview</code>, mostra la griglia di anteprima,
+                  poi su conferma chiama <code>/api/CrmImport/commit</code>.</li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- F08 Workflow automatico case -->
-  <div class="feature-card" data-priority="media" data-effort="xl" id="f08">
-    <div class="fc-header" onclick="toggle(this)">
-      <div class="fc-header-left">
-        <div class="fc-title">⚙️ Workflow automatico stati case <span class="badge b-media">Media</span></div>
-        <div class="fc-sub">Automazione del ciclo di vita dei case: cambio stato automatico su scadenza SLA, notifiche all'agente, escalation se non lavorato entro X ore.</div>
+      <!-- F08 Workflow automatico case -->
+      <div class="feature-card" data-priority="media" data-effort="xl" id="f08">
+        <div class="fc-header" onclick="toggle(this)">
+          <div class="fc-header-left">
+            <div class="fc-title">⚙️ Workflow automatico stati case <span class="badge b-media">Media</span></div>
+            <div class="fc-sub">Automazione del ciclo di vita dei case: cambio stato automatico su scadenza SLA,
+              notifiche all'agente, escalation se non lavorato entro X ore.</div>
+          </div>
+          <div class="fc-badges">
+            <span class="badge b-xl">XL</span>
+            <span class="badge b-todo">Todo</span>
+            <span class="badge b-net">NET</span>
+            <span class="badge b-sql">SQL</span>
+            <span class="badge b-meta">Metadata</span>
+          </div>
+          <div class="fc-toggle">▼</div>
+        </div>
+        <div class="fc-body">
+          <div class="plan">
+            <div class="plan-section ps-meta">
+              <div class="plan-section-title"><span class="badge b-meta">Metadata</span> MetadataCRM —
+                _wuic_workflow_graph</div>
+              <ul class="plan-steps">
+                <li>Usare le tabelle <code>_wuic_workflow_graph</code> e
+                  <code>_wuic_workflow_graph_route_metadata</code> già presenti in MetadataCRM per definire il workflow
+                  dei case.</li>
+                <li>Mappare i nodi del workflow sugli stati di <code>crm_case_status</code> (Aperto → In lavorazione →
+                  In attesa → Risolto → Chiuso).</li>
+                <li>Configurare le transizioni consentite e le azioni automatiche (es. notifica email al cambio di
+                  stato) via <code>_metadati_condition_action_group</code>.</li>
+              </ul>
+            </div>
+            <div class="plan-section ps-sql">
+              <div class="plan-section-title"><span class="badge b-sql">SQL</span> AdvancedCRM</div>
+              <ul class="plan-steps">
+                <li>Aggiungere colonne SLA a <code>crm_cases</code>: <code>sla_due_at datetime2</code>,
+                  <code>sla_breached bit DEFAULT 0</code>, <code>escalated_at datetime2</code>.</li>
+                <li>Creare SP <code>crm_sp_process_sla</code> che verifica i case scaduti, imposta
+                  <code>sla_breached=1</code> ed effettua l'escalation cambiando <code>priority</code> a
+                  <em>Critical</em>.</li>
+              </ul>
+            </div>
+            <div class="plan-section ps-net">
+              <div class="plan-section-title"><span class="badge b-net">NET</span> Background service / Scheduler</div>
+              <ul class="plan-steps">
+                <li>Creare <code>Services/CrmSlaWorker.cs</code> come <code>IHostedService</code> (background service
+                  .NET): esegue ogni ora <code>crm_sp_process_sla</code>.</li>
+                <li>Registrare il service in <code>Program.cs</code> di CrmApp:
+                  <code>builder.Services.AddHostedService&lt;CrmSlaWorker&gt;()</code>.</li>
+                <li>Usare il servizio email di KonvergenceCore (già configurato via SMTP) per le notifiche di
+                  escalation.</li>
+              </ul>
+            </div>
+            <div class="plan-section ps-ng">
+              <div class="plan-section-title"><span class="badge b-ng">Angular</span> workflow-designer.component</div>
+              <ul class="plan-steps">
+                <li>Aggiungere voce menu <em>Workflow case</em> in Configurazione CRM (solo CRM Manager) che punta al
+                  componente <code>workflow-designer.component</code> già disponibile nella lib wuic.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="fc-badges">
-        <span class="badge b-xl">XL</span>
-        <span class="badge b-todo">Todo</span>
-        <span class="badge b-net">NET</span>
-        <span class="badge b-sql">SQL</span>
-        <span class="badge b-meta">Metadata</span>
-      </div>
-      <div class="fc-toggle">▼</div>
-    </div>
-    <div class="fc-body">
-      <div class="plan">
-        <div class="plan-section ps-meta">
-          <div class="plan-section-title"><span class="badge b-meta">Metadata</span> MetadataCRM — _wuic_workflow_graph</div>
-          <ul class="plan-steps">
-            <li>Usare le tabelle <code>_wuic_workflow_graph</code> e <code>_wuic_workflow_graph_route_metadata</code> già presenti in MetadataCRM per definire il workflow dei case.</li>
-            <li>Mappare i nodi del workflow sugli stati di <code>crm_case_status</code> (Aperto → In lavorazione → In attesa → Risolto → Chiuso).</li>
-            <li>Configurare le transizioni consentite e le azioni automatiche (es. notifica email al cambio di stato) via <code>_metadati_condition_action_group</code>.</li>
-          </ul>
-        </div>
-        <div class="plan-section ps-sql">
-          <div class="plan-section-title"><span class="badge b-sql">SQL</span> AdvancedCRM</div>
-          <ul class="plan-steps">
-            <li>Aggiungere colonne SLA a <code>crm_cases</code>: <code>sla_due_at datetime2</code>, <code>sla_breached bit DEFAULT 0</code>, <code>escalated_at datetime2</code>.</li>
-            <li>Creare SP <code>crm_sp_process_sla</code> che verifica i case scaduti, imposta <code>sla_breached=1</code> ed effettua l'escalation cambiando <code>priority</code> a <em>Critical</em>.</li>
-          </ul>
-        </div>
-        <div class="plan-section ps-net">
-          <div class="plan-section-title"><span class="badge b-net">NET</span> Background service / Scheduler</div>
-          <ul class="plan-steps">
-            <li>Creare <code>Services/CrmSlaWorker.cs</code> come <code>IHostedService</code> (background service .NET): esegue ogni ora <code>crm_sp_process_sla</code>.</li>
-            <li>Registrare il service in <code>Program.cs</code> di CrmApp: <code>builder.Services.AddHostedService&lt;CrmSlaWorker&gt;()</code>.</li>
-            <li>Usare il servizio email di KonvergenceCore (già configurato via SMTP) per le notifiche di escalation.</li>
-          </ul>
-        </div>
-        <div class="plan-section ps-ng">
-          <div class="plan-section-title"><span class="badge b-ng">Angular</span> workflow-designer.component</div>
-          <ul class="plan-steps">
-            <li>Aggiungere voce menu <em>Workflow case</em> in Configurazione CRM (solo CRM Manager) che punta al componente <code>workflow-designer.component</code> già disponibile nella lib wuic.</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </div>
 
-  <!-- F09 Allegati -->
-  <div class="feature-card" data-priority="media" data-effort="m" id="f09">
-    <div class="fc-header" onclick="toggle(this)">
-      <div class="fc-header-left">
-        <div class="fc-title">📎 Allegati su case e opportunità <span class="badge b-media">Media</span></div>
-        <div class="fc-sub">Upload e gestione di file allegati (PDF, immagini, documenti) direttamente dalla scheda di un case o di un'opportunità.</div>
-      </div>
-      <div class="fc-badges">
-        <span class="badge b-m">M</span>
-        <span class="badge b-todo">Todo</span>
-        <span class="badge b-meta">Metadata</span>
-        <span class="badge b-net">NET</span>
-      </div>
-      <div class="fc-toggle">▼</div>
-    </div>
-    <div class="fc-body">
-      <div class="plan">
-        <div class="plan-section ps-sql">
-          <div class="plan-section-title"><span class="badge b-sql">SQL</span> AdvancedCRM</div>
-          <ul class="plan-steps">
-            <li>Creare tabella <code>crm_attachments</code>: <code>attachment_id PK</code>, <code>entity_type nvarchar(50)</code> (es. 'case','opportunity'), <code>entity_id int</code>, <code>file_name nvarchar(255)</code>, <code>file_path nvarchar(500)</code>, <code>file_size bigint</code>, <code>mime_type nvarchar(100)</code>, <code>uploaded_by int</code>, <code>created_at datetime2</code>.</li>
-          </ul>
+      <!-- F09 Allegati -->
+      <div class="feature-card" data-priority="media" data-effort="m" id="f09">
+        <div class="fc-header" onclick="toggle(this)">
+          <div class="fc-header-left">
+            <div class="fc-title">📎 Allegati su case e opportunità <span class="badge b-media">Media</span></div>
+            <div class="fc-sub">Upload e gestione di file allegati (PDF, immagini, documenti) direttamente dalla scheda
+              di un case o di un'opportunità.</div>
+          </div>
+          <div class="fc-badges">
+            <span class="badge b-m">M</span>
+            <span class="badge b-todo">Todo</span>
+            <span class="badge b-meta">Metadata</span>
+            <span class="badge b-net">NET</span>
+          </div>
+          <div class="fc-toggle">▼</div>
         </div>
-        <div class="plan-section ps-meta">
-          <div class="plan-section-title"><span class="badge b-meta">Metadata</span> MetadataCRM</div>
-          <ul class="plan-steps">
-            <li>Scaffoldare <code>crm_attachments</code> come nuova <code>_metadati__tabelle</code> (route: <code>crm_attachments</code>).</li>
-            <li>Configurare la colonna <code>file_path</code> come <code>mc_ui_column_type = upload</code> usando <code>_metadati__colonne</code> con i campi di configurazione upload (<code>is_d_b_upload1</code>, <code>multiple_upload_table_route1</code>, ecc.).</li>
-            <li>Aggiungere <code>crm_attachments</code> come nested grid (<code>mddetailgridroutes</code>) sia in <code>crm_cases</code> che in <code>crm_opportunities</code>.</li>
-          </ul>
-        </div>
-        <div class="plan-section ps-net">
-          <div class="plan-section-title"><span class="badge b-net">NET</span> UploadImageController (già in KonvergenceCore)</div>
-          <ul class="plan-steps">
-            <li><code>UploadImageController</code> è già presente in KonvergenceCore. Configurare il path di upload per i file CRM in <code>appsettings.json</code> come <code>default_upload_root_path</code>.</li>
-            <li>Aggiungere configurazione <code>allowedfiletypes</code> e <code>maxfilesize</code> nella colonna metadata dell'upload.</li>
-          </ul>
+        <div class="fc-body">
+          <div class="plan">
+            <div class="plan-section ps-sql">
+              <div class="plan-section-title"><span class="badge b-sql">SQL</span> AdvancedCRM</div>
+              <ul class="plan-steps">
+                <li>Creare tabella <code>crm_attachments</code>: <code>attachment_id PK</code>,
+                  <code>entity_type nvarchar(50)</code> (es. 'case','opportunity'), <code>entity_id int</code>,
+                  <code>file_name nvarchar(255)</code>, <code>file_path nvarchar(500)</code>,
+                  <code>file_size bigint</code>, <code>mime_type nvarchar(100)</code>, <code>uploaded_by int</code>,
+                  <code>created_at datetime2</code>.</li>
+              </ul>
+            </div>
+            <div class="plan-section ps-meta">
+              <div class="plan-section-title"><span class="badge b-meta">Metadata</span> MetadataCRM</div>
+              <ul class="plan-steps">
+                <li>Scaffoldare <code>crm_attachments</code> come nuova <code>_metadati__tabelle</code> (route:
+                  <code>crm_attachments</code>).</li>
+                <li>Configurare la colonna <code>file_path</code> come <code>mc_ui_column_type = upload</code> usando
+                  <code>_metadati__colonne</code> con i campi di configurazione upload (<code>is_d_b_upload1</code>,
+                  <code>multiple_upload_table_route1</code>, ecc.).</li>
+                <li>Aggiungere <code>crm_attachments</code> come nested grid (<code>mddetailgridroutes</code>) sia in
+                  <code>crm_cases</code> che in <code>crm_opportunities</code>.</li>
+              </ul>
+            </div>
+            <div class="plan-section ps-net">
+              <div class="plan-section-title"><span class="badge b-net">NET</span> UploadImageController (già in
+                KonvergenceCore)</div>
+              <ul class="plan-steps">
+                <li><code>UploadImageController</code> è già presente in KonvergenceCore. Configurare il path di upload
+                  per i file CRM in <code>appsettings.json</code> come <code>default_upload_root_path</code>.</li>
+                <li>Aggiungere configurazione <code>allowedfiletypes</code> e <code>maxfilesize</code> nella colonna
+                  metadata dell'upload.</li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- ══════════════════════════════════════
+      <!-- ══════════════════════════════════════
        UX & VISUALIZZAZIONE
   ══════════════════════════════════════ -->
-  <div class="section-header" id="s-ux">
-    <div class="section-icon" style="background:#fff7ed;">🎨</div>
-    <h2>UX &amp; Visualizzazione</h2>
-  </div>
+      <div class="section-header" id="s-ux">
+        <div class="section-icon" style="background:#fff7ed;">🎨</div>
+        <h2>UX &amp; Visualizzazione</h2>
+      </div>
 
-  <!-- F10 Mappa -->
-  <div class="feature-card" data-priority="bassa" data-effort="m" id="f10">
-    <div class="fc-header" onclick="toggle(this)">
-      <div class="fc-header-left">
-        <div class="fc-title">🗺️ Mappa geografica degli account <span class="badge b-bassa">Bassa</span></div>
-        <div class="fc-sub">Vista cartografica degli account con pin per city/country. Click su pin apre la scheda 360. Filtro per area commerciale.</div>
-      </div>
-      <div class="fc-badges">
-        <span class="badge b-m">M</span>
-        <span class="badge b-todo">Todo</span>
-        <span class="badge b-meta">Metadata</span>
-        <span class="badge b-ng">Angular</span>
-      </div>
-      <div class="fc-toggle">▼</div>
-    </div>
-    <div class="fc-body">
-      <div class="plan">
-        <div class="plan-section ps-sql">
-          <div class="plan-section-title"><span class="badge b-sql">SQL</span> AdvancedCRM</div>
-          <ul class="plan-steps">
-            <li>Aggiungere colonne <code>latitude decimal(9,6)</code> e <code>longitude decimal(9,6)</code> a <code>crm_accounts</code> tramite ALTER TABLE.</li>
-            <li>Popolare le coordinate con geocoding (esternamente o via action key <code>crm_accounts_geocode</code> che chiama un servizio esterno).</li>
-          </ul>
+      <!-- F10 Mappa -->
+      <div class="feature-card" data-priority="bassa" data-effort="m" id="f10">
+        <div class="fc-header" onclick="toggle(this)">
+          <div class="fc-header-left">
+            <div class="fc-title">🗺️ Mappa geografica degli account <span class="badge b-bassa">Bassa</span></div>
+            <div class="fc-sub">Vista cartografica degli account con pin per city/country. Click su pin apre la scheda
+              360. Filtro per area commerciale.</div>
+          </div>
+          <div class="fc-badges">
+            <span class="badge b-m">M</span>
+            <span class="badge b-todo">Todo</span>
+            <span class="badge b-meta">Metadata</span>
+            <span class="badge b-ng">Angular</span>
+          </div>
+          <div class="fc-toggle">▼</div>
         </div>
-        <div class="plan-section ps-meta">
-          <div class="plan-section-title"><span class="badge b-meta">Metadata</span> MetadataCRM</div>
-          <ul class="plan-steps">
-            <li>Aggiungere le colonne <code>latitude</code> e <code>longitude</code> ai metadati di <code>crm_accounts</code> con <code>mccampolat</code>/<code>mccampolong</code> già previsti in <code>_metadati__colonne</code>.</li>
-            <li>Aggiungere voce menu <em>Mappa account</em> (route: <code>/crm_accounts/map</code>, mm_parent_id=5992).</li>
-            <li>Configurare <code>MapOptions</code> per la vista puntando alle colonne lat/long.</li>
-          </ul>
+        <div class="fc-body">
+          <div class="plan">
+            <div class="plan-section ps-sql">
+              <div class="plan-section-title"><span class="badge b-sql">SQL</span> AdvancedCRM</div>
+              <ul class="plan-steps">
+                <li>Aggiungere colonne <code>latitude decimal(9,6)</code> e <code>longitude decimal(9,6)</code> a
+                  <code>crm_accounts</code> tramite ALTER TABLE.</li>
+                <li>Popolare le coordinate con geocoding (esternamente o via action key
+                  <code>crm_accounts_geocode</code> che chiama un servizio esterno).</li>
+              </ul>
+            </div>
+            <div class="plan-section ps-meta">
+              <div class="plan-section-title"><span class="badge b-meta">Metadata</span> MetadataCRM</div>
+              <ul class="plan-steps">
+                <li>Aggiungere le colonne <code>latitude</code> e <code>longitude</code> ai metadati di
+                  <code>crm_accounts</code> con <code>mccampolat</code>/<code>mccampolong</code> già previsti in
+                  <code>_metadati__colonne</code>.</li>
+                <li>Aggiungere voce menu <em>Mappa account</em> (route: <code>/crm_accounts/map</code>,
+                  mm_parent_id=5992).</li>
+                <li>Configurare <code>MapOptions</code> per la vista puntando alle colonne lat/long.</li>
+              </ul>
+            </div>
+            <div class="plan-section ps-ng">
+              <div class="plan-section-title"><span class="badge b-ng">Angular</span> map-list.component</div>
+              <ul class="plan-steps">
+                <li><code>map-list.component</code> è già disponibile nella lib wuic con <code>MapOptions</code>. Nessun
+                  componente custom necessario.</li>
+                <li>Il click su un pin chiama l'action colonna <code>crm_accounts_open_360</code> passando
+                  l'<code>account_id</code>.</li>
+              </ul>
+            </div>
+            <div class="plan-note">I campi <code>mccampolat</code> / <code>mccampolong</code> sono <strong>già previsti
+                nello schema di <code>_metadati__colonne</code></strong>. La maggior parte dell'implementazione è
+              configurazione metadata.</div>
+          </div>
         </div>
-        <div class="plan-section ps-ng">
-          <div class="plan-section-title"><span class="badge b-ng">Angular</span> map-list.component</div>
-          <ul class="plan-steps">
-            <li><code>map-list.component</code> è già disponibile nella lib wuic con <code>MapOptions</code>. Nessun componente custom necessario.</li>
-            <li>Il click su un pin chiama l'action colonna <code>crm_accounts_open_360</code> passando l'<code>account_id</code>.</li>
-          </ul>
-        </div>
-        <div class="plan-note">I campi <code>mccampolat</code> / <code>mccampolong</code> sono <strong>già previsti nello schema di <code>_metadati__colonne</code></strong>. La maggior parte dell'implementazione è configurazione metadata.</div>
       </div>
-    </div>
-  </div>
 
-  <!-- F11 Scheduler drag&drop -->
-  <div class="feature-card" data-priority="media" data-effort="s" id="f11">
-    <div class="fc-header" onclick="toggle(this)">
-      <div class="fc-header-left">
-        <div class="fc-title">📅 Agenda attività con drag &amp; drop <span class="badge b-media">Media</span></div>
-        <div class="fc-sub">La vista <code>/crm_activities/scheduler</code> esiste già ma manca la pianificazione drag-and-drop: spostare un'attività nel calendario deve aggiornare <code>due_date</code>.</div>
-      </div>
-      <div class="fc-badges">
-        <span class="badge b-s">S</span>
-        <span class="badge b-todo">Todo</span>
-        <span class="badge b-meta">Metadata</span>
-        <span class="badge b-sql">SQL</span>
-      </div>
-      <div class="fc-toggle">▼</div>
-    </div>
-    <div class="fc-body">
-      <div class="plan">
-        <div class="plan-section ps-meta">
-          <div class="plan-section-title"><span class="badge b-meta">Metadata</span> MetadataCRM — SchedulerOptions</div>
-          <ul class="plan-steps">
-            <li>Configurare <code>SchedulerOptions</code> per la route <code>crm_activities</code> nella proprietà <code>mm_props_bag</code> del menu scheduler (mm_id=6001): impostare <code>startField</code> su <code>due_date</code>, <code>titleField</code> su <code>subject</code>, <code>allowDragDrop: true</code>, <code>updateUri</code> puntato all'endpoint OData di update.</li>
-            <li>Assicurarsi che la colonna <code>due_date</code> sia <code>mc_logic_editable=1</code> per i ruoli che possono fare drag (Manager, Support).</li>
-          </ul>
+      <!-- F11 Scheduler drag&drop -->
+      <div class="feature-card" data-priority="media" data-effort="s" id="f11">
+        <div class="fc-header" onclick="toggle(this)">
+          <div class="fc-header-left">
+            <div class="fc-title">📅 Agenda attività con drag &amp; drop <span class="badge b-media">Media</span></div>
+            <div class="fc-sub">La vista <code>/crm_activities/scheduler</code> esiste già ma manca la pianificazione
+              drag-and-drop: spostare un'attività nel calendario deve aggiornare <code>due_date</code>.</div>
+          </div>
+          <div class="fc-badges">
+            <span class="badge b-s">S</span>
+            <span class="badge b-todo">Todo</span>
+            <span class="badge b-meta">Metadata</span>
+            <span class="badge b-sql">SQL</span>
+          </div>
+          <div class="fc-toggle">▼</div>
         </div>
-        <div class="plan-section ps-sql">
-          <div class="plan-section-title"><span class="badge b-sql">SQL</span> AdvancedCRM</div>
-          <ul class="plan-steps">
-            <li>L'aggiornamento di <code>due_date</code> viene gestito dall'OData PATCH standard su <code>crm_activities</code>. Nessuna SP custom necessaria.</li>
-          </ul>
+        <div class="fc-body">
+          <div class="plan">
+            <div class="plan-section ps-meta">
+              <div class="plan-section-title"><span class="badge b-meta">Metadata</span> MetadataCRM — SchedulerOptions
+              </div>
+              <ul class="plan-steps">
+                <li>Configurare <code>SchedulerOptions</code> per la route <code>crm_activities</code> nella proprietà
+                  <code>mm_props_bag</code> del menu scheduler (mm_id=6001): impostare <code>startField</code> su
+                  <code>due_date</code>, <code>titleField</code> su <code>subject</code>,
+                  <code>allowDragDrop: true</code>, <code>updateUri</code> puntato all'endpoint OData di update.</li>
+                <li>Assicurarsi che la colonna <code>due_date</code> sia <code>mc_logic_editable=1</code> per i ruoli
+                  che possono fare drag (Manager, Support).</li>
+              </ul>
+            </div>
+            <div class="plan-section ps-sql">
+              <div class="plan-section-title"><span class="badge b-sql">SQL</span> AdvancedCRM</div>
+              <ul class="plan-steps">
+                <li>L'aggiornamento di <code>due_date</code> viene gestito dall'OData PATCH standard su
+                  <code>crm_activities</code>. Nessuna SP custom necessaria.</li>
+              </ul>
+            </div>
+            <div class="plan-note">Il componente <code>scheduler-list.component</code> supporta già drag &amp; drop via
+              <code>SchedulerOptions</code>. È <strong>solo configurazione metadata</strong>.</div>
+          </div>
         </div>
-        <div class="plan-note">Il componente <code>scheduler-list.component</code> supporta già drag &amp; drop via <code>SchedulerOptions</code>. È <strong>solo configurazione metadata</strong>.</div>
       </div>
-    </div>
-  </div>
 
-  <!-- F12 Regole visive condizionali -->
-  <div class="feature-card" data-priority="media" data-effort="s" id="f12">
-    <div class="fc-header" onclick="toggle(this)">
-      <div class="fc-header-left">
-        <div class="fc-title">🎨 Regole visive condizionali sulle griglie <span class="badge b-media">Media</span></div>
-        <div class="fc-sub">Evidenziare in rosso le opportunità con scadenza superata; in giallo i lead non lavorati da 7+ giorni; in verde le attività completate.</div>
-      </div>
-      <div class="fc-badges">
-        <span class="badge b-s">S</span>
-        <span class="badge b-todo">Todo</span>
-        <span class="badge b-meta">Metadata</span>
-      </div>
-      <div class="fc-toggle">▼</div>
-    </div>
-    <div class="fc-body">
-      <div class="plan">
-        <div class="plan-section ps-meta">
-          <div class="plan-section-title"><span class="badge b-meta">Metadata</span> MetadataCRM — _metadati__u_i__stili__tabelle / _metadati_condition_group</div>
-          <ul class="plan-steps">
-            <li>Per <strong>crm_opportunities</strong>: in <code>_metadati__u_i__stili__tabelle</code>, aggiungere regola <code>expected_close_date &lt; TODAY AND Stato_Record = 0</code> → classe CSS <code>row-danger</code>.</li>
-            <li>Per <strong>crm_leads</strong>: aggiungere regola <code>DATEDIFF(day, updated_at, GETDATE()) &gt; 7</code> → classe CSS <code>row-warning</code>.</li>
-            <li>Per <strong>crm_activities</strong>: regola <code>completed = 1</code> → classe CSS <code>row-success</code>; <code>due_date &lt; TODAY AND completed = 0</code> → <code>row-danger</code>.</li>
-            <li>Usare <code>mcgridconditionaltemplateclass</code> / <code>mcgrdcndtionalalttemplateclass</code> nelle <code>_metadati__colonne</code> per le singole celle, oppure <code>mdgrdcndtonaltemplatecondition</code> in <code>_metadati__tabelle</code> per le righe intere.</li>
-          </ul>
+      <!-- F12 Regole visive condizionali -->
+      <div class="feature-card" data-priority="media" data-effort="s" id="f12">
+        <div class="fc-header" onclick="toggle(this)">
+          <div class="fc-header-left">
+            <div class="fc-title">🎨 Regole visive condizionali sulle griglie <span class="badge b-media">Media</span>
+            </div>
+            <div class="fc-sub">Evidenziare in rosso le opportunità con scadenza superata; in giallo i lead non lavorati
+              da 7+ giorni; in verde le attività completate.</div>
+          </div>
+          <div class="fc-badges">
+            <span class="badge b-s">S</span>
+            <span class="badge b-todo">Todo</span>
+            <span class="badge b-meta">Metadata</span>
+          </div>
+          <div class="fc-toggle">▼</div>
         </div>
-        <div class="plan-note">Questa feature è <strong>100% configurazione metadata</strong>: nessun codice .NET o Angular da scrivere. Il framework gestisce già il rendering condizionale.</div>
+        <div class="fc-body">
+          <div class="plan">
+            <div class="plan-section ps-meta">
+              <div class="plan-section-title"><span class="badge b-meta">Metadata</span> MetadataCRM —
+                _metadati__u_i__stili__tabelle / _metadati_condition_group</div>
+              <ul class="plan-steps">
+                <li>Per <strong>crm_opportunities</strong>: in <code>_metadati__u_i__stili__tabelle</code>, aggiungere
+                  regola <code>expected_close_date &lt; TODAY AND Stato_Record = 0</code> → classe CSS
+                  <code>row-danger</code>.</li>
+                <li>Per <strong>crm_leads</strong>: aggiungere regola
+                  <code>DATEDIFF(day, updated_at, GETDATE()) &gt; 7</code> → classe CSS <code>row-warning</code>.</li>
+                <li>Per <strong>crm_activities</strong>: regola <code>completed = 1</code> → classe CSS
+                  <code>row-success</code>; <code>due_date &lt; TODAY AND completed = 0</code> →
+                  <code>row-danger</code>.</li>
+                <li>Usare <code>mcgridconditionaltemplateclass</code> / <code>mcgrdcndtionalalttemplateclass</code>
+                  nelle <code>_metadati__colonne</code> per le singole celle, oppure
+                  <code>mdgrdcndtonaltemplatecondition</code> in <code>_metadati__tabelle</code> per le righe intere.
+                </li>
+              </ul>
+            </div>
+            <div class="plan-note">Questa feature è <strong>100% configurazione metadata</strong>: nessun codice .NET o
+              Angular da scrivere. Il framework gestisce già il rendering condizionale.</div>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
 
-  <!-- F13 Notifiche in-app -->
-  <div class="feature-card" data-priority="media" data-effort="m" id="f13">
-    <div class="fc-header" onclick="toggle(this)">
-      <div class="fc-header-left">
-        <div class="fc-title">🔔 Notifiche in-app per eventi CRM <span class="badge b-media">Media</span></div>
-        <div class="fc-sub">Badge contatore e pannello notifiche: nuovi lead assegnati, case scaduti, attività in scadenza oggi, opportunità aggiornate dai colleghi.</div>
-      </div>
-      <div class="fc-badges">
-        <span class="badge b-m">M</span>
-        <span class="badge b-todo">Todo</span>
-        <span class="badge b-net">NET</span>
-        <span class="badge b-ng">Angular</span>
-        <span class="badge b-sql">SQL</span>
-      </div>
-      <div class="fc-toggle">▼</div>
-    </div>
-    <div class="fc-body">
-      <div class="plan">
-        <div class="plan-section ps-sql">
-          <div class="plan-section-title"><span class="badge b-sql">SQL</span> AdvancedCRM</div>
-          <ul class="plan-steps">
-            <li>Creare tabella <code>crm_notifications</code>: <code>notification_id PK</code>, <code>user_id int</code>, <code>type nvarchar(50)</code>, <code>message nvarchar(500)</code>, <code>entity_type nvarchar(50)</code>, <code>entity_id int</code>, <code>is_read bit DEFAULT 0</code>, <code>created_at datetime2</code>.</li>
-            <li>Aggiungere trigger o SP che inserisce in <code>crm_notifications</code> quando: un lead viene assegnato (<code>assigned_user_id</code> cambia), un case viene assegnato, un'attività è in scadenza domani.</li>
-          </ul>
+      <!-- F13 Notifiche in-app -->
+      <div class="feature-card" data-priority="media" data-effort="m" id="f13">
+        <div class="fc-header" onclick="toggle(this)">
+          <div class="fc-header-left">
+            <div class="fc-title">🔔 Notifiche in-app per eventi CRM <span class="badge b-media">Media</span></div>
+            <div class="fc-sub">Badge contatore e pannello notifiche: nuovi lead assegnati, case scaduti, attività in
+              scadenza oggi, opportunità aggiornate dai colleghi.</div>
+          </div>
+          <div class="fc-badges">
+            <span class="badge b-m">M</span>
+            <span class="badge b-todo">Todo</span>
+            <span class="badge b-net">NET</span>
+            <span class="badge b-ng">Angular</span>
+            <span class="badge b-sql">SQL</span>
+          </div>
+          <div class="fc-toggle">▼</div>
         </div>
-        <div class="plan-section ps-net">
-          <div class="plan-section-title"><span class="badge b-net">NET</span> CrmNotificationsController</div>
-          <ul class="plan-steps">
-            <li>Creare <code>CrmNotificationsController.cs</code> con: <code>GET /api/CrmNotifications/unread/{userId}</code> (restituisce conteggio + ultime 10 notifiche) e <code>POST /api/CrmNotifications/markread/{notificationId}</code>.</li>
-          </ul>
-        </div>
-        <div class="plan-section ps-ng">
-          <div class="plan-section-title"><span class="badge b-ng">Angular</span> messageNotificationService / polling</div>
-          <ul class="plan-steps">
-            <li>Creare un servizio <code>CrmNotificationService</code> che fa polling ogni 60s a <code>/api/CrmNotifications/unread/{userId}</code>.</li>
-            <li>Mostrare il badge contatore nell'header usando <code>messageNotificationService</code> già presente nella lib wuic.</li>
-            <li>Al click sul badge aprire un pannello con la lista notifiche. Click su una notifica naviga all'entità correlata.</li>
-          </ul>
+        <div class="fc-body">
+          <div class="plan">
+            <div class="plan-section ps-sql">
+              <div class="plan-section-title"><span class="badge b-sql">SQL</span> AdvancedCRM</div>
+              <ul class="plan-steps">
+                <li>Creare tabella <code>crm_notifications</code>: <code>notification_id PK</code>,
+                  <code>user_id int</code>, <code>type nvarchar(50)</code>, <code>message nvarchar(500)</code>,
+                  <code>entity_type nvarchar(50)</code>, <code>entity_id int</code>, <code>is_read bit DEFAULT 0</code>,
+                  <code>created_at datetime2</code>.</li>
+                <li>Aggiungere trigger o SP che inserisce in <code>crm_notifications</code> quando: un lead viene
+                  assegnato (<code>assigned_user_id</code> cambia), un case viene assegnato, un'attività è in scadenza
+                  domani.</li>
+              </ul>
+            </div>
+            <div class="plan-section ps-net">
+              <div class="plan-section-title"><span class="badge b-net">NET</span> CrmNotificationsController</div>
+              <ul class="plan-steps">
+                <li>Creare <code>CrmNotificationsController.cs</code> con:
+                  <code>GET /api/CrmNotifications/unread/{userId}</code> (restituisce conteggio + ultime 10 notifiche) e
+                  <code>POST /api/CrmNotifications/markread/{notificationId}</code>.</li>
+              </ul>
+            </div>
+            <div class="plan-section ps-ng">
+              <div class="plan-section-title"><span class="badge b-ng">Angular</span> messageNotificationService /
+                polling</div>
+              <ul class="plan-steps">
+                <li>Creare un servizio <code>CrmNotificationService</code> che fa polling ogni 60s a
+                  <code>/api/CrmNotifications/unread/{userId}</code>.</li>
+                <li>Mostrare il badge contatore nell'header usando <code>messageNotificationService</code> già presente
+                  nella lib wuic.</li>
+                <li>Al click sul badge aprire un pannello con la lista notifiche. Click su una notifica naviga
+                  all'entità correlata.</li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- ══════════════════════════════════════
+      <!-- ══════════════════════════════════════
        INTEGRAZIONI
   ══════════════════════════════════════ -->
-  <div class="section-header" id="s-int">
-    <div class="section-icon" style="background:#f0f9ff;">🔗</div>
-    <h2>Integrazioni</h2>
-  </div>
+      <div class="section-header" id="s-int">
+        <div class="section-icon" style="background:#f0f9ff;">🔗</div>
+        <h2>Integrazioni</h2>
+      </div>
 
-  <!-- F14 Email SMTP reale -->
-  <div class="feature-card" data-priority="alta" data-effort="m" id="f14">
-    <div class="fc-header" onclick="toggle(this)">
-      <div class="fc-header-left">
-        <div class="fc-title">✉️ Email SMTP reale da azioni CRM <span class="badge b-alta">Alta</span></div>
-        <div class="fc-sub">L'action <code>crm_contacts_send_email</code> scrive solo una nota. Implementare l'invio reale via SMTP (già configurato in appsettings) con template personalizzabili.</div>
-      </div>
-      <div class="fc-badges">
-        <span class="badge b-m">M</span>
-        <span class="badge b-todo">Todo</span>
-        <span class="badge b-net">NET</span>
-        <span class="badge b-sql">SQL</span>
-      </div>
-      <div class="fc-toggle">▼</div>
-    </div>
-    <div class="fc-body">
-      <div class="plan">
-        <div class="plan-section ps-net">
-          <div class="plan-section-title"><span class="badge b-net">NET</span> CrmActionsController + EmailService</div>
-          <ul class="plan-steps">
-            <li>Creare <code>Services/CrmEmailService.cs</code>: legge la configurazione SMTP da <code>IConfiguration</code> (già presente in <code>appsettings.json</code>: <code>email-host</code>, <code>email-port</code>, <code>email-user</code>, <code>email-pwd</code>). Espone metodo <code>SendAsync(to, subject, body)</code> usando <code>System.Net.Mail.SmtpClient</code> o <code>MailKit</code>.</li>
-            <li>Iniettare <code>CrmEmailService</code> in <code>CrmActionsController</code>.</li>
-            <li>Modificare il case <code>crm_contacts_send_email</code> in <code>crm_sp_execute_action</code>: restituire nel payload l'indirizzo email e il testo. Nel controller, dopo la chiamata alla SP, invocare <code>CrmEmailService.SendAsync()</code> con i dati del payload.</li>
-          </ul>
+      <!-- F14 Email SMTP reale -->
+      <div class="feature-card" data-priority="alta" data-effort="m" id="f14">
+        <div class="fc-header" onclick="toggle(this)">
+          <div class="fc-header-left">
+            <div class="fc-title">✉️ Email SMTP reale da azioni CRM <span class="badge b-alta">Alta</span></div>
+            <div class="fc-sub">L'action <code>crm_contacts_send_email</code> scrive solo una nota. Implementare l'invio
+              reale via SMTP (già configurato in appsettings) con template personalizzabili.</div>
+          </div>
+          <div class="fc-badges">
+            <span class="badge b-m">M</span>
+            <span class="badge b-todo">Todo</span>
+            <span class="badge b-net">NET</span>
+            <span class="badge b-sql">SQL</span>
+          </div>
+          <div class="fc-toggle">▼</div>
         </div>
-        <div class="plan-section ps-sql">
-          <div class="plan-section-title"><span class="badge b-sql">SQL</span> AdvancedCRM</div>
-          <ul class="plan-steps">
-            <li>Creare tabella <code>crm_email_templates</code>: <code>template_id</code>, <code>template_code</code>, <code>subject_template</code>, <code>body_template</code> (HTML con placeholder <code>{first_name}</code>, <code>{account_name}</code>, ecc.).</li>
-            <li>Aggiornare la SP per restituire nel payload anche il template da usare per la tipologia di email.</li>
-          </ul>
+        <div class="fc-body">
+          <div class="plan">
+            <div class="plan-section ps-net">
+              <div class="plan-section-title"><span class="badge b-net">NET</span> CrmActionsController + EmailService
+              </div>
+              <ul class="plan-steps">
+                <li>Creare <code>Services/CrmEmailService.cs</code>: legge la configurazione SMTP da
+                  <code>IConfiguration</code> (già presente in <code>appsettings.json</code>: <code>email-host</code>,
+                  <code>email-port</code>, <code>email-user</code>, <code>email-pwd</code>). Espone metodo
+                  <code>SendAsync(to, subject, body)</code> usando <code>System.Net.Mail.SmtpClient</code> o
+                  <code>MailKit</code>.</li>
+                <li>Iniettare <code>CrmEmailService</code> in <code>CrmActionsController</code>.</li>
+                <li>Modificare il case <code>crm_contacts_send_email</code> in <code>crm_sp_execute_action</code>:
+                  restituire nel payload l'indirizzo email e il testo. Nel controller, dopo la chiamata alla SP,
+                  invocare <code>CrmEmailService.SendAsync()</code> con i dati del payload.</li>
+              </ul>
+            </div>
+            <div class="plan-section ps-sql">
+              <div class="plan-section-title"><span class="badge b-sql">SQL</span> AdvancedCRM</div>
+              <ul class="plan-steps">
+                <li>Creare tabella <code>crm_email_templates</code>: <code>template_id</code>,
+                  <code>template_code</code>, <code>subject_template</code>, <code>body_template</code> (HTML con
+                  placeholder <code>{first_name}</code>, <code>{account_name}</code>, ecc.).</li>
+                <li>Aggiornare la SP per restituire nel payload anche il template da usare per la tipologia di email.
+                </li>
+              </ul>
+            </div>
+            <div class="plan-note">La configurazione SMTP <strong>è già presente in
+                <code>appsettings.json</code></strong>. Il costo principale è la scrittura di
+              <code>CrmEmailService</code> e la modifica del controller.</div>
+          </div>
         </div>
-        <div class="plan-note">La configurazione SMTP <strong>è già presente in <code>appsettings.json</code></strong>. Il costo principale è la scrittura di <code>CrmEmailService</code> e la modifica del controller.</div>
       </div>
-    </div>
-  </div>
 
-  <!-- F15 Audit trail -->
-  <div class="feature-card" data-priority="alta" data-effort="m" id="f15">
-    <div class="fc-header" onclick="toggle(this)">
-      <div class="fc-header-left">
-        <div class="fc-title">📋 Audit trail / changelog per entità CRM <span class="badge b-alta">Alta</span></div>
-        <div class="fc-sub">Tracciare chi ha modificato cosa e quando su opportunità, lead, case e account. Visibile come pannello storico nella scheda dell'entità.</div>
-      </div>
-      <div class="fc-badges">
-        <span class="badge b-m">M</span>
-        <span class="badge b-todo">Todo</span>
-        <span class="badge b-net">NET</span>
-        <span class="badge b-sql">SQL</span>
-        <span class="badge b-meta">Metadata</span>
-      </div>
-      <div class="fc-toggle">▼</div>
-    </div>
-    <div class="fc-body">
-      <div class="plan">
-        <div class="plan-section ps-sql">
-          <div class="plan-section-title"><span class="badge b-sql">SQL</span> AdvancedCRM</div>
-          <ul class="plan-steps">
-            <li>Sfruttare le tabelle <code>ChangeMaster</code> e <code>ChangeDetail</code> già presenti in AdvancedCRM: aggiungere trigger AFTER UPDATE su <code>crm_opportunities</code>, <code>crm_leads</code>, <code>crm_cases</code>, <code>crm_accounts</code> che inseriscono in queste tabelle i valori vecchi/nuovi dei campi modificati.</li>
-            <li>In alternativa, creare una tabella <code>crm_changelog</code> dedicata: <code>entity_type</code>, <code>entity_id</code>, <code>field_name</code>, <code>old_value</code>, <code>new_value</code>, <code>changed_by</code>, <code>changed_at</code>.</li>
-          </ul>
+      <!-- F15 Audit trail -->
+      <div class="feature-card" data-priority="alta" data-effort="m" id="f15">
+        <div class="fc-header" onclick="toggle(this)">
+          <div class="fc-header-left">
+            <div class="fc-title">📋 Audit trail / changelog per entità CRM <span class="badge b-alta">Alta</span></div>
+            <div class="fc-sub">Tracciare chi ha modificato cosa e quando su opportunità, lead, case e account. Visibile
+              come pannello storico nella scheda dell'entità.</div>
+          </div>
+          <div class="fc-badges">
+            <span class="badge b-m">M</span>
+            <span class="badge b-todo">Todo</span>
+            <span class="badge b-net">NET</span>
+            <span class="badge b-sql">SQL</span>
+            <span class="badge b-meta">Metadata</span>
+          </div>
+          <div class="fc-toggle">▼</div>
         </div>
-        <div class="plan-section ps-meta">
-          <div class="plan-section-title"><span class="badge b-meta">Metadata</span> MetadataCRM</div>
-          <ul class="plan-steps">
-            <li>Scaffoldare <code>crm_changelog</code> come tabella readonly in MetadataCRM.</li>
-            <li>Aggiungere come nested grid (<code>mddetailgridroutes</code>) in <code>crm_opportunities</code>, <code>crm_leads</code>, <code>crm_cases</code> con filtro su <code>entity_id</code> e <code>entity_type</code>.</li>
-          </ul>
-        </div>
-        <div class="plan-section ps-net">
-          <div class="plan-section-title"><span class="badge b-net">NET</span> ChangeT (già in KonvergenceCore)</div>
-          <ul class="plan-steps">
-            <li>La classe <code>ChangeT</code> in KonvergenceCore già modella i cambiamenti (field, oldValue, newValue, timestamp). Integrare il meccanismo di tracking esistente per le route CRM nell'OData PATCH handler.</li>
-          </ul>
+        <div class="fc-body">
+          <div class="plan">
+            <div class="plan-section ps-sql">
+              <div class="plan-section-title"><span class="badge b-sql">SQL</span> AdvancedCRM</div>
+              <ul class="plan-steps">
+                <li>Sfruttare le tabelle <code>ChangeMaster</code> e <code>ChangeDetail</code> già presenti in
+                  AdvancedCRM: aggiungere trigger AFTER UPDATE su <code>crm_opportunities</code>,
+                  <code>crm_leads</code>, <code>crm_cases</code>, <code>crm_accounts</code> che inseriscono in queste
+                  tabelle i valori vecchi/nuovi dei campi modificati.</li>
+                <li>In alternativa, creare una tabella <code>crm_changelog</code> dedicata: <code>entity_type</code>,
+                  <code>entity_id</code>, <code>field_name</code>, <code>old_value</code>, <code>new_value</code>,
+                  <code>changed_by</code>, <code>changed_at</code>.</li>
+              </ul>
+            </div>
+            <div class="plan-section ps-meta">
+              <div class="plan-section-title"><span class="badge b-meta">Metadata</span> MetadataCRM</div>
+              <ul class="plan-steps">
+                <li>Scaffoldare <code>crm_changelog</code> come tabella readonly in MetadataCRM.</li>
+                <li>Aggiungere come nested grid (<code>mddetailgridroutes</code>) in <code>crm_opportunities</code>,
+                  <code>crm_leads</code>, <code>crm_cases</code> con filtro su <code>entity_id</code> e
+                  <code>entity_type</code>.</li>
+              </ul>
+            </div>
+            <div class="plan-section ps-net">
+              <div class="plan-section-title"><span class="badge b-net">NET</span> ChangeT (già in KonvergenceCore)
+              </div>
+              <ul class="plan-steps">
+                <li>La classe <code>ChangeT</code> in KonvergenceCore già modella i cambiamenti (field, oldValue,
+                  newValue, timestamp). Integrare il meccanismo di tracking esistente per le route CRM nell'OData PATCH
+                  handler.</li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- F16 Webhook -->
-  <div class="feature-card" data-priority="bassa" data-effort="l" id="f16">
-    <div class="fc-header" onclick="toggle(this)">
-      <div class="fc-header-left">
-        <div class="fc-title">🔁 API webhook outbound <span class="badge b-bassa">Bassa</span></div>
-        <div class="fc-sub">Notificare sistemi esterni (ERP, marketing automation) quando cambia lo stato di un lead/opportunità/case. Configurabile per evento e URL destinatario.</div>
-      </div>
-      <div class="fc-badges">
-        <span class="badge b-l">L</span>
-        <span class="badge b-todo">Todo</span>
-        <span class="badge b-net">NET</span>
-        <span class="badge b-sql">SQL</span>
-      </div>
-      <div class="fc-toggle">▼</div>
-    </div>
-    <div class="fc-body">
-      <div class="plan">
-        <div class="plan-section ps-sql">
-          <div class="plan-section-title"><span class="badge b-sql">SQL</span> AdvancedCRM</div>
-          <ul class="plan-steps">
-            <li>Creare tabella <code>crm_webhooks</code>: <code>webhook_id</code>, <code>event_type nvarchar(100)</code> (es. <code>opportunity.stage_changed</code>), <code>target_url nvarchar(500)</code>, <code>is_active bit</code>, <code>secret_header nvarchar(200)</code>.</li>
-            <li>Creare tabella <code>crm_webhook_log</code> per registrare successi/errori delle chiamate.</li>
-          </ul>
+      <!-- F16 Webhook -->
+      <div class="feature-card" data-priority="bassa" data-effort="l" id="f16">
+        <div class="fc-header" onclick="toggle(this)">
+          <div class="fc-header-left">
+            <div class="fc-title">🔁 API webhook outbound <span class="badge b-bassa">Bassa</span></div>
+            <div class="fc-sub">Notificare sistemi esterni (ERP, marketing automation) quando cambia lo stato di un
+              lead/opportunità/case. Configurabile per evento e URL destinatario.</div>
+          </div>
+          <div class="fc-badges">
+            <span class="badge b-l">L</span>
+            <span class="badge b-todo">Todo</span>
+            <span class="badge b-net">NET</span>
+            <span class="badge b-sql">SQL</span>
+          </div>
+          <div class="fc-toggle">▼</div>
         </div>
-        <div class="plan-section ps-net">
-          <div class="plan-section-title"><span class="badge b-net">NET</span> CrmWebhookService + background queue</div>
-          <ul class="plan-steps">
-            <li>Creare <code>Services/CrmWebhookService.cs</code>: <code>FireAsync(eventType, payload)</code> legge i webhook attivi per <code>event_type</code>, fa HTTP POST verso <code>target_url</code> con il payload JSON e l'header segreto. Usa <code>IHttpClientFactory</code>.</li>
-            <li>Usare <code>System.Threading.Channels</code> come background queue per non bloccare il thread della richiesta originale.</li>
-            <li>Invocare <code>FireAsync</code> dalla SP o dalla logica di <code>CrmActionsController</code> dopo le action key rilevanti (<code>crm_leads_convert</code>, <code>crm_opportunities_mass_stage</code>, ecc.).</li>
-          </ul>
+        <div class="fc-body">
+          <div class="plan">
+            <div class="plan-section ps-sql">
+              <div class="plan-section-title"><span class="badge b-sql">SQL</span> AdvancedCRM</div>
+              <ul class="plan-steps">
+                <li>Creare tabella <code>crm_webhooks</code>: <code>webhook_id</code>,
+                  <code>event_type nvarchar(100)</code> (es. <code>opportunity.stage_changed</code>),
+                  <code>target_url nvarchar(500)</code>, <code>is_active bit</code>,
+                  <code>secret_header nvarchar(200)</code>.</li>
+                <li>Creare tabella <code>crm_webhook_log</code> per registrare successi/errori delle chiamate.</li>
+              </ul>
+            </div>
+            <div class="plan-section ps-net">
+              <div class="plan-section-title"><span class="badge b-net">NET</span> CrmWebhookService + background queue
+              </div>
+              <ul class="plan-steps">
+                <li>Creare <code>Services/CrmWebhookService.cs</code>: <code>FireAsync(eventType, payload)</code> legge
+                  i webhook attivi per <code>event_type</code>, fa HTTP POST verso <code>target_url</code> con il
+                  payload JSON e l'header segreto. Usa <code>IHttpClientFactory</code>.</li>
+                <li>Usare <code>System.Threading.Channels</code> come background queue per non bloccare il thread della
+                  richiesta originale.</li>
+                <li>Invocare <code>FireAsync</code> dalla SP o dalla logica di <code>CrmActionsController</code> dopo le
+                  action key rilevanti (<code>crm_leads_convert</code>, <code>crm_opportunities_mass_stage</code>,
+                  ecc.).</li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- ══════════════════════════════════════
+      <!-- ══════════════════════════════════════
        CONFIGURAZIONE
   ══════════════════════════════════════ -->
-  <div class="section-header" id="s-cfg">
-    <div class="section-icon" style="background:#fdf4ff;">⚙️</div>
-    <h2>Configurazione</h2>
-  </div>
+      <div class="section-header" id="s-cfg">
+        <div class="section-icon" style="background:#fdf4ff;">⚙️</div>
+        <h2>Configurazione</h2>
+      </div>
 
-  <!-- F17 Multi-tenancy -->
-  <div class="feature-card" data-priority="bassa" data-effort="xl" id="f17">
-    <div class="fc-header" onclick="toggle(this)">
-      <div class="fc-header-left">
-        <div class="fc-title">🏭 Multi-tenancy per area commerciale <span class="badge b-bassa">Bassa</span></div>
-        <div class="fc-sub">Separare i dati CRM per divisione/area geografica usando il sistema Universi di KonvergenceCore. Ogni utente vede solo i propri dati di competenza.</div>
-      </div>
-      <div class="fc-badges">
-        <span class="badge b-xl">XL</span>
-        <span class="badge b-todo">Todo</span>
-        <span class="badge b-meta">Metadata</span>
-        <span class="badge b-sql">SQL</span>
-      </div>
-      <div class="fc-toggle">▼</div>
-    </div>
-    <div class="fc-body">
-      <div class="plan">
-        <div class="plan-section ps-meta">
-          <div class="plan-section-title"><span class="badge b-meta">Metadata</span> MetadataCRM — Universi / Definizione_Universi</div>
-          <ul class="plan-steps">
-            <li>Inserire in <code>universi</code> le aree commerciali (es. Nord, Centro, Sud, Export).</li>
-            <li>Inserire in <code>definizione__universi</code> le regole di filtro per ogni area: es. per <em>Nord</em> → <code>crm_accounts.region IN ('Piemonte','Lombardia','…')</code>.</li>
-            <li>Associare ogni utente Wuic (<code>utenti_ruoli</code>) all'universo corretto.</li>
-          </ul>
+      <!-- F17 Multi-tenancy -->
+      <div class="feature-card" data-priority="bassa" data-effort="xl" id="f17">
+        <div class="fc-header" onclick="toggle(this)">
+          <div class="fc-header-left">
+            <div class="fc-title">🏭 Multi-tenancy per area commerciale <span class="badge b-bassa">Bassa</span></div>
+            <div class="fc-sub">Separare i dati CRM per divisione/area geografica usando il sistema Universi di
+              KonvergenceCore. Ogni utente vede solo i propri dati di competenza.</div>
+          </div>
+          <div class="fc-badges">
+            <span class="badge b-xl">XL</span>
+            <span class="badge b-todo">Todo</span>
+            <span class="badge b-meta">Metadata</span>
+            <span class="badge b-sql">SQL</span>
+          </div>
+          <div class="fc-toggle">▼</div>
         </div>
-        <div class="plan-section ps-sql">
-          <div class="plan-section-title"><span class="badge b-sql">SQL</span> AdvancedCRM</div>
-          <ul class="plan-steps">
-            <li>Aggiungere colonna <code>region nvarchar(100)</code> a <code>crm_accounts</code>.</li>
-            <li>Verificare che tutti i join delle query (leads, opportunità, case) passino per <code>crm_accounts</code> per ereditare il filtro universo.</li>
-          </ul>
+        <div class="fc-body">
+          <div class="plan">
+            <div class="plan-section ps-meta">
+              <div class="plan-section-title"><span class="badge b-meta">Metadata</span> MetadataCRM — Universi /
+                Definizione_Universi</div>
+              <ul class="plan-steps">
+                <li>Inserire in <code>universi</code> le aree commerciali (es. Nord, Centro, Sud, Export).</li>
+                <li>Inserire in <code>definizione__universi</code> le regole di filtro per ogni area: es. per
+                  <em>Nord</em> → <code>crm_accounts.region IN ('Piemonte','Lombardia','…')</code>.</li>
+                <li>Associare ogni utente Wuic (<code>utenti_ruoli</code>) all'universo corretto.</li>
+              </ul>
+            </div>
+            <div class="plan-section ps-sql">
+              <div class="plan-section-title"><span class="badge b-sql">SQL</span> AdvancedCRM</div>
+              <ul class="plan-steps">
+                <li>Aggiungere colonna <code>region nvarchar(100)</code> a <code>crm_accounts</code>.</li>
+                <li>Verificare che tutti i join delle query (leads, opportunità, case) passino per
+                  <code>crm_accounts</code> per ereditare il filtro universo.</li>
+              </ul>
+            </div>
+            <div class="plan-note">Il sistema <code>universi</code> / <code>definizione__universi</code> è già integrato
+              nel motore OData di KonvergenceCore. L'implementazione richiede principalmente la <strong>definizione
+                delle regole di filtro</strong> nei metadati.</div>
+          </div>
         </div>
-        <div class="plan-note">Il sistema <code>universi</code> / <code>definizione__universi</code> è già integrato nel motore OData di KonvergenceCore. L'implementazione richiede principalmente la <strong>definizione delle regole di filtro</strong> nei metadati.</div>
       </div>
-    </div>
-  </div>
 
-  <!-- F18 Internazionalizzazione -->
-  <div class="feature-card" data-priority="bassa" data-effort="m" id="f18">
-    <div class="fc-header" onclick="toggle(this)">
-      <div class="fc-header-left">
-        <div class="fc-title">🌍 Internazionalizzazione (EN / IT / FR) <span class="badge b-bassa">Bassa</span></div>
-        <div class="fc-sub">Tradurre label, messaggi e tooltip del CRM in più lingue. Selezione lingua per utente.</div>
-      </div>
-      <div class="fc-badges">
-        <span class="badge b-m">M</span>
-        <span class="badge b-todo">Todo</span>
-        <span class="badge b-meta">Metadata</span>
-        <span class="badge b-ng">Angular</span>
-      </div>
-      <div class="fc-toggle">▼</div>
-    </div>
-    <div class="fc-body">
-      <div class="plan">
-        <div class="plan-section ps-meta">
-          <div class="plan-section-title"><span class="badge b-meta">Metadata</span> MetadataCRM — _wuic_translations</div>
-          <ul class="plan-steps">
-            <li>Inserire in <code>_wuic_translations</code> le traduzioni per ogni <code>mc_display_string_in_view</code>, <code>mm_display_string_menu</code>, <code>buttoncaption</code> dei metadati CRM nelle lingue target.</li>
-            <li>Inserire in <code>lingue</code> le lingue supportate (EN, FR) se non già presenti.</li>
-          </ul>
+      <!-- F18 Internazionalizzazione -->
+      <div class="feature-card" data-priority="bassa" data-effort="m" id="f18">
+        <div class="fc-header" onclick="toggle(this)">
+          <div class="fc-header-left">
+            <div class="fc-title">🌍 Internazionalizzazione (EN / IT / FR) <span class="badge b-bassa">Bassa</span>
+            </div>
+            <div class="fc-sub">Tradurre label, messaggi e tooltip del CRM in più lingue. Selezione lingua per utente.
+            </div>
+          </div>
+          <div class="fc-badges">
+            <span class="badge b-m">M</span>
+            <span class="badge b-todo">Todo</span>
+            <span class="badge b-meta">Metadata</span>
+            <span class="badge b-ng">Angular</span>
+          </div>
+          <div class="fc-toggle">▼</div>
         </div>
-        <div class="plan-section ps-ng">
-          <div class="plan-section-title"><span class="badge b-ng">Angular</span> translation-manager.service</div>
-          <ul class="plan-steps">
-            <li><code>translation-manager.service</code> è già disponibile nella lib wuic e legge da <code>_wuic_translations</code>. Nessun componente custom necessario.</li>
-            <li>Aggiungere il selettore lingua nel profilo utente (o header).</li>
-          </ul>
+        <div class="fc-body">
+          <div class="plan">
+            <div class="plan-section ps-meta">
+              <div class="plan-section-title"><span class="badge b-meta">Metadata</span> MetadataCRM —
+                _wuic_translations</div>
+              <ul class="plan-steps">
+                <li>Inserire in <code>_wuic_translations</code> le traduzioni per ogni
+                  <code>mc_display_string_in_view</code>, <code>mm_display_string_menu</code>,
+                  <code>buttoncaption</code> dei metadati CRM nelle lingue target.</li>
+                <li>Inserire in <code>lingue</code> le lingue supportate (EN, FR) se non già presenti.</li>
+              </ul>
+            </div>
+            <div class="plan-section ps-ng">
+              <div class="plan-section-title"><span class="badge b-ng">Angular</span> translation-manager.service</div>
+              <ul class="plan-steps">
+                <li><code>translation-manager.service</code> è già disponibile nella lib wuic e legge da
+                  <code>_wuic_translations</code>. Nessun componente custom necessario.</li>
+                <li>Aggiungere il selettore lingua nel profilo utente (o header).</li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- F19 SLA automatiche -->
-  <div class="feature-card" data-priority="media" data-effort="m" id="f19">
-    <div class="fc-header" onclick="toggle(this)">
-      <div class="fc-header-left">
-        <div class="fc-title">⏱️ SLA automatiche per priorità case <span class="badge b-media">Media</span></div>
-        <div class="fc-sub">Calcolo automatico della scadenza SLA al momento della creazione del case in base alla priorità (Critical: 4h, High: 8h, Normal: 24h, Low: 72h).</div>
-      </div>
-      <div class="fc-badges">
-        <span class="badge b-m">M</span>
-        <span class="badge b-todo">Todo</span>
-        <span class="badge b-sql">SQL</span>
-        <span class="badge b-meta">Metadata</span>
-      </div>
-      <div class="fc-toggle">▼</div>
-    </div>
-    <div class="fc-body">
-      <div class="plan">
-        <div class="plan-section ps-sql">
-          <div class="plan-section-title"><span class="badge b-sql">SQL</span> AdvancedCRM</div>
-          <ul class="plan-steps">
-            <li>Aggiungere colonne a <code>crm_cases</code>: <code>sla_hours int</code> (calcolata), <code>sla_due_at datetime2</code>, <code>sla_breached bit DEFAULT 0</code>.</li>
-            <li>Creare trigger AFTER INSERT su <code>crm_cases</code>: imposta <code>sla_due_at = DATEADD(HOUR, sla_hours, created_at)</code> dove <code>sla_hours</code> è determinato da <code>priority</code>.</li>
-            <li>Creare SP <code>crm_sp_check_sla_breach</code>: aggiorna <code>sla_breached=1</code> e incrementa priorità dove <code>sla_due_at &lt; GETUTCDATE() AND Stato_Record=0</code>. Schedulabile come SQL Agent Job o da <code>CrmSlaWorker</code> (vedi F08).</li>
-          </ul>
+      <!-- F19 SLA automatiche -->
+      <div class="feature-card" data-priority="media" data-effort="m" id="f19">
+        <div class="fc-header" onclick="toggle(this)">
+          <div class="fc-header-left">
+            <div class="fc-title">⏱️ SLA automatiche per priorità case <span class="badge b-media">Media</span></div>
+            <div class="fc-sub">Calcolo automatico della scadenza SLA al momento della creazione del case in base alla
+              priorità (Critical: 4h, High: 8h, Normal: 24h, Low: 72h).</div>
+          </div>
+          <div class="fc-badges">
+            <span class="badge b-m">M</span>
+            <span class="badge b-todo">Todo</span>
+            <span class="badge b-sql">SQL</span>
+            <span class="badge b-meta">Metadata</span>
+          </div>
+          <div class="fc-toggle">▼</div>
         </div>
-        <div class="plan-section ps-meta">
-          <div class="plan-section-title"><span class="badge b-meta">Metadata</span> MetadataCRM</div>
-          <ul class="plan-steps">
-            <li>Scaffoldare le nuove colonne <code>sla_due_at</code> e <code>sla_breached</code> in <code>_metadati__colonne</code> come campi readonly (<code>mc_logic_editable=0</code>).</li>
-            <li>Usare <code>mcgridconditionaltemplateclass</code> per colorare in rosso le righe con <code>sla_breached=1</code>.</li>
-          </ul>
+        <div class="fc-body">
+          <div class="plan">
+            <div class="plan-section ps-sql">
+              <div class="plan-section-title"><span class="badge b-sql">SQL</span> AdvancedCRM</div>
+              <ul class="plan-steps">
+                <li>Aggiungere colonne a <code>crm_cases</code>: <code>sla_hours int</code> (calcolata),
+                  <code>sla_due_at datetime2</code>, <code>sla_breached bit DEFAULT 0</code>.</li>
+                <li>Creare trigger AFTER INSERT su <code>crm_cases</code>: imposta
+                  <code>sla_due_at = DATEADD(HOUR, sla_hours, created_at)</code> dove <code>sla_hours</code> è
+                  determinato da <code>priority</code>.</li>
+                <li>Creare SP <code>crm_sp_check_sla_breach</code>: aggiorna <code>sla_breached=1</code> e incrementa
+                  priorità dove <code>sla_due_at &lt; GETUTCDATE() AND Stato_Record=0</code>. Schedulabile come SQL
+                  Agent Job o da <code>CrmSlaWorker</code> (vedi F08).</li>
+              </ul>
+            </div>
+            <div class="plan-section ps-meta">
+              <div class="plan-section-title"><span class="badge b-meta">Metadata</span> MetadataCRM</div>
+              <ul class="plan-steps">
+                <li>Scaffoldare le nuove colonne <code>sla_due_at</code> e <code>sla_breached</code> in
+                  <code>_metadati__colonne</code> come campi readonly (<code>mc_logic_editable=0</code>).</li>
+                <li>Usare <code>mcgridconditionaltemplateclass</code> per colorare in rosso le righe con
+                  <code>sla_breached=1</code>.</li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- ══════════════════════════════════════
+      <!-- ══════════════════════════════════════
        SICUREZZA
   ══════════════════════════════════════ -->
-  <div class="section-header" id="s-sec">
-    <div class="section-icon" style="background:#fef2f2;">🔐</div>
-    <h2>Sicurezza</h2>
-  </div>
+      <div class="section-header" id="s-sec">
+        <div class="section-icon" style="background:#fef2f2;">🔐</div>
+        <h2>Sicurezza</h2>
+      </div>
 
-  <!-- F20 Password hashing -->
-  <div class="feature-card" data-priority="alta" data-effort="s" id="f20">
-    <div class="fc-header" onclick="toggle(this)">
-      <div class="fc-header-left">
-        <div class="fc-title">🔑 Migrazione hashing password da SHA1 a PBKDF2 <span class="badge b-alta">Alta</span></div>
-        <div class="fc-sub"><code>appsettings.json</code> dichiara <code>encriptionMethod: SHA1</code>. SHA1 è deprecato per le password. Migrare a PBKDF2 (o bcrypt) con salt per utente.</div>
-      </div>
-      <div class="fc-badges">
-        <span class="badge b-s">S</span>
-        <span class="badge b-todo">Todo</span>
-        <span class="badge b-net">NET</span>
-      </div>
-      <div class="fc-toggle">▼</div>
-    </div>
-    <div class="fc-body">
-      <div class="plan">
-        <div class="plan-section ps-net">
-          <div class="plan-section-title"><span class="badge b-net">NET</span> KonvergenceCore / CrmApp appsettings</div>
-          <ul class="plan-steps">
-            <li>Cambiare <code>"encriptionMethod": "SHA1"</code> in <code>"encriptionMethod": "PBKDF2"</code> in <code>appsettings.json</code>.</li>
-            <li>Verificare che <code>MetaService.cs</code> (o il metodo di autenticazione) supporti già PBKDF2: cercare nel sorgente il dispatch su <code>encriptionMethod</code>. Se non presente, aggiungere il branch PBKDF2 usando <code>System.Security.Cryptography.Rfc2898DeriveBytes</code>.</li>
-            <li>Aggiungere colonna <code>password_salt nvarchar(64)</code> alla tabella <code>utenti</code> su MetadataCRM se non già presente.</li>
-            <li>Creare una migration script SQL che re-hash le password esistenti (opzionale: forzare cambio password al primo login con il nuovo algoritmo).</li>
-          </ul>
+      <!-- F20 Password hashing -->
+      <div class="feature-card" data-priority="alta" data-effort="s" id="f20">
+        <div class="fc-header" onclick="toggle(this)">
+          <div class="fc-header-left">
+            <div class="fc-title">🔑 Migrazione hashing password da SHA1 a PBKDF2 <span class="badge b-alta">Alta</span>
+            </div>
+            <div class="fc-sub"><code>appsettings.json</code> dichiara <code>encriptionMethod: SHA1</code>. SHA1 è
+              deprecato per le password. Migrare a PBKDF2 (o bcrypt) con salt per utente.</div>
+          </div>
+          <div class="fc-badges">
+            <span class="badge b-s">S</span>
+            <span class="badge b-todo">Todo</span>
+            <span class="badge b-net">NET</span>
+          </div>
+          <div class="fc-toggle">▼</div>
         </div>
-        <div class="plan-note warn">⚠️ Priorità di sicurezza. SHA1 senza salt è vulnerabile ad attacchi rainbow table. Questo intervento è <strong>indipendente</strong> da tutte le altre feature e non richiede modifiche al frontend.</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- F21 OAuth -->
-  <div class="feature-card" data-priority="media" data-effort="s" id="f21">
-    <div class="fc-header" onclick="toggle(this)">
-      <div class="fc-header-left">
-        <div class="fc-title">🔓 Attivare SSO Google / OAuth <span class="badge b-media">Media</span></div>
-        <div class="fc-sub">OAuth Google è già configurato in appsettings (<code>ClientId</code>, <code>Provider: Google</code>) ma disabilitato (<code>Enabled: false</code>). Abilitarlo e testare il flusso.</div>
-      </div>
-      <div class="fc-badges">
-        <span class="badge b-s">S</span>
-        <span class="badge b-todo">Todo</span>
-        <span class="badge b-net">NET</span>
-      </div>
-      <div class="fc-toggle">▼</div>
-    </div>
-    <div class="fc-body">
-      <div class="plan">
-        <div class="plan-section ps-net">
-          <div class="plan-section-title"><span class="badge b-net">NET</span> appsettings.json + AuthController</div>
-          <ul class="plan-steps">
-            <li>Impostare <code>"Enabled": true</code> in <code>Authentication.OAuth</code> in <code>appsettings.json</code> (o <code>appsettings.Development.json</code> per test).</li>
-            <li>Impostare il valore reale di <code>ClientSecret</code> (attualmente <code>__SET_OAUTH_CLIENT_SECRET__</code>) in un secret store (es. <code>dotnet user-secrets</code> o variabile d'ambiente).</li>
-            <li>Configurare l'URI di callback <code>/signin-google</code> nella Google Cloud Console come Redirect URI autorizzato.</li>
-            <li>Verificare che <code>AuthController.cs</code> gestisca il mapping utente OAuth → utente Wuic (auto-provisioning o pre-creazione).</li>
-          </ul>
-        </div>
-        <div class="plan-note">Il codice OAuth è <strong>già implementato</strong> in KonvergenceCore. L'abilitazione è solo configurazione.</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- F22 Rate limiting -->
-  <div class="feature-card" data-priority="media" data-effort="s" id="f22">
-    <div class="fc-header" onclick="toggle(this)">
-      <div class="fc-header-left">
-        <div class="fc-title">🛡️ Rate limiting sull'API CrmActions <span class="badge b-media">Media</span></div>
-        <div class="fc-sub">L'endpoint <code>POST /api/CrmActions/execute/{actionKey}</code> non ha protezione contro chiamate abusive. Limitare a N richieste per minuto per utente/IP.</div>
-      </div>
-      <div class="fc-badges">
-        <span class="badge b-s">S</span>
-        <span class="badge b-todo">Todo</span>
-        <span class="badge b-net">NET</span>
-      </div>
-      <div class="fc-toggle">▼</div>
-    </div>
-    <div class="fc-body">
-      <div class="plan">
-        <div class="plan-section ps-net">
-          <div class="plan-section-title"><span class="badge b-net">NET</span> CrmApp Program.cs</div>
-          <ul class="plan-steps">
-            <li>Aggiungere il pacchetto NuGet <code>Microsoft.AspNetCore.RateLimiting</code> (incluso in .NET 7+, nessun pacchetto esterno necessario).</li>
-            <li>In <code>Program.cs</code> di CrmApp: <code>builder.Services.AddRateLimiter(o =&gt; o.AddFixedWindowLimiter("crm-actions", opt =&gt; { opt.PermitLimit = 30; opt.Window = TimeSpan.FromMinutes(1); opt.QueueLimit = 5; }))</code>.</li>
-            <li>Applicare il limiter a <code>CrmActionsController</code> con <code>[EnableRateLimiting("crm-actions")]</code> o globalmente su tutte le route API.</li>
-            <li>Aggiungere <code>app.UseRateLimiter()</code> nella pipeline middleware prima di <code>app.MapControllers()</code>.</li>
-          </ul>
+        <div class="fc-body">
+          <div class="plan">
+            <div class="plan-section ps-net">
+              <div class="plan-section-title"><span class="badge b-net">NET</span> KonvergenceCore / CrmApp appsettings
+              </div>
+              <ul class="plan-steps">
+                <li>Cambiare <code>"encriptionMethod": "SHA1"</code> in <code>"encriptionMethod": "PBKDF2"</code> in
+                  <code>appsettings.json</code>.</li>
+                <li>Verificare che <code>MetaService.cs</code> (o il metodo di autenticazione) supporti già PBKDF2:
+                  cercare nel sorgente il dispatch su <code>encriptionMethod</code>. Se non presente, aggiungere il
+                  branch PBKDF2 usando <code>System.Security.Cryptography.Rfc2898DeriveBytes</code>.</li>
+                <li>Aggiungere colonna <code>password_salt nvarchar(64)</code> alla tabella <code>utenti</code> su
+                  MetadataCRM se non già presente.</li>
+                <li>Creare una migration script SQL che re-hash le password esistenti (opzionale: forzare cambio
+                  password al primo login con il nuovo algoritmo).</li>
+              </ul>
+            </div>
+            <div class="plan-note warn">⚠️ Priorità di sicurezza. SHA1 senza salt è vulnerabile ad attacchi rainbow
+              table. Questo intervento è <strong>indipendente</strong> da tutte le altre feature e non richiede
+              modifiche al frontend.</div>
+          </div>
         </div>
       </div>
-    </div>
+
+      <!-- F21 OAuth -->
+      <div class="feature-card" data-priority="media" data-effort="s" id="f21">
+        <div class="fc-header" onclick="toggle(this)">
+          <div class="fc-header-left">
+            <div class="fc-title">🔓 Attivare SSO Google / OAuth <span class="badge b-media">Media</span></div>
+            <div class="fc-sub">OAuth Google è già configurato in appsettings (<code>ClientId</code>,
+              <code>Provider: Google</code>) ma disabilitato (<code>Enabled: false</code>). Abilitarlo e testare il
+              flusso.</div>
+          </div>
+          <div class="fc-badges">
+            <span class="badge b-s">S</span>
+            <span class="badge b-todo">Todo</span>
+            <span class="badge b-net">NET</span>
+          </div>
+          <div class="fc-toggle">▼</div>
+        </div>
+        <div class="fc-body">
+          <div class="plan">
+            <div class="plan-section ps-net">
+              <div class="plan-section-title"><span class="badge b-net">NET</span> appsettings.json + AuthController
+              </div>
+              <ul class="plan-steps">
+                <li>Impostare <code>"Enabled": true</code> in <code>Authentication.OAuth</code> in
+                  <code>appsettings.json</code> (o <code>appsettings.Development.json</code> per test).</li>
+                <li>Impostare il valore reale di <code>ClientSecret</code> (attualmente
+                  <code>__SET_OAUTH_CLIENT_SECRET__</code>) in un secret store (es. <code>dotnet user-secrets</code> o
+                  variabile d'ambiente).</li>
+                <li>Configurare l'URI di callback <code>/signin-google</code> nella Google Cloud Console come Redirect
+                  URI autorizzato.</li>
+                <li>Verificare che <code>AuthController.cs</code> gestisca il mapping utente OAuth → utente Wuic
+                  (auto-provisioning o pre-creazione).</li>
+              </ul>
+            </div>
+            <div class="plan-note">Il codice OAuth è <strong>già implementato</strong> in KonvergenceCore.
+              L'abilitazione è solo configurazione.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- F22 Rate limiting -->
+      <div class="feature-card" data-priority="media" data-effort="s" id="f22">
+        <div class="fc-header" onclick="toggle(this)">
+          <div class="fc-header-left">
+            <div class="fc-title">🛡️ Rate limiting sull'API CrmActions <span class="badge b-media">Media</span></div>
+            <div class="fc-sub">L'endpoint <code>POST /api/CrmActions/execute/{actionKey}</code> non ha protezione
+              contro chiamate abusive. Limitare a N richieste per minuto per utente/IP.</div>
+          </div>
+          <div class="fc-badges">
+            <span class="badge b-s">S</span>
+            <span class="badge b-todo">Todo</span>
+            <span class="badge b-net">NET</span>
+          </div>
+          <div class="fc-toggle">▼</div>
+        </div>
+        <div class="fc-body">
+          <div class="plan">
+            <div class="plan-section ps-net">
+              <div class="plan-section-title"><span class="badge b-net">NET</span> CrmApp Program.cs</div>
+              <ul class="plan-steps">
+                <li>Aggiungere il pacchetto NuGet <code>Microsoft.AspNetCore.RateLimiting</code> (incluso in .NET 7+,
+                  nessun pacchetto esterno necessario).</li>
+                <li>In <code>Program.cs</code> di CrmApp:
+                  <code>builder.Services.AddRateLimiter(o =&gt; o.AddFixedWindowLimiter("crm-actions", opt =&gt; { opt.PermitLimit = 30; opt.Window = TimeSpan.FromMinutes(1); opt.QueueLimit = 5; }))</code>.
+                </li>
+                <li>Applicare il limiter a <code>CrmActionsController</code> con
+                  <code>[EnableRateLimiting("crm-actions")]</code> o globalmente su tutte le route API.</li>
+                <li>Aggiungere <code>app.UseRateLimiter()</code> nella pipeline middleware prima di
+                  <code>app.MapControllers()</code>.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
   </div>
 
-</main>
-</div>
+  <script>
+    // Toggle card body
+    function toggle(header) {
+      const body = header.nextElementSibling;
+      const arrow = header.querySelector('.fc-toggle');
+      body.classList.toggle('open');
+      arrow.classList.toggle('open');
+    }
 
-<script>
-  // Toggle card body
-  function toggle(header) {
-    const body = header.nextElementSibling;
-    const arrow = header.querySelector('.fc-toggle');
-    body.classList.toggle('open');
-    arrow.classList.toggle('open');
-  }
+    // Filter cards
+    function filterCards(type, btn) {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('on'));
+      btn.classList.add('on');
+      document.querySelectorAll('.feature-card').forEach(card => {
+        if (type === 'all') { card.style.display = ''; return; }
+        const p = card.dataset.priority;
+        const e = card.dataset.effort;
+        card.style.display = (p === type || e === type) ? '' : 'none';
+      });
+    }
 
-  // Filter cards
-  function filterCards(type, btn) {
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('on'));
-    btn.classList.add('on');
-    document.querySelectorAll('.feature-card').forEach(card => {
-      if (type === 'all') { card.style.display = ''; return; }
-      const p = card.dataset.priority;
-      const e = card.dataset.effort;
-      card.style.display = (p === type || e === type) ? '' : 'none';
+    // Highlight active nav link on scroll
+    const links = document.querySelectorAll('nav a[href^="#"]');
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          links.forEach(l => l.classList.remove('active'));
+          const match = document.querySelector('nav a[href="#' + e.target.id + '"]');
+          if (match) match.classList.add('active');
+        }
+      });
+    }, { rootMargin: '-15% 0px -70% 0px' });
+    document.querySelectorAll('[id]').forEach(el => obs.observe(el));
+
+    // Auto-open first card of each section
+    document.querySelectorAll('.fc-header').forEach((h, i) => {
+      if (i === 0 || i === 4 || i === 8 || i === 12 || i === 15 || i === 18) toggle(h);
     });
-  }
-
-  // Highlight active nav link on scroll
-  const links = document.querySelectorAll('nav a[href^="#"]');
-  const obs = new IntersectionObserver(entries => {
-    entries.forEach(e => {
-      if (e.isIntersecting) {
-        links.forEach(l => l.classList.remove('active'));
-        const match = document.querySelector('nav a[href="#' + e.target.id + '"]');
-        if (match) match.classList.add('active');
-      }
-    });
-  }, { rootMargin: '-15% 0px -70% 0px' });
-  document.querySelectorAll('[id]').forEach(el => obs.observe(el));
-
-  // Auto-open first card of each section
-  document.querySelectorAll('.fc-header').forEach((h, i) => {
-    if (i === 0 || i === 4 || i === 8 || i === 12 || i === 15 || i === 18) toggle(h);
-  });
-</script>
+  </script>
 </body>
+
 </html>
