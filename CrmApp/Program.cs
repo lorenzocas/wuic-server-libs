@@ -43,7 +43,17 @@ internal static class Program
         // Legacy defaults expected by metaModelRaw startup path.
         UpsertAppSetting(exeConfig, "dbms", System.Configuration.ConfigurationManager.AppSettings["dbms"] ?? "mssql");
         UpsertAppSetting(exeConfig, "DataDBName", System.Configuration.ConfigurationManager.AppSettings["DataDBName"] ?? "WideWorldImporters");
-        UpsertAppSetting(exeConfig, "projectDataFolder", legacyRoot);
+        string configuredProjectDataFolder = config["AppSettings:projectDataFolder"];
+        if (string.IsNullOrWhiteSpace(configuredProjectDataFolder))
+        {
+            configuredProjectDataFolder = legacyRoot;
+        }
+        else if (!Path.IsPathRooted(configuredProjectDataFolder))
+        {
+            configuredProjectDataFolder = Path.GetFullPath(Path.Combine(hostProjectRoot, configuredProjectDataFolder));
+        }
+
+        UpsertAppSetting(exeConfig, "projectDataFolder", configuredProjectDataFolder);
         UpsertAppSetting(exeConfig, "projectAssemblyName", Path.Combine(legacyRoot, "bin", "Debug", "net10.0", "KonvergenceCore.dll"));
 
         exeConfig.Save(ConfigurationSaveMode.Modified);
@@ -196,3 +206,4 @@ internal static class Program
         return Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", ".."));
     }
 }
+

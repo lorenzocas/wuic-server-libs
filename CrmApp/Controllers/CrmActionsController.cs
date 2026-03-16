@@ -1,4 +1,5 @@
 using System.Data;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
@@ -53,10 +54,12 @@ public class CrmActionsController : ControllerBase
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.CommandText = "dbo.crm_sp_execute_action";
             cmd.CommandTimeout = 180;
+            var loggedUserId = ResolveLoggedUserId();
             cmd.Parameters.AddWithValue("@action_key", actionKey);
             cmd.Parameters.AddWithValue("@route_name", (object?)routeName ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@current_record", JsonToString(currentRecord));
             cmd.Parameters.AddWithValue("@selected_record_keys", JsonToString(selectedRecordKeys));
+            cmd.Parameters.AddWithValue("@logged_user_id", (object?)loggedUserId ?? DBNull.Value);
 
             await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
             if (!await reader.ReadAsync(cancellationToken))
@@ -163,5 +166,40 @@ public class CrmActionsController : ControllerBase
         }
 
         return val.GetRawText();
+    }
+
+    private int? ResolveLoggedUserId()
+    {
+        var claimCandidates = new[]
+        {
+            ClaimTypes.NameIdentifier,
+            "nameid",
+            "sub",
+            "user_id",
+            "userid",
+            "id"
+        };
+
+        foreach (var claimType in claimCandidates)
+        {
+            var claimValue = User?.FindFirst(claimType)?.Value;
+            if (TryParseInt(claimValue, out var parsed))
+            {
+                return parsed;
+            }
+        }
+
+        if (Request?.Headers?.TryGetValue("X-User-Id", out var headerVals) == true &&
+            TryParseInt(headerVals.ToString(), out var headerUserId))
+        {
+            return headerUserId;
+        }
+
+        return null;
+    }
+
+    private static bool TryParseInt(string? value, out int parsed)
+    {
+        return int.TryParse(value, out parsed);
     }
 }
