@@ -1,0 +1,50 @@
+<div class="kanban-page">
+  <wuic-data-source #stagesSource [hardcodedRoute]="'crm_opportunity_stage'" [autoload]="true"></wuic-data-source>
+  <wuic-data-source #opportunitiesSource [hardcodedRoute]="'vw_crm_opportunities_kanban'"
+    [autoload]="true"></wuic-data-source>
+
+  <div class="kanban-toolbar">
+    <div class="kanban-title-wrap">
+      <h2>Kanban pipeline opportunita</h2>
+      <p>Drag and drop tra fasi commerciali. Card: titolo, account e importo.</p>
+    </div>
+    <div class="kanban-actions">
+      <p-button label="Ricarica" icon="pi pi-refresh" [disabled]="loading || saving" (onClick)="reload()"></p-button>
+    </div>
+  </div>
+
+  <div *ngIf="!canDragCards" class="kanban-readonly-note">
+    Modalita sola lettura: drag and drop disabilitato per il ruolo corrente.
+  </div>
+
+  <div *ngIf="loading" class="kanban-loading">
+    <i class="pi pi-spin pi-spinner"></i>
+    <span>Caricamento pipeline...</span>
+  </div>
+
+  <div *ngIf="!loading" class="kanban-board">
+    <div *ngFor="let column of columns; trackBy: trackColumn" class="kanban-column">
+      <div class="kanban-column-header">
+        <div class="kanban-column-title">{{ column.stageName }}</div>
+        <div class="kanban-column-meta">{{ column.winProbability }}% | {{ column.cards.length }} card</div>
+      </div>
+
+      <div class="kanban-card-list" pDroppable="kanban-cards" [pDroppableDisabled]="!canDragCards || saving"
+        (onDrop)="onDrop(column)">
+
+        <div *ngFor="let card of column.cards; let cardIndex = index; trackBy: trackCard" class="kanban-card"
+          pDraggable="kanban-cards" [pDraggableDisabled]="!canDragCards || saving" [dragEffect]="'move'"
+          (onDragStart)="onCardDragStart(card, column)" (onDragEnd)="onCardDragEnd()" pDroppable="kanban-cards"
+          [pDroppableDisabled]="!canDragCards || saving" (onDrop)="onDrop(column)">
+          <div class="kanban-card-title">{{ card.title }}</div>
+          <div class="kanban-card-account">{{ card.accountName || 'Account non valorizzato' }}</div>
+          <div class="kanban-card-footer">
+            <span class="kanban-card-amount">{{ card.amount | currency:'EUR':'symbol':'1.0-0':'it-IT' }}</span>
+            <span class="kanban-card-owner">{{ card.ownerDisplayName }}</span>
+          </div>
+          <div *ngIf="movingCardId === card.opportunityId" class="kanban-card-moving">Aggiornamento...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

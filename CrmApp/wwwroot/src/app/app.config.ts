@@ -5,7 +5,7 @@ import { registerLocaleData } from '@angular/common';
 import localeIt from '@angular/common/locales/it';
 import localeItExtra from '@angular/common/locales/extra/it';
 
-import { routes } from 'wuic-framework-lib';
+import { appRoutes } from './app.routes';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { TranslateModule } from '@ngx-translate/core';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
@@ -27,7 +27,7 @@ export const appConfig: ApplicationConfig = {
     // importProvidersFrom(ResizableModule),
     // importProvidersFrom(ConfirmDialogModule),
     { provide: ErrorHandler, useClass: GlobalHandler },
-    provideRouter(routes, withHashLocation()),
+    provideRouter(appRoutes, withHashLocation()),
     providePrimeNG({
       theme: {
         preset: Aura,
@@ -38,5 +38,6 @@ export const appConfig: ApplicationConfig = {
     })
   ]
 };
+
 
 

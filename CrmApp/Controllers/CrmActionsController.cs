@@ -1,5 +1,7 @@
 using System.Data;
+using System.Text;
 using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 
@@ -21,14 +23,26 @@ public class CrmActionsController : ControllerBase
     }
 
     [HttpPost("execute/{actionKey}")]
-    public async Task<IActionResult> Execute(string actionKey, [FromBody] CrmActionRequest? request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Execute(string actionKey, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(_dataConnectionString))
         {
             return BadRequest(new { ok = false, actionKey, message = "DataSQLConnection non configurata." });
         }
 
-        request ??= new CrmActionRequest();
+        string? routeName = null;
+        JsonElement? currentRecord = null;
+        JsonElement? selectedRecordKeys = null;
+
+        try
+        {
+            (routeName, currentRecord, selectedRecordKeys) = await ReadActionPayloadAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Payload JSON non valido per action {ActionKey}", actionKey);
+            return BadRequest(new { ok = false, actionKey, message = "Payload JSON non valido." });
+        }
 
         try
         {
@@ -40,14 +54,14 @@ public class CrmActionsController : ControllerBase
             cmd.CommandText = "dbo.crm_sp_execute_action";
             cmd.CommandTimeout = 180;
             cmd.Parameters.AddWithValue("@action_key", actionKey);
-            cmd.Parameters.AddWithValue("@route_name", (object?)request.RouteName ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@current_record", JsonToString(request.CurrentRecord));
-            cmd.Parameters.AddWithValue("@selected_record_keys", JsonToString(request.SelectedRecordKeys));
+            cmd.Parameters.AddWithValue("@route_name", (object?)routeName ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@current_record", JsonToString(currentRecord));
+            cmd.Parameters.AddWithValue("@selected_record_keys", JsonToString(selectedRecordKeys));
 
             await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
             if (!await reader.ReadAsync(cancellationToken))
             {
-                return Ok(new { ok = true, actionKey, routeName = request.RouteName, message = "Azione eseguita." });
+                return Ok(new { ok = true, actionKey, routeName, message = "Azione eseguita." });
             }
 
             var ok = reader["ok"] is bool b && b;
@@ -63,7 +77,7 @@ public class CrmActionsController : ControllerBase
             {
                 ok,
                 actionKey,
-                routeName = request.RouteName,
+                routeName,
                 message,
                 data = payload,
                 receivedAtUtc = DateTime.UtcNow
@@ -72,8 +86,67 @@ public class CrmActionsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore in crm action {ActionKey}", actionKey);
-            return BadRequest(new { ok = false, actionKey, routeName = request.RouteName, message = ex.Message });
+            return BadRequest(new { ok = false, actionKey, routeName, message = ex.Message });
         }
+    }
+
+    private async Task<(string? routeName, JsonElement? currentRecord, JsonElement? selectedRecordKeys)> ReadActionPayloadAsync(CancellationToken cancellationToken)
+    {
+        Request.EnableBuffering();
+        Request.Body.Position = 0;
+
+        using var reader = new StreamReader(Request.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true);
+        var rawBody = await reader.ReadToEndAsync(cancellationToken);
+        Request.Body.Position = 0;
+
+        if (string.IsNullOrWhiteSpace(rawBody))
+        {
+            return (null, null, null);
+        }
+
+        using var doc = JsonDocument.Parse(rawBody);
+        var root = doc.RootElement;
+        if (root.ValueKind != JsonValueKind.Object)
+        {
+            return (null, null, null);
+        }
+
+        string? routeName = null;
+        JsonElement? currentRecord = null;
+        JsonElement? selectedRecordKeys = null;
+
+        if (TryGetPropertyIgnoreCase(root, "routeName", out var routeEl) && routeEl.ValueKind == JsonValueKind.String)
+        {
+            routeName = routeEl.GetString();
+        }
+
+        if (TryGetPropertyIgnoreCase(root, "currentRecord", out var currentEl) &&
+            currentEl.ValueKind is not (JsonValueKind.Null or JsonValueKind.Undefined))
+        {
+            currentRecord = currentEl.Clone();
+        }
+
+        if (TryGetPropertyIgnoreCase(root, "selectedRecordKeys", out var selectedEl) &&
+            selectedEl.ValueKind is not (JsonValueKind.Null or JsonValueKind.Undefined))
+        {
+            selectedRecordKeys = selectedEl.Clone();
+        }
+
+        return (routeName, currentRecord, selectedRecordKeys);
+    }
+
+    private static bool TryGetPropertyIgnoreCase(JsonElement root, string propertyName, out JsonElement value)
+    {
+        foreach (var prop in root.EnumerateObject())
+        {
+            if (string.Equals(prop.Name, propertyName, StringComparison.OrdinalIgnoreCase))
+            {
+                value = prop.Value;
+                return true;
+            }
+        }
+        value = default;
+        return false;
     }
 
     private static string JsonToString(JsonElement? json)
@@ -91,13 +164,4 @@ public class CrmActionsController : ControllerBase
 
         return val.GetRawText();
     }
-}
-
-public sealed class CrmActionRequest
-{
-    public string? ActionKey { get; set; }
-    public string? RouteName { get; set; }
-    public string? ActionLabel { get; set; }
-    public JsonElement? CurrentRecord { get; set; }
-    public JsonElement? SelectedRecordKeys { get; set; }
 }
