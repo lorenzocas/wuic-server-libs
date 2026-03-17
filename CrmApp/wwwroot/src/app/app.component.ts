@@ -1,4 +1,4 @@
-import { AfterContentInit, Component, OnDestroy, OnInit } from '@angular/core';
+import { AfterContentInit, Component, Injector, OnDestroy, OnInit } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { utility } from './classes/utility';
 import { AsyncPipe, DatePipe, NgClass, NgFor, NgIf, NgStyle } from '@angular/common';
@@ -45,6 +45,7 @@ import { CallbackPipe2 } from 'wuic-framework-lib';
 import { GetSrcUploadPreviewPipe } from 'wuic-framework-lib';
 import { CrmNotificationItem, CrmNotificationRealtimeService } from './service/crm-notification-realtime.service';
 import { LazyImageWrapperComponent } from 'wuic-framework-lib';
+import { AuthSessionService } from 'wuic-framework-lib';
 import {
   loadBooleanEditorComponent,
   loadButtonEditorComponent,
@@ -152,9 +153,11 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
   unreadNotificationsCount = 0;
   notifications: CrmNotificationItem[] = [];
   private loggedUserId: number | null = null;
+  private notificationsRealtimeUserId: number | null = null;
+  private authSession: AuthSessionService | null = null;
   // @ViewChild('spreadsheet') spreadsheet: any;
 
-  constructor(public messageService: MessageService, public confirmationService: ConfirmationService, private http: HttpClient, private dialogSrv: DialogService, private translationService: TranslationManagerService, public globalHandler: GlobalHandler, private primeng: PrimeNG, private notificationRealtime: CrmNotificationRealtimeService, private router: Router) {
+  constructor(public messageService: MessageService, public confirmationService: ConfirmationService, private http: HttpClient, private dialogSrv: DialogService, private translationService: TranslationManagerService, public globalHandler: GlobalHandler, private primeng: PrimeNG, private notificationRealtime: CrmNotificationRealtimeService, private router: Router, private injector: Injector) {
 
     WtoolboxService.messageNotificationService = messageService;
     WtoolboxService.confirmationService = confirmationService;
@@ -175,6 +178,17 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
 
     this.notificationRealtime.notifications$.subscribe((items) => {
       this.notifications = Array.isArray(items) ? items : [];
+    });
+
+    this.authSession = this.injector.get(AuthSessionService);
+    this.authSession.state$.subscribe((state) => {
+      if (state?.authenticated || state?.legacyAuthenticated) {
+        this.ensureNotificationsRealtimeConnected();
+      } else {
+        this.notificationsRealtimeUserId = null;
+        this.loggedUserId = null;
+        this.notificationRealtime.disconnect();
+      }
     });
 
     //custom functions
@@ -946,24 +960,43 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
   }
 
   private initNotificationsRealtime(): void {
+    this.ensureNotificationsRealtimeConnected();
+  }
+
+  private ensureNotificationsRealtimeConnected(): void {
     const userId = this.resolveUserIdFromCookie();
-    if (!userId) {
+    if (!userId || userId <= 0) {
       return;
     }
 
+    if (this.notificationsRealtimeUserId === userId) {
+      return;
+    }
+
+    this.notificationsRealtimeUserId = userId;
     this.loggedUserId = userId;
     void this.notificationRealtime.connect(userId);
   }
+  get showRightHeaderBlock(): boolean {
+    const state = this.authSession?.snapshot;
+    if (state?.authenticated || state?.legacyAuthenticated) {
+      return true;
+    }
 
+    return !!this.resolveUserIdFromCookie();
+  }
   private resolveUserIdFromCookie(): number | null {
     const rawCookies = String(document?.cookie || '');
     const token = rawCookies.split(';').map(x => x.trim()).find(x => x.startsWith('k-user='));
-    if (!token) {
+    const encoded = token
+      ? token.substring('k-user='.length)
+      : (localStorage.getItem('k-user') || sessionStorage.getItem('k-user') || '');
+
+    if (!encoded) {
       return null;
     }
 
     try {
-      const encoded = token.substring('k-user='.length);
       const decoded = decodeURIComponent(encoded);
       const parsed = JSON.parse(decoded);
       const id = Number(parsed?.user_id ?? 0);
@@ -971,6 +1004,17 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     } catch {
       return null;
     }
+  }
+  get hasReadNotifications(): boolean {
+    return Array.isArray(this.notifications) && this.notifications.some(x => !!x?.isRead);
+  }
+
+  async clearReadNotifications(): Promise<void> {
+    if (!this.loggedUserId || this.loggedUserId <= 0) {
+      return;
+    }
+
+    await this.notificationRealtime.clearRead(this.loggedUserId);
   }
 
   async openNotification(item: CrmNotificationItem): Promise<void> {
@@ -1056,5 +1100,14 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     }
   }
 }
+
+
+
+
+
+
+
+
+
 
 

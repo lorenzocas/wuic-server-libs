@@ -57,4 +57,25 @@ public sealed class CrmNotificationsController(
             return BadRequest(new { ok = false, message = ex.Message });
         }
     }
+    [HttpPost("clearread/{userId:int}")]
+    public async Task<IActionResult> ClearRead(int userId, CancellationToken cancellationToken)
+    {
+        if (userId <= 0)
+        {
+            return BadRequest(new { ok = false, message = "userId non valido." });
+        }
+
+        try
+        {
+            var snapshot = await repository.ClearReadAsync(userId, cancellationToken);
+            await push.SendSnapshotToUserAsync(userId, snapshot, cancellationToken);
+            return Ok(new { ok = true, data = snapshot });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Errore clear read notifications per user {UserId}", userId);
+            return BadRequest(new { ok = false, message = ex.Message });
+        }
+    }
 }
+

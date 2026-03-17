@@ -7,6 +7,7 @@ public interface ICrmNotificationRepository
 {
     Task<CrmNotificationSnapshot> GetUnreadAsync(int userId, int take = 10, CancellationToken cancellationToken = default);
     Task<int?> MarkReadAsync(int notificationId, CancellationToken cancellationToken = default);
+    Task<CrmNotificationSnapshot> ClearReadAsync(int userId, CancellationToken cancellationToken = default);
     Task<List<int>> GetUsersWithUnreadAsync(CancellationToken cancellationToken = default);
 }
 
@@ -99,6 +100,28 @@ SELECT @user_id;";
 
         return Convert.ToInt32(scalar);
     }
+    public async Task<CrmNotificationSnapshot> ClearReadAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_dataConnectionString) || userId <= 0)
+        {
+            return new CrmNotificationSnapshot { UserId = userId };
+        }
+
+        await using var cn = new SqlConnection(_dataConnectionString);
+        await cn.OpenAsync(cancellationToken);
+
+        await using (var cmd = cn.CreateCommand())
+        {
+            cmd.CommandText = @"
+DELETE FROM dbo.crm_notifications
+WHERE user_id = @user_id
+  AND is_read = 1;";
+            cmd.Parameters.AddWithValue("@user_id", userId);
+            await cmd.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        return await GetUnreadAsync(userId, cancellationToken: cancellationToken);
+    }
 
     public async Task<List<int>> GetUsersWithUnreadAsync(CancellationToken cancellationToken = default)
     {
@@ -125,3 +148,5 @@ SELECT @user_id;";
 
     public string GetConnectionString() => _dataConnectionString;
 }
+
+

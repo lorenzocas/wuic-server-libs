@@ -73,12 +73,13 @@
         <div class="app-shell-menu">
             <wuic-meta-menu></wuic-meta-menu>
         </div>
+        @if (showRightHeaderBlock) {
         <div class="app-shell-theme">
             <div class="app-shell-theme-card border-1 border-300 border-round p-3 surface-100 shadow-2">
-                    <div class="app-shell-theme-select mb-2">
+                <div class="app-shell-theme-select mb-2">
                     <p-select [options]="availableThemes" optionLabel="label" optionValue="value"
                         [ngModel]="selectedTheme" (ngModelChange)="onThemeChange($event)"
-                        [style]="{ width: '100%', height: '35px' }" placeholder="Tema">
+                        [style]="{ width: '100%', height: '35px' }" placeholder="Tema" appendTo="body">
                     </p-select>
                 </div>
                 <div class="app-shell-notification">
@@ -98,13 +99,12 @@
                 </div>
                 <div class="app-shell-theme-switch">
                     <p-toggleswitch [ngModel]="isDarkMode" (ngModelChange)="toggleLightDark()" />
-
                 </div>
             </div>
         </div>
+        }
     </div>
-
-    <div class="app-shell-content">
+<div class="app-shell-content">
         <router-outlet />
     </div>
 </div>
@@ -127,7 +127,12 @@
 
 <p-popover #notificationsPanel appendTo="body" [style]="{ width: '26rem', maxWidth: '92vw' }">
     <div class="notification-panel">
-        <div class="notification-panel-header">Notifiche CRM</div>
+        <div class="notification-panel-header-row">
+            <div class="notification-panel-header">Notifiche CRM</div>
+            @if (hasReadNotifications) {
+            <button type="button" class="notification-clear-read-btn" (click)="clearReadNotifications()">Rimuovi lette</button>
+            }
+        </div>
         @if (!notifications.length) {
         <div class="notification-empty">Nessuna notifica.</div>
         }
@@ -140,4 +145,12 @@
         }
     </div>
 </p-popover>
+
+
+
+
+
+
+
+
 

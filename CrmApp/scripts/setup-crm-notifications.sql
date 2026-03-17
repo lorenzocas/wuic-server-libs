@@ -21,6 +21,10 @@ BEGIN
 END
 GO
 
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+GO
+
 CREATE OR ALTER PROCEDURE dbo.crm_sp_enqueue_notification
     @user_id INT,
     @type NVARCHAR(50),
@@ -58,6 +62,8 @@ BEGIN
 
     IF @leadIdCol IS NOT NULL
     BEGIN
+        SET ANSI_NULLS ON;
+        SET QUOTED_IDENTIFIER ON;
         DECLARE @sqlLead NVARCHAR(MAX) = N'
 CREATE OR ALTER TRIGGER dbo.trg_crm_leads_notify_assignment
 ON dbo.crm_leads
@@ -100,6 +106,8 @@ BEGIN
 
     IF @caseIdCol IS NOT NULL
     BEGIN
+        SET ANSI_NULLS ON;
+        SET QUOTED_IDENTIFIER ON;
         DECLARE @sqlCase NVARCHAR(MAX) = N'
 CREATE OR ALTER TRIGGER dbo.trg_crm_cases_notify_assignment
 ON dbo.crm_cases
@@ -154,6 +162,8 @@ BEGIN
             ELSE 'ISNULL(i.' + QUOTENAME(@activityCompletedCol) + ', 0)'
         END;
 
+        SET ANSI_NULLS ON;
+        SET QUOTED_IDENTIFIER ON;
         DECLARE @sqlAct NVARCHAR(MAX) = N'
 CREATE OR ALTER TRIGGER dbo.trg_crm_activities_notify_due
 ON dbo.crm_activities

@@ -26,6 +26,11 @@ export class CrmNotificationRealtimeService {
   private reconnectTimer: any;
   private currentUserId: number | null = null;
   private manuallyClosed = false;
+  private connectingUserId: number | null = null;
+  private snapshotInFlight: Promise<void> | null = null;
+  private snapshotInFlightUserId: number | null = null;
+  private lastSnapshotAt = 0;
+  private lastSnapshotUserId: number | null = null;
 
   readonly unreadCount$ = new BehaviorSubject<number>(0);
   readonly notifications$ = new BehaviorSubject<CrmNotificationItem[]>([]);
@@ -37,15 +42,40 @@ export class CrmNotificationRealtimeService {
       return;
     }
 
+    const sameUser = this.currentUserId === userId;
+    const socketState = this.socket?.readyState;
+    if (sameUser && (socketState === WebSocket.OPEN || socketState === WebSocket.CONNECTING)) {
+      return;
+    }
+
+    if (sameUser && this.connectingUserId === userId) {
+      return;
+    }
+
+    if (!sameUser && this.currentUserId) {
+      this.disconnect();
+    }
+
     this.currentUserId = userId;
     this.manuallyClosed = false;
+    this.connectingUserId = userId;
 
-    await this.loadSnapshot(userId);
-    this.openSocket(userId);
+    try {
+      await this.loadSnapshot(userId);
+      if (this.manuallyClosed || this.currentUserId !== userId) {
+        return;
+      }
+      this.openSocket(userId);
+    } finally {
+      if (this.connectingUserId === userId) {
+        this.connectingUserId = null;
+      }
+    }
   }
 
   disconnect(): void {
     this.manuallyClosed = true;
+    this.connectingUserId = null;
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -74,16 +104,33 @@ export class CrmNotificationRealtimeService {
       // server push will realign state on next event
     }
   }
+  async clearRead(userId: number): Promise<void> {
+    if (!userId || userId <= 0) {
+      return;
+    }
+
+    const url = `${environment.api_url}CrmNotifications/clearread/${userId}`;
+    try {
+      const res: any = await firstValueFrom(this.http.post(url, {}));
+      const snapshot = this.normalizeSnapshot(res?.data);
+      this.applySnapshot(snapshot);
+    } catch {
+      // server push will realign state on next event
+    }
+  }
 
   private openSocket(userId: number): void {
-    this.disconnectSocketOnly();
+    if (this.socket?.readyState === WebSocket.OPEN || this.socket?.readyState === WebSocket.CONNECTING) {
+      return;
+    }
 
     const wsBase = environment.api_url.replace(/^http/i, 'ws').replace(/\/api\/?$/i, '');
     const wsUrl = `${wsBase}/ws/crm-notifications?userId=${encodeURIComponent(String(userId))}`;
 
-    this.socket = new WebSocket(wsUrl);
+    const ws = new WebSocket(wsUrl);
+    this.socket = ws;
 
-    this.socket.onmessage = (evt: MessageEvent) => {
+    ws.onmessage = (evt: MessageEvent) => {
       try {
         const payload = JSON.parse(String(evt.data || '{}'));
         if (payload?.type === 'snapshot') {
@@ -94,16 +141,17 @@ export class CrmNotificationRealtimeService {
       }
     };
 
-    this.socket.onclose = () => {
-      this.socket = null;
+    ws.onclose = () => {
+      if (this.socket === ws) {
+        this.socket = null;
+      }
       if (this.manuallyClosed) {
         return;
       }
       this.scheduleReconnect();
     };
 
-    this.socket.onerror = () => {
-      this.disconnectSocketOnly();
+    ws.onerror = () => {
       this.scheduleReconnect();
     };
   }
@@ -122,14 +170,39 @@ export class CrmNotificationRealtimeService {
   }
 
   private async loadSnapshot(userId: number): Promise<void> {
+    const now = Date.now();
+    if (this.lastSnapshotUserId === userId && (now - this.lastSnapshotAt) < 1000) {
+      return;
+    }
+
+    if (this.snapshotInFlight && this.snapshotInFlightUserId === userId) {
+      await this.snapshotInFlight;
+      return;
+    }
+
     const url = `${environment.api_url}CrmNotifications/unread/${userId}`;
+    const request = (async () => {
+      try {
+        const res: any = await firstValueFrom(this.http.get(url));
+        const snapshot = this.normalizeSnapshot(res?.data);
+        this.applySnapshot(snapshot);
+        this.lastSnapshotUserId = userId;
+        this.lastSnapshotAt = Date.now();
+      } catch {
+        this.unreadCount$.next(0);
+        this.notifications$.next([]);
+      }
+    })();
+
+    this.snapshotInFlight = request;
+    this.snapshotInFlightUserId = userId;
     try {
-      const res: any = await firstValueFrom(this.http.get(url));
-      const snapshot = this.normalizeSnapshot(res?.data);
-      this.applySnapshot(snapshot);
-    } catch {
-      this.unreadCount$.next(0);
-      this.notifications$.next([]);
+      await request;
+    } finally {
+      if (this.snapshotInFlight === request) {
+        this.snapshotInFlight = null;
+        this.snapshotInFlightUserId = null;
+      }
     }
   }
 
@@ -141,7 +214,9 @@ export class CrmNotificationRealtimeService {
   private disconnectSocketOnly(): void {
     if (this.socket) {
       try {
-        this.socket.close();
+        if (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING) {
+          this.socket.close();
+        }
       } catch {
       }
       this.socket = null;
@@ -173,3 +248,5 @@ export class CrmNotificationRealtimeService {
     };
   }
 }
+
+
