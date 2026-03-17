@@ -566,3 +566,38 @@ body.wuic-designer-edit-mode *:hover>.ng-resizable-handle {
 }
 
 /*#endregion custom-css*/
+
+/* CRM conditional row styles (metadata-driven) */
+.p-datatable .p-datatable-tbody > tr.row-danger {
+    --p-datatable-row-background: #fecaca;
+    --p-datatable-row-color: var(--p-text-color, #111827);
+}
+
+.p-datatable .p-datatable-tbody > tr.row-warning {
+    --p-datatable-row-background: #fed7aa;
+    --p-datatable-row-color: var(--p-text-color, #111827);
+}
+
+.p-datatable .p-datatable-tbody > tr.row-success {
+    --p-datatable-row-background: #bbf7d0;
+    --p-datatable-row-color: var(--p-text-color, #111827);
+}
+
+/* Fallback for themes/components that color cells directly */
+.p-datatable .p-datatable-tbody > tr.row-danger > td,
+.p-datatable .p-datatable-tbody > tr > td.row-danger {
+    background-color: #fecaca !important;
+    color: var(--p-text-color, #111827) !important;
+}
+
+.p-datatable .p-datatable-tbody > tr.row-warning > td,
+.p-datatable .p-datatable-tbody > tr > td.row-warning {
+    background-color: #fed7aa !important;
+    color: var(--p-text-color, #111827) !important;
+}
+
+.p-datatable .p-datatable-tbody > tr.row-success > td,
+.p-datatable .p-datatable-tbody > tr > td.row-success {
+    background-color: #bbf7d0 !important;
+    color: var(--p-text-color, #111827) !important;
+}
