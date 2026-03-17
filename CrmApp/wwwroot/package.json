@@ -22,7 +22,8 @@
     "build:lib:npm": "ng build wuic-framework-lib -c production",
     "build:lib": "ng build wuic-framework-lib --watch",
     "publish:lib": "ng build wuic-framework-lib -c production && cd dist/wuic-framework-lib && npm publish --access public --registry https://registry.npmjs.org/ && cd ../..",
-    "test:unit:crm-app": "ng test crm-app --watch=false --browsers=ChromeHeadless"
+    "test:unit:crm-app": "ng test crm-app --watch=false --browsers=ChromeHeadless",
+    "test:e2e:crm-notifications": "playwright test -c playwright.crm.config.ts playwright/crm-notifications.e2e.spec.ts"
   },
   "private": true,
   "dependencies": {

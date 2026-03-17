@@ -75,11 +75,19 @@
         </div>
         <div class="app-shell-theme">
             <div class="app-shell-theme-card border-1 border-300 border-round p-3 surface-100 shadow-2">
-                <div class="app-shell-theme-select mb-2">
+                    <div class="app-shell-theme-select mb-2">
                     <p-select [options]="availableThemes" optionLabel="label" optionValue="value"
                         [ngModel]="selectedTheme" (ngModelChange)="onThemeChange($event)"
                         [style]="{ width: '100%', height: '35px' }" placeholder="Tema">
                     </p-select>
+                </div>
+                <div class="app-shell-notification">
+                    <button type="button" class="notification-btn" (click)="notificationsPanel.toggle($event)">
+                        <i class="pi pi-bell"></i>
+                        @if (unreadNotificationsCount > 0) {
+                        <span class="notification-badge">{{ unreadNotificationsCount }}</span>
+                        }
+                    </button>
                 </div>
                 <div class="app-shell-theme-icon text-xl mb-3">
                     @if (isDarkMode) {
@@ -116,3 +124,20 @@
 </p-dialog>
 
 <p-confirmDialog />
+
+<p-popover #notificationsPanel appendTo="body" [style]="{ width: '26rem', maxWidth: '92vw' }">
+    <div class="notification-panel">
+        <div class="notification-panel-header">Notifiche CRM</div>
+        @if (!notifications.length) {
+        <div class="notification-empty">Nessuna notifica.</div>
+        }
+        @for (n of notifications; track n.notificationId) {
+        <button type="button" class="notification-item" [class.notification-item-unread]="!n.isRead"
+            (click)="openNotification(n); notificationsPanel.hide()">
+            <div class="notification-item-message">{{ n.message }}</div>
+            <div class="notification-item-meta">{{ n.type }} · {{ n.createdAt | date:'dd/MM/yyyy HH:mm' }}</div>
+        </button>
+        }
+    </div>
+</p-popover>
+

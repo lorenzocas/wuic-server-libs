@@ -13,18 +13,20 @@
 .app-shell-header {
     display: flex;
     align-items: stretch;
+    gap: 8px;
     flex: 0 0 auto;
     min-height: 0;
 }
 
 .app-shell-menu {
-    width: calc(100% - 220px);
+    flex: 1 1 auto;
+    width: auto;
     min-width: 0;
 }
 
 .app-shell-theme {
-    width: 220px;
-    flex: 0 0 220px;
+    width: 270px;
+    flex: 0 0 270px;
     border-radius: 5px !important;
     display: flex;
     align-items: center;
@@ -50,13 +52,16 @@
     padding: 7px !important;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 8px;
+    flex-wrap: nowrap;
+    overflow: hidden;
 }
 
 .app-shell-theme-select {
     flex: 1 1 auto;
-    min-width: 120px;
+    min-width: 0;
+    max-width: 10rem;
     margin-bottom: 0 !important;
 }
 
@@ -143,4 +148,110 @@
     margin-top: 8px;
     display: flex;
     justify-content: flex-end;
+}
+
+.app-shell-notification {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.notification-btn {
+    position: relative;
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    border: 1px solid var(--p-content-border-color);
+    background: var(--p-surface-0);
+    color: var(--p-text-color);
+    cursor: pointer;
+}
+
+.notification-btn .pi {
+    font-size: 0.95rem;
+}
+
+.notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -6px;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 0.7rem;
+    line-height: 18px;
+    text-align: center;
+    padding: 0 4px;
+}
+
+.notification-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 60vh;
+    overflow: auto;
+}
+
+.notification-panel-header {
+    font-weight: 700;
+}
+
+.notification-empty {
+    opacity: 0.7;
+}
+
+.notification-item {
+    text-align: left;
+    border: 1px solid var(--p-content-border-color);
+    border-radius: 8px;
+    padding: 0.6rem;
+    background: var(--p-surface-0);
+    cursor: pointer;
+}
+
+.notification-item-unread {
+    border-color: color-mix(in srgb, #3b82f6 45%, var(--p-content-border-color));
+    background: color-mix(in srgb, #3b82f6 8%, var(--p-surface-0));
+}
+
+.notification-item-message {
+    font-size: 0.9rem;
+}
+
+.notification-item-meta {
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+    opacity: 0.7;
+}
+
+:host ::ng-deep .app-shell-menu .p-menubar {
+    overflow-x: auto;
+}
+
+:host ::ng-deep .app-shell-menu .p-menubar-root-list {
+    flex-wrap: nowrap !important;
+}
+
+:host ::ng-deep .app-shell-theme-select .p-select {
+    width: 100% !important;
+    min-width: 0;
+}
+
+:host ::ng-deep .app-shell-theme-select .p-select-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 1500px) {
+    .app-shell-theme {
+        width: 240px;
+        flex: 0 0 240px;
+    }
+
+    .app-shell-theme-icon {
+        display: none;
+    }
 }

@@ -1,3 +1,4 @@
+using CrmApp.Realtime;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -145,6 +146,13 @@ internal static class Program
 
     private static IHostBuilder CreateHostBuilder(string[] args, string hostProjectRoot, string legacyRoot) =>
         Host.CreateDefaultBuilder(args)
+            .ConfigureServices((_, services) =>
+            {
+                services.AddSingleton<ICrmNotificationRepository, CrmNotificationRepository>();
+                services.AddSingleton<ICrmNotificationPushService, CrmNotificationPushService>();
+                services.AddHostedService<CrmNotificationSqlDependencyWatcher>();
+                services.AddSingleton<IStartupFilter, CrmNotificationStartupFilter>();
+            })
             .ConfigureAppConfiguration((hostingContext, config) =>
             {
                 config.Sources.Clear();

@@ -1,12 +1,13 @@
-import { AfterContentInit, Component, OnInit } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { AfterContentInit, Component, OnDestroy, OnInit } from '@angular/core';
+import { Router, RouterOutlet } from '@angular/router';
 import { utility } from './classes/utility';
-import { AsyncPipe, NgClass, NgFor, NgIf, NgStyle } from '@angular/common';
+import { AsyncPipe, DatePipe, NgClass, NgFor, NgIf, NgStyle } from '@angular/common';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { SelectModule } from 'primeng/select';
 import { FormsModule } from '@angular/forms';
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
+import { PopoverModule } from 'primeng/popover';
 import { TranslateModule } from '@ngx-translate/core';
 
 import { ToastModule } from 'primeng/toast';
@@ -42,6 +43,7 @@ import { FormatGridViewValuePipe } from 'wuic-framework-lib';
 import { LazyFieldEditorComponent } from 'wuic-framework-lib';
 import { CallbackPipe2 } from 'wuic-framework-lib';
 import { GetSrcUploadPreviewPipe } from 'wuic-framework-lib';
+import { CrmNotificationItem, CrmNotificationRealtimeService } from './service/crm-notification-realtime.service';
 import { LazyImageWrapperComponent } from 'wuic-framework-lib';
 import {
   loadBooleanEditorComponent,
@@ -63,12 +65,12 @@ import {
 
 @Component({
   selector: 'app-root',
-  imports: [AsyncPipe, RouterOutlet, LazyMetaMenuComponent, ToggleSwitchModule, SelectModule, FormsModule, DialogModule, ButtonModule, TranslateModule, ToastModule, ConfirmDialogModule],
+  imports: [AsyncPipe, DatePipe, RouterOutlet, LazyMetaMenuComponent, ToggleSwitchModule, SelectModule, FormsModule, DialogModule, ButtonModule, PopoverModule, TranslateModule, ToastModule, ConfirmDialogModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
   providers: [MessageService, ConfirmationService, DialogService, GlobalHandler]
 })
-export class AppComponent implements OnInit, AfterContentInit {
+export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
   private static readonly ThemeStorageKey = 'wuic-selected-theme';
   private static readonly ThemeModeStorageKey = 'wuic-theme-mode';
   private readonly primaryPalettes: Record<string, Record<string, string>> = {
@@ -147,9 +149,12 @@ export class AppComponent implements OnInit, AfterContentInit {
     { label: 'Material Amber', value: 'material-amber', preset: 'material', primary: 'amber' }
   ];
 
+  unreadNotificationsCount = 0;
+  notifications: CrmNotificationItem[] = [];
+  private loggedUserId: number | null = null;
   // @ViewChild('spreadsheet') spreadsheet: any;
 
-  constructor(public messageService: MessageService, public confirmationService: ConfirmationService, private http: HttpClient, private dialogSrv: DialogService, private translationService: TranslationManagerService, public globalHandler: GlobalHandler, private primeng: PrimeNG) {
+  constructor(public messageService: MessageService, public confirmationService: ConfirmationService, private http: HttpClient, private dialogSrv: DialogService, private translationService: TranslationManagerService, public globalHandler: GlobalHandler, private primeng: PrimeNG, private notificationRealtime: CrmNotificationRealtimeService, private router: Router) {
 
     WtoolboxService.messageNotificationService = messageService;
     WtoolboxService.confirmationService = confirmationService;
@@ -157,11 +162,19 @@ export class AppComponent implements OnInit, AfterContentInit {
     WtoolboxService.appSettings = appSettings;
     WtoolboxService.dialogService = dialogSrv;
     WtoolboxService.translationService = translationService;
-    WtoolboxService.errorHandler = this.globalHandler;
+        WtoolboxService.errorHandler = this.globalHandler;
 
     GlobalHandler.messageNotification.subscribe((data) => {
       this.currentException = data.exception;
       this.visible = data.show;
+    });
+
+    this.notificationRealtime.unreadCount$.subscribe((count) => {
+      this.unreadNotificationsCount = Number(count || 0);
+    });
+
+    this.notificationRealtime.notifications$.subscribe((items) => {
+      this.notifications = Array.isArray(items) ? items : [];
     });
 
     //custom functions
@@ -240,12 +253,14 @@ export class AppComponent implements OnInit, AfterContentInit {
     });
 
   }
-
   ngAfterContentInit(): void {
     this.isBusy = WtoolboxService.isBusy;
     this.fixBusy = true;
   }
 
+  ngOnDestroy(): void {
+    this.notificationRealtime.disconnect();
+  }
   ngOnInit(): void {
     const savedTheme = localStorage.getItem(AppComponent.ThemeStorageKey);
     if (savedTheme && this.availableThemes.some(t => t.value === savedTheme)) {
@@ -284,6 +299,7 @@ export class AppComponent implements OnInit, AfterContentInit {
     };
 
     this.bootstrapFirstRun();
+    this.initNotificationsRealtime();
   }
 
   async submitFirstRunInstall(): Promise<void> {
@@ -929,6 +945,75 @@ export class AppComponent implements OnInit, AfterContentInit {
     return String(error?.message || 'Errore sconosciuto durante il first-run setup.');
   }
 
+  private initNotificationsRealtime(): void {
+    const userId = this.resolveUserIdFromCookie();
+    if (!userId) {
+      return;
+    }
+
+    this.loggedUserId = userId;
+    void this.notificationRealtime.connect(userId);
+  }
+
+  private resolveUserIdFromCookie(): number | null {
+    const rawCookies = String(document?.cookie || '');
+    const token = rawCookies.split(';').map(x => x.trim()).find(x => x.startsWith('k-user='));
+    if (!token) {
+      return null;
+    }
+
+    try {
+      const encoded = token.substring('k-user='.length);
+      const decoded = decodeURIComponent(encoded);
+      const parsed = JSON.parse(decoded);
+      const id = Number(parsed?.user_id ?? 0);
+      return Number.isFinite(id) && id > 0 ? id : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async openNotification(item: CrmNotificationItem): Promise<void> {
+    if (!item) {
+      return;
+    }
+
+    if (!item.isRead && item.notificationId > 0) {
+      await this.notificationRealtime.markRead(item.notificationId);
+    }
+
+    const route = this.resolveNotificationRoute(item);
+    if (route) {
+      this.router.navigateByUrl(route);
+    }
+  }
+
+  private resolveNotificationRoute(item: CrmNotificationItem): string {
+    const type = String(item?.entityType || '').trim().toLowerCase();
+    const id = Number(item?.entityId || 0);
+
+    if (!id) {
+      return '';
+    }
+
+    if (type === 'lead' || type === 'crm_leads') {
+      return `/crm_leads/edit/${id}`;
+    }
+
+    if (type === 'case' || type === 'crm_cases') {
+      return `/crm_cases/edit/${id}`;
+    }
+
+    if (type === 'activity' || type === 'crm_activities') {
+      return `/crm_activities/edit/${id}`;
+    }
+
+    if (type === 'opportunity' || type === 'crm_opportunities') {
+      return `/crm_opportunities/edit/${id}`;
+    }
+
+    return '';
+  }
   toggleLightDark() {
     const linkElement = document.querySelector('html') as HTMLElement;
     if (linkElement.classList.contains('theme-dark')) {
