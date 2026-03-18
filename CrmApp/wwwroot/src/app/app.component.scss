@@ -55,7 +55,7 @@
     overflow: hidden;
 }
 
-:host ::ng-deep .app-shell-content router-outlet+* > wuic-data-repeater {
+:host ::ng-deep .app-shell-content router-outlet+*>wuic-data-repeater {
     display: flex;
     flex: 1 1 auto;
     min-height: 0 !important;
@@ -269,7 +269,7 @@
 :host ::ng-deep .app-shell-menu .p-menubar-root-list {
     flex-wrap: nowrap !important;
     min-width: 0;
-    overflow: visible !important;
+    overflow: auto;
 }
 
 :host ::ng-deep .app-shell-menu .p-menubar-end {
