@@ -1,13 +1,12 @@
 import { AfterContentInit, Component, Injector, OnDestroy, OnInit } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { utility } from './classes/utility';
-import { AsyncPipe, DatePipe, NgClass, NgFor, NgIf, NgStyle } from '@angular/common';
+import { AsyncPipe, NgClass, NgFor, NgIf, NgStyle } from '@angular/common';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { SelectModule } from 'primeng/select';
 import { FormsModule } from '@angular/forms';
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
-import { PopoverModule } from 'primeng/popover';
 import { TranslateModule } from '@ngx-translate/core';
 
 import { ToastModule } from 'primeng/toast';
@@ -43,9 +42,9 @@ import { FormatGridViewValuePipe } from 'wuic-framework-lib';
 import { LazyFieldEditorComponent } from 'wuic-framework-lib';
 import { CallbackPipe2 } from 'wuic-framework-lib';
 import { GetSrcUploadPreviewPipe } from 'wuic-framework-lib';
-import { CrmNotificationItem, CrmNotificationRealtimeService } from './service/crm-notification-realtime.service';
 import { LazyImageWrapperComponent } from 'wuic-framework-lib';
 import { AuthSessionService } from 'wuic-framework-lib';
+import { NotificationBellComponent } from 'wuic-framework-lib';
 import {
   loadBooleanEditorComponent,
   loadButtonEditorComponent,
@@ -66,7 +65,7 @@ import {
 
 @Component({
   selector: 'app-root',
-  imports: [AsyncPipe, DatePipe, RouterOutlet, LazyMetaMenuComponent, ToggleSwitchModule, SelectModule, FormsModule, DialogModule, ButtonModule, PopoverModule, TranslateModule, ToastModule, ConfirmDialogModule],
+  imports: [AsyncPipe, RouterOutlet, LazyMetaMenuComponent, ToggleSwitchModule, SelectModule, FormsModule, DialogModule, ButtonModule, TranslateModule, ToastModule, ConfirmDialogModule, NotificationBellComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
   providers: [MessageService, ConfirmationService, DialogService, GlobalHandler]
@@ -151,13 +150,16 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
   ];
 
   unreadNotificationsCount = 0;
-  notifications: CrmNotificationItem[] = [];
-  private loggedUserId: number | null = null;
+  // notifications: CrmNotificationItem[] = [];
+  loggedUserId: number | null = null;
   private notificationsRealtimeUserId: number | null = null;
   private authSession: AuthSessionService | null = null;
   // @ViewChild('spreadsheet') spreadsheet: any;
 
-  constructor(public messageService: MessageService, public confirmationService: ConfirmationService, private http: HttpClient, private dialogSrv: DialogService, private translationService: TranslationManagerService, public globalHandler: GlobalHandler, private primeng: PrimeNG, private notificationRealtime: CrmNotificationRealtimeService, private router: Router, private injector: Injector) {
+  constructor(public messageService: MessageService, public confirmationService: ConfirmationService, private http: HttpClient, private dialogSrv: DialogService, private translationService: TranslationManagerService, public globalHandler: GlobalHandler, private primeng: PrimeNG,
+    // private notificationRealtime: CrmNotificationRealtimeService, private router: Router, 
+    private injector: Injector
+  ) {
 
     WtoolboxService.messageNotificationService = messageService;
     WtoolboxService.confirmationService = confirmationService;
@@ -165,31 +167,32 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     WtoolboxService.appSettings = appSettings;
     WtoolboxService.dialogService = dialogSrv;
     WtoolboxService.translationService = translationService;
-        WtoolboxService.errorHandler = this.globalHandler;
+    WtoolboxService.errorHandler = this.globalHandler;
 
     GlobalHandler.messageNotification.subscribe((data) => {
       this.currentException = data.exception;
       this.visible = data.show;
     });
 
-    this.notificationRealtime.unreadCount$.subscribe((count) => {
-      this.unreadNotificationsCount = Number(count || 0);
-    });
+    // this.notificationRealtime.unreadCount$.subscribe((count) => {
+    //   this.unreadNotificationsCount = Number(count || 0);
+    // });
 
-    this.notificationRealtime.notifications$.subscribe((items) => {
-      this.notifications = Array.isArray(items) ? items : [];
-    });
+    // this.notificationRealtime.notifications$.subscribe((items) => {
+    //   this.notifications = Array.isArray(items) ? items : [];
+    // });
 
     this.authSession = this.injector.get(AuthSessionService);
-    this.authSession.state$.subscribe((state) => {
-      if (state?.authenticated || state?.legacyAuthenticated) {
-        this.ensureNotificationsRealtimeConnected();
-      } else {
-        this.notificationsRealtimeUserId = null;
-        this.loggedUserId = null;
-        this.notificationRealtime.disconnect();
-      }
-    });
+
+    // this.authSession.state$.subscribe((state) => {
+    //   if (state?.authenticated || state?.legacyAuthenticated) {
+    //     this.ensureNotificationsRealtimeConnected();
+    //   } else {
+    //     this.notificationsRealtimeUserId = null;
+    //     this.loggedUserId = null;
+    //     // this.notificationRealtime.disconnect();
+    //   }
+    // });
 
     //custom functions
     WtoolboxService.myFunctions['utility'] = new utility();
@@ -267,14 +270,16 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     });
 
   }
+
   ngAfterContentInit(): void {
     this.isBusy = WtoolboxService.isBusy;
     this.fixBusy = true;
   }
 
   ngOnDestroy(): void {
-    this.notificationRealtime.disconnect();
+    // this.notificationRealtime.disconnect();
   }
+
   ngOnInit(): void {
     const savedTheme = localStorage.getItem(AppComponent.ThemeStorageKey);
     if (savedTheme && this.availableThemes.some(t => t.value === savedTheme)) {
@@ -311,9 +316,8 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
       menu: 1300,     // overlay menus
       tooltip: 1400   // tooltip
     };
-
-    this.bootstrapFirstRun();
-    this.initNotificationsRealtime();
+    this.loggedUserId = this.resolveUserIdFromCookie();
+    // this.initNotificationsRealtime();
   }
 
   async submitFirstRunInstall(): Promise<void> {
@@ -959,24 +963,25 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     return String(error?.message || 'Errore sconosciuto durante il first-run setup.');
   }
 
-  private initNotificationsRealtime(): void {
-    this.ensureNotificationsRealtimeConnected();
-  }
+  // private initNotificationsRealtime(): void {
+  //   this.ensureNotificationsRealtimeConnected();
+  // }
 
-  private ensureNotificationsRealtimeConnected(): void {
-    const userId = this.resolveUserIdFromCookie();
-    if (!userId || userId <= 0) {
-      return;
-    }
+  // private ensureNotificationsRealtimeConnected(): void {
+  //   const userId = this.resolveUserIdFromCookie();
+  //   if (!userId || userId <= 0) {
+  //     return;
+  //   }
 
-    if (this.notificationsRealtimeUserId === userId) {
-      return;
-    }
+  //   if (this.notificationsRealtimeUserId === userId) {
+  //     return;
+  //   }
 
-    this.notificationsRealtimeUserId = userId;
-    this.loggedUserId = userId;
-    void this.notificationRealtime.connect(userId);
-  }
+  //   this.notificationsRealtimeUserId = userId;
+  //   this.loggedUserId = userId;
+  //   void this.notificationRealtime.connect(userId);
+  // }
+
   get showRightHeaderBlock(): boolean {
     const state = this.authSession?.snapshot;
     if (state?.authenticated || state?.legacyAuthenticated) {
@@ -1005,59 +1010,61 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
       return null;
     }
   }
-  get hasReadNotifications(): boolean {
-    return Array.isArray(this.notifications) && this.notifications.some(x => !!x?.isRead);
-  }
 
-  async clearReadNotifications(): Promise<void> {
-    if (!this.loggedUserId || this.loggedUserId <= 0) {
-      return;
-    }
+  // get hasReadNotifications(): boolean {
+  //   return Array.isArray(this.notifications) && this.notifications.some(x => !!x?.isRead);
+  // }
 
-    await this.notificationRealtime.clearRead(this.loggedUserId);
-  }
+  // async clearReadNotifications(): Promise<void> {
+  //   if (!this.loggedUserId || this.loggedUserId <= 0) {
+  //     return;
+  //   }
 
-  async openNotification(item: CrmNotificationItem): Promise<void> {
-    if (!item) {
-      return;
-    }
+  //   await this.notificationRealtime.clearRead(this.loggedUserId);
+  // }
 
-    if (!item.isRead && item.notificationId > 0) {
-      await this.notificationRealtime.markRead(item.notificationId);
-    }
+  // async openNotification(item: CrmNotificationItem): Promise<void> {
+  //   if (!item) {
+  //     return;
+  //   }
 
-    const route = this.resolveNotificationRoute(item);
-    if (route) {
-      this.router.navigateByUrl(route);
-    }
-  }
+  //   if (!item.isRead && item.notificationId > 0) {
+  //     await this.notificationRealtime.markRead(item.notificationId);
+  //   }
 
-  private resolveNotificationRoute(item: CrmNotificationItem): string {
-    const type = String(item?.entityType || '').trim().toLowerCase();
-    const id = Number(item?.entityId || 0);
+  //   const route = this.resolveNotificationRoute(item);
+  //   if (route) {
+  //     this.router.navigateByUrl(route);
+  //   }
+  // }
 
-    if (!id) {
-      return '';
-    }
+  // private resolveNotificationRoute(item: CrmNotificationItem): string {
+  //   const type = String(item?.entityType || '').trim().toLowerCase();
+  //   const id = Number(item?.entityId || 0);
 
-    if (type === 'lead' || type === 'crm_leads') {
-      return `/crm_leads/edit/${id}`;
-    }
+  //   if (!id) {
+  //     return '';
+  //   }
 
-    if (type === 'case' || type === 'crm_cases') {
-      return `/crm_cases/edit/${id}`;
-    }
+  //   if (type === 'lead' || type === 'crm_leads') {
+  //     return `/crm_leads/edit/${id}`;
+  //   }
 
-    if (type === 'activity' || type === 'crm_activities') {
-      return `/crm_activities/edit/${id}`;
-    }
+  //   if (type === 'case' || type === 'crm_cases') {
+  //     return `/crm_cases/edit/${id}`;
+  //   }
 
-    if (type === 'opportunity' || type === 'crm_opportunities') {
-      return `/crm_opportunities/edit/${id}`;
-    }
+  //   if (type === 'activity' || type === 'crm_activities') {
+  //     return `/crm_activities/edit/${id}`;
+  //   }
 
-    return '';
-  }
+  //   if (type === 'opportunity' || type === 'crm_opportunities') {
+  //     return `/crm_opportunities/edit/${id}`;
+  //   }
+
+  //   return '';
+  // }
+
   toggleLightDark() {
     const linkElement = document.querySelector('html') as HTMLElement;
     if (linkElement.classList.contains('theme-dark')) {
@@ -1100,6 +1107,8 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     }
   }
 }
+
+
 
 
 
