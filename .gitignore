@@ -34,5 +34,3 @@ codebase_docs/
 codebase_embeddings/
 CrmApp/.local-package-sync.stamp
 CrmApp/wwwroot/.wuic-framework-lib.lastinstall
-NugetFeed/RuntimeEfCore.1.0.0.nupkg
-NugetFeed/WuicOData.1.0.0.nupkg
