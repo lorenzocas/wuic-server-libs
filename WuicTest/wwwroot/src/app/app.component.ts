@@ -31,7 +31,7 @@ import { WtoolboxService, MetadataProviderService, GlobalHandler, CustomExceptio
 
 @Component({
   selector: 'app-root',
-  imports: [AsyncPipe, RouterOutlet, NgComponentOutlet, ToggleSwitchModule, SelectModule, FormsModule, DialogModule, ButtonModule, TranslateModule, ToastModule, ConfirmDialogModule],
+  imports: [AsyncPipe, NgIf, RouterOutlet, NgComponentOutlet, ToggleSwitchModule, SelectModule, FormsModule, DialogModule, ButtonModule, TranslateModule, ToastModule, ConfirmDialogModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
   providers: [MessageService, ConfirmationService, DialogService, GlobalHandler]
