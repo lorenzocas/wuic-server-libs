@@ -32,6 +32,9 @@
 		},
 		{
 			"path": "codebase_embeddings"
+		},
+		{
+			"path": "WuicTest"
 		}
 	],
 	"settings": {

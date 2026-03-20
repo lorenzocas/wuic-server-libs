@@ -1,6 +1,7 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
+    "baseUrl": ".",
     "outDir": "./dist/out-tsc",
     "strict": false,
     "noImplicitOverride": true,
@@ -10,6 +11,19 @@
     "skipLibCheck": true,
     "isolatedModules": true,
     "allowJs": true,
+    "paths": {
+      "wuic-framework-lib": [
+        "./node_modules/wuic-framework-lib"
+      ],
+      "wuic-framework-lib/*": [
+        "./node_modules/wuic-framework-lib/*"
+      ],
+      "wuic-framework-lib-src/*": [
+        "./lib-src/*"
+      ],
+      "jspreadsheet": ["./node_modules/jspreadsheet"],
+      "jspreadsheet/*": ["./node_modules/jspreadsheet/*"]
+    },
     "esModuleInterop": true,
     "sourceMap": true,
     "declaration": false,

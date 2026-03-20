@@ -1,0 +1,1 @@
+{"version":3,"file":"groupInfo.d.ts","sourceRoot":"","sources":["../../../../projects/wuic-framework-lib/src/lib/class/groupInfo.ts"],"names":[],"mappings":"AAAA,qBAAa,SAAS;IAClB,KAAK,EAAE,MAAM,CAAC;IACd,YAAY,EAAE,MAAM,CAAC;IACrB,GAAG,EAAE,KAAK,GAAG,MAAM,CAAC;IACpB,UAAU,EAAE,MAAM,CAAC;gBAEP,KAAK,EAAE,MAAM;CAG5B"}

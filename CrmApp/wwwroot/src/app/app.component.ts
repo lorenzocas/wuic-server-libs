@@ -1,7 +1,7 @@
 import { AfterContentInit, Component, Injector, OnDestroy, OnInit } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { utility } from './classes/utility';
-import { AsyncPipe, NgClass, NgFor, NgIf, NgStyle } from '@angular/common';
+import { AsyncPipe, NgClass, NgComponentOutlet, NgFor, NgIf, NgStyle } from '@angular/common';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { SelectModule } from 'primeng/select';
 import { FormsModule } from '@angular/forms';
@@ -27,45 +27,11 @@ import Lara from '@primeng/themes/lara';
 import Nora from '@primeng/themes/nora';
 import Material from '@primeng/themes/material';
 import { updatePrimaryPalette, usePreset } from '@primeuix/styled';
-import { LazyMetaMenuComponent } from 'wuic-framework-lib';
-import { WtoolboxService } from 'wuic-framework-lib';
-import { MetadataProviderService } from 'wuic-framework-lib';
-import { GlobalHandler } from 'wuic-framework-lib';
-import { LazyDataSourceComponent } from 'wuic-framework-lib';
-import { LazyDataActionButtonComponent } from 'wuic-framework-lib';
-import { CallbackPipe } from 'wuic-framework-lib';
-import { IsSelectedRowPipe } from 'wuic-framework-lib';
-import { VisibleFieldListPipe } from 'wuic-framework-lib';
-import { CustomException } from 'wuic-framework-lib';
-import { TranslationManagerService } from 'wuic-framework-lib';
-import { FormatGridViewValuePipe } from 'wuic-framework-lib';
-import { LazyFieldEditorComponent } from 'wuic-framework-lib';
-import { CallbackPipe2 } from 'wuic-framework-lib';
-import { GetSrcUploadPreviewPipe } from 'wuic-framework-lib';
-import { LazyImageWrapperComponent } from 'wuic-framework-lib';
-import { AuthSessionService } from 'wuic-framework-lib';
-import { NotificationBellComponent } from 'wuic-framework-lib';
-import {
-  loadBooleanEditorComponent,
-  loadButtonEditorComponent,
-  loadCodeAreaEditorComponent,
-  loadColorEditorComponent,
-  loadDateEditorComponent,
-  loadDictionaryEditorComponent,
-  loadHtmlEditorComponent,
-  loadLookupEditorComponent,
-  loadNumberEditorComponent,
-  loadPropertyArrayEditorComponent,
-  loadPropertyObjectEditorComponent,
-  loadTextAreaEditorComponent,
-  loadTextEditorComponent,
-  loadTreeViewSelectorComponent,
-  loadUploadEditorComponent
-} from 'wuic-framework-lib';
+import { WtoolboxService, MetadataProviderService, GlobalHandler, CustomException, TranslationManagerService, AuthSessionService } from './wuic-bridges/core';
 
 @Component({
   selector: 'app-root',
-  imports: [AsyncPipe, RouterOutlet, LazyMetaMenuComponent, ToggleSwitchModule, SelectModule, FormsModule, DialogModule, ButtonModule, TranslateModule, ToastModule, ConfirmDialogModule, NotificationBellComponent],
+  imports: [AsyncPipe, RouterOutlet, NgComponentOutlet, ToggleSwitchModule, SelectModule, FormsModule, DialogModule, ButtonModule, TranslateModule, ToastModule, ConfirmDialogModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
   providers: [MessageService, ConfirmationService, DialogService, GlobalHandler]
@@ -154,6 +120,8 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
   loggedUserId: number | null = null;
   private notificationsRealtimeUserId: number | null = null;
   private authSession: AuthSessionService | null = null;
+  metaMenuComponent: any = null;
+  notificationBellComponent: any = null;
   // @ViewChild('spreadsheet') spreadsheet: any;
 
   constructor(public messageService: MessageService, public confirmationService: ConfirmationService, private http: HttpClient, private dialogSrv: DialogService, private translationService: TranslationManagerService, public globalHandler: GlobalHandler, private primeng: PrimeNG,
@@ -196,79 +164,56 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
 
     //custom functions
     WtoolboxService.myFunctions['utility'] = new utility();
+    void this.configureWidgetRuntimeMetadata();
 
-    //customizable
+  }
+
+  private async configureWidgetRuntimeMetadata(): Promise<void> {
+    const ui = await import('./wuic-bridges/ui');
+    const loaders = await import('./wuic-bridges/widget-loaders');
+
     Object.assign(MetadataProviderService.widgetDefinition, {
-      gridRowImports: [ButtonModule, TableModule, NgFor, NgIf, NgClass, NgStyle, FormsModule, LazyDataActionButtonComponent, LazyDataSourceComponent, VisibleFieldListPipe, CallbackPipe, CallbackPipe2, IsSelectedRowPipe, FormatGridViewValuePipe, GetSrcUploadPreviewPipe, LazyFieldEditorComponent, LazyImageWrapperComponent],
-      dynamicFormImports: [NgFor, NgIf, LazyDataActionButtonComponent, LazyDataSourceComponent, VisibleFieldListPipe, TableModule, ButtonModule, LazyFieldEditorComponent]
-      // menuParams: {
-      //   ulWith: "1200px",
-      //   liWidth: "33%",
-      //   itemCountThreshold: 6
-      // },
-      // defaultHeight: "70px",
-      // defaultWidth: "100%",
-      // defaultFilterWidth: "100px",
-      // fieldLabelInline: false,
-      // formColumns: 2,
-      // lookupServerPageCount: 10,
-      //     gridRowTemplate: `
-      //     <td *ngIf="metaInfo.tableMetadata.md_nested_grid_routes">
-      //        <i (click)="toggleRow(rowData, $event, dt)" class="pi" [ngClass]="{'pi-chevron-down': expanded, 'pi-chevron-right': !expanded }"></i>
-      //     </td>
-      //     <td *ngIf="metaInfo.tableMetadata.md_multiple_selection">
-      //      <!-- <p-tableCheckbox [value]="rowData" /> -->
-      //      <input class="p-checkbox-box" type="checkbox" style="margin-left: 15px" (click)="rowSelect(rowData, $event, dt)" [checked]="dt.selection | isSelectedRow : rowData : metaInfo" />
-      //     </td>
-      //     <td>
-      //         <wuic-data-action-button [data]="rowData" [metaInfo]="metaInfo" [datasource]="datasource"></wuic-data-action-button>
-      //     </td>
-      //     <td *ngFor="let col of columns | visibleFieldList">
-      //         <wuic-field-editor *ngIf="rowData.__is_editing" [record]="rowData.__observable" [field]="col.metaColumn" [metaInfo]="metaInfo"></wuic-field-editor>
-      //         <ng-container *ngIf="!rowData.__is_editing">
-      //           <span *ngIf="col.metaColumn.mc_ui_column_type != 'upload' && col.metaColumn.mc_ui_column_type != 'color'" class='list-grid-cell-text-content'>{{ rowData | formatGridViewValue: col.metaColumn }}</span>
-      //           <wuic-image-wrapper *ngIf="col.metaColumn.mc_ui_column_type == 'upload' && rowData[col.field] && col.metaColumn.isImageUpload" [preview]="true" [src]="rowData[col.field] | getSrcUploadPreview : col.metaColumn : metaInfo : rowData : true" [alt]="rowData[col.field]" [previewImageSrc]="rowData[col.field] | getSrcUploadPreview : col.metaColumn : metaInfo : rowData" [alt]="rowData[col.field]" [width]="col.metaColumn.thumbWidth ? col.metaColumn.thumbWidth : 50" [height]="col.metaColumn.thumbHeight ? col.metaColumn.thumbHeight : 50"></wuic-image-wrapper>
-
-      //           <a *ngIf="col.metaColumn.mc_ui_column_type == 'upload' && rowData[col.field] && !col.metaColumn.isImageUpload" [href]="rowData[col.field] | getSrcUploadPreview : col.metaColumn : metaInfo : rowData" target="_blank"><img [src]="rowData[col.field] | getSrcUploadPreview : col.metaColumn : metaInfo : rowData : true" height="50" width="50" /></a>
-
-      //           <div *ngIf="col.metaColumn.mc_ui_column_type == 'color'" [ngStyle]="{backgroundColor: rowData[col.field], width:'20px', height:'20px'}"></div>
-      //         </ng-container>
-      //     </td>
-      // `,
-      // schedulerEventTemplate: `<div class="scheduler-item"><wuic-data-action-button [data]="rowData.extendedProps" [simplified]="true" [metaInfo]="metaInfo" [datasource]="datasource" [simplified]="true"></wuic-data-action-button><span class="item-description">{{rowData.title}}</span> </div>`,
-      // mapEventTemplate: `<div class="map-info"><span class="map-info-title">{{ rowData | callback2: getDescription }}</span><br/><wuic-data-action-button [data]="rowData" [metaInfo]="metaInfo" [datasource]="datasource" [simplified]="true"></wuic-data-action-button></div>`,
-      // treeItemTemplate: `<table><tr><td><wuic-data-action-button [data]="rowData.data" [metaInfo]="metaInfo" [datasource]="datasource"></wuic-data-action-button></td><td><b>{{ rowData.label }}</b></td></tr></table>`
+      gridRowImports: [ButtonModule, TableModule, NgFor, NgIf, NgClass, NgStyle, FormsModule, ui.LazyDataActionButtonComponent, ui.LazyDataSourceComponent, ui.VisibleFieldListPipe, ui.CallbackPipe, ui.CallbackPipe2, ui.IsSelectedRowPipe, ui.FormatGridViewValuePipe, ui.GetSrcUploadPreviewPipe, ui.LazyFieldEditorComponent, ui.LazyImageWrapperComponent],
+      dynamicFormImports: [NgFor, NgIf, ui.LazyDataActionButtonComponent, ui.LazyDataSourceComponent, ui.VisibleFieldListPipe, TableModule, ButtonModule, ui.LazyFieldEditorComponent]
     });
 
-    //customizable
     Object.assign(MetadataProviderService.widgetMap, {
-      'text': { loader: loadTextEditorComponent, width: '300px' },
-      'txt_area': { loader: loadTextAreaEditorComponent, width: '300px', height: '150px' },
-      'number': { loader: loadNumberEditorComponent, width: '300px' },
-      'number_boolean': { loader: loadBooleanEditorComponent },
-      'boolean': { loader: loadBooleanEditorComponent },
-      'lookupByID': { loader: loadLookupEditorComponent, width: '300px' },
-      'multiple_check': { loader: loadLookupEditorComponent, width: '300px' },
-      'button': { loader: loadButtonEditorComponent },
-      'number_slider': { loader: loadNumberEditorComponent },
-      'date': { loader: loadDateEditorComponent, width: '300px' },
-      'datetime': { loader: loadDateEditorComponent, width: '300px' },
-      'time': { loader: loadDateEditorComponent, width: '300px' },
-      'dictionary': { loader: loadDictionaryEditorComponent, width: '300px' },
-      'dictionary_radio': { loader: loadDictionaryEditorComponent },
-      'html_area': { loader: loadHtmlEditorComponent },
-      'upload': { loader: loadUploadEditorComponent },
-      'code_editor': { loader: loadCodeAreaEditorComponent },
-      'color': { loader: loadColorEditorComponent, width: '300px' },
-      'point': { loader: loadTextEditorComponent, width: '300px' },
-      'polygon': { loader: loadTextEditorComponent, width: '300px' },
-      'geometry': { loader: loadTextAreaEditorComponent, width: '300px' },
-      'tree': { loader: loadTreeViewSelectorComponent, width: '100%' },
-      'field-editor': { component: LazyFieldEditorComponent, hide: true },
-      'objectArray': { loader: loadPropertyArrayEditorComponent, hide: true },
-      'objectProp': { loader: loadPropertyObjectEditorComponent, hide: true },
+      'text': { loader: loaders.loadTextEditorComponent, width: '300px' },
+      'txt_area': { loader: loaders.loadTextAreaEditorComponent, width: '300px', height: '150px' },
+      'number': { loader: loaders.loadNumberEditorComponent, width: '300px' },
+      'number_boolean': { loader: loaders.loadBooleanEditorComponent },
+      'boolean': { loader: loaders.loadBooleanEditorComponent },
+      'lookupByID': { loader: loaders.loadLookupEditorComponent, width: '300px' },
+      'multiple_check': { loader: loaders.loadLookupEditorComponent, width: '300px' },
+      'button': { loader: loaders.loadButtonEditorComponent },
+      'number_slider': { loader: loaders.loadNumberEditorComponent },
+      'date': { loader: loaders.loadDateEditorComponent, width: '300px' },
+      'datetime': { loader: loaders.loadDateEditorComponent, width: '300px' },
+      'time': { loader: loaders.loadDateEditorComponent, width: '300px' },
+      'dictionary': { loader: loaders.loadDictionaryEditorComponent, width: '300px' },
+      'dictionary_radio': { loader: loaders.loadDictionaryEditorComponent },
+      'html_area': { loader: loaders.loadHtmlEditorComponent },
+      'upload': { loader: loaders.loadUploadEditorComponent },
+      'code_editor': { loader: loaders.loadCodeAreaEditorComponent },
+      'color': { loader: loaders.loadColorEditorComponent, width: '300px' },
+      'point': { loader: loaders.loadTextEditorComponent, width: '300px' },
+      'polygon': { loader: loaders.loadTextEditorComponent, width: '300px' },
+      'geometry': { loader: loaders.loadTextAreaEditorComponent, width: '300px' },
+      'tree': { loader: loaders.loadTreeViewSelectorComponent, width: '100%' },
+      'field-editor': { component: ui.LazyFieldEditorComponent, hide: true },
+      'objectArray': { loader: loaders.loadPropertyArrayEditorComponent, hide: true },
+      'objectProp': { loader: loaders.loadPropertyObjectEditorComponent, hide: true },
     });
+  }
 
+  private async loadShellWidgets(): Promise<void> {
+    const [ui, notifications] = await Promise.all([
+      import('./wuic-bridges/ui'),
+      import('./wuic-bridges/notifications')
+    ]);
+
+    this.metaMenuComponent = ui.LazyMetaMenuComponent;
+    this.notificationBellComponent = notifications.NotificationBellComponent;
   }
 
   ngAfterContentInit(): void {
@@ -281,6 +226,7 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    void this.loadShellWidgets();
     const savedTheme = localStorage.getItem(AppComponent.ThemeStorageKey);
     if (savedTheme && this.availableThemes.some(t => t.value === savedTheme)) {
       this.selectedTheme = savedTheme;

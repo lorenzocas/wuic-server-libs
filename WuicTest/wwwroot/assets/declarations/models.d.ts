@@ -1,0 +1,12 @@
+export type SplitAreaSize = number | '*';
+export type SplitAreaSizeInput = SplitAreaSize | `${number}` | undefined | null;
+export declare const areaSizeTransform: (areaSize: SplitAreaSizeInput) => SplitAreaSize | "auto";
+export declare const boundaryAreaSizeTransform: (areaSize: SplitAreaSizeInput) => SplitAreaSize;
+export type SplitDirection = 'horizontal' | 'vertical';
+export type SplitDir = 'ltr' | 'rtl';
+export type SplitUnit = 'pixel' | 'percent';
+export interface SplitGutterInteractionEvent {
+    gutterNum: number;
+    sizes: SplitAreaSize[];
+}
+//# sourceMappingURL=models.d.ts.map

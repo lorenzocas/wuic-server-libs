@@ -1,0 +1,42 @@
+import { OnChanges, OnDestroy, OnInit, SimpleChanges } from '@angular/core';
+import { BehaviorSubject } from 'rxjs';
+import { DataSourceComponent } from '../data-source/data-source.component';
+import * as i0 from "@angular/core";
+export declare class PagerComponent implements OnInit, OnChanges, OnDestroy {
+    datasource: BehaviorSubject<DataSourceComponent>;
+    hardcodedDatasource: DataSourceComponent;
+    pageSize: number;
+    currentPage: number;
+    totalRecords: number;
+    totalPages: number;
+    busy: boolean;
+    private datasourceSubscription?;
+    private fetchInfoSubscription?;
+    private boundDatasource?;
+    private syncingFromDatasource;
+    private preferredPagingApplied;
+    private applyingPreferredPaging;
+    ngOnInit(): void;
+    ngOnChanges(changes: SimpleChanges): void;
+    ngOnDestroy(): void;
+    prevPage(): Promise<void>;
+    nextPage(): Promise<void>;
+    firstPage(): Promise<void>;
+    lastPage(): Promise<void>;
+    applyPageSize(): Promise<void>;
+    applyCurrentPage(): Promise<void>;
+    private goToPage;
+    private applyExternalPagingInputs;
+    private bindToDatasource;
+    private subscribeToDatasource;
+    private applyPreferredPagingFromInputs;
+    private syncFromDatasource;
+    private recomputeTotals;
+    private applyPaging;
+    private setCurrentToFirstRow;
+    private getCurrentDatasource;
+    private normalizeInt;
+    static ɵfac: i0.ɵɵFactoryDeclaration<PagerComponent, never>;
+    static ɵcmp: i0.ɵɵComponentDeclaration<PagerComponent, "wuic-pager", never, { "datasource": { "alias": "datasource"; "required": false; }; "hardcodedDatasource": { "alias": "hardcodedDatasource"; "required": false; }; "pageSize": { "alias": "pageSize"; "required": false; }; "currentPage": { "alias": "currentPage"; "required": false; }; }, {}, never, never, true, never>;
+}
+//# sourceMappingURL=pager.component.d.ts.map

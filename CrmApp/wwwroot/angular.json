@@ -10,7 +10,7 @@
       "prefix": "app",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:application",
+          "builder": "@angular/build:application",
           "options": {
             "loader": {
               ".ttf": "binary"
@@ -84,7 +84,14 @@
                 "scripts": true,
                 "styles": true,
                 "vendor": true
-              }
+              },
+              "fileReplacements": [
+                { "replace": "src/app/wuic-bridges/core.ts", "with": "src/app/wuic-bridges-npm/core.ts" },
+                { "replace": "src/app/wuic-bridges/ui.ts", "with": "src/app/wuic-bridges-npm/ui.ts" },
+                { "replace": "src/app/wuic-bridges/notifications.ts", "with": "src/app/wuic-bridges-npm/notifications.ts" },
+                { "replace": "src/app/wuic-bridges/routes.ts", "with": "src/app/wuic-bridges-npm/routes.ts" },
+                { "replace": "src/app/wuic-bridges/widget-loaders.ts", "with": "src/app/wuic-bridges-npm/widget-loaders.ts" }
+              ]
             }
           },
           "defaultConfiguration": "development"

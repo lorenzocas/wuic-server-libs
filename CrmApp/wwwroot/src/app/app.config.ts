@@ -10,7 +10,7 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { TranslateModule } from '@ngx-translate/core';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
-import { GlobalHandler } from 'wuic-framework-lib';
+import { GlobalHandler } from './wuic-bridges/core';
 // import { ResizableModule } from 'angular-resizable-element';
 import { providePrimeNG } from 'primeng/config';
 

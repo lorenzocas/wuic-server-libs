@@ -71,7 +71,7 @@
 <div class="app-shell">
     <div class="app-shell-header">
         <div class="app-shell-menu">
-            <wuic-meta-menu></wuic-meta-menu>
+            <ng-container *ngComponentOutlet="metaMenuComponent"></ng-container>
         </div>
         @if (showRightHeaderBlock) {
         <div class="app-shell-theme">
@@ -83,7 +83,7 @@
                     </p-select>
                 </div>
                 <div class="app-shell-notification">
-                    <wuic-notification-bell [userId]="loggedUserId"></wuic-notification-bell>
+                    <ng-container *ngComponentOutlet="notificationBellComponent"></ng-container>
                 </div>
                 <div class="app-shell-theme-icon text-xl mb-3">
                     @if (isDarkMode) {

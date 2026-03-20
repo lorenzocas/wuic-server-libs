@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { routes as wuicRoutes } from 'wuic-framework-lib';
+import { routes as wuicRoutes } from './wuic-bridges/routes';
 
 export const appRoutes: Routes = [
   {
