@@ -125,7 +125,7 @@ export class CrmNotificationRealtimeService {
     }
 
     const wsBase = environment.api_url.replace(/^http/i, 'ws').replace(/\/api\/?$/i, '');
-    const wsUrl = `${wsBase}/ws/crm-notifications?userId=${encodeURIComponent(String(userId))}`;
+    const wsUrl = `${wsBase}/ws/notifications?userId=${encodeURIComponent(String(userId))}`;
 
     const ws = new WebSocket(wsUrl);
     this.socket = ws;
