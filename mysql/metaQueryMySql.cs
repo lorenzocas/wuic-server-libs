@@ -94,7 +94,7 @@ namespace metaModelRaw
 
                 if (!isMetaDataQuery)
                 {
-                    bool connectionByUser = ConfigurationManager.AppSettings.AllKeys.Contains("connectionByUser") ? bool.Parse(ConfigurationManager.AppSettings["connectionByUser"]) : false;
+                    bool connectionByUser = bool.Parse(ConfigHelper.GetSettingAsString("connectionByUser") ?? "false");
 
                     if (connectionByUser)
                     {
@@ -429,7 +429,7 @@ namespace metaModelRaw
         {
             using (MySqlConnection connection = string.IsNullOrEmpty(infos.user_db_name) ? metaQueryMySql.GetOpenConnection(true) : metaQueryMySql.getSpecificConnection(infos.user_db_name))
             {
-                Dapper.SqlMapper.FastExpando token = connection.Query(string.Format("SELECT token, ip FROM {0} WHERE {1} = '{2}' and ADDDATE(LastActivityDate, Interval " + ConfigurationManager.AppSettings["sessionTimeoutMinutes"] + " MINUTE) > NOW()", infos.user_table_name, infos.user_id_column_name, user.user_id)).FirstOrDefault();
+                Dapper.SqlMapper.FastExpando token = connection.Query(string.Format("SELECT token, ip FROM {0} WHERE {1} = '{2}' and ADDDATE(LastActivityDate, Interval " + ConfigHelper.GetSettingAsString("sessionTimeoutMinutes") + " MINUTE) > NOW()", infos.user_table_name, infos.user_id_column_name, user.user_id)).FirstOrDefault();
 
                 if (token == null)
                     throw new AuthenticationException("Session expired!");
@@ -566,7 +566,7 @@ namespace metaModelRaw
             {
                 string stored = "loggedUserList";
                 var dbArgs = new DynamicParameters();
-                dbArgs.Add("@sessiontimeout", ConfigurationManager.AppSettings["sessionTimeoutMinutes"]);
+                dbArgs.Add("@sessiontimeout", ConfigHelper.GetSettingAsString("sessionTimeoutMinutes"));
                 List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)connection.Query(stored, dbArgs, commandType: CommandType.StoredProcedure);
 
                 return new rawPagedResult() { Agg = null, results = rows, TotalRecords = rows.Count };
@@ -580,7 +580,7 @@ namespace metaModelRaw
             {
                 string stored = "loggedUserCount";
                 var dbArgs = new DynamicParameters();
-                dbArgs.Add("@sessiontimeout", ConfigurationManager.AppSettings["sessionTimeoutMinutes"]);
+                dbArgs.Add("@sessiontimeout", ConfigHelper.GetSettingAsString("sessionTimeoutMinutes"));
                 Int32 count = connection.Query<Int32>(stored, dbArgs, commandType: CommandType.StoredProcedure).FirstOrDefault();
 
                 return count;
@@ -592,26 +592,30 @@ namespace metaModelRaw
         {
             using (MySqlConnection connection = string.IsNullOrEmpty(infos.user_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.user_db_name))
             {
-                bool isPwdEncripted = bool.Parse(ConfigHelper.GetSettingAsString("IsPwdEncripted"));
-                string encriptionMethod = ConfigHelper.GetSettingAsString("encriptionMethod");
+                bool isPwdEncripted = bool.Parse(ConfigHelper.GetSettingAsString("IsPwdEncripted") ?? "false");
+                string encriptionMethod = ConfigHelper.GetSettingAsString("encriptionMethod") ?? "SHA1";
 
-                string pwd = password;
+                Dapper.SqlMapper.FastExpando user = ((List<Dapper.SqlMapper.FastExpando>)connection.Query(string.Format("SELECT id_utente, username, isAdmin, id_ruolo, userdescription, email, token, ip, language, LastActivityDate, {0} as pwd_hash FROM {1} WHERE {2} = '{3}' and coalesce(cancellato,0)=0", infos.password_column_name, infos.user_table_name, infos.username_column_name, EscapeValue(user_name)))).FirstOrDefault();
+
+                if (user == null) return null;
+
                 if (isPwdEncripted)
                 {
-                    if (encriptionMethod == "SHA1")
+                    string storedHash = ((IDictionary<string, object>)user)["pwd_hash"]?.ToString() ?? "";
+                    if (!Global.verifyPassword(password, storedHash, encriptionMethod))
+                        return null;
+                    if (!Global.isPbkdf2Hash(storedHash))
                     {
-                        pwd = Global.sdcode(pwd);
-                    }
-                    else
-                    {
-                        pwd = Global.mdcode(pwd);
+                        string newHash = Global.pbkdf2Hash(password);
+                        connection.Execute(string.Format("UPDATE {0} SET {1}='{2}' WHERE {3} = '{4}'", infos.user_table_name, infos.password_column_name, EscapeValue(newHash), infos.username_column_name, EscapeValue(user_name)));
                     }
                 }
+                else
+                {
+                    string storedPwd = ((IDictionary<string, object>)user)["pwd_hash"]?.ToString() ?? "";
+                    if (storedPwd != password) return null;
+                }
 
-                Dapper.SqlMapper.FastExpando user = ((List<Dapper.SqlMapper.FastExpando>)connection.Query(string.Format("SELECT id_utente, username, isAdmin, id_ruolo, userdescription, email, token, ip, language, LastActivityDate FROM {0} WHERE {1} = '{2}' AND {3} = '{4}' and coalesce(cancellato,0)=0", infos.user_table_name, infos.username_column_name, EscapeValue(user_name), infos.password_column_name, EscapeValue(pwd)))).FirstOrDefault();
-
-
-                if (user != null)
                 {
                     user u = mapUserFields(infos, user);
 
@@ -628,10 +632,7 @@ namespace metaModelRaw
                     Global.loggedUser.TryAdd(u.username, u);
 
                     return u;
-
                 }
-                else
-                    return null;
             }
         }
 
@@ -1521,7 +1522,7 @@ namespace metaModelRaw
 
                         try
                         {
-                            List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)connection.Query(query, commandTimeout: int.Parse(ConfigurationManager.AppSettings["autoGeneratedQueryTimeout"].ToString()));
+                            List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)connection.Query(query, commandTimeout: int.Parse(ConfigHelper.GetSettingAsString("autoGeneratedQueryTimeout")));
                             return rows.Count == 0;
                         }
                         catch (MySqlException ex1)
@@ -1648,7 +1649,7 @@ namespace metaModelRaw
 
                         List<Dapper.SqlMapper.FastExpando> rows = null;
 
-                        double cacheDataMinutes = ConfigurationManager.AppSettings.AllKeys.Contains("cacheDataMinutes") ? RawHelpers.ParseDouble(ConfigurationManager.AppSettings["cacheDataMinutes"]) : 0D;
+                        double cacheDataMinutes = RawHelpers.ParseDouble(ConfigHelper.GetSettingAsString("cacheDataMinutes") ?? "0");
 
                         if (cacheDataMinutes == -1 || cacheDataMinutes > 0)
                         {
@@ -1657,7 +1658,7 @@ namespace metaModelRaw
 
                         if (rows == null)
                         {
-                            rows = (List<Dapper.SqlMapper.FastExpando>)connection.Query(query, commandTimeout: int.Parse(ConfigurationManager.AppSettings["autoGeneratedQueryTimeout"].ToString()));
+                            rows = (List<Dapper.SqlMapper.FastExpando>)connection.Query(query, commandTimeout: int.Parse(ConfigHelper.GetSettingAsString("autoGeneratedQueryTimeout")));
 
                             if (totalRecords == 0)
                                 totalRecords = rows.Count;
@@ -1969,11 +1970,11 @@ namespace metaModelRaw
 
                         if (noResults)
                         {
-                            connection.Execute(stored, dbArgs, commandType: CommandType.StoredProcedure, commandTimeout: int.Parse(ConfigurationManager.AppSettings["storedProcTimeout"].ToString()));
+                            connection.Execute(stored, dbArgs, commandType: CommandType.StoredProcedure, commandTimeout: int.Parse(ConfigHelper.GetSettingAsString("storedProcTimeout")));
                         }
                         else
                         {
-                            rows = (List<Dapper.SqlMapper.FastExpando>)connection.Query(stored, dbArgs, commandType: CommandType.StoredProcedure, commandTimeout: int.Parse(ConfigurationManager.AppSettings["storedProcTimeout"].ToString()));
+                            rows = (List<Dapper.SqlMapper.FastExpando>)connection.Query(stored, dbArgs, commandType: CommandType.StoredProcedure, commandTimeout: int.Parse(ConfigHelper.GetSettingAsString("storedProcTimeout")));
                         }
 
                         if (rows.Count == 1 && rows[0].data.Keys.Count == 1 && string.IsNullOrEmpty(rows[0].data.Keys.First()))
@@ -2096,7 +2097,7 @@ namespace metaModelRaw
             RawHelpers.setMetadataVersion(invalidateAllMetadata ? null : tableMetadata);
 
             var watch = Stopwatch.StartNew();
-            string result = connection.Execute(query, commandTimeout: int.Parse(ConfigurationManager.AppSettings["autoGeneratedQueryTimeout"].ToString()), transaction: trn).ToString();
+            string result = connection.Execute(query, commandTimeout: int.Parse(ConfigHelper.GetSettingAsString("autoGeneratedQueryTimeout")), transaction: trn).ToString();
             watch.Stop();
             RawHelpers.traceQuery("UpdateflatData", query, watch.ElapsedMilliseconds, route);
 
@@ -2169,7 +2170,7 @@ namespace metaModelRaw
                     string rootPath = upload_fix.DefaultUploadRootPath;
 
                     if (string.IsNullOrEmpty(rootPath))
-                        rootPath = "/" + (ConfigurationManager.AppSettings.AllKeys.Contains("uploadFolder") ? ConfigurationManager.AppSettings["uploadFolder"] : ("/upload/"));
+                        rootPath = "/" + (ConfigHelper.GetSettingAsString("uploadFolder") ?? "/upload/");
                     else
                     {
                         if (rootPath.Substring(rootPath.Length - 1, 1) != "/")
@@ -2381,7 +2382,7 @@ namespace metaModelRaw
             RawHelpers.setMetadataVersion(metadata.FirstOrDefault()._Metadati_Tabelle);
 
             var watch = Stopwatch.StartNew();
-            string ret = connection.Execute(query, commandTimeout: int.Parse(ConfigurationManager.AppSettings["autoGeneratedQueryTimeout"].ToString()), transaction: trn).ToString();
+            string ret = connection.Execute(query, commandTimeout: int.Parse(ConfigHelper.GetSettingAsString("autoGeneratedQueryTimeout")), transaction: trn).ToString();
             watch.Stop();
             RawHelpers.traceQuery("DeleteflatData", query, watch.ElapsedMilliseconds, route);
 
@@ -2462,7 +2463,7 @@ namespace metaModelRaw
             List<_Metadati_Colonne_Grid> multiple_check_fixes = metadata.OfType<_Metadati_Colonne_Grid>().ToList();
 
             var watch = Stopwatch.StartNew();
-            string result = connection.Execute(query, commandTimeout: int.Parse(ConfigurationManager.AppSettings["autoGeneratedQueryTimeout"].ToString()), transaction: trn).ToString();
+            string result = connection.Execute(query, commandTimeout: int.Parse(ConfigHelper.GetSettingAsString("autoGeneratedQueryTimeout")), transaction: trn).ToString();
             watch.Stop();
             RawHelpers.traceQuery("InsertflatData", query, watch.ElapsedMilliseconds, route);
 
@@ -2554,7 +2555,7 @@ namespace metaModelRaw
                     string rootPath = upload_fix.DefaultUploadRootPath;
 
                     if (string.IsNullOrEmpty(rootPath))
-                        rootPath = "/" + (ConfigurationManager.AppSettings.AllKeys.Contains("uploadFolder") ? ConfigurationManager.AppSettings["uploadFolder"] + "/" : ("/upload/"));
+                        rootPath = "/" + ((ConfigHelper.GetSettingAsString("uploadFolder") != null) ? ConfigHelper.GetSettingAsString("uploadFolder") + "/" : "/upload/");
 
                     else
                     {
@@ -2666,7 +2667,7 @@ namespace metaModelRaw
             RawHelpers.setMetadataVersion(metadata.FirstOrDefault()._Metadati_Tabelle);
 
             var watch = Stopwatch.StartNew();
-            string ret = connection.Execute(query, commandTimeout: int.Parse(ConfigurationManager.AppSettings["autoGeneratedQueryTimeout"].ToString()), transaction: trn).ToString();
+            string ret = connection.Execute(query, commandTimeout: int.Parse(ConfigHelper.GetSettingAsString("autoGeneratedQueryTimeout")), transaction: trn).ToString();
             watch.Stop();
             RawHelpers.traceQuery("RestoreflatData", query, watch.ElapsedMilliseconds, route);
 
@@ -2719,9 +2720,9 @@ namespace metaModelRaw
                 }
             });
 
-            if (ConfigurationManager.AppSettings.AllKeys.Contains("logicDeleteField") && !string.IsNullOrEmpty(ConfigurationManager.AppSettings["logicDeleteField"]))
+            if (!string.IsNullOrEmpty(ConfigHelper.GetSettingAsString("logicDeleteField")))
             {
-                string logicRestoreField = ConfigurationManager.AppSettings["logicDeleteField"];
+                string logicRestoreField = ConfigHelper.GetSettingAsString("logicDeleteField");
                 string logicRestoreValue = "0";
 
                 if (!string.IsNullOrEmpty(logicRestoreField))
@@ -2732,7 +2733,7 @@ namespace metaModelRaw
                         string delete_log = "";
                         if (tabel.md_logging_enable)
                         {
-                            if (ConfigurationManager.AppSettings.AllKeys.Contains("logging-extra_client"))
+                            if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
                             {
                                 userId = Utility.id_extraClient(ref userId);
                             }
@@ -2755,7 +2756,7 @@ namespace metaModelRaw
                     string delete_log = "";
                     if (tabel.md_logging_enable)
                     {
-                        if (ConfigurationManager.AppSettings.AllKeys.Contains("logging-extra_client"))
+                        if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
                         {
                             userId = Utility.id_extraClient(ref userId);
                         }
@@ -2999,7 +3000,7 @@ namespace metaModelRaw
                             var watch = Stopwatch.StartNew();
 
                             countQry = SqlMapper.ParseMySqlConn(connection, countQry);
-                            totalRecords = connection.Query<long>(countQry, commandTimeout: int.Parse(ConfigurationManager.AppSettings["autoGeneratedQueryTimeout"].ToString())).FirstOrDefault();
+                            totalRecords = connection.Query<long>(countQry, commandTimeout: int.Parse(ConfigHelper.GetSettingAsString("autoGeneratedQueryTimeout"))).FirstOrDefault();
 
                             watch.Stop();
                             RawHelpers.traceQuery("BuildDynamicSelectQuery", countQry, watch.ElapsedMilliseconds, tab.md_route_name);
@@ -3176,7 +3177,7 @@ namespace metaModelRaw
                     }
                 }
 
-                Dapper.SqlMapper.FastExpando aggValue = connection.Query(string.Format("SELECT {0} FROM {1} {2} {3} {4}", aggregateFields, safetableName, join, where, ""), commandTimeout: int.Parse(ConfigurationManager.AppSettings["autoGeneratedQueryTimeout"].ToString())).FirstOrDefault();
+                Dapper.SqlMapper.FastExpando aggValue = connection.Query(string.Format("SELECT {0} FROM {1} {2} {3} {4}", aggregateFields, safetableName, join, where, ""), commandTimeout: int.Parse(ConfigHelper.GetSettingAsString("autoGeneratedQueryTimeout"))).FirstOrDefault();
 
                 foreach (AggregationInfo agg in aggregates)
                 {
@@ -3955,10 +3956,10 @@ namespace metaModelRaw
                 where += ((where == "") ? " where " : " " + logicOperator + " ") + safetableName + "." + tab.reticular_key_name + " = " + (tab.reticular_key_value.HasValue ? tab.reticular_key_value.Value.ToString() : "null");
             }
 
-            if (mcId != 0 && ConfigurationManager.AppSettings.AllKeys.Contains("logicDeleteField"))
+            if (mcId != 0 && ConfigHelper.GetSettingAsString("logicDeleteField") != null)
             {
-                string logicDeleteField = ConfigurationManager.AppSettings["logicDeleteField"];
-                string logicDeleteValue = ConfigurationManager.AppSettings["logicDeleteValue"];
+                string logicDeleteField = ConfigHelper.GetSettingAsString("logicDeleteField");
+                string logicDeleteValue = ConfigHelper.GetSettingAsString("logicDeleteValue");
 
                 if (!string.IsNullOrEmpty(logicDeleteField))
                 {
@@ -5340,19 +5341,11 @@ namespace metaModelRaw
                 {
                     if (valore.ToString() != "")
                     {
-                        if (fld.mc_ui_is_password.HasValue && fld.mc_ui_is_password.Value && ConfigurationManager.AppSettings["IsPwdEncripted"] == "true")
+                        if (fld.mc_ui_is_password.HasValue && fld.mc_ui_is_password.Value && ConfigHelper.GetSettingAsString("IsPwdEncripted") == "true")
                         {
-                            if (fld.mc_password_encription_method == "SHA1")
-                            {
-                                if (valore.ToString().Length == 59)
-                                    return;
-
-                                valore = Global.sdcode(valore.ToString());
-                            }
-                            else
-                            {
-                                valore = Global.mdcode(valore.ToString());
-                            }
+                            if (Global.isPbkdf2Hash(valore.ToString()))
+                                return;
+                            valore = Global.pbkdf2Hash(valore.ToString());
                         }
                     }
 
@@ -5367,7 +5360,7 @@ namespace metaModelRaw
                             if (entity[fld.mc_nome_colonna] != null)
                             {
 
-                                bool base64Image = ConfigurationManager.AppSettings.AllKeys.Contains("base64Image") ? RawHelpers.ParseBool(ConfigurationManager.AppSettings["base64Image"]) : false;
+                                bool base64Image = RawHelpers.ParseBool(ConfigHelper.GetSettingAsString("base64Image") ?? "false");
 
                                 //get path of the uploaded file
                                 string __id = entity[tabel._Metadati_Colonnes.First(x => x.mc_is_primary_key).mc_nome_colonna].ToString();
@@ -5422,7 +5415,7 @@ namespace metaModelRaw
 
             if (tabel.md_logging_enable)
             {
-                if (ConfigurationManager.AppSettings.AllKeys.Contains("logging-extra_client"))
+                if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
                 {
                     user_id = Utility.id_extraClient(ref user_id);
                 }
@@ -5478,10 +5471,10 @@ namespace metaModelRaw
 
             });
 
-            if (ConfigurationManager.AppSettings.AllKeys.Contains("logicDeleteField"))
+            if (ConfigHelper.GetSettingAsString("logicDeleteField") != null)
             {
-                string logicDeleteField = ConfigurationManager.AppSettings["logicDeleteField"];
-                string logicDeleteValue = ConfigurationManager.AppSettings["logicDeleteValue"];
+                string logicDeleteField = ConfigHelper.GetSettingAsString("logicDeleteField");
+                string logicDeleteValue = ConfigHelper.GetSettingAsString("logicDeleteValue");
 
                 if (!string.IsNullOrEmpty(logicDeleteField))
                 {
@@ -5491,7 +5484,7 @@ namespace metaModelRaw
                         string delete_log = "";
                         if (tabel.md_logging_enable)
                         {
-                            if (ConfigurationManager.AppSettings.AllKeys.Contains("logging-extra_client"))
+                            if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
                             {
                                 user_id = Utility.id_extraClient(ref user_id);
                             }
@@ -5514,7 +5507,7 @@ namespace metaModelRaw
                     string delete_log = "";
                     if (tabel.md_logging_enable)
                     {
-                        if (ConfigurationManager.AppSettings.AllKeys.Contains("logging-extra_client"))
+                        if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
                         {
                             user_id = Utility.id_extraClient(ref user_id);
                         }
@@ -5530,7 +5523,7 @@ namespace metaModelRaw
                         string delete_log = "";
                         if (tabel.md_logging_enable)
                         {
-                            if (ConfigurationManager.AppSettings.AllKeys.Contains("logging-extra_client"))
+                            if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
                             {
                                 user_id = Utility.id_extraClient(ref user_id);
                             }
@@ -5650,7 +5643,7 @@ namespace metaModelRaw
                 safetable_name = (string.IsNullOrEmpty(tabel.md_db_name) ? "" : "`" + tabel.md_db_name + "`." + (!string.IsNullOrEmpty(tabel.md_schema_name) ? "`" + tabel.md_schema_name + "`" : "") + ".") + RawHelpers.escapeDBObjectName(table_name, "mysql");
             }
 
-            bool base64Image = ConfigurationManager.AppSettings.AllKeys.Contains("base64Image") ? RawHelpers.ParseBool(ConfigurationManager.AppSettings["base64Image"]) : false;
+            bool base64Image = RawHelpers.ParseBool(ConfigHelper.GetSettingAsString("base64Image") ?? "false");
 
             List<string> skipUploadFields = metadata.OfType<_Metadati_Colonne_Upload>().Where(x => !string.IsNullOrEmpty(x.MultipleUploadBlobFieldName)).Select(x => x.MultipleUploadBlobFieldName).ToList();
 
@@ -5986,16 +5979,9 @@ namespace metaModelRaw
                     {
                         if (!string.IsNullOrEmpty(valore.ToString()))
                         {
-                            if (fld.mc_ui_is_password.Value && ConfigurationManager.AppSettings["IsPwdEncripted"] == "true")
+                            if (fld.mc_ui_is_password.Value && ConfigHelper.GetSettingAsString("IsPwdEncripted") == "true")
                             {
-                                if (fld.mc_password_encription_method == "SHA1")
-                                {
-                                    valore = Global.sdcode(valore.ToString());
-                                }
-                                else
-                                {
-                                    valore = Global.mdcode(valore.ToString());
-                                }
+                                valore = Global.pbkdf2Hash(valore.ToString());
                             }
                         }
                     }
@@ -6026,7 +6012,7 @@ namespace metaModelRaw
 
                             if (entity[fld.mc_nome_colonna] != null)
                             {
-                                string uploadBasePath = "/" + (ConfigurationManager.AppSettings.AllKeys.Contains("uploadFolder") ? ConfigurationManager.AppSettings["uploadFolder"] : ("/upload"));
+                                string uploadBasePath = "/" + (ConfigHelper.GetSettingAsString("uploadFolder") ?? "/upload");
 
                                 //get path of the uploaded file
                                 string __id = entity.ContainsKey("__id") ? entity["__id"].ToString() : entity["__guid"].ToString();
@@ -6125,7 +6111,7 @@ namespace metaModelRaw
 
             if (tabel.md_logging_enable)
             {
-                if (ConfigurationManager.AppSettings.AllKeys.Contains("logging-extra_client"))
+                if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
                 {
                     user_id = Utility.id_extraClient(ref user_id);
                 }
@@ -6235,7 +6221,7 @@ namespace metaModelRaw
                     var watch = Stopwatch.StartNew();
 
                     countQry = SqlMapper.ParseMySqlConn(con, countQry);
-                    totalRecords = con.Query<long>(countQry, commandTimeout: int.Parse(ConfigurationManager.AppSettings["autoGeneratedQueryTimeout"].ToString())).FirstOrDefault();
+                    totalRecords = con.Query<long>(countQry, commandTimeout: int.Parse(ConfigHelper.GetSettingAsString("autoGeneratedQueryTimeout"))).FirstOrDefault();
 
                     watch.Stop();
                     RawHelpers.traceQuery("ManageShadowCaching", countQry, watch.ElapsedMilliseconds, tab.md_route_name);
@@ -6904,36 +6890,42 @@ namespace metaModelRaw
             }
         }
 
-        public static domBoard saveDashboard(string dashRoute, List<domBoardElement> elements, string controller, List<string> sheetPaths, string designMode, string pwd)
+        public static domBoard saveDashboard(string dashRoute, string boardcontent, string desc, List<string> sheetPaths, string designMode, string pwd)
         {
             using (metaRawModel context = new metaRawModel())
             {
+                sheetPaths = (sheetPaths ?? new List<string>())
+                    .Select(x => (x ?? "").Trim())
+                    .Where(x => !string.IsNullOrEmpty(x))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
                 domBoard board = context.GetdomBoards(dashRoute).FirstOrDefault();
                 if (board != null)
                 {
-                    if (!string.IsNullOrEmpty(board.pwd) && pwd != board.pwd)
-                        throw new ValidationException("Wrong password!");
 
                     board.pwd = pwd;
-                    board.board_des = dashRoute;
-                    board.jsController = controller;
+                    board.board_des = desc;
+                    board.jsController = "";
+                    board.boardcontent = boardcontent;
 
                     context.UpdateDomBoard(board);
 
-                    context.DeleteBoardChildren(board);
 
                 }
                 else
                 {
-                    board = new domBoard() { board_des = dashRoute, board_route = dashRoute, jsController = controller, boardType = designMode, pwd = pwd };
+                    board = new domBoard() { board_route = dashRoute, boardcontent = boardcontent, board_des = desc, boardType = designMode, pwd = pwd };
                     context.AddDomBoard(board);
                 }
 
-                elements.ForEach(x =>
+
+                using (MySqlConnection con = metaQueryMySql.GetOpenConnection(true))
                 {
-                    x.domBoardId = board.id;
-                    context.AddDomBoardElements(x);
-                });
+                    DynamicParameters deleteArgs = new DynamicParameters();
+                    deleteArgs.Add("@dom_boardid", board.id);
+                    con.Execute("delete from dom_board_sheet where dom_boardid=@dom_boardid", deleteArgs);
+                }
 
                 sheetPaths.ForEach(x =>
                 {
@@ -6968,7 +6960,7 @@ namespace metaModelRaw
 
         public static void traceQuery(string method, string query, long durata, string route)
         {
-            bool trace = ConfigurationManager.AppSettings.AllKeys.Contains("traceQuery") ? RawHelpers.ParseBool(ConfigurationManager.AppSettings["traceQuery"]) : false;
+            bool trace = RawHelpers.ParseBool(ConfigHelper.GetSettingAsString("traceQuery") ?? "false");
             user user = RawHelpers.getUserFromCookie();
 
             if (user != null)

@@ -38,6 +38,9 @@
 		}
 	],
 	"settings": {
+		"search.exclude": {
+			"**/lib-src/**": true
+		},
 		"CodeGPT.apiKey": "Claude Code",
 		"powershell.cwd": "KonvergenceCore",
 		"sarif-viewer.connectToGithubCodeScanning": "off",

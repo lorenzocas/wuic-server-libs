@@ -505,7 +505,7 @@ namespace metaModelRaw
             {
                 string stored = "loggedUserList";
                 var dbArgs = new DynamicParameters();
-                dbArgs.Add("@sessiontimeout", ConfigurationManager.AppSettings["sessionTimeoutMinutes"]);
+                dbArgs.Add("@sessiontimeout", ConfigHelper.GetSettingAsString("sessionTimeoutMinutes"));
                 List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)connection.Query(stored, dbArgs, commandType: CommandType.StoredProcedure);
 
                 return new rawPagedResult() { Agg = null, results = rows, TotalRecords = rows.Count };
@@ -519,7 +519,7 @@ namespace metaModelRaw
             {
                 string stored = "loggedUserCount";
                 var dbArgs = new DynamicParameters();
-                dbArgs.Add("@sessiontimeout", ConfigurationManager.AppSettings["sessionTimeoutMinutes"]);
+                dbArgs.Add("@sessiontimeout", ConfigHelper.GetSettingAsString("sessionTimeoutMinutes"));
                 Int32 count = connection.Query<Int32>(stored, dbArgs, commandType: CommandType.StoredProcedure).FirstOrDefault();
 
                 return count;
@@ -531,25 +531,30 @@ namespace metaModelRaw
         {
             using (OracleConnection connection = string.IsNullOrEmpty(infos.user_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.user_db_name))
             {
-                bool isPwdEncripted = bool.Parse(ConfigHelper.GetSettingAsString("IsPwdEncripted"));
-                string encriptionMethod = ConfigHelper.GetSettingAsString("encriptionMethod");
+                bool isPwdEncripted = bool.Parse(ConfigHelper.GetSettingAsString("IsPwdEncripted") ?? "false");
+                string encriptionMethod = ConfigHelper.GetSettingAsString("encriptionMethod") ?? "SHA1";
 
-                string pwd = password;
+                Dapper.SqlMapper.FastExpando user = ((List<Dapper.SqlMapper.FastExpando>)connection.Query(string.Format("SELECT id_utente, username, isAdmin, id_ruolo, userdescription, email, token, ip, language, {0} as pwd_hash FROM {1} WHERE {2} = '{3}' and coalesce(cancellato,0)=0", infos.password_column_name, infos.user_table_name, infos.username_column_name, EscapeValue(user_name)))).FirstOrDefault();
+
+                if (user == null) return null;
+
                 if (isPwdEncripted)
                 {
-                    if (encriptionMethod == "SHA1")
+                    string storedHash = ((IDictionary<string, object>)user)["pwd_hash"]?.ToString() ?? "";
+                    if (!Global.verifyPassword(password, storedHash, encriptionMethod))
+                        return null;
+                    if (!Global.isPbkdf2Hash(storedHash))
                     {
-                        pwd = Global.sdcode(pwd);
-                    }
-                    else
-                    {
-                        pwd = Global.mdcode(pwd);
+                        string newHash = Global.pbkdf2Hash(password);
+                        connection.Execute(string.Format("UPDATE {0} SET {1}='{2}' WHERE {3} = '{4}'", infos.user_table_name, infos.password_column_name, EscapeValue(newHash), infos.username_column_name, EscapeValue(user_name)));
                     }
                 }
+                else
+                {
+                    string storedPwd = ((IDictionary<string, object>)user)["pwd_hash"]?.ToString() ?? "";
+                    if (storedPwd != password) return null;
+                }
 
-                Dapper.SqlMapper.FastExpando user = ((List<Dapper.SqlMapper.FastExpando>)connection.Query(string.Format("SELECT id_utente, username, isAdmin, id_ruolo, userdescription, email, token, ip, language FROM {0} WHERE {1} = '{2}' AND {3} = '{4}' and coalesce(cancellato,0)=0", infos.user_table_name, infos.username_column_name, user_name, infos.password_column_name, pwd))).FirstOrDefault();
-
-                if (user != null)
                 {
                     user u = mapUserFields(infos, user);
 
@@ -565,10 +570,7 @@ namespace metaModelRaw
 
 
                     return u;
-
                 }
-                else
-                    return null;
             }
         }
 
@@ -3589,19 +3591,11 @@ namespace metaModelRaw
                 {
                     if (valore.ToString() != "")
                     {
-                        if (fld.mc_ui_is_password.HasValue && fld.mc_ui_is_password.Value && ConfigurationManager.AppSettings["IsPwdEncripted"] == "true")
+                        if (fld.mc_ui_is_password.HasValue && fld.mc_ui_is_password.Value && ConfigHelper.GetSettingAsString("IsPwdEncripted") == "true")
                         {
-                            if (fld.mc_password_encription_method == "SHA1")
-                            {
-                                if (valore.ToString().Length == 59)
-                                    return;
-
-                                valore = Global.sdcode(valore.ToString());
-                            }
-                            else
-                            {
-                                valore = Global.mdcode(valore.ToString());
-                            }
+                            if (Global.isPbkdf2Hash(valore.ToString()))
+                                return;
+                            valore = Global.pbkdf2Hash(valore.ToString());
                         }
                     }
 
@@ -4062,16 +4056,9 @@ namespace metaModelRaw
                     {
                         if (!string.IsNullOrEmpty(valore.ToString()))
                         {
-                            if (fld.mc_ui_is_password.HasValue && fld.mc_ui_is_password.Value && ConfigurationManager.AppSettings["IsPwdEncripted"] == "true")
+                            if (fld.mc_ui_is_password.HasValue && fld.mc_ui_is_password.Value && ConfigHelper.GetSettingAsString("IsPwdEncripted") == "true")
                             {
-                                if (fld.mc_password_encription_method == "SHA1")
-                                {
-                                    valore = Global.sdcode(valore.ToString());
-                                }
-                                else
-                                {
-                                    valore = Global.mdcode(valore.ToString());
-                                }
+                                valore = Global.pbkdf2Hash(valore.ToString());
                             }
                         }
                     }
