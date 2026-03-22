@@ -1,0 +1,185 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<StiSerializer version="1.02" type="Net" application="StiReport">
+  <CalculationMode>Interpretation</CalculationMode>
+  <Dictionary Ref="1" type="Dictionary" isKey="true">
+    <BusinessObjects isList="true" count="0" />
+    <Databases isList="true" count="1">
+      <Connessione Ref="2" type="Stimulsoft.Report.Dictionary.StiSqlDatabase" isKey="true">
+        <Alias>Connessione</Alias>
+        <ConnectionStringEncrypted>1FJlCcloS+1iXI2I5FglC8RqzW3JW0PZYUe9mGIl4GPAePfrTnFL3ctEvfBiPeNG30DBiclK091hTe2YanTgP5B08QJNZPv9aVuhXGFsp2fg8rUJxUrzvGJHjRxNJaQf337N609Ue81iXJzMYBhle9Fw2UjNWUvtRUnNiMNJZRvEOvcCVFHzhWIT7dzqcCUvw/L9iU5WkqRiRKVQanjgj8Ng3etGTXMV4UQ=</ConnectionStringEncrypted>
+        <Name>Connessione</Name>
+      </Connessione>
+    </Databases>
+    <DataSources isList="true" count="1">
+      <orders Ref="3" type="Stimulsoft.Report.Dictionary.StiSqlSource" isKey="true">
+        <Alias>orders</Alias>
+        <Columns isList="true" count="22">
+          <value>Comments,System.String</value>
+          <value>people___FullName__ContactPersonID,ContactPerson,System.String</value>
+          <value>ContactPersonID,ContactPersonID_id_lookup,System.Double</value>
+          <value>CustomerPurchaseOrderNumber,Customer_Purchase_Order_Number,System.String</value>
+          <value>customers___CustomerName__CustomerID,Customers,System.String</value>
+          <value>CustomerID,CustomerID_id_lookup,System.Double</value>
+          <value>DeliveryInstructions,Delivery_Instructions,System.String</value>
+          <value>ExpectedDeliveryDate,Expected_Delivery_Date,System.DateTime</value>
+          <value>InternalComments,Internal_Comments,System.String</value>
+          <value>IsUndersupplyBackordered,Is_Undersupply_Backordered,System.String</value>
+          <value>LastEditedWhen,Last_Edited_When,System.DateTime</value>
+          <value>OrderDate,Order_Date,System.DateTime</value>
+          <value>OrderID,Order_I_D,System.Double</value>
+          <value>orders___CustomerPurchaseOrderNumber__BackorderOrderID,Orders,System.String</value>
+          <value>BackorderOrderID,BackorderOrderID_id_lookup,System.Double</value>
+          <value>people___FullName__LastEditedBy,People,System.String</value>
+          <value>LastEditedBy,LastEditedBy_id_lookup,System.Double</value>
+          <value>people___FullName__PickedByPersonID,PickedBy,System.String</value>
+          <value>PickedByPersonID,PickedByPersonID_id_lookup,System.Double</value>
+          <value>PickingCompletedWhen,Picking_Completed_When,System.DateTime</value>
+          <value>people___FullName__SalespersonPersonID,Salesperson,System.String</value>
+          <value>SalespersonPersonID,SalespersonPersonID_id_lookup,System.Double</value>
+        </Columns>
+        <CommandTimeout>300</CommandTimeout>
+        <Dictionary isRef="1" />
+        <Key>95d4cacd1f04458f95eb2f3a6d58b2d1</Key>
+        <Name>orders</Name>
+        <NameInSource>Connessione</NameInSource>
+        <Parameters isList="true" count="0" />
+        <SqlCommand>SELECT [Sales].[Orders].[OrderID] AS [OrderID],  [CustomerID_customers].[CustomerName] AS [customers___CustomerName__CustomerID], [Sales].[Orders].[CustomerID] AS [CustomerID],  [SalespersonPersonID_people].[FullName] AS [people___FullName__SalespersonPersonID], [Sales].[Orders].[SalespersonPersonID] AS [SalespersonPersonID],  [PickedByPersonID_people].[FullName] AS [people___FullName__PickedByPersonID], [Sales].[Orders].[PickedByPersonID] AS [PickedByPersonID],  [ContactPersonID_people].[FullName] AS [people___FullName__ContactPersonID], [Sales].[Orders].[ContactPersonID] AS [ContactPersonID],  [BackorderOrderID_orders].[CustomerPurchaseOrderNumber] AS [orders___CustomerPurchaseOrderNumber__BackorderOrderID], [Sales].[Orders].[BackorderOrderID] AS [BackorderOrderID], [Sales].[Orders].[OrderDate] AS [OrderDate], [Sales].[Orders].[ExpectedDeliveryDate] AS [ExpectedDeliveryDate], [Sales].[Orders].[CustomerPurchaseOrderNumber] AS [CustomerPurchaseOrderNumber], [Sales].[Orders].[IsUndersupplyBackordered] AS [IsUndersupplyBackordered], [Sales].[Orders].[Comments] AS [Comments], [Sales].[Orders].[DeliveryInstructions] AS [DeliveryInstructions], [Sales].[Orders].[InternalComments] AS [InternalComments], [Sales].[Orders].[PickingCompletedWhen] AS [PickingCompletedWhen],  [LastEditedBy_people].[FullName] AS [people___FullName__LastEditedBy], [Sales].[Orders].[LastEditedBy] AS [LastEditedBy], [Sales].[Orders].[LastEditedWhen] AS [LastEditedWhen] FROM [Sales].[Orders] LEFT JOIN [Sales].[Customers] AS [CustomerID_customers] ON [Sales].[Orders].[CustomerID] = [CustomerID_customers].[CustomerID] 
+LEFT JOIN [Application].[People] AS [SalespersonPersonID_people] ON [Sales].[Orders].[SalespersonPersonID] = [SalespersonPersonID_people].[PersonID]   
+LEFT JOIN [Application].[People] AS [PickedByPersonID_people] ON [Sales].[Orders].[PickedByPersonID] = [PickedByPersonID_people].[PersonID] 
+LEFT JOIN [Application].[People] AS [ContactPersonID_people] ON [Sales].[Orders].[ContactPersonID] = [ContactPersonID_people].[PersonID] 
+LEFT JOIN [Sales].[Orders] AS [BackorderOrderID_orders] ON [Sales].[Orders].[BackorderOrderID] = [BackorderOrderID_orders].[OrderID]   
+LEFT JOIN [Application].[People] AS [LastEditedBy_people] ON [Sales].[Orders].[LastEditedBy] = [LastEditedBy_people].[PersonID]   ORDER BY [Sales].[Orders].OrderID ASC </SqlCommand>
+      </orders>
+    </DataSources>
+    <Relations isList="true" count="0" />
+    <Report isRef="0" />
+    <Resources isList="true" count="0" />
+    <UserFunctions isList="true" count="0" />
+    <Variables isList="true" count="0" />
+  </Dictionary>
+  <EngineVersion>EngineV2</EngineVersion>
+  <GlobalizationStrings isList="true" count="0" />
+  <Key>d8acba95da474d91a30f8544be1499f4</Key>
+  <MetaTags isList="true" count="0" />
+  <Pages isList="true" count="1">
+    <Page1 Ref="4" type="Page" isKey="true">
+      <Border>None;Black;2;Solid;False;4;Black</Border>
+      <Brush>Transparent</Brush>
+      <Components isList="true" count="3">
+        <ReportTitleBand2 Ref="5" type="ReportTitleBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>0,0.4,19,0.6</ClientRectangle>
+          <Components isList="true" count="0" />
+          <Conditions isList="true" count="0" />
+          <Expressions isList="true" count="0" />
+          <Name>ReportTitleBand2</Name>
+          <Page isRef="4" />
+          <Parent isRef="4" />
+        </ReportTitleBand2>
+        <orders_header Ref="6" type="HeaderBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>0,1.8,19,0.6</ClientRectangle>
+          <Components isList="true" count="1">
+            <Text2 Ref="7" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>0.2,0,1.6,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Name>Text2</Name>
+              <Page isRef="4" />
+              <Parent isRef="6" />
+              <Text>wwerwr</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+            </Text2>
+          </Components>
+          <Conditions isList="true" count="0" />
+          <Expressions isList="true" count="0" />
+          <Name>orders_header</Name>
+          <Page isRef="4" />
+          <Parent isRef="4" />
+        </orders_header>
+        <orders_data Ref="8" type="DataBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <BusinessObjectGuid isNull="true" />
+          <ClientRectangle>0,3.2,19,0.8</ClientRectangle>
+          <Components isList="true" count="1">
+            <Text1 Ref="9" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>0.2,0.2,4.6,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Name>Text1</Name>
+              <Page isRef="4" />
+              <Parent isRef="8" />
+              <Text>{orders.people___FullName__ContactPersonID}</Text>
+              <TextBrush>Black</TextBrush>
+            </Text1>
+          </Components>
+          <Conditions isList="true" count="0" />
+          <DataSourceName>orders</DataSourceName>
+          <Expressions isList="true" count="0" />
+          <Filters isList="true" count="0" />
+          <Name>orders_data</Name>
+          <Page isRef="4" />
+          <Parent isRef="4" />
+          <PrintIfDetailEmpty>True</PrintIfDetailEmpty>
+          <Sort isList="true" count="0" />
+        </orders_data>
+      </Components>
+      <Conditions isList="true" count="0" />
+      <Expressions isList="true" count="0" />
+      <Guid>9f20039962af4b3e9c65ef4815b97e2c</Guid>
+      <Margins>1,1,1,1</Margins>
+      <Name>Page1</Name>
+      <PageHeight>29.7</PageHeight>
+      <PageWidth>21</PageWidth>
+      <Report isRef="0" />
+    </Page1>
+  </Pages>
+  <ReferencedAssemblies isList="true" count="8">
+    <value>System.Dll</value>
+    <value>System.Drawing.Dll</value>
+    <value>System.Windows.Forms.Dll</value>
+    <value>System.Data.Dll</value>
+    <value>System.Xml.Dll</value>
+    <value>Stimulsoft.Controls.Dll</value>
+    <value>Stimulsoft.Base.Dll</value>
+    <value>Stimulsoft.Report.Dll</value>
+  </ReferencedAssemblies>
+  <ReportAlias>Report</ReportAlias>
+  <ReportChanged>2/26/2026 5:41:50 PM</ReportChanged>
+  <ReportCreated>2/26/2026 5:41:50 PM</ReportCreated>
+  <ReportFile>C:\src\Wuic\KonvergenceCore\Reports\orders\Report.mrt</ReportFile>
+  <ReportGuid>7a4f740b0b504a6a95969ebe15e1c0c0</ReportGuid>
+  <ReportName>Report</ReportName>
+  <ReportUnit>Centimeters</ReportUnit>
+  <ReportVersion>2024.4.3.0</ReportVersion>
+  <Script>using System;
+using System.Drawing;
+using System.Windows.Forms;
+using System.Data;
+using Stimulsoft.Controls;
+using Stimulsoft.Base.Drawing;
+using Stimulsoft.Report;
+using Stimulsoft.Report.Dialogs;
+using Stimulsoft.Report.Components;
+
+namespace Reports
+{
+    public class Report : Stimulsoft.Report.StiReport
+    {
+        public Report()        {
+            this.InitializeComponent();
+        }
+
+        #region StiReport Designer generated code - do not modify
+        #endregion StiReport Designer generated code - do not modify
+    }
+}
+</Script>
+  <ScriptLanguage>CSharp</ScriptLanguage>
+  <Styles isList="true" count="0" />
+</StiSerializer>

@@ -1,0 +1,582 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<StiSerializer version="1.02" type="Net" application="StiReport">
+  <CalculationMode>Interpretation</CalculationMode>
+  <Dictionary Ref="1" type="Dictionary" isKey="true">
+    <BusinessObjects isList="true" count="0" />
+    <Databases isList="true" count="1">
+      <Connessione Ref="2" type="Stimulsoft.Report.Dictionary.StiSqlDatabase" isKey="true">
+        <Alias>Connessione</Alias>
+        <ConnectionStringEncrypted>1FJlCcloS+1iXI2I5FglC8RqzW3JW0PZYUe9mGIl4GPAePfrTnFL3ctEvfBiPeNG30DBiclK091hTe2YanTgP5B08QJNZPv9aVuhXGFsp2fg8rUJxUrzvGJHjRxNJaQf337N609Ue81iXJzMYBhle9Fw2UjNWUvtRUnNiMNJZRvEOvcCVFHzhWIT7dzqcCUvw/L9iU5WkqRiRKVQanjgj8Ng3etGTXMV4UQ=</ConnectionStringEncrypted>
+        <Name>Connessione</Name>
+      </Connessione>
+    </Databases>
+    <DataSources isList="true" count="6">
+      <cities Ref="3" type="Stimulsoft.Report.Dictionary.StiSqlSource" isKey="true">
+        <Alias>cities</Alias>
+        <Columns isList="true" count="10">
+          <value>CityID,City_I_D,System.Double</value>
+          <value>CityName,City_Name,System.String</value>
+          <value>LatestRecordedPopulation,Latest_Recorded_Population,System.Double</value>
+          <value>Location,System.String</value>
+          <value>people___FullName__LastEditedBy,People,System.String</value>
+          <value>LastEditedBy,LastEditedBy_id_lookup,System.Double</value>
+          <value>stateprovinces___StateProvinceCode__StateProvinceID,State_x0020_Provinces,System.String</value>
+          <value>StateProvinceID,StateProvinceID_id_lookup,System.Double</value>
+          <value>ValidFrom,Valid_From,System.DateTime</value>
+          <value>ValidTo,Valid_To,System.DateTime</value>
+        </Columns>
+        <CommandTimeout>300</CommandTimeout>
+        <Dictionary isRef="1" />
+        <Key>f48a297bae49442784ee594419254685</Key>
+        <Name>cities</Name>
+        <NameInSource>Connessione</NameInSource>
+        <Parameters isList="true" count="0" />
+        <SqlCommand>SELECT [Application].[Cities].[CityID] AS [CityID], [Application].[Cities].[CityName] AS [CityName],  [StateProvinceID_stateprovinces].[StateProvinceCode] AS [stateprovinces___StateProvinceCode__StateProvinceID], [Application].[Cities].[StateProvinceID] AS [StateProvinceID], concat('{"lat":',CONVERT(varchar(20), cast([Application].[Cities].[Location]  AS geography).Lat),',"lng":',CONVERT(varchar(20), cast([Application].[Cities].[Location]  AS geography).Long),'}') AS [Location], [Application].[Cities].[LatestRecordedPopulation] AS [LatestRecordedPopulation],  [LastEditedBy_people].[FullName] AS [people___FullName__LastEditedBy], [Application].[Cities].[LastEditedBy] AS [LastEditedBy], [Application].[Cities].[ValidFrom] AS [ValidFrom], [Application].[Cities].[ValidTo] AS [ValidTo] FROM [Application].[Cities]   LEFT JOIN [Application].[StateProvinces] AS [StateProvinceID_stateprovinces] ON [Application].[Cities].[StateProvinceID] = [StateProvinceID_stateprovinces].[StateProvinceID]   LEFT JOIN [Application].[People] AS [LastEditedBy_people] ON [Application].[Cities].[LastEditedBy] = [LastEditedBy_people].[PersonID]     ORDER BY [Application].[Cities].CityID ASC </SqlCommand>
+      </cities>
+      <schedules Ref="4" type="Stimulsoft.Report.Dictionary.StiSqlSource" isKey="true">
+        <Alias>schedules</Alias>
+        <Columns isList="true" count="9">
+          <value>cities___CityName__CityId,Cities,System.String</value>
+          <value>CityId,CityId_id_lookup,System.Double</value>
+          <value>FromDate,From_Date,System.DateTime</value>
+          <value>Note,System.String</value>
+          <value>people___FullName__PersonId,People,System.String</value>
+          <value>PersonId,PersonId_id_lookup,System.Double</value>
+          <value>Recurring,System.String</value>
+          <value>ScheduleId,Schedule_Id,System.Double</value>
+          <value>ToDate,To_Date,System.DateTime</value>
+        </Columns>
+        <CommandTimeout>300</CommandTimeout>
+        <Dictionary isRef="1" />
+        <Key>fc92ea9b0b8a43dab0ea4fd59e90d413</Key>
+        <Name>schedules</Name>
+        <NameInSource>Connessione</NameInSource>
+        <Parameters isList="true" count="0" />
+        <SqlCommand>SELECT [Sales].[Schedules].[ScheduleId] AS [ScheduleId],  [CityId_cities].[CityName] AS [cities___CityName__CityId], [Sales].[Schedules].[CityId] AS [CityId],  [PersonId_people].[FullName] AS [people___FullName__PersonId], [Sales].[Schedules].[PersonId] AS [PersonId], [Sales].[Schedules].[FromDate] AS [FromDate], [Sales].[Schedules].[ToDate] AS [ToDate], [Sales].[Schedules].[Note] AS [Note], [Sales].[Schedules].[Recurring] AS [Recurring] FROM [Sales].[Schedules]   LEFT JOIN [Application].[Cities] AS [CityId_cities] ON [Sales].[Schedules].[CityId] = [CityId_cities].[CityID]   LEFT JOIN [Application].[People] AS [PersonId_people] ON [Sales].[Schedules].[PersonId] = [PersonId_people].[PersonID]     ORDER BY [Sales].[Schedules].ScheduleId ASC </SqlCommand>
+      </schedules>
+      <mm_associations Ref="5" type="Stimulsoft.Report.Dictionary.StiSqlSource" isKey="true">
+        <Alias>mm_associations</Alias>
+        <Columns isList="true" count="5">
+          <value>cities___CityName__FK_City,Cities,System.String</value>
+          <value>FK_City,FK_City_id_lookup,System.Double</value>
+          <value>Id,System.Double</value>
+          <value>manytomanysample___description__FK_MM,Many_x0020_To_x0020_Many_x0020_Sample,System.String</value>
+          <value>FK_MM,FK_MM_id_lookup,System.Double</value>
+        </Columns>
+        <CommandTimeout>300</CommandTimeout>
+        <Dictionary isRef="1" />
+        <Key>667f524ce2144e33840c07de6fda2254</Key>
+        <Name>mm_associations</Name>
+        <NameInSource>Connessione</NameInSource>
+        <Parameters isList="true" count="0" />
+        <SqlCommand>SELECT [dbo].[MM_Associations].[Id] AS [Id],  [FK_MM_manytomanysample].[description] AS [manytomanysample___description__FK_MM], [dbo].[MM_Associations].[FK_MM] AS [FK_MM],  [FK_City_cities].[CityName] AS [cities___CityName__FK_City], [dbo].[MM_Associations].[FK_City] AS [FK_City] FROM [dbo].[MM_Associations]   LEFT JOIN [dbo].[ManyToManySample] AS [FK_MM_manytomanysample] ON [dbo].[MM_Associations].[FK_MM] = [FK_MM_manytomanysample].[Id]   LEFT JOIN [Application].[Cities] AS [FK_City_cities] ON [dbo].[MM_Associations].[FK_City] = [FK_City_cities].[CityID]     ORDER BY [dbo].[MM_Associations].Id ASC </SqlCommand>
+      </mm_associations>
+      <systemparameters Ref="6" type="Stimulsoft.Report.Dictionary.StiSqlSource" isKey="true">
+        <Alias>systemparameters</Alias>
+        <Columns isList="true" count="16">
+          <value>ApplicationSettings,Application_Settings,System.String</value>
+          <value>cities___CityName__DeliveryCityID,Cities,System.String</value>
+          <value>DeliveryCityID,DeliveryCityID_id_lookup,System.Double</value>
+          <value>cities___CityName__PostalCityID,Cities,System.String</value>
+          <value>PostalCityID,PostalCityID_id_lookup,System.Double</value>
+          <value>DeliveryAddressLine1,Delivery_Address_Line1,System.String</value>
+          <value>DeliveryAddressLine2,Delivery_Address_Line2,System.String</value>
+          <value>DeliveryLocation,Delivery_Location,System.String</value>
+          <value>DeliveryPostalCode,Delivery_Postal_Code,System.String</value>
+          <value>LastEditedWhen,Last_Edited_When,System.DateTime</value>
+          <value>people___FullName__LastEditedBy,People,System.String</value>
+          <value>LastEditedBy,LastEditedBy_id_lookup,System.Double</value>
+          <value>PostalAddressLine1,Postal_Address_Line1,System.String</value>
+          <value>PostalAddressLine2,Postal_Address_Line2,System.String</value>
+          <value>PostalPostalCode,Postal_Postal_Code,System.String</value>
+          <value>SystemParameterID,System_Parameter_I_D,System.Double</value>
+        </Columns>
+        <CommandTimeout>300</CommandTimeout>
+        <Dictionary isRef="1" />
+        <Key>e0f76b07c5bc47d289905fdc4ca55adc</Key>
+        <Name>systemparameters</Name>
+        <NameInSource>Connessione</NameInSource>
+        <Parameters isList="true" count="0" />
+        <SqlCommand>SELECT [Application].[SystemParameters].[SystemParameterID] AS [SystemParameterID], [Application].[SystemParameters].[DeliveryAddressLine1] AS [DeliveryAddressLine1], [Application].[SystemParameters].[DeliveryAddressLine2] AS [DeliveryAddressLine2],  [DeliveryCityID_cities].[CityName] AS [cities___CityName__DeliveryCityID], [Application].[SystemParameters].[DeliveryCityID] AS [DeliveryCityID], [Application].[SystemParameters].[DeliveryPostalCode] AS [DeliveryPostalCode], concat('{"lat":',CONVERT(varchar(20), cast([Application].[SystemParameters].[DeliveryLocation]  AS geography).Lat),',"lng":',CONVERT(varchar(20), cast([Application].[SystemParameters].[DeliveryLocation]  AS geography).Long),'}') AS [DeliveryLocation], [Application].[SystemParameters].[PostalAddressLine1] AS [PostalAddressLine1], [Application].[SystemParameters].[PostalAddressLine2] AS [PostalAddressLine2],  [PostalCityID_cities].[CityName] AS [cities___CityName__PostalCityID], [Application].[SystemParameters].[PostalCityID] AS [PostalCityID], [Application].[SystemParameters].[PostalPostalCode] AS [PostalPostalCode], [Application].[SystemParameters].[ApplicationSettings] AS [ApplicationSettings],  [LastEditedBy_people].[FullName] AS [people___FullName__LastEditedBy], [Application].[SystemParameters].[LastEditedBy] AS [LastEditedBy], [Application].[SystemParameters].[LastEditedWhen] AS [LastEditedWhen] FROM [Application].[SystemParameters]   LEFT JOIN [Application].[Cities] AS [DeliveryCityID_cities] ON [Application].[SystemParameters].[DeliveryCityID] = [DeliveryCityID_cities].[CityID]   LEFT JOIN [Application].[Cities] AS [PostalCityID_cities] ON [Application].[SystemParameters].[PostalCityID] = [PostalCityID_cities].[CityID]   LEFT JOIN [Application].[People] AS [LastEditedBy_people] ON [Application].[SystemParameters].[LastEditedBy] = [LastEditedBy_people].[PersonID]     ORDER BY [Application].[SystemParameters].SystemParameterID ASC </SqlCommand>
+      </systemparameters>
+      <suppliers Ref="7" type="Stimulsoft.Report.Dictionary.StiSqlSource" isKey="true">
+        <Alias>suppliers</Alias>
+        <Columns isList="true" count="36">
+          <value>BankAccountBranch,Bank_Account_Branch,System.String</value>
+          <value>BankAccountCode,Bank_Account_Code,System.String</value>
+          <value>BankAccountName,Bank_Account_Name,System.String</value>
+          <value>BankAccountNumber,Bank_Account_Number,System.String</value>
+          <value>BankInternationalCode,Bank_International_Code,System.String</value>
+          <value>cities___CityName__DeliveryCityID,Cities,System.String</value>
+          <value>DeliveryCityID,DeliveryCityID_id_lookup,System.Double</value>
+          <value>cities___CityName__PostalCityID,Cities,System.String</value>
+          <value>PostalCityID,PostalCityID_id_lookup,System.Double</value>
+          <value>DeliveryAddressLine1,Delivery_Address_Line1,System.String</value>
+          <value>DeliveryAddressLine2,Delivery_Address_Line2,System.String</value>
+          <value>DeliveryLocation,Delivery_Location,System.String</value>
+          <value>deliverymethods___DeliveryMethodName__DeliveryMethodID,Delivery_x0020_Methods,System.String</value>
+          <value>DeliveryMethodID,DeliveryMethodID_id_lookup,System.Double</value>
+          <value>DeliveryPostalCode,Delivery_Postal_Code,System.String</value>
+          <value>FaxNumber,Fax_Number,System.String</value>
+          <value>InternalComments,Internal_Comments,System.String</value>
+          <value>PaymentDays,Payment_Days,System.Double</value>
+          <value>people___FullName__PrimaryContactPersonID,People,System.String</value>
+          <value>PrimaryContactPersonID,PrimaryContactPersonID_id_lookup,System.Double</value>
+          <value>people___FullName__AlternateContactPersonID,People,System.String</value>
+          <value>AlternateContactPersonID,AlternateContactPersonID_id_lookup,System.Double</value>
+          <value>people___FullName__LastEditedBy,People,System.String</value>
+          <value>LastEditedBy,LastEditedBy_id_lookup,System.Double</value>
+          <value>PhoneNumber,Phone_Number,System.String</value>
+          <value>PostalAddressLine1,Postal_Address_Line1,System.String</value>
+          <value>PostalAddressLine2,Postal_Address_Line2,System.String</value>
+          <value>PostalPostalCode,Postal_Postal_Code,System.String</value>
+          <value>suppliercategories___SupplierCategoryName__SupplierCategoryID,Supplier_x0020_Categories,System.String</value>
+          <value>SupplierCategoryID,SupplierCategoryID_id_lookup,System.Double</value>
+          <value>SupplierID,Supplier_I_D,System.Double</value>
+          <value>SupplierName,Supplier_Name,System.String</value>
+          <value>SupplierReference,Supplier_Reference,System.String</value>
+          <value>ValidFrom,Valid_From,System.DateTime</value>
+          <value>ValidTo,Valid_To,System.DateTime</value>
+          <value>WebsiteURL,Website_U_R_L,System.String</value>
+        </Columns>
+        <CommandTimeout>300</CommandTimeout>
+        <Dictionary isRef="1" />
+        <Key>83b6e3190b6141028048af242e201f9c</Key>
+        <Name>suppliers</Name>
+        <NameInSource>Connessione</NameInSource>
+        <Parameters isList="true" count="0" />
+        <SqlCommand>SELECT [Purchasing].[Suppliers].[SupplierID] AS [SupplierID], [Purchasing].[Suppliers].[SupplierName] AS [SupplierName],  [SupplierCategoryID_suppliercategories].[SupplierCategoryName] AS [suppliercategories___SupplierCategoryName__SupplierCategoryID], [Purchasing].[Suppliers].[SupplierCategoryID] AS [SupplierCategoryID],  [PrimaryContactPersonID_people].[FullName] AS [people___FullName__PrimaryContactPersonID], [Purchasing].[Suppliers].[PrimaryContactPersonID] AS [PrimaryContactPersonID],  [AlternateContactPersonID_people].[FullName] AS [people___FullName__AlternateContactPersonID], [Purchasing].[Suppliers].[AlternateContactPersonID] AS [AlternateContactPersonID],  [DeliveryMethodID_deliverymethods].[DeliveryMethodName] AS [deliverymethods___DeliveryMethodName__DeliveryMethodID], [Purchasing].[Suppliers].[DeliveryMethodID] AS [DeliveryMethodID],  [DeliveryCityID_cities].[CityName] AS [cities___CityName__DeliveryCityID], [Purchasing].[Suppliers].[DeliveryCityID] AS [DeliveryCityID],  [PostalCityID_cities].[CityName] AS [cities___CityName__PostalCityID], [Purchasing].[Suppliers].[PostalCityID] AS [PostalCityID], [Purchasing].[Suppliers].[SupplierReference] AS [SupplierReference], [Purchasing].[Suppliers].[BankAccountName] AS [BankAccountName], [Purchasing].[Suppliers].[BankAccountBranch] AS [BankAccountBranch], [Purchasing].[Suppliers].[BankAccountCode] AS [BankAccountCode], [Purchasing].[Suppliers].[BankAccountNumber] AS [BankAccountNumber], [Purchasing].[Suppliers].[BankInternationalCode] AS [BankInternationalCode], [Purchasing].[Suppliers].[PaymentDays] AS [PaymentDays], [Purchasing].[Suppliers].[InternalComments] AS [InternalComments], [Purchasing].[Suppliers].[PhoneNumber] AS [PhoneNumber], [Purchasing].[Suppliers].[FaxNumber] AS [FaxNumber], [Purchasing].[Suppliers].[WebsiteURL] AS [WebsiteURL], [Purchasing].[Suppliers].[DeliveryAddressLine1] AS [DeliveryAddressLine1], [Purchasing].[Suppliers].[DeliveryAddressLine2] AS [DeliveryAddressLine2], [Purchasing].[Suppliers].[DeliveryPostalCode] AS [DeliveryPostalCode], concat('{"lat":',CONVERT(varchar(20), cast([Purchasing].[Suppliers].[DeliveryLocation]  AS geography).Lat),',"lng":',CONVERT(varchar(20), cast([Purchasing].[Suppliers].[DeliveryLocation]  AS geography).Long),'}') AS [DeliveryLocation], [Purchasing].[Suppliers].[PostalAddressLine1] AS [PostalAddressLine1], [Purchasing].[Suppliers].[PostalAddressLine2] AS [PostalAddressLine2], [Purchasing].[Suppliers].[PostalPostalCode] AS [PostalPostalCode],  [LastEditedBy_people].[FullName] AS [people___FullName__LastEditedBy], [Purchasing].[Suppliers].[LastEditedBy] AS [LastEditedBy], [Purchasing].[Suppliers].[ValidFrom] AS [ValidFrom], [Purchasing].[Suppliers].[ValidTo] AS [ValidTo] FROM [Purchasing].[Suppliers]   LEFT JOIN [Purchasing].[SupplierCategories] AS [SupplierCategoryID_suppliercategories] ON [Purchasing].[Suppliers].[SupplierCategoryID] = [SupplierCategoryID_suppliercategories].[SupplierCategoryID]   LEFT JOIN [Application].[People] AS [PrimaryContactPersonID_people] ON [Purchasing].[Suppliers].[PrimaryContactPersonID] = [PrimaryContactPersonID_people].[PersonID]   LEFT JOIN [Application].[People] AS [AlternateContactPersonID_people] ON [Purchasing].[Suppliers].[AlternateContactPersonID] = [AlternateContactPersonID_people].[PersonID]  AND [PrimaryContactPersonID_people].LastEditedBy=[PrimaryContactPersonID_people].PersonID AND [PrimaryContactPersonID_people].LastEditedBy=[PrimaryContactPersonID_people].PersonID AND [PrimaryContactPersonID_people].LastEditedBy=[PrimaryContactPersonID_people].PersonID  LEFT JOIN [Application].[DeliveryMethods] AS [DeliveryMethodID_deliverymethods] ON [Purchasing].[Suppliers].[DeliveryMethodID] = [DeliveryMethodID_deliverymethods].[DeliveryMethodID]   LEFT JOIN [Application].[Cities] AS [DeliveryCityID_cities] ON [Purchasing].[Suppliers].[DeliveryCityID] = [DeliveryCityID_cities].[CityID]   LEFT JOIN [Application].[Cities] AS [PostalCityID_cities] ON [Purchasing].[Suppliers].[PostalCityID] = [PostalCityID_cities].[CityID]  AND [DeliveryCityID_cities].LastEditedBy=[PrimaryContactPersonID_people].PersonID AND [DeliveryCityID_cities].LastEditedBy=[PrimaryContactPersonID_people].PersonID AND [DeliveryCityID_cities].LastEditedBy=[PrimaryContactPersonID_people].PersonID  LEFT JOIN [Application].[People] AS [LastEditedBy_people] ON [Purchasing].[Suppliers].[LastEditedBy] = [LastEditedBy_people].[PersonID]  AND [PrimaryContactPersonID_people].LastEditedBy=[PrimaryContactPersonID_people].PersonID AND [PrimaryContactPersonID_people].LastEditedBy=[PrimaryContactPersonID_people].PersonID AND [PrimaryContactPersonID_people].LastEditedBy=[PrimaryContactPersonID_people].PersonID    ORDER BY [Purchasing].[Suppliers].SupplierID ASC </SqlCommand>
+      </suppliers>
+      <customers Ref="8" type="Stimulsoft.Report.Dictionary.StiSqlSource" isKey="true">
+        <Alias>customers</Alias>
+        <Columns isList="true" count="40">
+          <value>AccountOpenedDate,Account_Opened_Date,System.DateTime</value>
+          <value>buyinggroups___BuyingGroupName__BuyingGroupID,Buying_x0020_Groups,System.String</value>
+          <value>BuyingGroupID,BuyingGroupID_id_lookup,System.Double</value>
+          <value>cities___CityName__DeliveryCityID,Cities,System.String</value>
+          <value>DeliveryCityID,DeliveryCityID_id_lookup,System.Double</value>
+          <value>cities___CityName__PostalCityID,Cities,System.String</value>
+          <value>PostalCityID,PostalCityID_id_lookup,System.Double</value>
+          <value>CreditLimit,Credit_Limit,System.Double</value>
+          <value>customercategories___CustomerCategoryName__CustomerCategoryID,Customer_x0020_Categories,System.String</value>
+          <value>CustomerCategoryID,CustomerCategoryID_id_lookup,System.Double</value>
+          <value>CustomerID,Customer_I_D,System.Double</value>
+          <value>CustomerName,Customer_Name,System.String</value>
+          <value>customers___CustomerName__BillToCustomerID,Customers,System.String</value>
+          <value>BillToCustomerID,BillToCustomerID_id_lookup,System.Double</value>
+          <value>DeliveryAddressLine1,Delivery_Address_Line1,System.String</value>
+          <value>DeliveryAddressLine2,Delivery_Address_Line2,System.String</value>
+          <value>DeliveryLocation,Delivery_Location,System.String</value>
+          <value>deliverymethods___DeliveryMethodName__DeliveryMethodID,Delivery_x0020_Methods,System.String</value>
+          <value>DeliveryMethodID,DeliveryMethodID_id_lookup,System.Double</value>
+          <value>DeliveryPostalCode,Delivery_Postal_Code,System.String</value>
+          <value>DeliveryRun,Delivery_Run,System.String</value>
+          <value>FaxNumber,Fax_Number,System.String</value>
+          <value>IsOnCreditHold,Is_On_Credit_Hold,System.String</value>
+          <value>IsStatementSent,Is_Statement_Sent,System.String</value>
+          <value>PaymentDays,Payment_Days,System.Double</value>
+          <value>people___FullName__PrimaryContactPersonID,People,System.String</value>
+          <value>PrimaryContactPersonID,PrimaryContactPersonID_id_lookup,System.Double</value>
+          <value>people___FullName__AlternateContactPersonID,People,System.String</value>
+          <value>AlternateContactPersonID,AlternateContactPersonID_id_lookup,System.Double</value>
+          <value>people___FullName__LastEditedBy,People,System.String</value>
+          <value>LastEditedBy,LastEditedBy_id_lookup,System.Double</value>
+          <value>PhoneNumber,Phone_Number,System.String</value>
+          <value>PostalAddressLine1,Postal_Address_Line1,System.String</value>
+          <value>PostalAddressLine2,Postal_Address_Line2,System.String</value>
+          <value>PostalPostalCode,Postal_Postal_Code,System.String</value>
+          <value>RunPosition,Run_Position,System.String</value>
+          <value>StandardDiscountPercentage,Standard_Discount_Percentage,System.Double</value>
+          <value>ValidFrom,Valid_From,System.DateTime</value>
+          <value>ValidTo,Valid_To,System.DateTime</value>
+          <value>WebsiteURL,Website_U_R_L,System.String</value>
+        </Columns>
+        <CommandTimeout>300</CommandTimeout>
+        <Dictionary isRef="1" />
+        <Key>8dd3c173eba849e5bb5d519319743204</Key>
+        <Name>customers</Name>
+        <NameInSource>Connessione</NameInSource>
+        <Parameters isList="true" count="0" />
+        <SqlCommand>SELECT [Sales].[Customers].[CustomerID] AS [CustomerID], [Sales].[Customers].[CustomerName] AS [CustomerName],  [BillToCustomerID_customers].[CustomerName] AS [customers___CustomerName__BillToCustomerID], [Sales].[Customers].[BillToCustomerID] AS [BillToCustomerID],  [CustomerCategoryID_customercategories].[CustomerCategoryName] AS [customercategories___CustomerCategoryName__CustomerCategoryID], [Sales].[Customers].[CustomerCategoryID] AS [CustomerCategoryID],  [BuyingGroupID_buyinggroups].[BuyingGroupName] AS [buyinggroups___BuyingGroupName__BuyingGroupID], [Sales].[Customers].[BuyingGroupID] AS [BuyingGroupID],  [PrimaryContactPersonID_people].[FullName] AS [people___FullName__PrimaryContactPersonID], [Sales].[Customers].[PrimaryContactPersonID] AS [PrimaryContactPersonID],  [AlternateContactPersonID_people].[FullName] AS [people___FullName__AlternateContactPersonID], [Sales].[Customers].[AlternateContactPersonID] AS [AlternateContactPersonID],  [DeliveryMethodID_deliverymethods].[DeliveryMethodName] AS [deliverymethods___DeliveryMethodName__DeliveryMethodID], [Sales].[Customers].[DeliveryMethodID] AS [DeliveryMethodID],  [DeliveryCityID_cities].[CityName] AS [cities___CityName__DeliveryCityID], [Sales].[Customers].[DeliveryCityID] AS [DeliveryCityID],  [PostalCityID_cities].[CityName] AS [cities___CityName__PostalCityID], [Sales].[Customers].[PostalCityID] AS [PostalCityID], [Sales].[Customers].[CreditLimit] AS [CreditLimit], [Sales].[Customers].[AccountOpenedDate] AS [AccountOpenedDate], [Sales].[Customers].[StandardDiscountPercentage] AS [StandardDiscountPercentage], [Sales].[Customers].[IsStatementSent] AS [IsStatementSent], [Sales].[Customers].[IsOnCreditHold] AS [IsOnCreditHold], [Sales].[Customers].[PaymentDays] AS [PaymentDays], [Sales].[Customers].[PhoneNumber] AS [PhoneNumber], [Sales].[Customers].[FaxNumber] AS [FaxNumber], [Sales].[Customers].[DeliveryRun] AS [DeliveryRun], [Sales].[Customers].[RunPosition] AS [RunPosition], [Sales].[Customers].[WebsiteURL] AS [WebsiteURL], [Sales].[Customers].[DeliveryAddressLine1] AS [DeliveryAddressLine1], [Sales].[Customers].[DeliveryAddressLine2] AS [DeliveryAddressLine2], [Sales].[Customers].[DeliveryPostalCode] AS [DeliveryPostalCode], concat('{"lat":',CONVERT(varchar(20), cast([Sales].[Customers].[DeliveryLocation]  AS geography).Lat),',"lng":',CONVERT(varchar(20), cast([Sales].[Customers].[DeliveryLocation]  AS geography).Long),'}') AS [DeliveryLocation], [Sales].[Customers].[PostalAddressLine1] AS [PostalAddressLine1], [Sales].[Customers].[PostalAddressLine2] AS [PostalAddressLine2], [Sales].[Customers].[PostalPostalCode] AS [PostalPostalCode],  [LastEditedBy_people].[FullName] AS [people___FullName__LastEditedBy], [Sales].[Customers].[LastEditedBy] AS [LastEditedBy], [Sales].[Customers].[ValidFrom] AS [ValidFrom], [Sales].[Customers].[ValidTo] AS [ValidTo] FROM [Sales].[Customers]   LEFT JOIN [Sales].[Customers] AS [BillToCustomerID_customers] ON [Sales].[Customers].[BillToCustomerID] = [BillToCustomerID_customers].[CustomerID]   LEFT JOIN [Sales].[CustomerCategories] AS [CustomerCategoryID_customercategories] ON [Sales].[Customers].[CustomerCategoryID] = [CustomerCategoryID_customercategories].[CustomerCategoryID]   LEFT JOIN [Sales].[BuyingGroups] AS [BuyingGroupID_buyinggroups] ON [Sales].[Customers].[BuyingGroupID] = [BuyingGroupID_buyinggroups].[BuyingGroupID]   LEFT JOIN [Application].[People] AS [PrimaryContactPersonID_people] ON [Sales].[Customers].[PrimaryContactPersonID] = [PrimaryContactPersonID_people].[PersonID]   LEFT JOIN [Application].[People] AS [AlternateContactPersonID_people] ON [Sales].[Customers].[AlternateContactPersonID] = [AlternateContactPersonID_people].[PersonID]  AND [PrimaryContactPersonID_people].LastEditedBy=[PrimaryContactPersonID_people].PersonID AND [PrimaryContactPersonID_people].LastEditedBy=[PrimaryContactPersonID_people].PersonID AND [PrimaryContactPersonID_people].LastEditedBy=[PrimaryContactPersonID_people].PersonID  LEFT JOIN [Application].[DeliveryMethods] AS [DeliveryMethodID_deliverymethods] ON [Sales].[Customers].[DeliveryMethodID] = [DeliveryMethodID_deliverymethods].[DeliveryMethodID]   LEFT JOIN [Application].[Cities] AS [DeliveryCityID_cities] ON [Sales].[Customers].[DeliveryCityID] = [DeliveryCityID_cities].[CityID]   LEFT JOIN [Application].[Cities] AS [PostalCityID_cities] ON [Sales].[Customers].[PostalCityID] = [PostalCityID_cities].[CityID]  AND [DeliveryCityID_cities].LastEditedBy=[PrimaryContactPersonID_people].PersonID AND [DeliveryCityID_cities].LastEditedBy=[PrimaryContactPersonID_people].PersonID AND [DeliveryCityID_cities].LastEditedBy=[PrimaryContactPersonID_people].PersonID  LEFT JOIN [Application].[People] AS [LastEditedBy_people] ON [Sales].[Customers].[LastEditedBy] = [LastEditedBy_people].[PersonID]  AND [PrimaryContactPersonID_people].LastEditedBy=[PrimaryContactPersonID_people].PersonID AND [PrimaryContactPersonID_people].LastEditedBy=[PrimaryContactPersonID_people].PersonID AND [PrimaryContactPersonID_people].LastEditedBy=[PrimaryContactPersonID_people].PersonID    ORDER BY [Sales].[Customers].CustomerID ASC </SqlCommand>
+      </customers>
+    </DataSources>
+    <Relations isList="true" count="8">
+      <cities_schedules Ref="9" type="DataRelation" isKey="true">
+        <Alias>cities_schedules</Alias>
+        <ChildColumns isList="true" count="1">
+          <value>CityId</value>
+        </ChildColumns>
+        <ChildSource isRef="4" />
+        <Dictionary isRef="1" />
+        <Name>cities_schedules</Name>
+        <NameInSource>cities_schedules</NameInSource>
+        <ParentColumns isList="true" count="1">
+          <value>CityID</value>
+        </ParentColumns>
+        <ParentSource isRef="3" />
+      </cities_schedules>
+      <cities_mm_associations Ref="10" type="DataRelation" isKey="true">
+        <Alias>cities_mm_associations</Alias>
+        <ChildColumns isList="true" count="1">
+          <value>FK_City</value>
+        </ChildColumns>
+        <ChildSource isRef="5" />
+        <Dictionary isRef="1" />
+        <Name>cities_mm_associations</Name>
+        <NameInSource>cities_mm_associations</NameInSource>
+        <ParentColumns isList="true" count="1">
+          <value>CityID</value>
+        </ParentColumns>
+        <ParentSource isRef="3" />
+      </cities_mm_associations>
+      <cities_systemparameters Ref="11" type="DataRelation" isKey="true">
+        <Alias>cities_systemparameters</Alias>
+        <ChildColumns isList="true" count="1">
+          <value>DeliveryCityID</value>
+        </ChildColumns>
+        <ChildSource isRef="6" />
+        <Dictionary isRef="1" />
+        <Name>cities_systemparameters</Name>
+        <NameInSource>cities_systemparameters</NameInSource>
+        <ParentColumns isList="true" count="1">
+          <value>CityID</value>
+        </ParentColumns>
+        <ParentSource isRef="3" />
+      </cities_systemparameters>
+      <cities_suppliers Ref="12" type="DataRelation" isKey="true">
+        <Alias>cities_suppliers</Alias>
+        <ChildColumns isList="true" count="1">
+          <value>DeliveryCityID</value>
+        </ChildColumns>
+        <ChildSource isRef="7" />
+        <Dictionary isRef="1" />
+        <Name>cities_suppliers</Name>
+        <NameInSource>cities_suppliers</NameInSource>
+        <ParentColumns isList="true" count="1">
+          <value>CityID</value>
+        </ParentColumns>
+        <ParentSource isRef="3" />
+      </cities_suppliers>
+      <cities_suppliers Ref="13" type="DataRelation" isKey="true">
+        <Alias>cities_suppliers</Alias>
+        <ChildColumns isList="true" count="1">
+          <value>PostalCityID</value>
+        </ChildColumns>
+        <ChildSource isRef="7" />
+        <Dictionary isRef="1" />
+        <Name>cities_suppliers</Name>
+        <NameInSource>cities_suppliers</NameInSource>
+        <ParentColumns isList="true" count="1">
+          <value>CityID</value>
+        </ParentColumns>
+        <ParentSource isRef="3" />
+      </cities_suppliers>
+      <cities_customers Ref="14" type="DataRelation" isKey="true">
+        <Alias>cities_customers</Alias>
+        <ChildColumns isList="true" count="1">
+          <value>DeliveryCityID</value>
+        </ChildColumns>
+        <ChildSource isRef="8" />
+        <Dictionary isRef="1" />
+        <Name>cities_customers</Name>
+        <NameInSource>cities_customers</NameInSource>
+        <ParentColumns isList="true" count="1">
+          <value>CityID</value>
+        </ParentColumns>
+        <ParentSource isRef="3" />
+      </cities_customers>
+      <cities_systemparameters Ref="15" type="DataRelation" isKey="true">
+        <Alias>cities_systemparameters</Alias>
+        <ChildColumns isList="true" count="1">
+          <value>PostalCityID</value>
+        </ChildColumns>
+        <ChildSource isRef="6" />
+        <Dictionary isRef="1" />
+        <Name>cities_systemparameters</Name>
+        <NameInSource>cities_systemparameters</NameInSource>
+        <ParentColumns isList="true" count="1">
+          <value>CityID</value>
+        </ParentColumns>
+        <ParentSource isRef="3" />
+      </cities_systemparameters>
+      <cities_customers Ref="16" type="DataRelation" isKey="true">
+        <Alias>cities_customers</Alias>
+        <ChildColumns isList="true" count="1">
+          <value>PostalCityID</value>
+        </ChildColumns>
+        <ChildSource isRef="8" />
+        <Dictionary isRef="1" />
+        <Name>cities_customers</Name>
+        <NameInSource>cities_customers</NameInSource>
+        <ParentColumns isList="true" count="1">
+          <value>CityID</value>
+        </ParentColumns>
+        <ParentSource isRef="3" />
+      </cities_customers>
+    </Relations>
+    <Report isRef="0" />
+    <Resources isList="true" count="0" />
+    <UserFunctions isList="true" count="0" />
+    <Variables isList="true" count="1">
+      <value>,Variable1,Variable1,,System.Int32,,False,False,False,False,_x003C__x003F_xml_x0020_version_x003D__x0022_1.0_x0022__x0020_encoding_x003D__x0022_utf-16_x0022__x0020_standalone_x003D__x0022_yes_x0022__x003F__x003E__x003C_StiSerializer_x0020_version_x003D__x0022_1.02_x0022__x0020_type_x003D__x0022_Net_x0022__x0020_application_x003D__x0022_State_x0022__x003E__x003C_DateTimeType_x003E_DateAndTime_x003C__x002F_DateTimeType_x003E__x003C_SortDirection_x003E_None_x003C__x002F_SortDirection_x003E__x003C_CheckedColumn_x003E_null_x003B__x003C__x002F_CheckedColumn_x003E__x003C_BindingVariable_x0020_isNull_x003D__x0022_true_x0022__x0020__x002F__x003E__x003C_Keys_x0020_isList_x003D__x0022_true_x0022__x0020_count_x003D__x0022_0_x0022__x0020__x002F__x003E__x003C_Values_x0020_isList_x003D__x0022_true_x0022__x0020_count_x003D__x0022_0_x0022__x0020__x002F__x003E__x003C_CheckedStates_x0020_isList_x003D__x0022_true_x0022__x0020_count_x003D__x0022_0_x0022__x0020__x002F__x003E__x003C__x002F_StiSerializer_x003E_</value>
+    </Variables>
+  </Dictionary>
+  <EngineVersion>EngineV2</EngineVersion>
+  <GlobalizationStrings isList="true" count="0" />
+  <Key>a7b49b15712b4aa784d3f11f8e7663a6</Key>
+  <MetaTags isList="true" count="0" />
+  <Pages isList="true" count="1">
+    <Page1 Ref="17" type="Page" isKey="true">
+      <Border>None;Black;2;Solid;False;4;Black</Border>
+      <Brush>Transparent</Brush>
+      <Components isList="true" count="13">
+        <ReportTitleBand2 Ref="18" type="ReportTitleBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>0,0.4,19,0.6</ClientRectangle>
+          <Components isList="true" count="0" />
+          <Conditions isList="true" count="0" />
+          <Expressions isList="true" count="0" />
+          <Name>ReportTitleBand2</Name>
+          <Page isRef="17" />
+          <Parent isRef="17" />
+        </ReportTitleBand2>
+        <cities_header Ref="19" type="HeaderBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>0,1.8,19,0.6</ClientRectangle>
+          <Components isList="true" count="0" />
+          <Conditions isList="true" count="0" />
+          <Expressions isList="true" count="0" />
+          <Name>cities_header</Name>
+          <Page isRef="17" />
+          <Parent isRef="17" />
+        </cities_header>
+        <cities_data Ref="20" type="DataBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <BusinessObjectGuid isNull="true" />
+          <ClientRectangle>0,3.2,19,0.6</ClientRectangle>
+          <Components isList="true" count="2">
+            <Text1 Ref="21" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>-0,0,3,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Name>Text1</Name>
+              <Page isRef="17" />
+              <Parent isRef="20" />
+              <Text>{cities.CityName}</Text>
+              <TextBrush>Black</TextBrush>
+            </Text1>
+            <Text2 Ref="22" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>5.2,0,3,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Name>Text2</Name>
+              <Page isRef="17" />
+              <Parent isRef="20" />
+              <Text>{Variable1}</Text>
+              <TextBrush>Black</TextBrush>
+            </Text2>
+          </Components>
+          <Conditions isList="true" count="0" />
+          <DataSourceName>cities</DataSourceName>
+          <Expressions isList="true" count="0" />
+          <Filters isList="true" count="0" />
+          <Name>cities_data</Name>
+          <Page isRef="17" />
+          <Parent isRef="17" />
+          <PrintIfDetailEmpty>True</PrintIfDetailEmpty>
+          <Sort isList="true" count="0" />
+        </cities_data>
+        <schedules_header Ref="23" type="HeaderBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>0,4.6,19,0.6</ClientRectangle>
+          <Components isList="true" count="0" />
+          <Conditions isList="true" count="0" />
+          <Expressions isList="true" count="0" />
+          <Name>schedules_header</Name>
+          <Page isRef="17" />
+          <Parent isRef="17" />
+        </schedules_header>
+        <schedules_data Ref="24" type="DataBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <BusinessObjectGuid isNull="true" />
+          <ClientRectangle>0,6,19,0.6</ClientRectangle>
+          <Components isList="true" count="0" />
+          <Conditions isList="true" count="0" />
+          <DataRelationName>cities_schedules</DataRelationName>
+          <DataSourceName>schedules</DataSourceName>
+          <Expressions isList="true" count="0" />
+          <Filters isList="true" count="0" />
+          <MasterComponent isRef="20" />
+          <Name>schedules_data</Name>
+          <Page isRef="17" />
+          <Parent isRef="17" />
+          <PrintIfDetailEmpty>True</PrintIfDetailEmpty>
+          <Sort isList="true" count="0" />
+        </schedules_data>
+        <mm_associations_header Ref="25" type="HeaderBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>0,7.4,19,0.6</ClientRectangle>
+          <Components isList="true" count="0" />
+          <Conditions isList="true" count="0" />
+          <Expressions isList="true" count="0" />
+          <Name>mm_associations_header</Name>
+          <Page isRef="17" />
+          <Parent isRef="17" />
+        </mm_associations_header>
+        <mm_associations_data Ref="26" type="DataBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <BusinessObjectGuid isNull="true" />
+          <ClientRectangle>0,8.8,19,0.6</ClientRectangle>
+          <Components isList="true" count="0" />
+          <Conditions isList="true" count="0" />
+          <DataRelationName>cities_mm_associations</DataRelationName>
+          <DataSourceName>mm_associations</DataSourceName>
+          <Expressions isList="true" count="0" />
+          <Filters isList="true" count="0" />
+          <MasterComponent isRef="20" />
+          <Name>mm_associations_data</Name>
+          <Page isRef="17" />
+          <Parent isRef="17" />
+          <PrintIfDetailEmpty>True</PrintIfDetailEmpty>
+          <Sort isList="true" count="0" />
+        </mm_associations_data>
+        <systemparameters_header Ref="27" type="HeaderBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>0,10.2,19,0.6</ClientRectangle>
+          <Components isList="true" count="0" />
+          <Conditions isList="true" count="0" />
+          <Expressions isList="true" count="0" />
+          <Name>systemparameters_header</Name>
+          <Page isRef="17" />
+          <Parent isRef="17" />
+        </systemparameters_header>
+        <systemparameters_data Ref="28" type="DataBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <BusinessObjectGuid isNull="true" />
+          <ClientRectangle>0,11.6,19,0.6</ClientRectangle>
+          <Components isList="true" count="0" />
+          <Conditions isList="true" count="0" />
+          <DataRelationName>cities_systemparameters</DataRelationName>
+          <DataSourceName>systemparameters</DataSourceName>
+          <Expressions isList="true" count="0" />
+          <Filters isList="true" count="0" />
+          <MasterComponent isRef="20" />
+          <Name>systemparameters_data</Name>
+          <Page isRef="17" />
+          <Parent isRef="17" />
+          <PrintIfDetailEmpty>True</PrintIfDetailEmpty>
+          <Sort isList="true" count="0" />
+        </systemparameters_data>
+        <suppliers_header Ref="29" type="HeaderBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>0,13,19,0.6</ClientRectangle>
+          <Components isList="true" count="0" />
+          <Conditions isList="true" count="0" />
+          <Expressions isList="true" count="0" />
+          <Name>suppliers_header</Name>
+          <Page isRef="17" />
+          <Parent isRef="17" />
+        </suppliers_header>
+        <suppliers_data Ref="30" type="DataBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <BusinessObjectGuid isNull="true" />
+          <ClientRectangle>0,14.4,19,0.6</ClientRectangle>
+          <Components isList="true" count="0" />
+          <Conditions isList="true" count="0" />
+          <DataRelationName>cities_suppliers</DataRelationName>
+          <DataSourceName>suppliers</DataSourceName>
+          <Expressions isList="true" count="0" />
+          <Filters isList="true" count="0" />
+          <MasterComponent isRef="20" />
+          <Name>suppliers_data</Name>
+          <Page isRef="17" />
+          <Parent isRef="17" />
+          <PrintIfDetailEmpty>True</PrintIfDetailEmpty>
+          <Sort isList="true" count="0" />
+        </suppliers_data>
+        <customers_header Ref="31" type="HeaderBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>0,15.8,19,0.6</ClientRectangle>
+          <Components isList="true" count="0" />
+          <Conditions isList="true" count="0" />
+          <Expressions isList="true" count="0" />
+          <Name>customers_header</Name>
+          <Page isRef="17" />
+          <Parent isRef="17" />
+        </customers_header>
+        <customers_data Ref="32" type="DataBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <BusinessObjectGuid isNull="true" />
+          <ClientRectangle>0,17.2,19,0.6</ClientRectangle>
+          <Components isList="true" count="0" />
+          <Conditions isList="true" count="0" />
+          <DataRelationName>cities_customers</DataRelationName>
+          <DataSourceName>customers</DataSourceName>
+          <Expressions isList="true" count="0" />
+          <Filters isList="true" count="0" />
+          <MasterComponent isRef="20" />
+          <Name>customers_data</Name>
+          <Page isRef="17" />
+          <Parent isRef="17" />
+          <PrintIfDetailEmpty>True</PrintIfDetailEmpty>
+          <Sort isList="true" count="0" />
+        </customers_data>
+      </Components>
+      <Conditions isList="true" count="0" />
+      <Expressions isList="true" count="0" />
+      <Guid>2ec4ba6779cd4dc1ba4fb46ef4513e43</Guid>
+      <Margins>1,1,1,1</Margins>
+      <Name>Page1</Name>
+      <PageHeight>29.7</PageHeight>
+      <PageWidth>21</PageWidth>
+      <Report isRef="0" />
+    </Page1>
+  </Pages>
+  <ReferencedAssemblies isList="true" count="8">
+    <value>System.Dll</value>
+    <value>System.Drawing.Dll</value>
+    <value>System.Windows.Forms.Dll</value>
+    <value>System.Data.Dll</value>
+    <value>System.Xml.Dll</value>
+    <value>Stimulsoft.Controls.Dll</value>
+    <value>Stimulsoft.Base.Dll</value>
+    <value>Stimulsoft.Report.Dll</value>
+  </ReferencedAssemblies>
+  <ReportAlias>Report</ReportAlias>
+  <ReportChanged>2/28/2026 11:56:58 PM</ReportChanged>
+  <ReportCreated>2/28/2026 11:56:58 PM</ReportCreated>
+  <ReportFile>C:\src\Wuic\KonvergenceCore\Reports\cities\Report_20260228_235655.mrt</ReportFile>
+  <ReportGuid>8c68a60c271740f6963d68856443da69</ReportGuid>
+  <ReportName>Report</ReportName>
+  <ReportUnit>Centimeters</ReportUnit>
+  <ReportVersion>2024.4.3.0</ReportVersion>
+  <Script>using System;
+using System.Drawing;
+using System.Windows.Forms;
+using System.Data;
+using Stimulsoft.Controls;
+using Stimulsoft.Base.Drawing;
+using Stimulsoft.Report;
+using Stimulsoft.Report.Dialogs;
+using Stimulsoft.Report.Components;
+
+namespace Reports
+{
+    public class Report : Stimulsoft.Report.StiReport
+    {
+        public Report()        {
+            this.InitializeComponent();
+        }
+
+        #region StiReport Designer generated code - do not modify
+		#endregion StiReport Designer generated code - do not modify
+    }
+}
+</Script>
+  <ScriptLanguage>CSharp</ScriptLanguage>
+  <Styles isList="true" count="0" />
+</StiSerializer>
