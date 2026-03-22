@@ -692,7 +692,8 @@
                   conteggio lead per <code>lead_status_id</code>, somma <code>amount</code> per <code>stage_id</code>,
                   attività scadute oggi, top 5 account per opportunità.</li>
                 <li>Creare le view di supporto: <code>vw_crm_lead_funnel</code>, <code>vw_crm_pipeline_by_stage</code>,
-                  <code>vw_crm_activities_overdue</code>.</li>
+                  <code>vw_crm_activities_overdue</code>.
+                </li>
               </ul>
             </div>
 
@@ -711,7 +712,8 @@
               <ul class="plan-steps">
                 <li>Aggiungere action key <code>crm_dashboard_load_kpi</code> alla SP
                   <code>crm_sp_execute_action</code>: esegue <code>crm_sp_dashboard_kpi</code> e restituisce il JSON nel
-                  campo <code>payload</code>.</li>
+                  campo <code>payload</code>.
+                </li>
               </ul>
             </div>
 
@@ -719,7 +721,8 @@
               <div class="plan-section-title"><span class="badge b-ng">Angular</span> wuic dashboard.component</div>
               <ul class="plan-steps">
                 <li>Aggiungere voce di menu <em>Home CRM</em> (mm_id nuovo) con route <code>/crm_home/dashboard</code> e
-                  <code>mm_parent_id=5992</code> o null (gruppo root).</li>
+                  <code>mm_parent_id=5992</code> o null (gruppo root).
+                </li>
                 <li>Configurare il componente <code>dashboard.component</code> già disponibile nella lib wuic puntandolo
                   a <code>domBoard</code> della Home CRM.</li>
                 <li>I singoli widget chart usano <code>chart-list.component</code> con <code>ChartOptions</code>:
@@ -772,9 +775,11 @@
               <div class="plan-section-title"><span class="badge b-ng">Angular</span> report-viewer.component</div>
               <ul class="plan-steps">
                 <li>Aggiungere voce di menu <em>Report CRM</em> con viste dedicate (route:
-                  <code>/crm_reports/viewer</code>).</li>
+                  <code>/crm_reports/viewer</code>).
+                </li>
                 <li>Usare <code>report-viewer.component</code> dalla lib wuic, già configurato per puntare a
-                  <code>/api/ReportViewer</code>.</li>
+                  <code>/api/ReportViewer</code>.
+                </li>
                 <li>Limitare l'accesso ai report al ruolo <strong>CRM Manager</strong> e <strong>CRM Readonly</strong>
                   (sola visualizzazione) via <code>_mtdt__tnt__trizzazioni__menus</code>.</li>
               </ul>
@@ -792,7 +797,8 @@
           <div class="fc-header-left">
             <div class="fc-title">📈 Forecast vendite per periodo <span class="badge b-media">Media</span></div>
             <div class="fc-sub">Vista aggregata del fatturato atteso per mese/trimestre, pesato per
-              <code>win_probability</code> della fase. Confronto con periodi precedenti.</div>
+              <code>win_probability</code> della fase. Confronto con periodi precedenti.
+            </div>
           </div>
           <div class="fc-badges">
             <span class="badge b-m">M</span>
@@ -810,7 +816,8 @@
                 <li>Creare view <code>vw_crm_forecast_monthly</code>:
                   <code>FORMAT(expected_close_date,'yyyy-MM') AS mese</code>,
                   <code>SUM(amount * win_probability / 100.0) AS forecast_pesato</code>,
-                  <code>SUM(amount) AS pipeline_lordo</code>, raggruppato per mese e <code>owner_user_id</code>.</li>
+                  <code>SUM(amount) AS pipeline_lordo</code>, raggruppato per mese e <code>owner_user_id</code>.
+                </li>
                 <li>Aggiungere action key <code>crm_forecast_load</code> alla SP <code>crm_sp_execute_action</code>:
                   restituisce i dati della view per i prossimi 12 mesi nel payload JSON.</li>
               </ul>
@@ -859,7 +866,8 @@
               <ul class="plan-steps">
                 <li>Per ogni tabella CRM, impostare la colonna <code>mdexport</code> (o equivalente in
                   <code>_metadati__tabelle</code>) a <code>1</code> per abilitare il pulsante di esportazione già
-                  gestito da <code>list-grid.component</code>.</li>
+                  gestito da <code>list-grid.component</code>.
+                </li>
                 <li>Verificare che le colonne da escludere dall'export (es. <code>Stato_Record</code>, FK interne)
                   abbiano <code>mchideinexport=1</code> in <code>_metadati__colonne</code>.</li>
               </ul>
@@ -870,7 +878,8 @@
               <ul class="plan-steps">
                 <li>L'infrastruttura di export Excel è già disponibile in
                   <code>KonvergenceCore/Helpers/ExcelUtils.cs</code> e <code>ExcelFileController.cs</code>. Verificare
-                  che l'endpoint sia attivo e che la cartella <code>wwwroot/Tmp_export</code> esista.</li>
+                  che l'endpoint sia attivo e che la cartella <code>wwwroot/Tmp_export</code> esista.
+                </li>
                 <li>Per CSV: KonvergenceCore usa <code>GenericParsing.Standard</code>. Il MetaServiceController espone
                   già l'endpoint di export; assicurarsi che le route CRM siano incluse.</li>
               </ul>
@@ -913,14 +922,16 @@
               <ul class="plan-steps">
                 <li>Aggiungere action key <code>crm_opportunity_move_stage</code> alla SP: riceve
                   <code>opportunity_id</code> e <code>stage_id</code> dal payload <code>@current_record</code>, aggiorna
-                  <code>crm_opportunities.stage_id</code>, ricalcola <code>amount</code> se necessario.</li>
+                  <code>crm_opportunities.stage_id</code>, ricalcola <code>amount</code> se necessario.
+                </li>
               </ul>
             </div>
             <div class="plan-section ps-meta">
               <div class="plan-section-title"><span class="badge b-meta">Metadata</span> MetadataCRM</div>
               <ul class="plan-steps">
                 <li>Aggiungere voce menu <em>Pipeline Kanban</em> (mm_id nuovo, route
-                  <code>/crm_opportunities/kanban</code>, mm_parent_id=5993).</li>
+                  <code>/crm_opportunities/kanban</code>, mm_parent_id=5993).
+                </li>
                 <li>Configurare <code>domBoard</code> + <code>domBoardSheet</code> per il kanban: ogni sheet corrisponde
                   a una fase, gli elementi sono le opportunità.</li>
               </ul>
@@ -934,9 +945,11 @@
                   (<code>/crm_opportunity_stage</code>) e le opportunità per fase.</li>
                 <li>Il drag &amp; drop tra colonne chiama
                   <code>POST /api/CrmActions/execute/crm_opportunity_move_stage</code> con
-                  <code>currentRecord = { opportunity_id, stage_id }</code>.</li>
+                  <code>currentRecord = { opportunity_id, stage_id }</code>.
+                </li>
                 <li>Registrare il nuovo componente nell'<code>AppModule</code> e nella route
-                  <code>/crm_opportunities/kanban</code>.</li>
+                  <code>/crm_opportunities/kanban</code>.
+                </li>
                 <li>Limitare la visibilità ai ruoli Manager e Sales (nessun drag per Readonly, solo visualizzazione).
                 </li>
               </ul>
@@ -949,7 +962,8 @@
       <div class="feature-card" data-priority="media" data-effort="m" id="f06">
         <div class="fc-header" onclick="toggle(this)">
           <div class="fc-header-left">
-            <div class="fc-title">🧙 Wizard multi-step nuova opportunità <span class="badge b-media">Media</span></div>
+            <div class="fc-title">🧙 Workflow multi-step nuova opportunità <span class="badge b-media">Media</span>
+            </div>
             <div class="fc-sub">Procedura guidata: Step 1 – cerca/crea account → Step 2 – cerca/crea contatto → Step 3 –
               dati opportunità → Step 4 – aggiungi prodotti → Conferma.</div>
           </div>
@@ -964,24 +978,24 @@
         <div class="fc-body">
           <div class="plan">
             <div class="plan-section ps-meta">
-              <div class="plan-section-title"><span class="badge b-meta">Metadata</span> MetadataCRM — _metadati__wizard
+              <div class="plan-section-title"><span class="badge b-meta">Metadata</span> MetadataCRM — Workflow
               </div>
               <ul class="plan-steps">
-                <li>Inserire un nuovo wizard in <code>_metadati__wizard</code> con nome <em>CRM Nuova Opportunità</em> e
+                <li>Inserire un nuovo <code>Workflow</code> con nome <em>CRM Nuova Opportunità</em> e
                   4 step.</li>
-                <li>Inserire in <code>_metadati__wizard__tabelle</code>: Step 1 → <code>crm_accounts</code>
+                <li>Step 1 → <code>crm_accounts</code>
                   (ricerca/crea), Step 2 → <code>crm_contacts</code> (filtro su account selezionato), Step 3 →
                   <code>crm_opportunities</code> (insert), Step 4 → <code>crm_opportunity_products</code> (griglia
-                  nested).</li>
+                  nested).
+                </li>
                 <li>Aggiungere voce menu <em>Nuova opportunità guidata</em> con route
-                  <code>/crm_opportunities/wizard</code> e <code>mm_parent_id=5993</code>.</li>
+                  <code>#/workflow-runner/wizard</code> e <code>mm_parent_id=5993</code>.
+                </li>
               </ul>
             </div>
             <div class="plan-section ps-ng">
               <div class="plan-section-title"><span class="badge b-ng">Angular</span> parametric-dialog / wizard</div>
               <ul class="plan-steps">
-                <li>Il wizard metadata è già gestito dal framework via <code>_metadati__wizard</code>: nessun componente
-                  custom necessario se il wizard è configurato correttamente nei metadati.</li>
                 <li>Verificare che <code>parametric-dialog.component</code> sia usato per la selezione account/contatto
                   con lookup.</li>
                 <li>Al termine del wizard, invocare action key <code>crm_opportunity_products_recalc_totals</code> per
@@ -990,7 +1004,8 @@
             </div>
             <div class="plan-note">Il sistema wizard di Wuic (<code>_metadati__wizard</code>,
               <code>_metadati__wizard__tabelle</code>) è già integrato nel framework. L'implementazione è principalmente
-              <strong>configurazione metadata</strong> senza codice custom.</div>
+              <strong>configurazione metadata</strong> senza codice custom.
+            </div>
           </div>
         </div>
       </div>
@@ -1020,9 +1035,11 @@
               <ul class="plan-steps">
                 <li>Creare <code>Controllers/CrmImportController.cs</code> con due endpoint:
                   <code>POST /api/CrmImport/preview</code> (riceve file, restituisce JSON anteprima prime 20 righe con
-                  mapping colonne) e <code>POST /api/CrmImport/commit</code> (esegue l'import effettivo).</li>
+                  mapping colonne) e <code>POST /api/CrmImport/commit</code> (esegue l'import effettivo).
+                </li>
                 <li>Usare <code>ExcelUtils</code> già presente in KonvergenceCore per leggere .xlsx; usare
-                  <code>GenericParsing</code> per .csv.</li>
+                  <code>GenericParsing</code> per .csv.
+                </li>
                 <li>Il metodo <code>commit</code> chiama <code>crm_sp_import_leads_bulk</code> passando il JSON dei
                   record mappati.</li>
               </ul>
@@ -1043,7 +1060,8 @@
               <ul class="plan-steps">
                 <li>Aggiungere azione tabella sulla pagina Lead con pulsante <em>Importa da file</em> che apre un
                   <code>parametric-dialog.component</code> con step: upload file (usa
-                  <code>upload-editor.component</code>) → preview griglia → conferma.</li>
+                  <code>upload-editor.component</code>) → preview griglia → conferma.
+                </li>
                 <li>Il callback dell'azione chiama <code>/api/CrmImport/preview</code>, mostra la griglia di anteprima,
                   poi su conferma chiama <code>/api/CrmImport/commit</code>.</li>
               </ul>
@@ -1077,7 +1095,8 @@
               <ul class="plan-steps">
                 <li>Usare le tabelle <code>_wuic_workflow_graph</code> e
                   <code>_wuic_workflow_graph_route_metadata</code> già presenti in MetadataCRM per definire il workflow
-                  dei case.</li>
+                  dei case.
+                </li>
                 <li>Mappare i nodi del workflow sugli stati di <code>crm_case_status</code> (Aperto → In lavorazione →
                   In attesa → Risolto → Chiuso).</li>
                 <li>Configurare le transizioni consentite e le azioni automatiche (es. notifica email al cambio di
@@ -1088,10 +1107,12 @@
               <div class="plan-section-title"><span class="badge b-sql">SQL</span> AdvancedCRM</div>
               <ul class="plan-steps">
                 <li>Aggiungere colonne SLA a <code>crm_cases</code>: <code>sla_due_at datetime2</code>,
-                  <code>sla_breached bit DEFAULT 0</code>, <code>escalated_at datetime2</code>.</li>
+                  <code>sla_breached bit DEFAULT 0</code>, <code>escalated_at datetime2</code>.
+                </li>
                 <li>Creare SP <code>crm_sp_process_sla</code> che verifica i case scaduti, imposta
                   <code>sla_breached=1</code> ed effettua l'escalation cambiando <code>priority</code> a
-                  <em>Critical</em>.</li>
+                  <em>Critical</em>.
+                </li>
               </ul>
             </div>
             <div class="plan-section ps-net">
@@ -1100,7 +1121,8 @@
                 <li>Creare <code>Services/CrmSlaWorker.cs</code> come <code>IHostedService</code> (background service
                   .NET): esegue ogni ora <code>crm_sp_process_sla</code>.</li>
                 <li>Registrare il service in <code>Program.cs</code> di CrmApp:
-                  <code>builder.Services.AddHostedService&lt;CrmSlaWorker&gt;()</code>.</li>
+                  <code>builder.Services.AddHostedService&lt;CrmSlaWorker&gt;()</code>.
+                </li>
                 <li>Usare il servizio email di KonvergenceCore (già configurato via SMTP) per le notifiche di
                   escalation.</li>
               </ul>
@@ -1141,19 +1163,23 @@
                   <code>entity_type nvarchar(50)</code> (es. 'case','opportunity'), <code>entity_id int</code>,
                   <code>file_name nvarchar(255)</code>, <code>file_path nvarchar(500)</code>,
                   <code>file_size bigint</code>, <code>mime_type nvarchar(100)</code>, <code>uploaded_by int</code>,
-                  <code>created_at datetime2</code>.</li>
+                  <code>created_at datetime2</code>.
+                </li>
               </ul>
             </div>
             <div class="plan-section ps-meta">
               <div class="plan-section-title"><span class="badge b-meta">Metadata</span> MetadataCRM</div>
               <ul class="plan-steps">
                 <li>Scaffoldare <code>crm_attachments</code> come nuova <code>_metadati__tabelle</code> (route:
-                  <code>crm_attachments</code>).</li>
+                  <code>crm_attachments</code>).
+                </li>
                 <li>Configurare la colonna <code>file_path</code> come <code>mc_ui_column_type = upload</code> usando
                   <code>_metadati__colonne</code> con i campi di configurazione upload (<code>is_d_b_upload1</code>,
-                  <code>multiple_upload_table_route1</code>, ecc.).</li>
+                  <code>multiple_upload_table_route1</code>, ecc.).
+                </li>
                 <li>Aggiungere <code>crm_attachments</code> come nested grid (<code>mddetailgridroutes</code>) sia in
-                  <code>crm_cases</code> che in <code>crm_opportunities</code>.</li>
+                  <code>crm_cases</code> che in <code>crm_opportunities</code>.
+                </li>
               </ul>
             </div>
             <div class="plan-section ps-net">
@@ -1200,9 +1226,11 @@
               <div class="plan-section-title"><span class="badge b-sql">SQL</span> AdvancedCRM</div>
               <ul class="plan-steps">
                 <li>Aggiungere colonne <code>latitude decimal(9,6)</code> e <code>longitude decimal(9,6)</code> a
-                  <code>crm_accounts</code> tramite ALTER TABLE.</li>
+                  <code>crm_accounts</code> tramite ALTER TABLE.
+                </li>
                 <li>Popolare le coordinate con geocoding (esternamente o via action key
-                  <code>crm_accounts_geocode</code> che chiama un servizio esterno).</li>
+                  <code>crm_accounts_geocode</code> che chiama un servizio esterno).
+                </li>
               </ul>
             </div>
             <div class="plan-section ps-meta">
@@ -1210,7 +1238,8 @@
               <ul class="plan-steps">
                 <li>Aggiungere le colonne <code>latitude</code> e <code>longitude</code> ai metadati di
                   <code>crm_accounts</code> con <code>mccampolat</code>/<code>mccampolong</code> già previsti in
-                  <code>_metadati__colonne</code>.</li>
+                  <code>_metadati__colonne</code>.
+                </li>
                 <li>Aggiungere voce menu <em>Mappa account</em> (route: <code>/crm_accounts/map</code>,
                   mm_parent_id=5992).</li>
                 <li>Configurare <code>MapOptions</code> per la vista puntando alle colonne lat/long.</li>
@@ -1257,7 +1286,8 @@
                 <li>Configurare <code>SchedulerOptions</code> per la route <code>crm_activities</code> nella proprietà
                   <code>mm_props_bag</code> del menu scheduler (mm_id=6001): impostare <code>startField</code> su
                   <code>due_date</code>, <code>titleField</code> su <code>subject</code>,
-                  <code>allowDragDrop: true</code>, <code>updateUri</code> puntato all'endpoint OData di update.</li>
+                  <code>allowDragDrop: true</code>, <code>updateUri</code> puntato all'endpoint OData di update.
+                </li>
                 <li>Assicurarsi che la colonna <code>due_date</code> sia <code>mc_logic_editable=1</code> per i ruoli
                   che possono fare drag (Manager, Support).</li>
               </ul>
@@ -1266,11 +1296,13 @@
               <div class="plan-section-title"><span class="badge b-sql">SQL</span> AdvancedCRM</div>
               <ul class="plan-steps">
                 <li>L'aggiornamento di <code>due_date</code> viene gestito dall'OData PATCH standard su
-                  <code>crm_activities</code>. Nessuna SP custom necessaria.</li>
+                  <code>crm_activities</code>. Nessuna SP custom necessaria.
+                </li>
               </ul>
             </div>
             <div class="plan-note">Il componente <code>scheduler-list.component</code> supporta già drag &amp; drop via
-              <code>SchedulerOptions</code>. È <strong>solo configurazione metadata</strong>.</div>
+              <code>SchedulerOptions</code>. È <strong>solo configurazione metadata</strong>.
+            </div>
           </div>
         </div>
       </div>
@@ -1299,12 +1331,15 @@
               <ul class="plan-steps">
                 <li>Per <strong>crm_opportunities</strong>: in <code>_metadati__u_i__stili__tabelle</code>, aggiungere
                   regola <code>expected_close_date &lt; TODAY AND Stato_Record = 0</code> → classe CSS
-                  <code>row-danger</code>.</li>
+                  <code>row-danger</code>.
+                </li>
                 <li>Per <strong>crm_leads</strong>: aggiungere regola
-                  <code>DATEDIFF(day, updated_at, GETDATE()) &gt; 7</code> → classe CSS <code>row-warning</code>.</li>
+                  <code>DATEDIFF(day, updated_at, GETDATE()) &gt; 7</code> → classe CSS <code>row-warning</code>.
+                </li>
                 <li>Per <strong>crm_activities</strong>: regola <code>completed = 1</code> → classe CSS
                   <code>row-success</code>; <code>due_date &lt; TODAY AND completed = 0</code> →
-                  <code>row-danger</code>.</li>
+                  <code>row-danger</code>.
+                </li>
                 <li>Usare <code>mcgridconditionaltemplateclass</code> / <code>mcgrdcndtionalalttemplateclass</code>
                   nelle <code>_metadati__colonne</code> per le singole celle, oppure
                   <code>mdgrdcndtonaltemplatecondition</code> in <code>_metadati__tabelle</code> per le righe intere.
@@ -1342,7 +1377,8 @@
                 <li>Creare tabella <code>crm_notifications</code>: <code>notification_id PK</code>,
                   <code>user_id int</code>, <code>type nvarchar(50)</code>, <code>message nvarchar(500)</code>,
                   <code>entity_type nvarchar(50)</code>, <code>entity_id int</code>, <code>is_read bit DEFAULT 0</code>,
-                  <code>created_at datetime2</code>.</li>
+                  <code>created_at datetime2</code>.
+                </li>
                 <li>Aggiungere trigger o SP che inserisce in <code>crm_notifications</code> quando: un lead viene
                   assegnato (<code>assigned_user_id</code> cambia), un case viene assegnato, un'attività è in scadenza
                   domani.</li>
@@ -1353,7 +1389,8 @@
               <ul class="plan-steps">
                 <li>Creare <code>CrmNotificationsController.cs</code> con:
                   <code>GET /api/CrmNotifications/unread/{userId}</code> (restituisce conteggio + ultime 10 notifiche) e
-                  <code>POST /api/CrmNotifications/markread/{notificationId}</code>.</li>
+                  <code>POST /api/CrmNotifications/markread/{notificationId}</code>.
+                </li>
               </ul>
             </div>
             <div class="plan-section ps-ng">
@@ -1361,7 +1398,8 @@
                 polling</div>
               <ul class="plan-steps">
                 <li>Creare un servizio <code>CrmNotificationService</code> che fa polling ogni 60s a
-                  <code>/api/CrmNotifications/unread/{userId}</code>.</li>
+                  <code>/api/CrmNotifications/unread/{userId}</code>.
+                </li>
                 <li>Mostrare il badge contatore nell'header usando <code>messageNotificationService</code> già presente
                   nella lib wuic.</li>
                 <li>Al click sul badge aprire un pannello con la lista notifiche. Click su una notifica naviga
@@ -1406,7 +1444,8 @@
                   <code>IConfiguration</code> (già presente in <code>appsettings.json</code>: <code>email-host</code>,
                   <code>email-port</code>, <code>email-user</code>, <code>email-pwd</code>). Espone metodo
                   <code>SendAsync(to, subject, body)</code> usando <code>System.Net.Mail.SmtpClient</code> o
-                  <code>MailKit</code>.</li>
+                  <code>MailKit</code>.
+                </li>
                 <li>Iniettare <code>CrmEmailService</code> in <code>CrmActionsController</code>.</li>
                 <li>Modificare il case <code>crm_contacts_send_email</code> in <code>crm_sp_execute_action</code>:
                   restituire nel payload l'indirizzo email e il testo. Nel controller, dopo la chiamata alla SP,
@@ -1418,14 +1457,16 @@
               <ul class="plan-steps">
                 <li>Creare tabella <code>crm_email_templates</code>: <code>template_id</code>,
                   <code>template_code</code>, <code>subject_template</code>, <code>body_template</code> (HTML con
-                  placeholder <code>{first_name}</code>, <code>{account_name}</code>, ecc.).</li>
+                  placeholder <code>{first_name}</code>, <code>{account_name}</code>, ecc.).
+                </li>
                 <li>Aggiornare la SP per restituire nel payload anche il template da usare per la tipologia di email.
                 </li>
               </ul>
             </div>
             <div class="plan-note">La configurazione SMTP <strong>è già presente in
                 <code>appsettings.json</code></strong>. Il costo principale è la scrittura di
-              <code>CrmEmailService</code> e la modifica del controller.</div>
+              <code>CrmEmailService</code> e la modifica del controller.
+            </div>
           </div>
         </div>
       </div>
@@ -1455,10 +1496,12 @@
                 <li>Sfruttare le tabelle <code>ChangeMaster</code> e <code>ChangeDetail</code> già presenti in
                   AdvancedCRM: aggiungere trigger AFTER UPDATE su <code>crm_opportunities</code>,
                   <code>crm_leads</code>, <code>crm_cases</code>, <code>crm_accounts</code> che inseriscono in queste
-                  tabelle i valori vecchi/nuovi dei campi modificati.</li>
+                  tabelle i valori vecchi/nuovi dei campi modificati.
+                </li>
                 <li>In alternativa, creare una tabella <code>crm_changelog</code> dedicata: <code>entity_type</code>,
                   <code>entity_id</code>, <code>field_name</code>, <code>old_value</code>, <code>new_value</code>,
-                  <code>changed_by</code>, <code>changed_at</code>.</li>
+                  <code>changed_by</code>, <code>changed_at</code>.
+                </li>
               </ul>
             </div>
             <div class="plan-section ps-meta">
@@ -1467,7 +1510,8 @@
                 <li>Scaffoldare <code>crm_changelog</code> come tabella readonly in MetadataCRM.</li>
                 <li>Aggiungere come nested grid (<code>mddetailgridroutes</code>) in <code>crm_opportunities</code>,
                   <code>crm_leads</code>, <code>crm_cases</code> con filtro su <code>entity_id</code> e
-                  <code>entity_type</code>.</li>
+                  <code>entity_type</code>.
+                </li>
               </ul>
             </div>
             <div class="plan-section ps-net">
@@ -1507,7 +1551,8 @@
                 <li>Creare tabella <code>crm_webhooks</code>: <code>webhook_id</code>,
                   <code>event_type nvarchar(100)</code> (es. <code>opportunity.stage_changed</code>),
                   <code>target_url nvarchar(500)</code>, <code>is_active bit</code>,
-                  <code>secret_header nvarchar(200)</code>.</li>
+                  <code>secret_header nvarchar(200)</code>.
+                </li>
                 <li>Creare tabella <code>crm_webhook_log</code> per registrare successi/errori delle chiamate.</li>
               </ul>
             </div>
@@ -1561,7 +1606,8 @@
               <ul class="plan-steps">
                 <li>Inserire in <code>universi</code> le aree commerciali (es. Nord, Centro, Sud, Export).</li>
                 <li>Inserire in <code>definizione__universi</code> le regole di filtro per ogni area: es. per
-                  <em>Nord</em> → <code>crm_accounts.region IN ('Piemonte','Lombardia','…')</code>.</li>
+                  <em>Nord</em> → <code>crm_accounts.region IN ('Piemonte','Lombardia','…')</code>.
+                </li>
                 <li>Associare ogni utente Wuic (<code>utenti_ruoli</code>) all'universo corretto.</li>
               </ul>
             </div>
@@ -1570,7 +1616,8 @@
               <ul class="plan-steps">
                 <li>Aggiungere colonna <code>region nvarchar(100)</code> a <code>crm_accounts</code>.</li>
                 <li>Verificare che tutti i join delle query (leads, opportunità, case) passino per
-                  <code>crm_accounts</code> per ereditare il filtro universo.</li>
+                  <code>crm_accounts</code> per ereditare il filtro universo.
+                </li>
               </ul>
             </div>
             <div class="plan-note">Il sistema <code>universi</code> / <code>definizione__universi</code> è già integrato
@@ -1605,7 +1652,8 @@
               <ul class="plan-steps">
                 <li>Inserire in <code>_wuic_translations</code> le traduzioni per ogni
                   <code>mc_display_string_in_view</code>, <code>mm_display_string_menu</code>,
-                  <code>buttoncaption</code> dei metadati CRM nelle lingue target.</li>
+                  <code>buttoncaption</code> dei metadati CRM nelle lingue target.
+                </li>
                 <li>Inserire in <code>lingue</code> le lingue supportate (EN, FR) se non già presenti.</li>
               </ul>
             </div>
@@ -1613,7 +1661,8 @@
               <div class="plan-section-title"><span class="badge b-ng">Angular</span> translation-manager.service</div>
               <ul class="plan-steps">
                 <li><code>translation-manager.service</code> è già disponibile nella lib wuic e legge da
-                  <code>_wuic_translations</code>. Nessun componente custom necessario.</li>
+                  <code>_wuic_translations</code>. Nessun componente custom necessario.
+                </li>
                 <li>Aggiungere il selettore lingua nel profilo utente (o header).</li>
               </ul>
             </div>
@@ -1643,22 +1692,26 @@
               <div class="plan-section-title"><span class="badge b-sql">SQL</span> AdvancedCRM</div>
               <ul class="plan-steps">
                 <li>Aggiungere colonne a <code>crm_cases</code>: <code>sla_hours int</code> (calcolata),
-                  <code>sla_due_at datetime2</code>, <code>sla_breached bit DEFAULT 0</code>.</li>
+                  <code>sla_due_at datetime2</code>, <code>sla_breached bit DEFAULT 0</code>.
+                </li>
                 <li>Creare trigger AFTER INSERT su <code>crm_cases</code>: imposta
                   <code>sla_due_at = DATEADD(HOUR, sla_hours, created_at)</code> dove <code>sla_hours</code> è
-                  determinato da <code>priority</code>.</li>
+                  determinato da <code>priority</code>.
+                </li>
                 <li>Creare SP <code>crm_sp_check_sla_breach</code>: aggiorna <code>sla_breached=1</code> e incrementa
-                  priorità dove <code>sla_due_at &lt; GETUTCDATE() AND Stato_Record=0</code>. Schedulabile come SQL
-                  Agent Job o da <code>CrmSlaWorker</code> (vedi F08).</li>
+                  priorità dove <code>sla_due_at &lt; GETUTCDATE() AND Stato_Record=0</code>. Crea schedulazione tipo 1
+                  per crm_sp_check_sla_breach.</li>
               </ul>
             </div>
             <div class="plan-section ps-meta">
               <div class="plan-section-title"><span class="badge b-meta">Metadata</span> MetadataCRM</div>
               <ul class="plan-steps">
                 <li>Scaffoldare le nuove colonne <code>sla_due_at</code> e <code>sla_breached</code> in
-                  <code>_metadati__colonne</code> come campi readonly (<code>mc_logic_editable=0</code>).</li>
+                  <code>_metadati__colonne</code> come campi readonly (<code>mc_logic_editable=0</code>).
+                </li>
                 <li>Usare <code>mcgridconditionaltemplateclass</code> per colorare in rosso le righe con
-                  <code>sla_breached=1</code>.</li>
+                  <code>sla_breached=1</code>.
+                </li>
               </ul>
             </div>
           </div>
@@ -1696,7 +1749,8 @@
               </div>
               <ul class="plan-steps">
                 <li>Cambiare <code>"encriptionMethod": "SHA1"</code> in <code>"encriptionMethod": "PBKDF2"</code> in
-                  <code>appsettings.json</code>.</li>
+                  <code>appsettings.json</code>.
+                </li>
                 <li>Verificare che <code>MetaService.cs</code> (o il metodo di autenticazione) supporti già PBKDF2:
                   cercare nel sorgente il dispatch su <code>encriptionMethod</code>. Se non presente, aggiungere il
                   branch PBKDF2 usando <code>System.Security.Cryptography.Rfc2898DeriveBytes</code>.</li>
@@ -1720,7 +1774,8 @@
             <div class="fc-title">🔓 Attivare SSO Google / OAuth <span class="badge b-media">Media</span></div>
             <div class="fc-sub">OAuth Google è già configurato in appsettings (<code>ClientId</code>,
               <code>Provider: Google</code>) ma disabilitato (<code>Enabled: false</code>). Abilitarlo e testare il
-              flusso.</div>
+              flusso.
+            </div>
           </div>
           <div class="fc-badges">
             <span class="badge b-s">S</span>
@@ -1736,10 +1791,12 @@
               </div>
               <ul class="plan-steps">
                 <li>Impostare <code>"Enabled": true</code> in <code>Authentication.OAuth</code> in
-                  <code>appsettings.json</code> (o <code>appsettings.Development.json</code> per test).</li>
+                  <code>appsettings.json</code> (o <code>appsettings.Development.json</code> per test).
+                </li>
                 <li>Impostare il valore reale di <code>ClientSecret</code> (attualmente
                   <code>__SET_OAUTH_CLIENT_SECRET__</code>) in un secret store (es. <code>dotnet user-secrets</code> o
-                  variabile d'ambiente).</li>
+                  variabile d'ambiente).
+                </li>
                 <li>Configurare l'URI di callback <code>/signin-google</code> nella Google Cloud Console come Redirect
                   URI autorizzato.</li>
                 <li>Verificare che <code>AuthController.cs</code> gestisca il mapping utente OAuth → utente Wuic
@@ -1778,9 +1835,11 @@
                   <code>builder.Services.AddRateLimiter(o =&gt; o.AddFixedWindowLimiter("crm-actions", opt =&gt; { opt.PermitLimit = 30; opt.Window = TimeSpan.FromMinutes(1); opt.QueueLimit = 5; }))</code>.
                 </li>
                 <li>Applicare il limiter a <code>CrmActionsController</code> con
-                  <code>[EnableRateLimiting("crm-actions")]</code> o globalmente su tutte le route API.</li>
+                  <code>[EnableRateLimiting("crm-actions")]</code> o globalmente su tutte le route API.
+                </li>
                 <li>Aggiungere <code>app.UseRateLimiter()</code> nella pipeline middleware prima di
-                  <code>app.MapControllers()</code>.</li>
+                  <code>app.MapControllers()</code>.
+                </li>
               </ul>
             </div>
           </div>
