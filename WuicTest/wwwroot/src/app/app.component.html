@@ -1,9 +1,7 @@
-@if (fixBusy) {
-@if (isBusy | async) {
+@if (busyVisible) {
 <div #busyIndicator class="busy-indicator">
     <i class="pi pi-spin pi-spinner"></i>
 </div>
-}
 }
 
 @if (showFirstRunInstall) {
@@ -122,3 +120,5 @@
 </p-dialog>
 
 <p-confirmDialog />
+
+

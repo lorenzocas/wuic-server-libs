@@ -15,7 +15,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { TableModule } from 'primeng/table';
 
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, firstValueFrom } from 'rxjs';
+import { BehaviorSubject, firstValueFrom, Subscription } from 'rxjs';
 
 import { environment as appSettings } from './environments/environment';
 import { DialogService } from 'primeng/dynamicdialog';
@@ -64,8 +64,9 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
   visible: boolean = false;
   currentException: CustomException;
 
-  isBusy: BehaviorSubject<boolean>;
-  fixBusy: boolean = false;
+  isBusy: BehaviorSubject<boolean> = WtoolboxService.isBusy;
+  busyVisible: boolean = false;
+  private busySub?: Subscription;
   showFirstRunInstall = false;
   firstRunLoading = true;
   firstRunInstalling = false;
@@ -218,15 +219,18 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
   }
 
   ngAfterContentInit(): void {
-    this.isBusy = WtoolboxService.isBusy;
-    this.fixBusy = true;
   }
 
   ngOnDestroy(): void {
+    this.busySub?.unsubscribe();
     // this.notificationRealtime.disconnect();
   }
 
   ngOnInit(): void {
+    this.busySub?.unsubscribe();
+    this.busySub = this.isBusy.subscribe((v) => {
+      queueMicrotask(() => { this.busyVisible = !!v; });
+    });
     void this.loadShellWidgets();
     const savedTheme = localStorage.getItem(AppComponent.ThemeStorageKey);
     if (savedTheme && this.availableThemes.some(t => t.value === savedTheme)) {
@@ -1055,6 +1059,12 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     }
   }
 }
+
+
+
+
+
+
 
 
 

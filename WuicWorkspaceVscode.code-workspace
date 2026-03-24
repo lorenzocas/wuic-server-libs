@@ -50,6 +50,7 @@
 		],
 		"semgrep.scan.onlyGitDirty": false,
 		"semgrep.scan.secrets": false,
-		"chatgpt.openOnStartup": true
+		"chatgpt.openOnStartup": true,
+		"chat.imageCarousel.enabled": true
 	}
 }
