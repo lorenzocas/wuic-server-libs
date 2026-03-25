@@ -1,8 +1,0 @@
-import { InjectionToken } from '@angular/core';
-/**
- * Identifies the gutter by number through DI
- * to allow SplitGutterDragHandleDirective and SplitGutterExcludeFromDragDirective to know
- * the gutter template context without inputs
- */
-export declare const GUTTER_NUM_TOKEN: InjectionToken<number>;
-//# sourceMappingURL=gutter-num-token.d.ts.map
