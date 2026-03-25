@@ -947,6 +947,10 @@ declare class DataSourceComponent implements OnInit, OnDestroy {
     toggleTabByIndex(index: number, hidden?: boolean): void;
     toggleTabByName(tabName: string, hidden?: boolean): void;
     /**
+  * Indica se esiste un tab visibile successivo rispetto al tab visibile correntemente selezionato.
+  */
+    get hasNextVisibleTab(): boolean;
+    /**
   * Imposta in modo sicuro il tab selezionato su `metaInfo.dataTabs`.
   * Accetta come target il nome tab oppure l'indice nell'array `dataTabs`.
   * @param target Nome tab (`tabName`) o indice numerico.
@@ -954,6 +958,11 @@ declare class DataSourceComponent implements OnInit, OnDestroy {
   * @returns `true` se la selezione e stata applicata, altrimenti `false`.
   */
     setSelectedTab(target: string | number, allowHidden?: boolean): boolean;
+    /**
+  * Seleziona il prossimo tab visibile rispetto al corrente, se disponibile.
+  * Riusa `setSelectedTab` per garantire logica/side-effect uniformi.
+  */
+    selectNextVisibleTab(): boolean;
     /**
   * Interpreta `md_nested_grid_routes` (JSON o formato legacy) e costruisce la struttura normalizzata delle route annidate.
   */
@@ -8797,10 +8806,18 @@ declare class MetadataEditorComponent implements AfterViewInit, OnInit, OnDestro
      */
     private getConditionGroupIdSet;
     /**
+     * Restituisce l'insieme degli id gruppo azione condizione (CAG_Id) validi nel contesto corrente.
+     */
+    private getConditionActionGroupIdSet;
+    /**
      * Filtra righe action/action-group mantenendo solo quelle collegate ai `CG_Id` correnti.
      * Se non ci sono gruppi condizione nel contesto corrente, restituisce sempre lista vuota.
      */
     private filterRowsByConditionGroupIds;
+    /**
+     * Filtra righe action-item mantenendo solo quelle collegate ai `CAG_Id` correnti.
+     */
+    private filterRowsByConditionActionGroupIds;
     /**
      * Filtra i condition item reali: evita righe "phantom" generate da LEFT JOIN (es. CI_Id = 0).
      */
