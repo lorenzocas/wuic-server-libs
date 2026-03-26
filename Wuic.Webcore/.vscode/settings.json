@@ -1,0 +1,23 @@
+{
+  "search.exclude": {
+    "**/bin/**": true,
+    "**/obj/**": true,
+    "**/wwwroot_js/**": true,
+    "**/wwwroot/node_modules/**": true,
+    "**/wwwroot/lib-src/**": true,
+    "**/.dotnet/**": true,
+    "**/.venv/**": true,
+    "**/*.js": true,
+    "**/*.d.ts": true,
+    "**/*.jsonl": true,
+    "**/*.spec.ts": true,
+    "**/.angular/**": true,
+  },
+  "files.exclude": {
+    "wwwroot/node_modules": true
+  },
+  "files.watcherExclude": {
+    "**/wwwroot/node_modules/**": true
+  },
+  "typescript.tsdk": "wwwroot/my-workspace/node_modules/typescript/lib"
+}
