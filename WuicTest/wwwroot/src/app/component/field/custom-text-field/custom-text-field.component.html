@@ -1,0 +1,3 @@
+<input type="text" pInputText [ngModel]="record?.[field.mc_nome_colonna] | async" (keydown)="beforeChange($event)"
+  (change)="modelChangeFn($event)" [ngStyle]="{width: '100%', backgroundColor: 'red'}" (blur)="onBlur()"
+  [disabled]="field.extras?.form?.disabled || readOnly" [ngClass]="field.extras?.style?.editCss" />

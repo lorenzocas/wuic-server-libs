@@ -2,12 +2,12 @@ import { Routes } from '@angular/router';
 import { routes as wuicRoutes } from './wuic-bridges/routes';
 
 export const appRoutes: Routes = [
-  // {
-  //   path: 'crm_opportunities/kanban',
-  //   loadComponent: () => import('./component/crm-opportunity-kanban/crm-opportunity-kanban.component').then((m) => m.CrmOpportunityKanbanComponent),
-  //   data: {
-  //     breadcrumbs: 'kanban'
-  //   }
-  // },
+  {
+    path: 'custom-cities-list',
+    loadComponent: () => import('./component/custom-cities-list/custom-cities-list.component').then((m) => m.CustomCitiesListComponent),
+    data: {
+      breadcrumbs: 'custom-cities-list'
+    }
+  },
   ...wuicRoutes
 ];

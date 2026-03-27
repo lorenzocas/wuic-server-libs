@@ -1,4 +1,4 @@
-import { AfterContentInit, Component, Injector, OnDestroy, OnInit } from '@angular/core';
+import { AfterContentInit, Component, forwardRef, Injector, OnDestroy, OnInit } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { utility } from './classes/utility';
 import { AsyncPipe, NgClass, NgComponentOutlet, NgFor, NgIf, NgStyle } from '@angular/common';
@@ -28,6 +28,10 @@ import Nora from '@primeng/themes/nora';
 import Material from '@primeng/themes/material';
 import { updatePrimaryPalette, usePreset } from '@primeuix/styled';
 import { WtoolboxService, MetadataProviderService, GlobalHandler, CustomException, TranslationManagerService, AuthSessionService } from './wuic-bridges/core';
+import { CustomListComponent } from './component/custom-list/custom-list.component';
+
+// import { CustomTextFieldComponent } from './component/field/custom-text-field/custom-text-field.component';
+// import { CustomListComponent } from './component/custom-list/custom-list.component';
 
 @Component({
   selector: 'app-root',
@@ -138,30 +142,12 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     WtoolboxService.translationService = translationService;
     WtoolboxService.errorHandler = this.globalHandler;
 
-    GlobalHandler.messageNotification.subscribe((data) => {
+    GlobalHandler.messageNotification.subscribe((data: any) => {
       this.currentException = data.exception;
       this.visible = data.show;
     });
 
-    // this.notificationRealtime.unreadCount$.subscribe((count) => {
-    //   this.unreadNotificationsCount = Number(count || 0);
-    // });
-
-    // this.notificationRealtime.notifications$.subscribe((items) => {
-    //   this.notifications = Array.isArray(items) ? items : [];
-    // });
-
     this.authSession = this.injector.get(AuthSessionService);
-
-    // this.authSession.state$.subscribe((state) => {
-    //   if (state?.authenticated || state?.legacyAuthenticated) {
-    //     this.ensureNotificationsRealtimeConnected();
-    //   } else {
-    //     this.notificationsRealtimeUserId = null;
-    //     this.loggedUserId = null;
-    //     // this.notificationRealtime.disconnect();
-    //   }
-    // });
 
     //custom functions
     WtoolboxService.myFunctions['utility'] = new utility();
@@ -175,9 +161,104 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     const advancedLoaders = () => import('./wuic-bridges/widget-loaders-advanced');
 
     Object.assign(MetadataProviderService.widgetDefinition, {
+      defaultHeight: "70px",
+      defaultWidth: "100%",
+      defaultFilterWidth: "200px",
+      filterOperators: [
+        {
+          key: 'eq',
+          value: 'equals'
+        },
+        {
+          key: 'ne',
+          value: 'not equals'
+        },
+        {
+          key: 'lt',
+          value: 'less than'
+        },
+        {
+          key: 'le',
+          value: 'less than or equals'
+        },
+        {
+          key: 'gt',
+          value: 'greater than'
+        },
+        {
+          key: 'ge',
+          value: 'greater than or equals'
+        },
+        {
+          key: 'contains',
+          value: 'contains'
+        },
+        {
+          key: 'notcontains',
+          value: 'not contains'
+        },
+        {
+          key: 'startswith',
+          value: 'starts with'
+        },
+        {
+          key: 'endswith',
+          value: 'ends with'
+        }
+        ,
+        {
+          key: 'isnull',
+          value: 'null'
+        }
+      ],
+      menuParams: {
+        ulWith: "1200px",
+        liWidth: "33%",
+        itemCountThreshold: 6
+      },
       gridRowImports: [ButtonModule, TableModule, NgFor, NgIf, NgClass, NgStyle, FormsModule, ui.LazyDataActionButtonComponent, ui.LazyDataSourceComponent, ui.VisibleFieldListPipe, ui.CallbackPipe, ui.CallbackPipe2, ui.IsSelectedRowPipe, ui.FormatGridViewValuePipe, ui.GetSrcUploadPreviewPipe, ui.LazyFieldEditorComponent, ui.LazyImageWrapperComponent],
-      dynamicFormImports: [NgFor, NgIf, ui.LazyDataActionButtonComponent, ui.LazyDataSourceComponent, ui.VisibleFieldListPipe, TableModule, ButtonModule, ui.LazyFieldEditorComponent]
+      dynamicFormImports: [NgFor, NgIf, ui.LazyDataActionButtonComponent, ui.LazyDataSourceComponent, ui.VisibleFieldListPipe, TableModule, ButtonModule, ui.LazyFieldEditorComponent],
+      //    gridRowTemplate: `
+      //     <td *ngIf="metaInfo.tableMetadata.md_nested_grid_routes">
+      //        <button type="button" class="p-button p-button-text p-button-rounded p-button-sm p-0" [pRowToggler]="rowData">
+      //          <i class="pi" [ngClass]="{'pi-chevron-down': expanded, 'pi-chevron-right': !expanded }"></i>
+      //        </button>
+      //     </td>
+      //     <td *ngIf="metaInfo.tableMetadata.md_multiple_selection">
+      //      <!-- <p-tableCheckbox [value]="rowData" /> -->
+      //      <input class="p-checkbox-box" type="checkbox" style="margin-left: 15px" (click)="rowSelect(rowData, $event, dt)" [checked]="dt.selection | isSelectedRow : rowData : metaInfo" />
+      //     </td>
+      //     <td *ngIf="metaInfo.tableMetadata.md_editable || metaInfo.tableMetadata.md_deletable || metaInfo.tableMetadata.md_detail_action || metaInfo.tableMetadata.md_clonable || metaInfo.tableMetadata.md_inline_edit">
+      //         <wuic-data-action-button-lazy [data]="rowData" [metaInfo]="metaInfo" [datasource]="datasource"></wuic-data-action-button-lazy>
+      //     </td>
+      //     <td *ngFor="let col of columns | visibleFieldList" [ngClass]="getCellClasses(col.metaColumn, rowData)" (click)="onRowSelect($event, rowData)">
+      //         <wuic-field-editor-lazy *ngIf="rowData.__is_editing" [record]="rowData.__observable" [field]="col.metaColumn" [metaInfo]="metaInfo"></wuic-field-editor-lazy>
+      //         <ng-container *ngIf="!rowData.__is_editing">
+      //           <span *ngIf="col.metaColumn.mc_ui_column_type != 'upload' && col.metaColumn.mc_ui_column_type != 'color' && !col.metaColumn.mc_logic_allow_navigation" class='list-grid-cell-text-content'>
+      //             {{ rowData | formatGridViewValue: col.metaColumn }}
+      //            </span>
+
+      //            <a *ngIf="col.metaColumn.mc_logic_allow_navigation" [href]="'#/' + col.metaColumn.mc_ui_lookup_entity_name + '/list/' + col.metaColumn.mc_ui_lookup_dataValueField + '||eq||' + rowData[col.metaColumn.mc_nome_colonna]" [attr.target]="col.metaColumn.mc_logic_navigate_new_window ? '_blank' : null">{{ rowData | formatGridViewValue: col.metaColumn }}</a>
+
+      //           <wuic-image-wrapper-lazy *ngIf="col.metaColumn.mc_ui_column_type == 'upload' && rowData[col.field] && col.metaColumn.isImageUpload" [preview]="true" [src]="rowData[col.field] | getSrcUploadPreview : col.metaColumn : metaInfo : rowData : true" [alt]="rowData[col.field]" [previewImageSrc]="rowData[col.field] | getSrcUploadPreview : col.metaColumn : metaInfo : rowData" [alt]="rowData[col.field]" [width]="col.metaColumn.thumbWidth ? col.metaColumn.thumbWidth : 50" [height]="col.metaColumn.thumbHeight ? col.metaColumn.thumbHeight : 50"></wuic-image-wrapper-lazy>
+
+      //           <a *ngIf="col.metaColumn.mc_ui_column_type == 'upload' && rowData[col.field] && !col.metaColumn.isImageUpload" [href]="rowData[col.field] | getSrcUploadPreview : col.metaColumn : metaInfo : rowData" target="_blank"><img [src]="rowData[col.field] | getSrcUploadPreview : col.metaColumn : metaInfo : rowData : true" height="50" width="50" /></a>
+
+      //           <div *ngIf="col.metaColumn.mc_ui_column_type == 'color' && rowData[col.field]" class="grid-color-cell" [ngStyle]="{backgroundColor: rowData[col.field]}"></div>
+      //         </ng-container>
+      //     </td>
+      // `,
+      // schedulerEventTemplate: `<div class="scheduler-item"><wuic-data-action-button-lazy [data]="rowData.extendedProps" [metaInfo]="metaInfo" [datasource]="datasource" [simplified]="true"></wuic-data-action-button-lazy><span class="item-description">{{rowData.title}}</span> </div>`,
+      // mapEventTemplate: `<div class="map-info"><span class="map-info-title" [innerHTML]="rowData | callback2: getDescription"></span><br/><wuic-data-action-button-lazy [data]="rowData.record" [metaInfo]="metaInfo" [datasource]="datasource" [simplified]="true"></wuic-data-action-button-lazy></div>`,
+      // treeItemTemplate: `<table><tr><td><wuic-data-action-button-lazy [data]="rowData.data" [metaInfo]="metaInfo" [datasource]="datasource"></wuic-data-action-button-lazy></td><td><b>{{ rowData.label }}</b></td></tr></table>`
     });
+
+    // Example of databound widget / action registration at runtime:
+    // MetadataProviderService.customRepeaterComponents = [forwardRef(() => CustomListComponent)]
+    MetadataProviderService.widgetDefinition.archetypes['customlist'] = { component: CustomListComponent, designerOptions: null };
+
+    //// Example of databound widget override at runtime:
+    //MetadataProviderService.widgetDefinition.archetypes['list'] = { markup: '<span>CIAO</span>', component: null, designerOptions: null };
 
     Object.assign(MetadataProviderService.widgetMap, {
       'text': { loader: loaders.loadTextEditorComponent, width: '300px' },
@@ -206,6 +287,37 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
       'objectArray': { loader: () => advancedLoaders().then(m => m.loadPropertyArrayEditorComponent()), hide: true },
       'objectProp': { loader: () => advancedLoaders().then(m => m.loadPropertyObjectEditorComponent()), hide: true },
     });
+
+    //// Example of editor widget override:
+    // MetadataProviderService.widgetMap['text'] = { component: CustomTextFieldComponent };
+
+    // // Example of editor widget registration:
+    // MetadataProviderService.widgetMap['my-text'] = { component: CustomTextFieldComponent };
+
+    //Example of custom designer component and tool registration:
+    MetadataProviderService.customDesignerComponents = [CustomListComponent]
+    MetadataProviderService.customDesignerTools = [
+      {
+        group: 'DATA',
+        toolId: -1,
+        name: 'TOOL_X',
+        tag: `<app-custom-list [attr.id]="uniqueName" [attr.title]="uniqueName" [datasource]="inputs.datasource?.component"></app-custom-list>`,
+        icon: 'pi pi-window-maximize',
+        inputProps: {
+          datasource: {
+            'type': 'dropped-component-list',
+            filter: 'DATASOURCE',
+            asyncPath: 'component',
+            serializable: { prop: 'uniqueName' }
+          },
+          componentRef: { type: 'dropped-component', hide: true, serializable: false },
+        },
+        inputs: {
+          componentRef: null,
+          datasource: null
+        }
+      }
+    ];
   }
 
   private async loadShellWidgets(): Promise<void> {
@@ -915,25 +1027,6 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     return String(error?.message || 'Errore sconosciuto durante il first-run setup.');
   }
 
-  // private initNotificationsRealtime(): void {
-  //   this.ensureNotificationsRealtimeConnected();
-  // }
-
-  // private ensureNotificationsRealtimeConnected(): void {
-  //   const userId = this.resolveUserIdFromCookie();
-  //   if (!userId || userId <= 0) {
-  //     return;
-  //   }
-
-  //   if (this.notificationsRealtimeUserId === userId) {
-  //     return;
-  //   }
-
-  //   this.notificationsRealtimeUserId = userId;
-  //   this.loggedUserId = userId;
-  //   void this.notificationRealtime.connect(userId);
-  // }
-
   get showRightHeaderBlock(): boolean {
     const state = this.authSession?.snapshot;
     if (state?.authenticated || state?.legacyAuthenticated) {
@@ -962,60 +1055,6 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
       return null;
     }
   }
-
-  // get hasReadNotifications(): boolean {
-  //   return Array.isArray(this.notifications) && this.notifications.some(x => !!x?.isRead);
-  // }
-
-  // async clearReadNotifications(): Promise<void> {
-  //   if (!this.loggedUserId || this.loggedUserId <= 0) {
-  //     return;
-  //   }
-
-  //   await this.notificationRealtime.clearRead(this.loggedUserId);
-  // }
-
-  // async openNotification(item: CrmNotificationItem): Promise<void> {
-  //   if (!item) {
-  //     return;
-  //   }
-
-  //   if (!item.isRead && item.notificationId > 0) {
-  //     await this.notificationRealtime.markRead(item.notificationId);
-  //   }
-
-  //   const route = this.resolveNotificationRoute(item);
-  //   if (route) {
-  //     this.router.navigateByUrl(route);
-  //   }
-  // }
-
-  // private resolveNotificationRoute(item: CrmNotificationItem): string {
-  //   const type = String(item?.entityType || '').trim().toLowerCase();
-  //   const id = Number(item?.entityId || 0);
-
-  //   if (!id) {
-  //     return '';
-  //   }
-
-  //   if (type === 'lead' || type === 'crm_leads') {
-  //     return `/crm_leads/edit/${id}`;
-  //   }
-
-  //   if (type === 'case' || type === 'crm_cases') {
-  //     return `/crm_cases/edit/${id}`;
-  //   }
-
-  //   if (type === 'activity' || type === 'crm_activities') {
-  //     return `/crm_activities/edit/${id}`;
-  //   }
-
-  //   if (type === 'opportunity' || type === 'crm_opportunities') {
-  //     return `/crm_opportunities/edit/${id}`;
-  //   }
-
-  //   return '';
-  // }
 
   toggleLightDark() {
     const linkElement = document.querySelector('html') as HTMLElement;
@@ -1059,6 +1098,7 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     }
   }
 }
+
 
 
 

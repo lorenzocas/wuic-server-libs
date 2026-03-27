@@ -5,6 +5,7 @@
     "outDir": "./dist/out-tsc",
     "strict": false,
     "noImplicitOverride": true,
+    "noImplicitAny": false,
     "noPropertyAccessFromIndexSignature": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
@@ -21,8 +22,12 @@
       "wuic-framework-lib-src/*": [
         "./lib-src/*"
       ],
-      "jspreadsheet": ["./node_modules/jspreadsheet"],
-      "jspreadsheet/*": ["./node_modules/jspreadsheet/*"]
+      "jspreadsheet": [
+        "./node_modules/jspreadsheet"
+      ],
+      "jspreadsheet/*": [
+        "./node_modules/jspreadsheet/*"
+      ]
     },
     "esModuleInterop": true,
     "sourceMap": true,
@@ -37,9 +42,13 @@
     "enableI18nLegacyMessageIdFormat": false,
     "strictInjectionParameters": true,
     "strictInputAccessModifiers": true,
-    "strictTemplates": true,
-    "include": [
-      "assets/**/*"
-    ]
-  }
+    "strictTemplates": true
+  },
+  "include": [
+    "assets/**/*"
+  ],
+  "exclude": [
+    "src/test.ts",
+    "src/**/*.spec.ts"
+  ]
 }

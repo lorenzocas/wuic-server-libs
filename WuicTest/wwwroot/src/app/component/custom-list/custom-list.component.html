@@ -1,0 +1,12 @@
+<table>
+    <thead>
+        <tr>
+            <th *ngFor="let col of datasource?.value?.metaInfo?.columnMetadata">{{col.mc_nome_colonna}}</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr *ngFor="let record of datasource?.value?.resultInfo?.dato">
+            <td *ngFor="let col of datasource?.value?.metaInfo?.columnMetadata">{{record[col.mc_nome_colonna]}}</td>
+        </tr>
+    </tbody>
+</table>
