@@ -1,2 +1,20 @@
 <wuic-data-source #ds [hardcodedRoute]="'cities'" style="display: none;"></wuic-data-source>
-<app-custom-list [hardcodedDatasource]="ds"></app-custom-list>
+
+<div class="custom-cities-list-layout">
+  <div class="filter-bar-container">
+    <wuic-filter-bar [hardcodedDatasource]="ds"></wuic-filter-bar>
+  </div>
+
+  <app-custom-list [hardcodedDatasource]="ds"></app-custom-list>
+
+  <div class="pager-container">
+    <wuic-pager [hardcodedDatasource]="ds"></wuic-pager>
+  </div>
+
+  <div class="ds-busy-overlay" *ngIf="ds?.loading | async">
+    <div class="ds-busy-card">
+      <span class="ds-busy-spinner" aria-hidden="true"></span>
+      <span class="ds-busy-text">Caricamento dati...</span>
+    </div>
+  </div>
+</div>

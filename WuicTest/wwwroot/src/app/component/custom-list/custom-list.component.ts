@@ -12,82 +12,25 @@ import { CommonModule } from '@angular/common';
 })
 export class CustomListComponent implements OnDestroy {
 
-  /**
-   * Input dal componente padre per hardcoded route; usata nella configurazione e nel rendering del componente.
-   */
   @Input() hardcodedRoute: string = '';
-
-  /**
-   * Input dal componente padre per datasource; usata nella configurazione e nel rendering del componente.
-   */
   @Input() datasource: BehaviorSubject<DataSourceComponent> = null as any;
-
-  /**
-   * Input dal componente padre per hardcoded datasource; usata nella configurazione e nel rendering del componente.
-   */
   @Input() hardcodedDatasource: DataSourceComponent | null = null;
 
-  /**
-   * Collezione dati per records, consumata dal rendering e dalle operazioni del componente.
-   */
   records: any[] = [];
-
-  /**
-   * Metadati completi della route corrente (tabella, colonne, regole) usati per costruire UI e logica runtime.
-   */
   metaInfo: any;
-
-  /**
-   * Proprieta di stato del componente per route name, usata dalla logica interna e dal template.
-   */
   routeName: string = '';
-
-  /**
-   * Proprieta di stato del componente per total records, usata dalla logica interna e dal template.
-   */
   totalRecords: number = 0;
-
-  /**
-   * Proprieta di stato del componente per page size, usata dalla logica interna e dal template.
-   */
   pageSize: number = 10;
-
-  /**
-   * Proprieta di stato del componente per row number, usata dalla logica interna e dal template.
-   */
   rowNumber: number = 0;
-
-  /**
-   * Flag di stato che governa il comportamento UI/logico relativo a loading.
-   */
   loading: boolean = false;
-
-  /**
-   * Indice corrente per page index, usato per posizionamento o navigazione nel componente.
-   */
   pageIndex: number = 0;
-
   initCompleted: boolean = false;
 
-
   private datasourceReadySubscription?: Subscription;
-  /**
-   * Proprieta di stato del componente per fetch info subscription, usata dalla logica interna e dal template.
-   */
   private fetchInfoSubscription?: Subscription;
 
-  /**
-* function Object() { [native code] }
-* @param titleService Parametro in ingresso utilizzato per determinare il flusso operativo del metodo.
-* @param dataSrv Parametro in ingresso utilizzato per determinare il flusso operativo del metodo.
-*/
-  constructor(private titleService: Title) {
+  constructor(private titleService: Title) {}
 
-  }
-
-  /**
-   * Inizializza il componente preparando stato, sottoscrizioni e primi caricamenti richiesti.
-   */
   async ngOnInit() {
     if (this.hardcodedDatasource) {
       this.datasource = new BehaviorSubject<DataSourceComponent>(this.hardcodedDatasource);
@@ -97,54 +40,124 @@ export class CustomListComponent implements OnDestroy {
     }
   }
 
-  /**
-* Gestisce la logica di `subscribeToDS` con regole guidate dai metadati server `_Metadati_*` (tabella/colonna), gestendo esplicitamente il ciclo di vita delle subscription RxJS, preparando/aggiornando il dataset visualizzato.
-*/
   async subscribeToDS() {
-    var self = this;
+    const self = this;
 
     this.fetchInfoSubscription?.unsubscribe();
     this.fetchInfoSubscription = self.datasource.value.fetchInfo.subscribe(async (info) => {
-      if (info) {
-        self.metaInfo = info.metaInfo;
+      if (!info) {
+        return;
+      }
 
-        if (!self.initCompleted) {
+      self.metaInfo = info.metaInfo;
 
-          var title = self.metaInfo.tableMetadata.md_display_string;
-
-          self.titleService.setTitle(title);
-
-          // this.treeOptions = info.metaInfo.tableMetadata.extraProps?.archetypes?.tree || {};
-
-          await self.datasource.value.fetchData();
-
-          self.initCompleted = true;
-        } else {
-
-          self.records = self.parseData(info.resultInfo.dato);
-        }
+      if (!self.initCompleted) {
+        const title = self.metaInfo.tableMetadata.md_display_string;
+        self.titleService.setTitle(title);
+        await self.datasource.value.fetchData();
+        self.initCompleted = true;
+      } else {
+        self.records = self.parseData(info.resultInfo.dato);
       }
     });
   }
 
-  /**
-   * Rilascia risorse e sottoscrizioni per evitare leak e stati pendenti.
-   */
   ngOnDestroy(): void {
     this.datasourceReadySubscription?.unsubscribe();
     this.fetchInfoSubscription?.unsubscribe();
   }
 
-  /**
-* Interpreta e normalizza input/configurazione in `parseData` per l'utilizzo nel componente.
-* @param data Dato/record su cui il metodo applica elaborazioni o aggiornamenti.
-* @returns Struttura dati prodotta da `parseData` dopo normalizzazione/elaborazione.
-*/
-  parseData(data: any) {
-
-    return data;
+  getVisibleColumns(): any[] {
+    const cols = this.datasource?.value?.metaInfo?.columnMetadata || [];
+    return cols.filter((c: any) => {
+      const name = String(c?.mc_nome_colonna || '').trim().toLowerCase();
+      return name !== 'asas' && name !== 'deleted';
+    });
   }
 
+  private getLookupAliasKey(col: any): string {
+    const route = String(col?.mc_ui_lookup_entity_name || '').trim().replaceAll(' ', '_');
+    const textField = String(col?.mc_ui_lookup_dataTextField || col?.mc_ui_grid_display_field || '').trim();
+    const field = String(col?.mc_nome_colonna || '').trim();
+
+    if (!route || !textField || !field) {
+      return '';
+    }
+
+    return `${route}___${textField}__${field}`;
+  }
+
+  private resolveLookupText(col: any, record: any): string | null {
+    if (!record || col?.mc_ui_column_type !== 'lookupByID') {
+      return null;
+    }
+
+    const textField = String(col?.mc_ui_lookup_dataTextField || col?.mc_ui_grid_display_field || '').trim();
+
+    const aliasKey = this.getLookupAliasKey(col);
+    if (aliasKey && record[aliasKey] != null && String(record[aliasKey]) !== '') {
+      return String(record[aliasKey]);
+    }
+
+    if (textField && record[textField] != null && String(record[textField]) !== '') {
+      return String(record[textField]);
+    }
+
+    const lookupObj = record[`${col.mc_nome_colonna}__lookup_obj`];
+    if (lookupObj && typeof lookupObj === 'object') {
+      if (textField && lookupObj[textField] != null && String(lookupObj[textField]) !== '') {
+        return String(lookupObj[textField]);
+      }
+
+      const fallbackObjText = lookupObj.description ?? lookupObj.descrizione ?? lookupObj.label ?? lookupObj.name ?? lookupObj.text;
+      if (fallbackObjText != null && String(fallbackObjText) !== '') {
+        return String(fallbackObjText);
+      }
+    }
+
+    return null;
+  }
+
+  isLocalDateColumn(col: any): boolean {
+    const name = String(col?.mc_nome_colonna || '').trim().toLowerCase();
+    const label = String(col?.mc_display_string_in_view || '').trim().toLowerCase();
+
+    return name === 'validfrom'
+      || name === 'validto'
+      || label === 'valid from'
+      || label === 'valid to';
+  }
+
+  formatCellValue(col: any, value: any, record?: any): string {
+    const lookupText = this.resolveLookupText(col, record);
+    if (lookupText != null) {
+      return lookupText;
+    }
+
+    if (!this.isLocalDateColumn(col)) {
+      return value == null ? '' : String(value);
+    }
+
+    if (value == null || value === '') {
+      return '';
+    }
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return String(value);
+    }
+
+    return parsed.toLocaleString('it-IT', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  }
+
+  parseData(data: any) {
+    return data;
+  }
 }
-
-

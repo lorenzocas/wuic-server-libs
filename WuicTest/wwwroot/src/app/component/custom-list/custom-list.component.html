@@ -1,12 +1,35 @@
-<table>
-    <thead>
+<div class="custom-list-shell">
+  <div class="list-toolbar">
+    <div class="list-title">{{ datasource?.value?.metaInfo?.tableMetadata?.md_display_string || 'Elenco' }}</div>
+  </div>
+
+  <div class="table-wrap">
+    <table class="custom-table">
+      <thead>
         <tr>
-            <th *ngFor="let col of datasource?.value?.metaInfo?.columnMetadata">{{col.mc_nome_colonna}}</th>
+          <th *ngFor="let col of getVisibleColumns()"
+            [class.numeric]="col.mc_ui_column_type === 'number' || col.mc_ui_column_type === 'number_boolean'">
+            {{ col.mc_display_string_in_view || col.mc_nome_colonna }}
+          </th>
         </tr>
-    </thead>
-    <tbody>
+      </thead>
+
+      <tbody>
         <tr *ngFor="let record of datasource?.value?.resultInfo?.dato">
-            <td *ngFor="let col of datasource?.value?.metaInfo?.columnMetadata">{{record[col.mc_nome_colonna]}}</td>
+          <td *ngFor="let col of getVisibleColumns()"
+            [class.numeric]="col.mc_ui_column_type === 'number' || col.mc_ui_column_type === 'number_boolean'">
+            <span class="cell-content" [title]="record[col.mc_nome_colonna]">
+              {{ formatCellValue(col, record[col.mc_nome_colonna], record) }}
+            </span>
+          </td>
         </tr>
-    </tbody>
-</table>
+
+        <tr *ngIf="!(datasource?.value?.resultInfo?.dato?.length)">
+          <td class="empty" [attr.colspan]="getVisibleColumns().length || 1">
+            Nessun record disponibile
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
