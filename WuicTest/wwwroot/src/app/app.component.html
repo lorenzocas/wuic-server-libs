@@ -78,6 +78,22 @@
                     <p-select [options]="availableThemes" optionLabel="label" optionValue="value"
                         [ngModel]="selectedTheme" (ngModelChange)="onThemeChange($event)"
                         [style]="{ width: '100%', height: '35px' }" placeholder="Tema" appendTo="body">
+                        <ng-template #selectedItem let-selectedOption>
+                            @if (selectedOption) {
+                            <div class="theme-select-item">
+                                <span class="theme-dot" [style.backgroundColor]="selectedOption.primaryHex"></span>
+                                <span>{{ selectedOption.label }}</span>
+                            </div>
+                            } @else {
+                            <span>Tema</span>
+                            }
+                        </ng-template>
+                        <ng-template #item let-item>
+                            <div class="theme-select-item">
+                                <span class="theme-dot" [style.backgroundColor]="item.primaryHex"></span>
+                                <span>{{ item.label }}</span>
+                            </div>
+                        </ng-template>
                     </p-select>
                 </div>
                 <div class="app-shell-notification">

@@ -9,6 +9,16 @@ const lazyBoundedRepeaterPendingChangesGuard: CanDeactivateFn<any> = async (comp
 
 export const routes: Routes = [
   {
+    path: 'framework-docs',
+    loadComponent: () => import('wuic-framework-lib-src/component/framework-docs/framework-docs.component').then((m) => m.FrameworkDocsComponent),
+    data: { breadcrumbs: 'framework-docs' }
+  },
+  {
+    path: 'framework-docs/:slug',
+    loadComponent: () => import('wuic-framework-lib-src/component/framework-docs/framework-docs.component').then((m) => m.FrameworkDocsComponent),
+    data: { breadcrumbs: 'framework-docs' }
+  },
+  {
     path: 'workflow-runner/:graph-id',
     loadComponent: () => import('wuic-framework-lib-src/component/workflow-runner/workflow-runner.component').then((m) => m.WorkflowRunnerComponent),
     data: { breadcrumbs: 'workflow-runner' }
