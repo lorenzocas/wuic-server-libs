@@ -5,15 +5,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <DefaultItemExcludes>$(DefaultItemExcludes);wwwroot\**</DefaultItemExcludes>
   </PropertyGroup>
-
   <ItemGroup>
     <Compile Remove="wwwroot\**" />
     <Content Remove="wwwroot\**" />
     <EmbeddedResource Remove="wwwroot\**" />
     <None Remove="wwwroot\**" />
+    <ProjectReference Include="..\KonvergenceCore\KonvergenceCore.csproj" />
   </ItemGroup>
-
   <ItemGroup>
-    <PackageReference Include="KonvergenceCore" Version="1.0.1" />
   </ItemGroup>
 </Project>
