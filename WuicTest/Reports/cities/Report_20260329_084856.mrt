@@ -1,0 +1,204 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<StiSerializer version="1.02" type="Net" application="StiReport">
+  <CalculationMode>Interpretation</CalculationMode>
+  <Dictionary Ref="1" type="Dictionary" isKey="true">
+    <BusinessObjects isList="true" count="0" />
+    <Databases isList="true" count="1">
+      <Connessione Ref="2" type="Stimulsoft.Report.Dictionary.StiSqlDatabase" isKey="true">
+        <Alias>Connessione</Alias>
+        <ConnectionStringEncrypted>9HThAmJxQ216Xr3cctCie8RunytOGPOFb3ShvU545D/RcPfrxk+jzWlN6IDnXOMf3FbzKMdo491tRzW96T3gZ98a2Q9bSEPd40mh+OoYIn/VVvUJxWjZ8WlP1dxhXKJn2WzVwkVdG8hrWqHMZADgRsN494lGUXOZck7VpeUcpF7VHPsCT0v7pGJJ2YBqbCXn9DjbK0NbQ53pQe2M6UyiXtQU0YxIXRPIaRWh+MOYd3vjVPuIS0tLxeJd8YBj7GVn5HTR68hM</ConnectionStringEncrypted>
+        <Name>Connessione</Name>
+      </Connessione>
+    </Databases>
+    <DataSources isList="true" count="2">
+      <cities Ref="3" type="Stimulsoft.Report.Dictionary.StiSqlSource" isKey="true">
+        <Alias>cities</Alias>
+        <Columns isList="true" count="11">
+          <value>CityID,City_I_D,System.Double</value>
+          <value>CityName,City_Name,System.String</value>
+          <value>deleted,System.String</value>
+          <value>LatestRecordedPopulation,Latest_Recorded_Population,System.Double</value>
+          <value>Location,System.String</value>
+          <value>people___FullName__LastEditedBy,People,System.String</value>
+          <value>LastEditedBy,LastEditedBy_id_lookup,System.Double</value>
+          <value>stateprovinces___StateProvinceCode__StateProvinceID,State_x0020_Provinces,System.String</value>
+          <value>StateProvinceID,StateProvinceID_id_lookup,System.Double</value>
+          <value>ValidFrom,Valid_From,System.DateTime</value>
+          <value>ValidTo,Valid_To,System.DateTime</value>
+        </Columns>
+        <CommandTimeout>300</CommandTimeout>
+        <Dictionary isRef="1" />
+        <Key>196c158da94b436b8a4ece504b086a17</Key>
+        <Name>cities</Name>
+        <NameInSource>Connessione</NameInSource>
+        <Parameters isList="true" count="0" />
+        <SqlCommand>SELECT [WideWorldImporters].[Application].[Cities].[CityID] AS [CityID],  ''  AS [asas], [WideWorldImporters].[Application].[Cities].[CityName] AS [CityName],  [StateProvinceID_stateprovinces].[StateProvinceCode] AS [stateprovinces___StateProvinceCode__StateProvinceID], [WideWorldImporters].[Application].[Cities].[StateProvinceID] AS [StateProvinceID], concat('{"lat":',CONVERT(varchar(20), cast([WideWorldImporters].[Application].[Cities].[Location]  AS geography).Lat),',"lng":',CONVERT(varchar(20), cast([WideWorldImporters].[Application].[Cities].[Location]  AS geography).Long),'}') AS [Location], [WideWorldImporters].[Application].[Cities].[LatestRecordedPopulation] AS [LatestRecordedPopulation],  [LastEditedBy_people].[FullName] AS [people___FullName__LastEditedBy], [WideWorldImporters].[Application].[Cities].[LastEditedBy] AS [LastEditedBy], [WideWorldImporters].[Application].[Cities].[ValidFrom] AS [ValidFrom], [WideWorldImporters].[Application].[Cities].[ValidTo] AS [ValidTo], [WideWorldImporters].[Application].[Cities].[deleted] AS [deleted] FROM [WideWorldImporters].[Application].[Cities]   LEFT JOIN [Application].[StateProvinces] AS [StateProvinceID_stateprovinces] ON [WideWorldImporters].[Application].[Cities].[StateProvinceID] = [StateProvinceID_stateprovinces].[StateProvinceID]   LEFT JOIN [Application].[People] AS [LastEditedBy_people] ON [WideWorldImporters].[Application].[Cities].[LastEditedBy] = [LastEditedBy_people].[PersonID]     where  coalesce([WideWorldImporters].[Application].[Cities].[deleted],0) = 0 ORDER BY [WideWorldImporters].[Application].[Cities].CityID ASC </SqlCommand>
+      </cities>
+      <schedules Ref="4" type="Stimulsoft.Report.Dictionary.StiSqlSource" isKey="true">
+        <Alias>schedules</Alias>
+        <Columns isList="true" count="9">
+          <value>cities___CityName__CityId,Cities,System.String</value>
+          <value>CityId,CityId_id_lookup,System.Double</value>
+          <value>FromDate,From_Date,System.DateTime</value>
+          <value>Note,System.String</value>
+          <value>people___FullName__PersonId,People,System.String</value>
+          <value>PersonId,PersonId_id_lookup,System.Double</value>
+          <value>Recurring,System.String</value>
+          <value>ScheduleId,Schedule_Id,System.Double</value>
+          <value>ToDate,To_Date,System.DateTime</value>
+        </Columns>
+        <CommandTimeout>300</CommandTimeout>
+        <Dictionary isRef="1" />
+        <Key>e54a85f8f9494c2fb8d2291a6790fa59</Key>
+        <Name>schedules</Name>
+        <NameInSource>Connessione</NameInSource>
+        <Parameters isList="true" count="0" />
+        <SqlCommand>SELECT [Sales].[Schedules].[ScheduleId] AS [ScheduleId],  [CityId_cities].[CityName] AS [cities___CityName__CityId], [Sales].[Schedules].[CityId] AS [CityId],  [PersonId_people].[FullName] AS [people___FullName__PersonId], [Sales].[Schedules].[PersonId] AS [PersonId], [Sales].[Schedules].[FromDate] AS [FromDate], [Sales].[Schedules].[ToDate] AS [ToDate], [Sales].[Schedules].[Note] AS [Note], [Sales].[Schedules].[Recurring] AS [Recurring] FROM [Sales].[Schedules]   LEFT JOIN [WideWorldImporters].[Application].[Cities] AS [CityId_cities] ON [Sales].[Schedules].[CityId] = [CityId_cities].[CityID]   LEFT JOIN [Application].[People] AS [PersonId_people] ON [Sales].[Schedules].[PersonId] = [PersonId_people].[PersonID]     ORDER BY [Sales].[Schedules].ScheduleId ASC </SqlCommand>
+      </schedules>
+    </DataSources>
+    <Relations isList="true" count="1">
+      <cities_schedules Ref="5" type="DataRelation" isKey="true">
+        <Alias>cities_schedules</Alias>
+        <ChildColumns isList="true" count="1">
+          <value>CityId</value>
+        </ChildColumns>
+        <ChildSource isRef="4" />
+        <Dictionary isRef="1" />
+        <Name>cities_schedules</Name>
+        <NameInSource>cities_schedules</NameInSource>
+        <ParentColumns isList="true" count="1">
+          <value>CityID</value>
+        </ParentColumns>
+        <ParentSource isRef="3" />
+      </cities_schedules>
+    </Relations>
+    <Report isRef="0" />
+    <Resources isList="true" count="0" />
+    <UserFunctions isList="true" count="0" />
+    <Variables isList="true" count="0" />
+  </Dictionary>
+  <EngineVersion>EngineV2</EngineVersion>
+  <GlobalizationStrings isList="true" count="0" />
+  <Key>7325e19b9b9a4afbbea98a078ea89e77</Key>
+  <MetaTags isList="true" count="0" />
+  <Pages isList="true" count="1">
+    <Page1 Ref="6" type="Page" isKey="true">
+      <Border>None;Black;2;Solid;False;4;Black</Border>
+      <Brush>Transparent</Brush>
+      <Components isList="true" count="5">
+        <ReportTitleBand2 Ref="7" type="ReportTitleBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>0,0,0,0.6</ClientRectangle>
+          <Components isList="true" count="0" />
+          <Conditions isList="true" count="0" />
+          <Expressions isList="true" count="0" />
+          <Name>ReportTitleBand2</Name>
+          <Page isRef="6" />
+          <Parent isRef="6" />
+        </ReportTitleBand2>
+        <cities_header Ref="8" type="HeaderBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>0,0,0,0.6</ClientRectangle>
+          <Components isList="true" count="0" />
+          <Conditions isList="true" count="0" />
+          <Expressions isList="true" count="0" />
+          <Name>cities_header</Name>
+          <Page isRef="6" />
+          <Parent isRef="6" />
+        </cities_header>
+        <cities_data Ref="9" type="DataBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <BusinessObjectGuid isNull="true" />
+          <ClientRectangle>0,0,0,0.6</ClientRectangle>
+          <Components isList="true" count="0" />
+          <Conditions isList="true" count="0" />
+          <DataSourceName>cities</DataSourceName>
+          <Expressions isList="true" count="0" />
+          <Filters isList="true" count="0" />
+          <Name>cities_data</Name>
+          <Page isRef="6" />
+          <Parent isRef="6" />
+          <PrintIfDetailEmpty>True</PrintIfDetailEmpty>
+          <Sort isList="true" count="0" />
+        </cities_data>
+        <schedules_header Ref="10" type="HeaderBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>0,0,0,0.6</ClientRectangle>
+          <Components isList="true" count="0" />
+          <Conditions isList="true" count="0" />
+          <Expressions isList="true" count="0" />
+          <Name>schedules_header</Name>
+          <Page isRef="6" />
+          <Parent isRef="6" />
+        </schedules_header>
+        <schedules_data Ref="11" type="DataBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <BusinessObjectGuid isNull="true" />
+          <ClientRectangle>0,0,0,0.6</ClientRectangle>
+          <Components isList="true" count="0" />
+          <Conditions isList="true" count="0" />
+          <DataRelationName>cities_schedules</DataRelationName>
+          <DataSourceName>schedules</DataSourceName>
+          <Expressions isList="true" count="0" />
+          <Filters isList="true" count="0" />
+          <MasterComponent isRef="9" />
+          <Name>schedules_data</Name>
+          <Page isRef="6" />
+          <Parent isRef="6" />
+          <PrintIfDetailEmpty>True</PrintIfDetailEmpty>
+          <Sort isList="true" count="0" />
+        </schedules_data>
+      </Components>
+      <Conditions isList="true" count="0" />
+      <Expressions isList="true" count="0" />
+      <Guid>d70bc16dddea425087a9872fe0e49bd3</Guid>
+      <Margins>1,1,1,1</Margins>
+      <Name>Page1</Name>
+      <PageHeight>29.7</PageHeight>
+      <PageWidth>21</PageWidth>
+      <Report isRef="0" />
+    </Page1>
+  </Pages>
+  <ReferencedAssemblies isList="true" count="8">
+    <value>System.Dll</value>
+    <value>System.Drawing.Dll</value>
+    <value>System.Windows.Forms.Dll</value>
+    <value>System.Data.Dll</value>
+    <value>System.Xml.Dll</value>
+    <value>Stimulsoft.Controls.Dll</value>
+    <value>Stimulsoft.Base.Dll</value>
+    <value>Stimulsoft.Report.Dll</value>
+  </ReferencedAssemblies>
+  <ReportAlias>Report</ReportAlias>
+  <ReportChanged>3/29/2026 8:48:59 AM</ReportChanged>
+  <ReportCreated>3/29/2026 8:48:59 AM</ReportCreated>
+  <ReportGuid>774de493d5f84e97b3748cb57fb219e2</ReportGuid>
+  <ReportName>Report</ReportName>
+  <ReportUnit>Centimeters</ReportUnit>
+  <ReportVersion>2024.4.3.0</ReportVersion>
+  <Script>using System;
+using System.Drawing;
+using System.Windows.Forms;
+using System.Data;
+using Stimulsoft.Controls;
+using Stimulsoft.Base.Drawing;
+using Stimulsoft.Report;
+using Stimulsoft.Report.Dialogs;
+using Stimulsoft.Report.Components;
+
+namespace Reports
+{
+    public class Report : Stimulsoft.Report.StiReport
+    {
+        public Report()        {
+            this.InitializeComponent();
+        }
+
+        #region StiReport Designer generated code - do not modify
+        #endregion StiReport Designer generated code - do not modify
+    }
+}
+</Script>
+  <ScriptLanguage>CSharp</ScriptLanguage>
+  <Styles isList="true" count="0" />
+</StiSerializer>
