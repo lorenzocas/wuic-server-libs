@@ -9,5 +9,12 @@ export const appRoutes: Routes = [
       breadcrumbs: 'custom-cities-list'
     }
   },
+  {
+    path: 'unauthorized',
+    loadComponent: () => import('./component/unauthorized/unauthorized.component').then((m) => m.UnauthorizedComponent),
+    data: {
+      breadcrumbs: 'unauthorized'
+    }
+  },
   ...wuicRoutes
 ];
