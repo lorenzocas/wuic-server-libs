@@ -87,7 +87,7 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
   };
   firstRunDataDbOptions: { label: string; value: string }[] = [];
   private firstRunRealPath = '';
-  selectedTheme = 'aura-blue';
+  selectedTheme = 'a11y-high-contrast';
   availableThemes = [
     { label: 'Accessibilita Alto Contrasto', value: 'a11y-high-contrast', preset: 'aura', primary: 'blue', isHighContrast: true },
     { label: 'Aura Blue', value: 'aura-blue', preset: 'aura', primary: 'blue' },
@@ -263,8 +263,27 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
       menu: 1300,     // overlay menus
       tooltip: 1400   // tooltip
     };
+    this.patchConfirmDialogA11y();
     this.loggedUserId = this.resolveUserIdFromCookie();
     // this.initNotificationsRealtime();
+  }
+
+  private patchConfirmDialogA11y(): void {
+    const apply = () => {
+      const dialogs = Array.from(document.querySelectorAll('p-confirmdialog p-dialog[role="alertdialog"]')) as HTMLElement[];
+      dialogs.forEach((dialog) => {
+        if (!dialog.getAttribute('aria-label')) {
+          dialog.setAttribute('aria-label', 'Conferma');
+        }
+        if (!dialog.getAttribute('title')) {
+          dialog.setAttribute('title', 'Conferma');
+        }
+      });
+    };
+
+    queueMicrotask(apply);
+    setTimeout(apply, 250);
+    setTimeout(apply, 1200);
   }
 
   async submitFirstRunInstall(): Promise<void> {

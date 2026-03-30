@@ -4,10 +4,6 @@
 </div>
 }
 
-<main id="app-main-fallback" class="visually-hidden">
-    <h1>WUIC Application</h1>
-</main>
-
 @if (showFirstRunInstall) {
 <div class="first-run-overlay">
     <div class="first-run-card">
@@ -112,7 +108,8 @@
                     }
                 </div>
                 <div class="app-shell-theme-switch">
-                    <p-toggleswitch [ngModel]="isDarkMode" (ngModelChange)="toggleLightDark()" />
+                    <p-toggleswitch [ngModel]="isDarkMode" (ngModelChange)="toggleLightDark()"
+                        [ariaLabel]="'Tema scuro'" />
                 </div>
             </div>
         </div>
@@ -120,7 +117,6 @@
     </header>
     @if (showRightHeaderBlock) {
     <main id="app-main" class="app-shell-content" role="main">
-        <h1 class="visually-hidden">WUIC Application</h1>
         <router-outlet />
     </main>
     }
@@ -140,6 +136,7 @@
     </div>
 </p-dialog>
 
-<p-confirmDialog [header]="'conferma'" />
+<p-confirmDialog [header]="'conferma'" [closeAriaLabel]="'chiudi'" [acceptAriaLabel]="'conferma'"
+    [rejectAriaLabel]="'annulla'" />
 
 

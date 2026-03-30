@@ -167,6 +167,58 @@ app-root {
     box-shadow: none !important;
 }
 
+:is(html, body).theme-high-contrast {
+    background: var(--hc-bg) !important;
+    color: var(--hc-fg) !important;
+}
+
+:is(html, body).theme-high-contrast :is(
+        .p-menubar,
+        .p-menubar-root-list,
+        .app-shell-theme-card,
+        .p-datatable-thead>tr>th,
+        .p-datatable-tbody>tr>td,
+        .p-dialog-header,
+        .p-dialog-content,
+        .p-dialog-footer
+    ) {
+    background: var(--hc-bg) !important;
+    color: var(--hc-fg) !important;
+    border-color: var(--hc-border) !important;
+}
+
+:is(html, body).theme-high-contrast :is(
+        .p-button.p-button-icon-only,
+        .p-button .p-button-icon,
+        .p-button .pi,
+        .notification-bell-btn
+    ) {
+    color: var(--hc-fg) !important;
+    border-color: var(--hc-border) !important;
+}
+
+:is(html, body).theme-high-contrast .p-button.p-button-icon-only {
+    min-width: 2.25rem;
+    min-height: 2.25rem;
+}
+
+:is(html, body).theme-high-contrast :is(
+        .p-inputtext::placeholder,
+        .p-inputnumber-input::placeholder
+    ) {
+    color: #1f2937 !important;
+    opacity: 1 !important;
+}
+
+:is(html, body).theme-high-contrast .p-slider .p-slider-handle {
+    border: 2px solid var(--hc-border) !important;
+    background: var(--hc-bg) !important;
+}
+
+:is(html, body).theme-high-contrast .p-slider .p-slider-range {
+    background: var(--hc-accent) !important;
+}
+
 /*#region MenuBar*/
 
 .p-menubar-submenu {
