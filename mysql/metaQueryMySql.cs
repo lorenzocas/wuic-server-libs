@@ -35,7 +35,7 @@ using ExcelOpenXMLBasics;
 
 namespace metaModelRaw
 {
-    public class metaQueryMySql
+    public partial class metaQueryMySql
     {
         private static readonly AsyncLocal<string> LastCrudSqlQuery = new AsyncLocal<string>();
         private static readonly object ChangeTrackingSchemaLock = new object();
@@ -237,6 +237,41 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
             }
         }
 
+        
+        public static DbConnection CreateOpenConnection(string connectionString)
+        {
+            if (string.IsNullOrWhiteSpace(connectionString))
+                throw new Exception("Connection string not defined. Please install first!");
+
+            return new MySqlConnection(connectionString);
+        }
+
+        public static void ExecuteMySqlScript(DbConnection connection, string script)
+        {
+            if (connection == null)
+                throw new ArgumentNullException(nameof(connection));
+
+            if (string.IsNullOrWhiteSpace(script))
+                return;
+
+            bool shouldClose = connection.State != ConnectionState.Open;
+            if (shouldClose)
+                connection.Open();
+
+            try
+            {
+                using (var cmd = connection.CreateCommand())
+                {
+                    cmd.CommandText = script;
+                    cmd.ExecuteNonQuery();
+                }
+            }
+            finally
+            {
+                if (shouldClose)
+                    connection.Close();
+            }
+        }
         public static void FlushCache(string route)
         {
             if (string.IsNullOrWhiteSpace(route))
@@ -7575,5 +7610,8 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
     }
 
 }
+
+
+
 
 
