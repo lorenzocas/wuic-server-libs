@@ -427,7 +427,7 @@ namespace metaModelRaw
 
         #region "PERMISSIONS"
 
-        public static NpgsqlConnection getSpecificConnection(string db_name)
+                public static NpgsqlConnection getSpecificConnection(string db_name)
         {
             NpgsqlConnection connection;
             if (string.IsNullOrEmpty(db_name))
@@ -439,7 +439,26 @@ namespace metaModelRaw
                 connection = new NpgsqlConnection(ConfigHelper.GetSettingAsString("connection") + string.Format(";initial catalog={0}", db_name));
                 connection.Open();
             }
+
             return connection;
+        }
+
+        public static List<Dictionary<string, object>> convertDataReaderToDictionaryList(DbDataReader dr)
+        {
+            List<Dictionary<string, object>> rows = new List<Dictionary<string, object>>();
+            if (dr == null)
+                return rows;
+
+            while (dr.Read())
+            {
+                Dictionary<string, object> row = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+                for (int i = 0; i < dr.FieldCount; i++)
+                    row[dr.GetName(i)] = dr.IsDBNull(i) ? null : dr.GetValue(i);
+
+                rows.Add(row);
+            }
+
+            return rows;
         }
 
 
@@ -695,6 +714,11 @@ namespace metaModelRaw
             }
         }
 
+        public static role GetRoleByUserID(string user_id)
+        {
+            return getRoleByUserID(user_id);
+        }
+
         public static role getRoleByUserID(string user_id)
         {
             using (metaRawModel context = new metaRawModel())
@@ -768,6 +792,11 @@ namespace metaModelRaw
             }
         }
 
+        public static user GetUserByEMail(string email)
+        {
+            return getUserByEMail(email);
+        }
+        
         public static user getUserByEMail(string email)
         {
             using (metaRawModel context = new metaRawModel())
@@ -789,6 +818,11 @@ namespace metaModelRaw
             }
         }
 
+        public static user GetUserByName(string user_name)
+        {
+            return getUserByName(user_name);
+        }
+        
         public static user getUserByName(string user_name)
         {
             using (metaRawModel context = new metaRawModel())
@@ -4853,8 +4887,231 @@ namespace metaModelRaw
             }
         }
 
-        #endregion
+                public static string GetLastCrudSqlQuery()
+        {
+            return null;
+        }
+
+        public static void ClearLastCrudSqlQuery()
+        {
+        }
+
+        public static void FlushCache(string route)
+        {
+            if (string.IsNullOrWhiteSpace(route))
+                return;
+
+            string shadowTableName = RawHelpers.escapeDBObjectName("_shadow_" + route, "postgresql");
+            using (NpgsqlConnection connection = GetOpenConnection(false))
+            {
+                var dbArgs = new DynamicParameters();
+                dbArgs.Add("route", EscapeValue(route));
+                try { connection.Execute(string.Format("DELETE FROM {0}", shadowTableName)); } catch { }
+
+                using (NpgsqlConnection connection2 = GetOpenConnection(true))
+                {
+                    try { connection2.Execute("DELETE FROM _shadow_caching where route=@route", dbArgs); } catch { }
+                }
+            }
+        }
+
+        public static string ExportFlatRecordData(List<SerializableDictionary<string, object>> dati, List<SerializableDictionary<string, object>> lst, string route, string uid, string progressGuid, string excelTheme = null, string excelThemeMode = null)
+        {
+            using (metaRawModel context = new metaRawModel())
+            {
+                List<_Metadati_Colonne> mcs = context.GetMetadati_Colonnes(null, null, route);
+                return RawHelpers.ExportToExcel2(mcs, dati, route, route, uid, progressGuid, excelTheme, excelThemeMode);
+            }
+        }
+
+        public static bool GetIsUniqueValue(int column_id, string text, string user_id)
+        {
+            using (metaRawModel context = new metaRawModel())
+            {
+                _Metadati_Tabelle tabel = context.GetMetadati_TabellaByColID(column_id);
+                if (tabel == null)
+                    throw new Exception("Table not found!");
+
+                bool isMeta = RawHelpers.checkIsMetaData(tabel.md_route_name);
+                using (DbConnection connection = GetOpenConnection(isMeta, tabel.md_conn_name))
+                {
+                    _Metadati_Colonne col = tabel._Metadati_Colonnes.FirstOrDefault(x => x.mc_id == column_id);
+                    if (col == null)
+                        return true;
+
+                    if (col.mc_db_column_type == "text" || col.mc_db_column_type == "xml")
+                        return true;
+
+                    string query;
+                    long total;
+                    List<AggregationResult> agg;
+                    FilterInfos finfos = new FilterInfos { filters = new List<filterElement> { new filterElement() { field = col.mc_nome_colonna, operatore = "eq", value = text } } };
+                    query = BuildDynamicSelectQuery(tabel._Metadati_Colonnes.ToList(), null, null, new PageInfo() { currentPage = 0, pageSize = 1 }, finfos, "AND", true, (NpgsqlConnection)connection, out total, null, out agg, user_id, "", 0, col.mc_nome_colonna);
+                    List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)connection.Query(query, commandTimeout: int.Parse(ConfigHelper.GetSettingAsString("autoGeneratedQueryTimeout")));
+                    return rows.Count == 0;
+                }
+            }
+        }
+
+        public static List<domBoard> loadDashboard(string dashRoute)
+        {
+            using (metaRawModel context = new metaRawModel())
+            {
+                List<domBoard> boards = context.GetdomBoards(dashRoute).ToList();
+                boards.ForEach(b => { b.skipChilds = false; var _ = b.domBoardSheets; });
+                return boards;
+            }
+        }
+
+        public static int GetMetadati_Tabelles_NonSystem_Count()
+        {
+            using (NpgsqlConnection con = GetOpenConnection(true))
+            {
+                return (int)con.Query<long>("select count(*) from _metadati__tabelle where coalesce(issystemroute,0)=0").FirstOrDefault();
+            }
+        }
+
+        public static List<_Metadati_Tabelle> GetMetadati_Tabelles_NonSystem()
+        {
+            using (NpgsqlConnection con = GetOpenConnection(true))
+            {
+                List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)con.Query("select * from _metadati__tabelle where coalesce(issystemroute,0)=0");
+                return metaRawModel.convertDictionariesToList<_Metadati_Tabelle>(rows);
+            }
+        }
+
+        public static List<_Metadati_Tabelle> GetMetadati_TabellesForScaffolding(string tableName, string connName = "", string tableSchema = "", string db = "", bool skipColumns = false)
+        {
+            using (NpgsqlConnection con = GetOpenConnection(true))
+            {
+                string query = "select * from _metadati__tabelle";
+                List<string> where = new List<string>();
+                var dbArgs = new DynamicParameters();
+                if (!string.IsNullOrEmpty(tableName)) { where.Add("md_nome_tabella=@md_nome_tabella"); dbArgs.Add("@md_nome_tabella", tableName); }
+                if (!string.IsNullOrEmpty(connName)) { where.Add("mdconnname=@mdconnname"); dbArgs.Add("@mdconnname", connName); }
+                if (!string.IsNullOrEmpty(tableSchema)) { where.Add("mdschemaname=@mdschemaname"); dbArgs.Add("@mdschemaname", tableSchema); }
+                if (!string.IsNullOrEmpty(db)) { where.Add("mddbname=@mddbname"); dbArgs.Add("@mddbname", db); }
+                if (where.Count > 0) query += " WHERE " + string.Join(" AND ", where);
+
+                List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)con.Query(query, dbArgs);
+                List<_Metadati_Tabelle> res = metaRawModel.convertDictionariesToList<_Metadati_Tabelle>(rows);
+                res.ForEach(x => x.skipColumns = skipColumns);
+                return res;
+            }
+        }
+
+        public static List<_Metadati_Tabelle> GetMetadati_TabellesWhere(string searchPredicate, bool skipColumns = false)
+        {
+            using (NpgsqlConnection con = GetOpenConnection(true))
+            {
+                string query = "select * from _metadati__tabelle WHERE " + searchPredicate;
+                List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)con.Query(query);
+                List<_Metadati_Tabelle> res = metaRawModel.convertDictionariesToList<_Metadati_Tabelle>(rows);
+                res.ForEach(x => x.skipColumns = skipColumns);
+                return res;
+            }
+        }
+
+        public static List<WuicCore.MetaModel._Metadati_Condition_Group> GetMetadati_Condition_Groups(int md_id)
+        {
+            using (NpgsqlConnection con = GetOpenConnection(true))
+            {
+                var dbArgs = new DynamicParameters();
+                dbArgs.Add("@md_id", md_id);
+                List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)con.Query("SELECT * FROM _Metadati_Condition_Group WHERE md_id=@md_id", dbArgs);
+                List<WuicCore.MetaModel._Metadati_Condition_Group> ret = metaRawModel.convertDictionariesToList<WuicCore.MetaModel._Metadati_Condition_Group>(rows);
+
+                string ids = string.Join(",", ret.Select(x => x.CG_Id));
+                if (!string.IsNullOrWhiteSpace(ids))
+                {
+                    List<Dapper.SqlMapper.FastExpando> condRows = (List<Dapper.SqlMapper.FastExpando>)con.Query("SELECT * FROM _Metadati_Condition_Action_Group WHERE fk_cg_id IN (" + ids + ")");
+                    List<WuicCore.MetaModel._Metadati_Condition_Action_Group> cond = metaRawModel.convertDictionariesToList<WuicCore.MetaModel._Metadati_Condition_Action_Group>(condRows);
+                    ret.ForEach(c => c.ConditionActions = cond.Where(x => x.FK_CG_Id == c.CG_Id).ToList());
+                }
+
+                return ret;
+            }
+        }
+
+        public static List<_Error_Logs> GetError_Logs()
+        {
+            using (NpgsqlConnection con = GetOpenConnection(true))
+            {
+                List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)con.Query("SELECT * FROM _error_logs");
+                return metaRawModel.convertDictionariesToList<_Error_Logs>(rows);
+            }
+        }
+        public static void authenticate(SysInfo infos, user user)
+        {
+            if (infos == null || user == null)
+                return;
+            user.role = user.role ?? string.Empty;
+        }
+
+        public static DbConnection CreateOpenConnection(string connectionString)
+        {
+            var connection = new NpgsqlConnection(connectionString);
+            connection.Open();
+            return connection;
+        }
+
+        public static DateTime? getLastUserActivityByID(string user_id)
+        {
+            return null;
+        }
+
+        public static void saveProgress(string guid, decimal progress)
+        {
+            // postgres provider does not persist query progress yet.
+        }
+
+        public static List<bind_list> getDatabasesFromConnection(string connection, string provider)
+        {
+            using (var con = new NpgsqlConnection(connection))
+            {
+                con.Open();
+                var dbs = con.Query<string>("SELECT datname FROM pg_database WHERE datistemplate=false ORDER BY datname").ToList();
+                return dbs.Select(x => new bind_list() { valore = x, text = x }).ToList();
+            }
+        }
+
+        public static void getUploadedFile(_Metadati_Tabelle tabel, string connectionString, _Metadati_Colonne pkey, _Metadati_Colonne_Upload uploader, string tabel_name, string __id, out byte[] file)
+        {
+            file = null;
+            if (uploader == null || pkey == null || string.IsNullOrWhiteSpace(connectionString) || string.IsNullOrWhiteSpace(__id))
+                return;
+
+            using (var con = new NpgsqlConnection(connectionString))
+            {
+                con.Open();
+                string q = $"SELECT {EscapeDBObjectName(uploader.mc_nome_colonna)} FROM {EscapeDBObjectName(tabel_name)} WHERE {EscapeDBObjectName(pkey.mc_nome_colonna)}=@id LIMIT 1";
+                file = con.Query<byte[]>(q, new { id = __id }).FirstOrDefault();
+            }
+        }
+
+        public static void fixQueryReport(string user_id, dynamic report, string route, DbConnection connection, ref int needFilter, string[] filterSplit)
+        {
+            // TODO provider-specific report query patching; keep behavior non-failing.
+            needFilter = Math.Max(needFilter, 0);
+        }
+#endregion
 
     }
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

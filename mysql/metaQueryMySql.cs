@@ -7191,7 +7191,110 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
             }
         }
 
-        #endregion
+                        public static int GetMetadati_Tabelles_NonSystem_Count()
+        {
+            using (MySqlConnection con = GetOpenConnection(true))
+            {
+                return (int)con.Query<long>("select count(*) from _metadati__tabelle where coalesce(issystemroute,0)=0").FirstOrDefault();
+            }
+        }
+
+        public static List<_Metadati_Tabelle> GetMetadati_Tabelles_NonSystem()
+        {
+            using (MySqlConnection con = GetOpenConnection(true))
+            {
+                List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)con.Query("select * from _metadati__tabelle where coalesce(issystemroute,0)=0");
+                return metaRawModel.convertDictionariesToList<_Metadati_Tabelle>(rows);
+            }
+        }
+
+        public static List<_Metadati_Tabelle> GetMetadati_TabellesForScaffolding(string tableName, string connName = "", string tableSchema = "", string db = "", bool skipColumns = false)
+        {
+            using (MySqlConnection con = GetOpenConnection(true))
+            {
+                string query = "select * from _metadati__tabelle";
+                List<string> where = new List<string>();
+                var dbArgs = new DynamicParameters();
+
+                if (!string.IsNullOrEmpty(tableName))
+                {
+                    where.Add("md_nome_tabella=@md_nome_tabella");
+                    dbArgs.Add("@md_nome_tabella", tableName);
+                }
+
+                if (!string.IsNullOrEmpty(connName))
+                {
+                    where.Add("mdconnname=@mdconnname");
+                    dbArgs.Add("@mdconnname", connName);
+                }
+
+                if (!string.IsNullOrEmpty(tableSchema))
+                {
+                    where.Add("mdschemaname=@mdschemaname");
+                    dbArgs.Add("@mdschemaname", tableSchema);
+                }
+
+                if (!string.IsNullOrEmpty(db))
+                {
+                    where.Add("mddbname=@mddbname");
+                    dbArgs.Add("@mddbname", db);
+                }
+
+                if (where.Count > 0)
+                    query += " WHERE " + string.Join(" AND ", where);
+
+                List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)con.Query(query, dbArgs);
+                List<_Metadati_Tabelle> res = metaRawModel.convertDictionariesToList<_Metadati_Tabelle>(rows);
+                res.ForEach(x => x.skipColumns = skipColumns);
+                return res;
+            }
+        }
+
+        public static List<_Metadati_Tabelle> GetMetadati_TabellesWhere(string searchPredicate, bool skipColumns = false)
+        {
+            using (MySqlConnection con = GetOpenConnection(true))
+            {
+                string query = "select * from _metadati__tabelle WHERE " + searchPredicate;
+                List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)con.Query(query);
+                List<_Metadati_Tabelle> res = metaRawModel.convertDictionariesToList<_Metadati_Tabelle>(rows);
+                res.ForEach(x => x.skipColumns = skipColumns);
+                return res;
+            }
+        }
+        public static List<WuicCore.MetaModel._Metadati_Condition_Group> GetMetadati_Condition_Groups(int md_id)
+        {
+            using (MySqlConnection con = GetOpenConnection(true))
+            {
+                string select = "SELECT * FROM _Metadati_Condition_Group WHERE md_id=@md_id";
+                var dbArgs = new DynamicParameters();
+                dbArgs.Add("@md_id", md_id);
+
+                List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)con.Query(select, dbArgs);
+                List<WuicCore.MetaModel._Metadati_Condition_Group> ret = metaRawModel.convertDictionariesToList<WuicCore.MetaModel._Metadati_Condition_Group>(rows);
+
+                string ids = string.Join(",", ret.Select(x => x.CG_Id));
+                if (!string.IsNullOrWhiteSpace(ids))
+                {
+                    string selectCond = "SELECT * FROM _Metadati_Condition_Action_Group WHERE fk_cg_id IN (" + ids + ")";
+                    List<Dapper.SqlMapper.FastExpando> condRows = (List<Dapper.SqlMapper.FastExpando>)con.Query(selectCond);
+                    List<WuicCore.MetaModel._Metadati_Condition_Action_Group> cond = metaRawModel.convertDictionariesToList<WuicCore.MetaModel._Metadati_Condition_Action_Group>(condRows);
+                    ret.ForEach(c => c.ConditionActions = cond.Where(x => x.FK_CG_Id == c.CG_Id).ToList());
+                }
+
+                return ret;
+            }
+        }
+
+        public static List<_Error_Logs> GetError_Logs()
+        {
+            using (MySqlConnection con = GetOpenConnection(true))
+            {
+                List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)con.Query("SELECT * FROM _error_logs");
+                return metaRawModel.convertDictionariesToList<_Error_Logs>(rows);
+            }
+
+        }
+#endregion
 
         public static List<domBoard> loadDashboard(string dashRoute)
         {
@@ -7610,6 +7713,14 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
     }
 
 }
+
+
+
+
+
+
+
+
 
 
 
