@@ -232,13 +232,18 @@ app-root {
 .edit-form-content.p-dialog {
     width: #{styles.$widget_edit_popup_width};
     height: #{styles.$widget_edit_popup_height};
+    max-height: calc(100dvh - 1rem);
+    display: flex;
+    flex-direction: column;
 }
 
 .edit-form-content {
     .p-dialog-content {
         overflow: hidden;
         padding-bottom: 16px;
-        height: calc(100% - 80px);
+        height: auto;
+        flex: 1 1 auto;
+        min-height: 0;
     }
 
     .p-tablist {
