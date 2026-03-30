@@ -23,8 +23,8 @@ using Newtonsoft.Json.Linq;
 using WEB_UI_CRAFTER.Helpers;
 using MySql.Data.MySqlClient;
 using System.Diagnostics;
-using System.Drawing;
 using System.Configuration;
+using System.Threading;
 using WEB_UI_CRAFTER.ProjectData.Servizi;
 using Westwind.Utilities.Dynamic;
 using DocumentFormat.OpenXml.Packaging;
@@ -37,6 +37,115 @@ namespace metaModelRaw
 {
     public class metaQueryMySql
     {
+        private static readonly AsyncLocal<string> LastCrudSqlQuery = new AsyncLocal<string>();
+        private static readonly object ChangeTrackingSchemaLock = new object();
+        private static volatile bool ChangeTrackingSchemaEnsured = false;
+
+        public static string GetLastCrudSqlQuery()
+        {
+            return LastCrudSqlQuery.Value;
+        }
+
+        public static void ClearLastCrudSqlQuery()
+        {
+            LastCrudSqlQuery.Value = null;
+        }
+
+        private static void SetLastCrudSqlQuery(string query)
+        {
+            LastCrudSqlQuery.Value = query;
+        }
+
+        private static void EnsureChangeTrackingSchema(MySqlConnection connection)
+        {
+            if (ChangeTrackingSchemaEnsured || connection == null)
+                return;
+
+            lock (ChangeTrackingSchemaLock)
+            {
+                if (ChangeTrackingSchemaEnsured || connection == null)
+                    return;
+
+                connection.Execute(@"
+CREATE TABLE IF NOT EXISTS `ChangeMaster` (
+    `IdChange` INT NOT NULL AUTO_INCREMENT,
+    `MdRouteName` VARCHAR(255) NOT NULL,
+    `Timestamp` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `Pkey` VARCHAR(255) NULL,
+    `operation` VARCHAR(50) NULL,
+    `userID` VARCHAR(255) NULL,
+    PRIMARY KEY (`IdChange`)
+) ENGINE=InnoDB ROW_FORMAT=DYNAMIC;");
+
+                connection.Execute(@"
+CREATE TABLE IF NOT EXISTS `ChangeDetail` (
+    `IdFieldChange` INT NOT NULL AUTO_INCREMENT,
+    `FK_IdChange` INT NOT NULL,
+    `Field` VARCHAR(255) NOT NULL,
+    `NewValue` LONGTEXT NOT NULL,
+    `OldValue` LONGTEXT NULL,
+    `TimestampClient` DATETIME NULL,
+    PRIMARY KEY (`IdFieldChange`)
+) ENGINE=InnoDB ROW_FORMAT=DYNAMIC;");
+
+                int hasOperation = connection.Query<int>(@"
+SELECT COUNT(*)
+FROM information_schema.columns
+WHERE table_schema = DATABASE()
+  AND table_name = 'ChangeMaster'
+  AND column_name = 'operation';").FirstOrDefault();
+
+                if (hasOperation == 0)
+                    connection.Execute("ALTER TABLE `ChangeMaster` ADD COLUMN `operation` VARCHAR(50) NULL;");
+
+                int hasUserId = connection.Query<int>(@"
+SELECT COUNT(*)
+FROM information_schema.columns
+WHERE table_schema = DATABASE()
+  AND table_name = 'ChangeMaster'
+  AND column_name = 'userID';").FirstOrDefault();
+
+                if (hasUserId == 0)
+                    connection.Execute("ALTER TABLE `ChangeMaster` ADD COLUMN `userID` VARCHAR(255) NULL;");
+
+                int hasNewValue = connection.Query<int>(@"
+SELECT COUNT(*)
+FROM information_schema.columns
+WHERE table_schema = DATABASE()
+  AND table_name = 'ChangeDetail'
+  AND column_name = 'NewValue';").FirstOrDefault();
+
+                if (hasNewValue > 0)
+                {
+                    connection.Execute("UPDATE `ChangeDetail` SET `NewValue` = '' WHERE `NewValue` IS NULL;");
+                    connection.Execute("ALTER TABLE `ChangeDetail` MODIFY COLUMN `NewValue` LONGTEXT NOT NULL;");
+                }
+
+                int hasFk = connection.Query<int>(@"
+SELECT COUNT(*)
+FROM information_schema.referential_constraints
+WHERE constraint_schema = DATABASE()
+  AND table_name = 'ChangeDetail'
+  AND constraint_name = 'FK_ChangeDetail_ChangeMaster';").FirstOrDefault();
+
+                if (hasFk == 0)
+                {
+                    try
+                    {
+                        connection.Execute(@"
+ALTER TABLE `ChangeDetail`
+ADD CONSTRAINT `FK_ChangeDetail_ChangeMaster`
+FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
+                    }
+                    catch
+                    {
+                    }
+                }
+
+                ChangeTrackingSchemaEnsured = true;
+            }
+        }
+
         #region "CONNECTION UTILS"
 
 
@@ -180,8 +289,8 @@ namespace metaModelRaw
                     string db_col_type = "";
                     string mc_ui_column_type = "";
                     List<_Metadati_Colonne> cols = tab._Metadati_Colonnes.ToList();
-                    int text_col_count = cols.Where(x => x.mc_db_column_type == "varchar").Count();
-                    int numeric_col_count = cols.Where(x => x.mc_db_column_type == "decimal" || x.mc_db_column_type == "bit").Count();
+                    int text_col_count = cols.Count(x => x.mc_db_column_type == "varchar");
+                    int numeric_col_count = cols.Count(x => x.mc_db_column_type == "decimal" || x.mc_db_column_type == "bit");
                     int total_col_count = cols.Count;
 
                     if (type == "1")
@@ -212,7 +321,7 @@ namespace metaModelRaw
                             cmd.Parameters.Add(new MySqlParameter("mc_nome_colonna", col_name));
                             cmd.Parameters.Add(new MySqlParameter("mc_ui_column_type", mc_ui_column_type));
                             cmd.Parameters.Add(new MySqlParameter("mccomputedformula", !isReticular ? "null" : ""));
-                            cmd.Parameters.Add(new MySqlParameter("mciscomputed", !isReticular ? true : false));
+                            cmd.Parameters.Add(new MySqlParameter("mciscomputed", !isReticular));
                             cmd.Parameters.Add(new MySqlParameter("mcgrantbydefault", true));
                             cmd.Parameters.Add(new MySqlParameter("mcordine", total_col_count));
                             cmd.Parameters.Add(new MySqlParameter("mc_ui_slider_format", "N"));
@@ -251,7 +360,7 @@ namespace metaModelRaw
                             cmd.Parameters.Add(new MySqlParameter("mc_nome_colonna", col_name));
                             cmd.Parameters.Add(new MySqlParameter("mc_ui_column_type", mc_ui_column_type));
                             cmd.Parameters.Add(new MySqlParameter("mccomputedformula", !isReticular ? "null" : ""));
-                            cmd.Parameters.Add(new MySqlParameter("mciscomputed", !isReticular ? true : false));
+                            cmd.Parameters.Add(new MySqlParameter("mciscomputed", !isReticular));
                             cmd.Parameters.Add(new MySqlParameter("mcgrantbydefault", true));
                             cmd.Parameters.Add(new MySqlParameter("mcordine", total_col_count));
                             cmd.Parameters.Add(new MySqlParameter("mc_ui_slider_format", "N"));
@@ -281,7 +390,7 @@ namespace metaModelRaw
                             cmd.Parameters.Add(new MySqlParameter("mc_nome_colonna", col_name));
                             cmd.Parameters.Add(new MySqlParameter("mc_ui_column_type", mc_ui_column_type));
                             cmd.Parameters.Add(new MySqlParameter("mccomputedformula", !isReticular ? "null" : ""));
-                            cmd.Parameters.Add(new MySqlParameter("mciscomputed", !isReticular ? true : false));
+                            cmd.Parameters.Add(new MySqlParameter("mciscomputed", !isReticular));
                             cmd.Parameters.Add(new MySqlParameter("mcgrantbydefault", true));
                             cmd.Parameters.Add(new MySqlParameter("mcordine", total_col_count));
                             cmd.Parameters.Add(new MySqlParameter("mc_ui_slider_format", "N"));
@@ -311,7 +420,7 @@ namespace metaModelRaw
                             cmd.Parameters.Add(new MySqlParameter("mc_nome_colonna", col_name));
                             cmd.Parameters.Add(new MySqlParameter("mc_ui_column_type", mc_ui_column_type));
                             cmd.Parameters.Add(new MySqlParameter("mccomputedformula", !isReticular ? "null" : ""));
-                            cmd.Parameters.Add(new MySqlParameter("mciscomputed", !isReticular ? true : false));
+                            cmd.Parameters.Add(new MySqlParameter("mciscomputed", !isReticular));
                             cmd.Parameters.Add(new MySqlParameter("mcgrantbydefault", true));
                             cmd.Parameters.Add(new MySqlParameter("mcordine", total_col_count));
                             return cmd.ExecuteScalar().ToString();
@@ -340,7 +449,7 @@ namespace metaModelRaw
                             cmd.Parameters.Add(new MySqlParameter("mc_nome_colonna", col_name));
                             cmd.Parameters.Add(new MySqlParameter("mc_ui_column_type", mc_ui_column_type));
                             cmd.Parameters.Add(new MySqlParameter("mccomputedformula", !isReticular ? "null" : ""));
-                            cmd.Parameters.Add(new MySqlParameter("mciscomputed", !isReticular ? true : false));
+                            cmd.Parameters.Add(new MySqlParameter("mciscomputed", !isReticular));
                             cmd.Parameters.Add(new MySqlParameter("mcgrantbydefault", true));
                             cmd.Parameters.Add(new MySqlParameter("mcordine", total_col_count));
                             return cmd.ExecuteScalar().ToString();
@@ -369,7 +478,7 @@ namespace metaModelRaw
                             cmd.Parameters.Add(new MySqlParameter("mc_nome_colonna", col_name));
                             cmd.Parameters.Add(new MySqlParameter("mc_ui_column_type", mc_ui_column_type));
                             cmd.Parameters.Add(new MySqlParameter("mccomputedformula", !isReticular ? "''" : ""));
-                            cmd.Parameters.Add(new MySqlParameter("mciscomputed", !isReticular ? true : false));
+                            cmd.Parameters.Add(new MySqlParameter("mciscomputed", !isReticular));
                             cmd.Parameters.Add(new MySqlParameter("mcgrantbydefault", true));
                             cmd.Parameters.Add(new MySqlParameter("mcordine", total_col_count));
                             cmd.Parameters.Add(new MySqlParameter("mchideinedit", true));
@@ -469,12 +578,12 @@ namespace metaModelRaw
         {
             if (user.getUserByName(user_name) != null)
             {
-                return "-1"; // throw new ValidationException(string.Format("User name '{0}' già utilizzato", user_name));
+                return "-1";
             }
 
             if (user.getUserByEMail(email) != null)
             {
-                return "-2";  //throw new ValidationException(string.Format("E-mail '{0}' già utilizzata", email));
+                return "-2";
             }
 
             string query = "select * from cms.register_requests where username=@username";
@@ -485,7 +594,7 @@ namespace metaModelRaw
             adpt.Fill(dt);
 
             if (dt.Rows.Count > 0)
-                return "-1"; //throw new ValidationException(string.Format("User name '{0}' già utilizzato", user_name));
+                return "-1";
 
             query = "select * from cms.register_requests where email=@email";
             cmd = new MySqlCommand(query, connection);
@@ -495,14 +604,14 @@ namespace metaModelRaw
             adpt.Fill(dt);
 
             if (dt.Rows.Count > 0)
-                return "-2";  //throw new ValidationException(string.Format("E-mail '{0}' già utilizzata", email));
+                return "-2";
 
             return user_name;
         }
 
         public static void logOut(user user)
         {
-            if (bool.Parse(ConfigHelper.GetSettingAsString("enableCookieAuthentication")) == true)
+            if (bool.Parse(ConfigHelper.GetSettingAsString("enableCookieAuthentication")))
             {
                 using (metaRawModel context = new metaRawModel())
                 {
@@ -607,7 +716,7 @@ namespace metaModelRaw
                     if (!Global.isPbkdf2Hash(storedHash))
                     {
                         string newHash = Global.pbkdf2Hash(password);
-                        connection.Execute(string.Format("UPDATE {0} SET {1}='{2}' WHERE {3} = '{4}'", infos.user_table_name, infos.password_column_name, EscapeValue(newHash), infos.username_column_name, EscapeValue(user_name)));
+                        connection.Execute(string.Format("UPDATE {0} SET {1}='{2}' WHERE {3} = '{4}'", infos.user_table_name, infos.password_column_name, metaQueryMySql.EscapeValue(newHash), infos.username_column_name, metaQueryMySql.EscapeValue(user_name)));
                     }
                 }
                 else
@@ -616,35 +725,33 @@ namespace metaModelRaw
                     if (storedPwd != password) return null;
                 }
 
+                user u = mapUserFields(infos, user);
+
+                if (bool.Parse(ConfigHelper.GetSettingAsString("enableCookieAuthentication")))
                 {
-                    user u = mapUserFields(infos, user);
-
-                    if (bool.Parse(ConfigHelper.GetSettingAsString("enableCookieAuthentication")) == true)
-                    {
-                        string iP = HttpContext.Current.Request.UserHostAddress;
-                        string token = Guid.NewGuid().ToString();
-                        connection.Execute(string.Format("UPDATE {0} SET {1}='{2}', ip = '{5}' WHERE {3} = {4}", infos.user_table_name, "token", token, infos.user_id_column_name, u.user_id, iP));
-                        u.user_token = token;
-                    }
-
-                    connection.Execute(string.Format("UPDATE {0} SET LastLoginDate=NOW(), LastActivityDate=NOW(), IsLoggedIn = 1 WHERE {1} = {2}", infos.user_table_name, infos.user_id_column_name, u.user_id));
-
-                    Global.loggedUser.TryAdd(u.username, u);
-
-                    return u;
+                    string iP = HttpContext.Current.Request.UserHostAddress;
+                    string token = Guid.NewGuid().ToString();
+                    connection.Execute(string.Format("UPDATE {0} SET {1}='{2}', ip = '{5}' WHERE {3} = {4}", infos.user_table_name, "token", token, infos.user_id_column_name, u.user_id, iP));
+                    u.user_token = token;
                 }
+
+                connection.Execute(string.Format("UPDATE {0} SET LastLoginDate=NOW(), LastActivityDate=NOW(), IsLoggedIn = 1 WHERE {1} = {2}", infos.user_table_name, infos.user_id_column_name, u.user_id));
+
+                Global.loggedUser.TryAdd(u.username, u);
+
+                return u;
             }
         }
 
         public static user mapUserFields(SysInfo infos, SqlMapper.FastExpando user)
         {
-            string userid = user.Where(x => x.Key == infos.user_id_column_name).First().Value.ToString();
+            string userid = user.First(x => x.Key == infos.user_id_column_name).Value.ToString();
 
-            string display = user.Where(x => x.Key == infos.user_description_column_name).First().Value.ToString();
-            bool isAdmin = RawHelpers.ParseBool(user.Where(x => x.Key == infos.isAdmin_column_name).First().Value.ToString());
+            string display = user.First(x => x.Key == infos.user_description_column_name).Value.ToString();
+            bool isAdmin = RawHelpers.ParseBool(user.First(x => x.Key == infos.isAdmin_column_name).Value.ToString());
             string roleName = "";
 
-            string role_id = user.Where(x => x.Key == infos.role_id_column_name).First().Value.ToString();
+            string role_id = user.First(x => x.Key == infos.role_id_column_name).Value.ToString();
 
             List<role> allRoles = getRoleList();
 
@@ -652,10 +759,10 @@ namespace metaModelRaw
             if (myRole != null)
                 roleName = myRole.role_name;
 
-            string uName = user.Where(x => x.Key == infos.username_column_name).First().Value.ToString();
+            string uName = user.First(x => x.Key == infos.username_column_name).Value.ToString();
             List<role> roles = getMultipleRoleRoleByUserID(userid);
 
-            var lastAct = user.Where(x => x.Key == "LastActivityDate").First().Value;
+            var lastAct = user.First(x => x.Key == "LastActivityDate").Value;
             DateTime lastActivity = DateTime.MinValue;
 
             if (lastAct != null)
@@ -687,7 +794,7 @@ namespace metaModelRaw
                 u.extra_keys.Add(extra_field, user_param != null ? user_param.ToString() : "");
             }
 
-            KeyValuePair<string, object>? az_field = user.Where(x => x.Key == infos.azienda_id_column_name).FirstOrDefault();
+            KeyValuePair<string, object>? az_field = user.FirstOrDefault(x => x.Key == infos.azienda_id_column_name);
             if (az_field != null)
             {
                 object id_azienda = az_field.Value.Value;
@@ -705,8 +812,8 @@ namespace metaModelRaw
         {
             return new role()
             {
-                role_name = role.Where(x => x.Key == infos.role_description_column_name).First().Value.ToString(),
-                role_id = role.Where(x => x.Key == infos.role_id_column_name).First().Value.ToString(),
+                role_name = role.First(x => x.Key == infos.role_description_column_name).Value.ToString(),
+                role_id = role.First(x => x.Key == infos.role_id_column_name).Value.ToString(),
             };
         }
 
@@ -721,7 +828,7 @@ namespace metaModelRaw
 
                 List<user> userList = RawHelpers.getUsersFromSession();
 
-                if (force == false && userList != null)
+                if (!force && userList != null)
                     return userList;
 
                 using (MySqlConnection connection = string.IsNullOrEmpty(infos.user_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.user_db_name))
@@ -1624,7 +1731,7 @@ namespace metaModelRaw
 
                 redux.AddRange(lst.Where(x => x.mc_is_primary_key || !string.IsNullOrEmpty(x.mc_custom_join)).ToList());
 
-                _Metadati_Colonne otherCol = lst.FirstOrDefault(x => !x.mc_is_primary_key);
+                _Metadati_Colonne otherCol = lst.FirstOrDefault(x => x.mc_is_primary_key is not true);
 
                 if (otherCol != null)
                     redux.Add(new _Metadati_Colonne() { mc_nome_colonna = otherCol.mc_nome_colonna, _Metadati_Tabelle = lst.First()._Metadati_Tabelle, mc_computed_formula = formula_lookup, mc_ui_column_type = "text", mc_is_computed = true, mc_grant_by_default = true });
@@ -1675,7 +1782,7 @@ namespace metaModelRaw
                         if (!skipNested)
                             ParseGridColumns(lst, user_id, rows);
 
-                        if (tab.md_server_side_operations == false && aggregates != null)
+                        if (!tab.md_server_side_operations && aggregates != null)
                         {
                             foreach (AggregationInfo agg in aggregates)
                             {
@@ -2025,6 +2132,7 @@ namespace metaModelRaw
         public static string UpdateflatData(Dictionary<string, object> entity, string route, string userId, MySqlConnection conn = null, MySqlTransaction trn = null)
         {
             string query = "";
+            ClearLastCrudSqlQuery();
 
             try
             {
@@ -2097,6 +2205,7 @@ namespace metaModelRaw
             RawHelpers.setMetadataVersion(invalidateAllMetadata ? null : tableMetadata);
 
             var watch = Stopwatch.StartNew();
+            SetLastCrudSqlQuery(query);
             string result = connection.Execute(query, commandTimeout: int.Parse(ConfigHelper.GetSettingAsString("autoGeneratedQueryTimeout")), transaction: trn).ToString();
             watch.Stop();
             RawHelpers.traceQuery("UpdateflatData", query, watch.ElapsedMilliseconds, route);
@@ -2130,13 +2239,13 @@ namespace metaModelRaw
                 {
                     foreach (Dictionary<string, object> subEntity in collection)
                     {
-                        if (subEntity.ContainsKey("___added") && subEntity["___added"] != null && (bool)subEntity["___added"] == true)
+                        if (subEntity.ContainsKey("___added") && subEntity["___added"] != null && (bool)subEntity["___added"])
                         {
                             if (subEntity.ContainsKey("___deleted"))
                             {
                                 object deleted = subEntity["___deleted"];
                                 if (deleted != null)
-                                    if ((bool)deleted == true)
+                                    if ((bool)deleted)
                                         continue;
                             }
 
@@ -2146,9 +2255,9 @@ namespace metaModelRaw
 
                             string insertedID = InsertflatData(newMMEntity, subRoute, userId);
                         }
-                        else if (subEntity.ContainsKey("___deleted") && (bool)subEntity["___deleted"] == true)
+                        else if (subEntity.ContainsKey("___deleted") && (bool)subEntity["___deleted"])
                         {
-                            if ((bool)subEntity["___selected"] == true)
+                            if ((bool)subEntity["___selected"])
                             {
                                 Dictionary<string, object> MMEntityToDelete = new Dictionary<string, object>();
                                 MMEntityToDelete[colGrid.mc_ui_grid_manytomany_related_id_field] = subEntity[colGrid.mc_ui_grid_related_id_field];
@@ -2165,7 +2274,7 @@ namespace metaModelRaw
             {
                 if (upload_fix != null)
                 {
-                    string __id = entity[metadata.First(x => x.mc_is_primary_key).mc_nome_colonna].ToString();
+                    string __id = entity[metadata.First(x => x.mc_is_primary_key is true).mc_nome_colonna].ToString();
 
                     string rootPath = upload_fix.DefaultUploadRootPath;
 
@@ -2221,7 +2330,8 @@ namespace metaModelRaw
                 RawHelpers.InvokeUtilityHook(metadata.First()._Metadati_Tabelle.md_after_save_server_method_name, new object[] { userId, entity, dataMode.edit, "" });
             }
 
-            if (entity.ContainsKey("__changes"))
+            bool enableServerSideCrudChangeLog = RawHelpers.ParseBool(ConfigHelper.GetSettingAsString("enableServerSideCrudChangeLog") ?? "true");
+            if (enableServerSideCrudChangeLog && entity.ContainsKey("__changes"))
             {
                 List<Dictionary<string, object>> changess = GetDictionaryListValue(entity, "__changes");
 
@@ -2244,22 +2354,33 @@ namespace metaModelRaw
                 {
                     using (MySqlConnection connection2 = GetOpenConnection(false))
                     {
-                        MySqlCommand cmd = new MySqlCommand("INSERT INTO ChangeMaster(MdRouteName, Timestamp, Pkey) VALUES(@MdRouteName, NOW(), @Pkey); SELECT LAST_INSERT_ID()", connection2);
-                        cmd.Parameters.Add(new MySqlParameter("MdRouteName", route));
-                        cmd.Parameters.Add(new MySqlParameter("Pkey", entity[metadata.FirstOrDefault(x => x.mc_is_primary_key).mc_nome_colonna]));
-
-                        var masterId = cmd.ExecuteScalar().ToString();
-
-                        foreach (ChangeT change in changes)
+                        try
                         {
-                            var dbArgs = new DynamicParameters();
-                            dbArgs.Add("masterId", metaQueryMySql.EscapeValue(masterId));
-                            dbArgs.Add("field", metaQueryMySql.EscapeValue(change.field));
-                            dbArgs.Add("newValue", metaQueryMySql.EscapeValue(change.newValue));
-                            dbArgs.Add("oldValue", metaQueryMySql.EscapeValue(change.oldValue));
-                            dbArgs.Add("timestamp", metaQueryMySql.EscapeValue(change.timestamp));
+                            EnsureChangeTrackingSchema(connection2);
 
-                            connection2.Execute("INSERT INTO ChangeDetail(FK_IdChange, Field, NewValue, OldValue, TimestampClient) VALUES(@masterId, @field, @newValue, @oldValue, @timestamp)", dbArgs).ToString();
+                            MySqlCommand cmd = new MySqlCommand("INSERT INTO ChangeMaster(MdRouteName, Timestamp, Pkey, operation, userID) VALUES(@MdRouteName, NOW(), @Pkey, @operation, @userID); SELECT LAST_INSERT_ID()", connection2);
+                            cmd.Parameters.Add(new MySqlParameter("MdRouteName", route));
+                            cmd.Parameters.Add(new MySqlParameter("Pkey", entity[metadata.FirstOrDefault(x => x.mc_is_primary_key is true).mc_nome_colonna]));
+                            cmd.Parameters.Add(new MySqlParameter("operation", "update"));
+                            cmd.Parameters.Add(new MySqlParameter("userID", userId ?? ""));
+
+                            var masterId = cmd.ExecuteScalar().ToString();
+
+                            foreach (ChangeT change in changes)
+                            {
+                                var dbArgs = new DynamicParameters();
+                                dbArgs.Add("masterId", metaQueryMySql.EscapeValue(masterId));
+                                dbArgs.Add("field", metaQueryMySql.EscapeValue(change.field));
+                                dbArgs.Add("newValue", metaQueryMySql.EscapeValue(change.newValue));
+                                dbArgs.Add("oldValue", metaQueryMySql.EscapeValue(change.oldValue));
+                                dbArgs.Add("timestamp", metaQueryMySql.EscapeValue(change.timestamp));
+
+                                connection2.Execute("INSERT INTO ChangeDetail(FK_IdChange, Field, NewValue, OldValue, TimestampClient) VALUES(@masterId, @field, @newValue, @oldValue, @timestamp)", dbArgs).ToString();
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            RawHelpers.logError(ex, "crudChangeLogUpdate", route);
                         }
                     }
                 }
@@ -2270,6 +2391,7 @@ namespace metaModelRaw
 
         public static string DeleteflatDataByID(int id, string route, string userId)
         {
+            ClearLastCrudSqlQuery();
             List<_Metadati_Colonne> metadata = _Metadati_Colonne.getColonneByUserID(route, 0, userId, dataMode.insert, null);
             _Metadati_Tabelle tab = metadata.First()._Metadati_Tabelle;
 
@@ -2281,9 +2403,9 @@ namespace metaModelRaw
                 {
 
                     Dictionary<string, object> entity = new Dictionary<string, object>();
-                    entity.Add(metadata.FirstOrDefault(x => x.mc_is_primary_key == true).mc_nome_colonna, id);
+                    entity.Add(metadata.FirstOrDefault(x => x.mc_is_primary_key is true).mc_nome_colonna, id);
 
-                    _Metadati_Colonne logic_del_key = metadata.FirstOrDefault(x => x.mc_is_logic_delete_key == true);
+                    _Metadati_Colonne logic_del_key = metadata.FirstOrDefault(x => x.mc_is_logic_delete_key is true);
                     if (logic_del_key != null)
                         entity.Add(logic_del_key.mc_nome_colonna, false);
 
@@ -2291,12 +2413,13 @@ namespace metaModelRaw
 
                     RawHelpers.setMetadataVersion(metadata.FirstOrDefault()._Metadati_Tabelle);
 
+                    SetLastCrudSqlQuery(query);
                     return connection.Execute(query).ToString();
 
                 }
-                catch (ValidationException e1)
+                catch (ValidationException)
                 {
-                    throw e1;
+                    throw;
                 }
                 catch (MySqlException e2)
                 {
@@ -2305,13 +2428,13 @@ namespace metaModelRaw
                     else
                     {
                         RawHelpers.logError(e2, "deleteFlatDataByID", query);
-                        throw e2;
+                        throw;
                     }
                 }
                 catch (Exception e3)
                 {
                     RawHelpers.logError(e3, "deleteFlatDataByID", query);
-                    throw e3;
+                    throw;
                 }
             }
         }
@@ -2321,6 +2444,7 @@ namespace metaModelRaw
         {
             string query = "";
             _Metadati_Tabelle tab = null;
+            ClearLastCrudSqlQuery();
             userId = RawHelpers.authenticate();
 
             try
@@ -2382,6 +2506,7 @@ namespace metaModelRaw
             RawHelpers.setMetadataVersion(metadata.FirstOrDefault()._Metadati_Tabelle);
 
             var watch = Stopwatch.StartNew();
+            SetLastCrudSqlQuery(query);
             string ret = connection.Execute(query, commandTimeout: int.Parse(ConfigHelper.GetSettingAsString("autoGeneratedQueryTimeout")), transaction: trn).ToString();
             watch.Stop();
             RawHelpers.traceQuery("DeleteflatData", query, watch.ElapsedMilliseconds, route);
@@ -2396,12 +2521,97 @@ namespace metaModelRaw
                 RawHelpers.InvokeUtilityHook(metadata.First()._Metadati_Tabelle.md_after_save_server_method_name, new object[] { userId, entity, dataMode.delete, "" });
             }
 
+            // Change tracking per DELETE: registra master + dettaglio anche in cancellazione.
+            string pKeyField = metadata.FirstOrDefault(x => x.mc_is_primary_key is true)?.mc_nome_colonna;
+            object pKeyValue = null;
+            if (!string.IsNullOrEmpty(pKeyField) && entity.ContainsKey(pKeyField))
+            {
+                pKeyValue = entity[pKeyField];
+            }
+
+            List<Dictionary<string, object>> deleteChanges = new List<Dictionary<string, object>>();
+            foreach (var kv in entity)
+            {
+                if (string.IsNullOrEmpty(kv.Key) || kv.Key.StartsWith("__", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                deleteChanges.Add(new Dictionary<string, object>
+                {
+                    { "field", kv.Key },
+                    { "oldValue", RawHelpers.ParseNull(kv.Value) },
+                    { "timestamp", DateTime.Now }
+                });
+            }
+
+            if (deleteChanges.Count == 0 && !string.IsNullOrEmpty(pKeyField))
+            {
+                deleteChanges.Add(new Dictionary<string, object>
+                {
+                    { "field", pKeyField },
+                    { "oldValue", RawHelpers.ParseNull(pKeyValue) },
+                    { "timestamp", DateTime.Now }
+                });
+            }
+
+            bool enableServerSideCrudChangeLog = RawHelpers.ParseBool(ConfigHelper.GetSettingAsString("enableServerSideCrudChangeLog") ?? "true");
+            if (enableServerSideCrudChangeLog && deleteChanges.Count > 0)
+            {
+                string operationType = "delete_physical";
+                string globalLogicDeleteField = RawHelpers.ParseNull(ConfigHelper.GetSettingAsString("logicDeleteField"));
+                if (!string.IsNullOrEmpty(globalLogicDeleteField))
+                {
+                    operationType = metadata.Any(x => string.Equals(x.mc_nome_colonna, globalLogicDeleteField, StringComparison.OrdinalIgnoreCase))
+                        ? "delete_logical"
+                        : "delete_physical";
+                }
+                else
+                {
+                    bool hasLogicalDeleteKey = metadata.Any(x => x.mc_is_logic_delete_key.HasValue && x.mc_is_logic_delete_key.Value);
+                    operationType = metadata.First()._Metadati_Tabelle.md_has_logic_delete && hasLogicalDeleteKey
+                        ? "delete_logical"
+                        : "delete_physical";
+                }
+
+                using (MySqlConnection connection2 = GetOpenConnection(false))
+                {
+                    try
+                    {
+                        EnsureChangeTrackingSchema(connection2);
+
+                        MySqlCommand cmd = new MySqlCommand("INSERT INTO ChangeMaster(MdRouteName, Timestamp, Pkey, operation, userID) VALUES(@MdRouteName, NOW(), @Pkey, @operation, @userID); SELECT LAST_INSERT_ID()", connection2);
+                        cmd.Parameters.Add(new MySqlParameter("MdRouteName", route));
+                        cmd.Parameters.Add(new MySqlParameter("Pkey", pKeyValue ?? ""));
+                        cmd.Parameters.Add(new MySqlParameter("operation", operationType));
+                        cmd.Parameters.Add(new MySqlParameter("userID", userId ?? ""));
+
+                        var masterId = cmd.ExecuteScalar().ToString();
+
+                        foreach (var change in deleteChanges)
+                        {
+                            var dbArgs = new DynamicParameters();
+                            dbArgs.Add("masterId", metaQueryMySql.EscapeValue(masterId));
+                            dbArgs.Add("field", metaQueryMySql.EscapeValue(change["field"]));
+                            dbArgs.Add("newValue", metaQueryMySql.EscapeValue(string.Empty));
+                            dbArgs.Add("oldValue", metaQueryMySql.EscapeValue(change["oldValue"]));
+                            dbArgs.Add("timestamp", metaQueryMySql.EscapeValue(change["timestamp"]));
+
+                            connection2.Execute("INSERT INTO ChangeDetail(FK_IdChange, Field, NewValue, OldValue, TimestampClient) VALUES(@masterId, @field, @newValue, @oldValue, @timestamp)", dbArgs).ToString();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        RawHelpers.logError(ex, "crudChangeLogDelete", route);
+                    }
+                }
+            }
+
             return ret;
         }
 
         public static string InsertflatData(Dictionary<string, object> entity, string route, string userId, MySqlConnection conn = null, MySqlTransaction trn = null)
         {
             string query = "";
+            ClearLastCrudSqlQuery();
 
             try
             {
@@ -2463,6 +2673,7 @@ namespace metaModelRaw
             List<_Metadati_Colonne_Grid> multiple_check_fixes = metadata.OfType<_Metadati_Colonne_Grid>().ToList();
 
             var watch = Stopwatch.StartNew();
+            SetLastCrudSqlQuery(query);
             string result = connection.Execute(query, commandTimeout: int.Parse(ConfigHelper.GetSettingAsString("autoGeneratedQueryTimeout")), transaction: trn).ToString();
             watch.Stop();
             RawHelpers.traceQuery("InsertflatData", query, watch.ElapsedMilliseconds, route);
@@ -2500,13 +2711,13 @@ namespace metaModelRaw
                     {
                         if (subEntity.ContainsKey("___added") && subEntity["___added"] != null)
                         {
-                            if ((bool)subEntity["___added"] == true)
+                            if ((bool)subEntity["___added"])
                             {
                                 if (subEntity.ContainsKey("___deleted"))
                                 {
                                     object deleted = subEntity["___deleted"];
                                     if (deleted != null)
-                                        if ((bool)deleted == true)
+                                        if ((bool)deleted)
                                             continue;
                                 }
 
@@ -2523,9 +2734,9 @@ namespace metaModelRaw
 
                             }
                         }
-                        else if (subEntity.ContainsKey("___deleted") && (bool)subEntity["___deleted"] == true)
+                        else if (subEntity.ContainsKey("___deleted") && (bool)subEntity["___deleted"])
                         {
-                            if ((bool)subEntity["___selected"] == true)
+                            if ((bool)subEntity["___selected"])
                             {
                                 Dictionary<string, object> MMEntityToDelete = new Dictionary<string, object>();
 
@@ -2555,7 +2766,7 @@ namespace metaModelRaw
                     string rootPath = upload_fix.DefaultUploadRootPath;
 
                     if (string.IsNullOrEmpty(rootPath))
-                        rootPath = "/" + ((ConfigHelper.GetSettingAsString("uploadFolder") != null) ? ConfigHelper.GetSettingAsString("uploadFolder") + "/" : "/upload/");
+                        rootPath = "/" + (ConfigHelper.GetSettingAsString("uploadFolder") != null ? ConfigHelper.GetSettingAsString("uploadFolder") + "/" : "/upload/");
 
                     else
                     {
@@ -2614,6 +2825,7 @@ namespace metaModelRaw
         {
             string query = "";
             _Metadati_Tabelle tab = null;
+            ClearLastCrudSqlQuery();
             userId = RawHelpers.authenticate();
 
             try
@@ -2667,6 +2879,7 @@ namespace metaModelRaw
             RawHelpers.setMetadataVersion(metadata.FirstOrDefault()._Metadati_Tabelle);
 
             var watch = Stopwatch.StartNew();
+            SetLastCrudSqlQuery(query);
             string ret = connection.Execute(query, commandTimeout: int.Parse(ConfigHelper.GetSettingAsString("autoGeneratedQueryTimeout")), transaction: trn).ToString();
             watch.Stop();
             RawHelpers.traceQuery("RestoreflatData", query, watch.ElapsedMilliseconds, route);
@@ -2700,7 +2913,7 @@ namespace metaModelRaw
 
                 string current_fld = safetable_name + "." + safecolumn_name;
 
-                if (fld.mc_is_primary_key)
+                if (fld.mc_is_primary_key is true)
                 {
                     if (string.IsNullOrEmpty(tabel.md_primary_key_type) || tabel.md_primary_key_type == "GUID")
                         where += ((where == "") ? " where " : " AND ") + current_fld + " = '" + entity[fld.mc_nome_colonna] + "'";
@@ -2720,10 +2933,33 @@ namespace metaModelRaw
                 }
             });
 
-            if (!string.IsNullOrEmpty(ConfigHelper.GetSettingAsString("logicDeleteField")))
+            string logicRestoreValue = "0";
+
+            if (tabel.md_has_logic_delete)
+            {
+                _Metadati_Colonne logic_del_key = metadata.FirstOrDefault(x => x.mc_is_logic_delete_key.HasValue && x.mc_is_logic_delete_key.Value);
+                if (logic_del_key != null)
+                {
+                    string delete_log = "";
+                    if (tabel.md_logging_enable)
+                    {
+                        if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
+                        {
+                            userId = Utility.id_extraClient(ref userId);
+                        }
+
+                        AppendLoggingDeleteFields(ref delete_log, tabel, userId, entity);
+                    }
+                    query = string.Format("UPDATE {0} SET {1} = {4} {3} {2}", safetable_name, safetable_name + "." + RawHelpers.getStoreColumnName(logic_del_key), where, string.IsNullOrEmpty(delete_log) ? "" : ", " + delete_log, logicRestoreValue);
+                }
+                else
+                {
+                    throw new Exception("Missing logic delete key field.");
+                }
+            }
+            else if (!string.IsNullOrEmpty(ConfigHelper.GetSettingAsString("logicDeleteField")))
             {
                 string logicRestoreField = ConfigHelper.GetSettingAsString("logicDeleteField");
-                string logicRestoreValue = "0";
 
                 if (!string.IsNullOrEmpty(logicRestoreField))
                 {
@@ -2748,28 +2984,6 @@ namespace metaModelRaw
                     }
                 }
             }
-            else if (tabel.md_has_logic_delete)
-            {
-                _Metadati_Colonne logic_del_key = metadata.FirstOrDefault(x => x.mc_is_logic_delete_key.HasValue && x.mc_is_logic_delete_key.Value);
-                if (logic_del_key != null)
-                {
-                    string delete_log = "";
-                    if (tabel.md_logging_enable)
-                    {
-                        if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
-                        {
-                            userId = Utility.id_extraClient(ref userId);
-                        }
-
-                        AppendLoggingDeleteFields(ref delete_log, tabel, userId, entity);
-                    }
-                    query = string.Format("UPDATE {0} SET {1} = 1 {3} {2}", safetable_name, safetable_name + "." + RawHelpers.getStoreColumnName(logic_del_key), where, string.IsNullOrEmpty(delete_log) ? "" : ", " + delete_log);
-                }
-                else
-                {
-                    throw new Exception("Missing logic delete key field.");
-                }
-            }
             else
             {
                 throw new Exception("Data can not be restored");
@@ -2790,7 +3004,7 @@ namespace metaModelRaw
                 {
                     if (string.IsNullOrEmpty(parent_id))
                     {
-                        if (sameLevel == true)
+                        if (sameLevel)
                         {
 
                         }
@@ -2801,7 +3015,7 @@ namespace metaModelRaw
                     }
                     else
                     {
-                        if (sameLevel == true)
+                        if (sameLevel)
                         {
                             entity.Add(col.mc_nome_colonna, parent_id);
                         }
@@ -2820,7 +3034,7 @@ namespace metaModelRaw
                     }
                     else
                     {
-                        if (col.mc_validation_required == true)
+                        if (col.mc_validation_required is true)
                         {
                             if (col as _Metadati_Colonne_Slider != null)
                                 entity.Add(col.mc_nome_colonna, 0);
@@ -2895,7 +3109,7 @@ namespace metaModelRaw
             Dictionary<aliasPair, string> joins = new Dictionary<aliasPair, string>();
 
             _Metadati_Tabelle tab = lst.First()._Metadati_Tabelle;
-            _Metadati_Colonne pKey = lst.FirstOrDefault(x => x.mc_is_primary_key == true);
+            _Metadati_Colonne pKey = lst.FirstOrDefault(x => x.mc_is_primary_key is true);
 
             using (metaRawModel mmd = new metaRawModel())
             {
@@ -2922,7 +3136,7 @@ namespace metaModelRaw
             using (metaRawModel mmd = new metaRawModel())
             {
                 _Metadati_Tabelle tab = lst.First()._Metadati_Tabelle;
-                _Metadati_Colonne pKey = lst.FirstOrDefault(x => x.mc_is_primary_key == true);
+                _Metadati_Colonne pKey = lst.FirstOrDefault(x => x.mc_is_primary_key is true);
                 string safetableName = RawHelpers.getStoreTableName(tab, "mysql");
                 _Metadati_Colonne_Lookup lookuprelatedCol = null;
                 _Metadati_Colonne linkedCol = null;
@@ -3460,6 +3674,9 @@ namespace metaModelRaw
                 case "endswith":
                     return "like";
 
+                case "between":
+                    return "between";
+
                 case "isnull":
                     return "is null";
 
@@ -3597,7 +3814,7 @@ namespace metaModelRaw
                         orWhere += (string.IsNullOrEmpty(orWhere) ? "" : " OR ") + string.Format("{0} = {2}{1}{2} ", f.field, fltrVal, quote);
                     });
 
-                    where += ((where == "") ? " where " : " " + logicOperator + " ") + " ( " + orWhere; // +" ) ";
+                    where += ((where == "") ? " where " : " " + logicOperator + " ") + " ( " + orWhere;
 
                 }
                 else if (realOperator == "eqall")
@@ -3609,7 +3826,7 @@ namespace metaModelRaw
                         orWhere += (string.IsNullOrEmpty(orWhere) ? "" : " OR ") + string.Format("{0} = {2}{1}{2} ", f.field, fltrVal, quote);
                     });
 
-                    where += ((where == "") ? " where " : " " + logicOperator + " ") + " ( " + orWhere; // +" ) ";
+                    where += ((where == "") ? " where " : " " + logicOperator + " ") + " ( " + orWhere;
 
                 }
                 else if (realOperator == "eqorconcatenate")
@@ -3803,6 +4020,62 @@ namespace metaModelRaw
         {
             string quote = forceQuotes ? "'" : RawHelpers.getQuoteFromColumn(fld);
 
+            if (string.Equals(realOperator, "between", StringComparison.OrdinalIgnoreCase))
+            {
+                string fromValue = null;
+                string toValue = null;
+
+                if (!string.IsNullOrWhiteSpace(filterValue))
+                {
+                    var rawRange = filterValue.Trim();
+                    try
+                    {
+                        var token = JToken.Parse(rawRange);
+                        if (token is JObject obj)
+                        {
+                            fromValue = obj["from"]?.ToString();
+                            toValue = obj["to"]?.ToString();
+                        }
+                    }
+                    catch
+                    {
+                        string[] separators = new[] { "||", "|", ";", "," };
+                        foreach (var separator in separators)
+                        {
+                            if (rawRange.Contains(separator))
+                            {
+                                var parts = rawRange.Split(new[] { separator }, 2, StringSplitOptions.None);
+                                fromValue = parts.Length > 0 ? parts[0] : null;
+                                toValue = parts.Length > 1 ? parts[1] : null;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                fromValue = string.IsNullOrWhiteSpace(fromValue) ? null : EscapeValue(fromValue.Trim())?.ToString();
+                toValue = string.IsNullOrWhiteSpace(toValue) ? null : EscapeValue(toValue.Trim())?.ToString();
+                if (fromValue == null || toValue == null)
+                {
+                    return;
+                }
+
+                if (fld.mc_ui_column_type == "number" || fld.mc_ui_column_type == "number_slider")
+                {
+                    fromValue = fromValue.Replace(",", ".");
+                    toValue = toValue.Replace(",", ".");
+                }
+
+                var targetExpression = (fld.mc_is_computed.HasValue && fld.mc_is_computed.Value ? fld.mc_computed_formula : currentFld);
+                where += ((where == "") ? " where " : " " + logicOperator + " ")
+                    + "( (" + targetExpression + ") between "
+                    + string.Format("{0}{1}{2} and {3}{4}{5} {6}",
+                        quote, fromValue, quote,
+                        quote, toValue, quote,
+                        (xtra ? " OR 1=1" : ""));
+                return;
+            }
+
             string leftExtraOperator = quote;
 
             string rightExtraOperator = leftExtraOperator;
@@ -3956,7 +4229,7 @@ namespace metaModelRaw
                 where += ((where == "") ? " where " : " " + logicOperator + " ") + safetableName + "." + tab.reticular_key_name + " = " + (tab.reticular_key_value.HasValue ? tab.reticular_key_value.Value.ToString() : "null");
             }
 
-            if (mcId != 0 && ConfigHelper.GetSettingAsString("logicDeleteField") != null)
+            if (ConfigHelper.GetSettingAsString("logicDeleteField") != null)
             {
                 string logicDeleteField = ConfigHelper.GetSettingAsString("logicDeleteField");
                 string logicDeleteValue = ConfigHelper.GetSettingAsString("logicDeleteValue");
@@ -4213,14 +4486,14 @@ namespace metaModelRaw
 
         private static void ParseGridColumns(List<_Metadati_Colonne> lst, string userId, List<SqlMapper.FastExpando> rows)
         {
-            _Metadati_Colonne pkey = lst.FirstOrDefault(x => x.mc_is_primary_key);
+            _Metadati_Colonne pkey = lst.FirstOrDefault(x => x.mc_is_primary_key is true);
 
             List<_Metadati_Colonne_Grid> grid_cols = lst.OfType<_Metadati_Colonne_Grid>().Where(x => x.mc_ui_grid_is_multiple_check).ToList();
 
             if (grid_cols.Count > 0 && pkey == null)
                 throw new Exception("Missing primary key on current route.");
 
-            List<_Metadati_Colonne> pkeys = lst.Where(x => x.mc_is_primary_key).ToList();
+            List<_Metadati_Colonne> pkeys = lst.Where(x => x.mc_is_primary_key is true).ToList();
 
             List<_Metadati_Colonne_Slider> chartCols = lst.OfType<_Metadati_Colonne_Slider>().Where(x => x.use_chart_in_view > 0).ToList();
 
@@ -4266,7 +4539,7 @@ namespace metaModelRaw
                     {
                         manyToManyRoute = mmd.GetMetadati_Tabelles(grid_col.mc_ui_grid_manytomany_route).FirstOrDefault();
                         manyToManyRoute.skipColumns = false;
-                        manyToManyKey = manyToManyRoute._Metadati_Colonnes.FirstOrDefault(x => x.mc_is_primary_key);
+                        manyToManyKey = manyToManyRoute._Metadati_Colonnes.FirstOrDefault(x => x.mc_is_primary_key is true);
                     }
 
                     string localKeyName = grid_col.mc_ui_grid_manytomany_local_id_field;
@@ -4343,19 +4616,31 @@ namespace metaModelRaw
             _Metadati_Colonne_Lookup look = fld as _Metadati_Colonne_Lookup;
 
             dynamic serverProps = null;
+            string customSortFormula = null;
 
             if (fld.mc_props_bag != null)
             {
                 dynamic extraProps = RawHelpers.deserialize(fld.mc_props_bag, null);
                 if (extraProps != null)
                 {
-                    serverProps = extraProps.serverProperties;
+                    Dictionary<string, object> extraDict = NormalizeToDictionary((object)extraProps);
+                    if (extraDict != null && extraDict.TryGetValue("serverProperties", out object serverPropsObj))
+                    {
+                        serverProps = serverPropsObj;
+
+                        Dictionary<string, object> serverPropsDict = NormalizeToDictionary(serverPropsObj);
+                        if (serverPropsDict != null &&
+                            serverPropsDict.TryGetValue("custom_sort_formula", out object customSortObj))
+                        {
+                            customSortFormula = RawHelpers.ParseNull(customSortObj);
+                        }
+                    }
                 }
             }
 
-            if (serverProps != null && serverProps.custom_sort_formula != null)
+            if (!string.IsNullOrWhiteSpace(customSortFormula))
             {
-                sort += ((sort == "") ? " ORDER BY " : ", ") + RawHelpers.ParseNull(serverProps.custom_sort_formula).ToUpper().Replace(";", "").Replace("GO ", "");
+                sort += ((sort == "") ? " ORDER BY " : ", ") + customSortFormula.ToUpper().Replace(";", "").Replace("GO ", "");
             }
             else
             {
@@ -4976,7 +5261,7 @@ namespace metaModelRaw
 
             List<_Metadati_Colonne_Upload> metadataUpload = metadata.OfType<_Metadati_Colonne_Upload>().ToList();
 
-            metadata.Where(x => !x.mc_is_computed.HasValue || x.mc_is_computed.Value == false || x.GetType() == typeof(_Metadati_Colonne_Grid)).ToList().ForEach((fld) =>
+            metadata.Where(x => !x.mc_is_computed.HasValue || x.mc_is_computed.Value is false || x.GetType() == typeof(_Metadati_Colonne_Grid)).ToList().ForEach((fld) =>
             {
 
                 string safecolumn_name = EscapeDBObjectName(RawHelpers.getStoreColumnName(fld));
@@ -5098,7 +5383,7 @@ namespace metaModelRaw
                     {
                         if (valore.GetType() == typeof(bool))
                         {
-                            if ((bool)valore == false)
+                            if (!(bool)valore)
                                 valore = 0;
                             else
                                 valore = 1;
@@ -5272,13 +5557,13 @@ namespace metaModelRaw
                         {
                             Dictionary<string, object> subEntity = (Dictionary<string, object>)item;
                             string localfield = colGrid.mc_ui_grid_manytomany_related_id_field;
-                            if (subEntity.ContainsKey("___added") && (bool)subEntity["___added"] == true)
+                            if (subEntity.ContainsKey("___added") && (bool)subEntity["___added"])
                             {
                                 if (subEntity.ContainsKey("___deleted"))
                                 {
                                     object deleted = subEntity["___deleted"];
                                     if (deleted != null)
-                                        if ((bool)deleted == true)
+                                        if ((bool)deleted)
                                             continue;
                                 }
 
@@ -5291,7 +5576,7 @@ namespace metaModelRaw
                                 string insertedID = InsertflatData(subEntity, subRoute, user_id);
 
                             }
-                            else if (subEntity.ContainsKey("___deleted") && subEntity["___deleted"] != null && (bool)subEntity["___deleted"] == true)
+                            else if (subEntity.ContainsKey("___deleted") && subEntity["___deleted"] != null && (bool)subEntity["___deleted"])
                             {
                                 subEntity[colGrid.mc_ui_grid_manytomany_related_id_field] = subEntity[colGrid.mc_ui_grid_related_id_field];
                                 subEntity[colGrid.mc_ui_grid_manytomany_local_id_field] = entity[colGrid.mc_ui_grid_local_id_field];
@@ -5314,7 +5599,7 @@ namespace metaModelRaw
 
                 string current_fld = safetable_name + "." + safecolumn_name;
 
-                if (fld.mc_is_primary_key)
+                if (fld.mc_is_primary_key is true)
                 {
                     int ou;
                     quote = "";
@@ -5363,7 +5648,7 @@ namespace metaModelRaw
                                 bool base64Image = RawHelpers.ParseBool(ConfigHelper.GetSettingAsString("base64Image") ?? "false");
 
                                 //get path of the uploaded file
-                                string __id = entity[tabel._Metadati_Colonnes.First(x => x.mc_is_primary_key).mc_nome_colonna].ToString();
+                                string __id = entity[tabel._Metadati_Colonnes.First(x => x.mc_is_primary_key is true).mc_nome_colonna].ToString();
                                 string pth = HttpContext.Current.Server.MapPath("/Upload" + (uploader.UseRouteNameAsSubfolder ? "/" + tabel.md_route_name : "") + (uploader.UseRecordIDAsSubfolder ? "/" + __id : ""));
                                 string tmp_path = System.IO.Path.Combine(pth, entity[fld.mc_nome_colonna].ToString());
 
@@ -5373,8 +5658,6 @@ namespace metaModelRaw
                                     string base64Converted = "";
                                     if (entity[fld.mc_nome_colonna].ToString() != "")
                                     {
-                                        Image img = Image.FromFile(tmp_path);
-
                                         base64Converted = Utility.ImageToBase64(tmp_path);
 
                                     }
@@ -5452,7 +5735,7 @@ namespace metaModelRaw
 
                 string current_fld = safetable_name + "." + safecolumn_name;
 
-                if (fld.mc_is_primary_key)
+                if (fld.mc_is_primary_key is true)
                 {
                     if (string.IsNullOrEmpty(tabel.md_primary_key_type) || tabel.md_primary_key_type == "GUID")
                         where += ((where == "") ? " where " : " AND ") + current_fld + " = '" + entity[fld.mc_nome_colonna] + "'";
@@ -5611,7 +5894,7 @@ namespace metaModelRaw
                     catch (Exception ex)
                     {
                         RawHelpers.logError(ex, "optimisticCheck", optQry);
-                        throw ex;
+                        throw;
                     }
                 }
                 else
@@ -5647,7 +5930,7 @@ namespace metaModelRaw
 
             List<string> skipUploadFields = metadata.OfType<_Metadati_Colonne_Upload>().Where(x => !string.IsNullOrEmpty(x.MultipleUploadBlobFieldName)).Select(x => x.MultipleUploadBlobFieldName).ToList();
 
-            metadata.Where(x => !x.mc_is_computed.HasValue || x.mc_is_computed.Value == false).ToList().ForEach((fld) =>
+            metadata.Where(x => !x.mc_is_computed.HasValue || x.mc_is_computed.Value is false).ToList().ForEach((fld) =>
             {
 
                 string safecolumn_name = RawHelpers.escapeDBObjectName(RawHelpers.getStoreColumnName(fld), "mysql");
@@ -5679,7 +5962,7 @@ namespace metaModelRaw
 
                 if (fld.mc_validation_has.HasValue && fld.mc_validation_has.Value && fld.mc_validation_required.HasValue && fld.mc_validation_required.Value && (!entity.ContainsKey(fld.mc_nome_colonna) || entity[fld.mc_nome_colonna] == null) && fld.mc_ui_column_type != "boolean" && fld.mc_ui_column_type != "number_boolean" && string.IsNullOrEmpty(fld.mc_default_value))
                 {
-                    if (fld.mc_is_primary_key)
+                    if (fld.mc_is_primary_key is true)
                     {
                         if (tabel.md_primary_key_type == "GUID" || tabel.md_primary_key_type == "IDENTITY" || tabel.md_primary_key_type == "MAX")
                         {
@@ -5687,7 +5970,7 @@ namespace metaModelRaw
                         }
                         else
                         {
-                            List<_Metadati_Colonne> pks = metadata.Where(x => x.mc_is_primary_key).ToList();
+                            List<_Metadati_Colonne> pks = metadata.Where(x => x.mc_is_primary_key is true).ToList();
                             if (pks.Count == 1)
                                 throw new ValidationException(string.Format("{0} non può essere null.", fld.mc_display_string_in_view));
                             else
@@ -5790,7 +6073,7 @@ namespace metaModelRaw
                         {
                             if (valore.GetType() == typeof(bool))
                             {
-                                if ((bool)valore == false)
+                                if (!(bool)valore)
                                     valore = 0;
                                 else
                                     valore = 1;
@@ -6029,8 +6312,6 @@ namespace metaModelRaw
                                 if (base64Image)
                                 {
                                     string base64Converted = "";
-                                    Image img = Image.FromFile(tmp_path);
-
                                     base64Converted = Utility.ImageToBase64(tmp_path);
 
                                     value_list += (value_list == "" ? "" : ", ") + "'" + base64Converted + "'";
@@ -6134,7 +6415,7 @@ namespace metaModelRaw
         {
             string query = "";
             List<_Metadati_Colonne> metadata = _Metadati_Colonne.getColonneByUserID(route, 0, user_id, dataMode.insert, null);
-            List<_Metadati_Colonne> pkeys = metadata.Where(x => x.mc_is_primary_key).ToList();
+            List<_Metadati_Colonne> pkeys = metadata.Where(x => x.mc_is_primary_key is true).ToList();
             _Metadati_Tabelle tab = _Metadati_Tabelle.getTableMetadataFromRoute(route);
 
 
@@ -6174,6 +6455,7 @@ namespace metaModelRaw
 
                 var watch = Stopwatch.StartNew();
 
+                SetLastCrudSqlQuery(query);
                 string scope_identity = connection.Execute(query).ToString();
 
                 if (!string.IsNullOrEmpty(generated_pkey))
@@ -6367,7 +6649,7 @@ namespace metaModelRaw
                                 string safetable_name = RawHelpers.getStoreTableNameFromUniverseDef(def, "mysql");
 
                                 _Metadati_Tabelle tbl = context.GetMetadati_Tabelles("", def.realID.ToString()).FirstOrDefault();
-                                _Metadati_Colonne pk = tbl._Metadati_Colonnes.FirstOrDefault(x => x.mc_is_primary_key);
+                                _Metadati_Colonne pk = tbl._Metadati_Colonnes.FirstOrDefault(x => x.mc_is_primary_key is true);
 
                                 string prefix = RawHelpers.getStorePrefix(tbl, "mysql");
                                 string safeEntityName = (!string.IsNullOrEmpty(prefix) ? prefix : "") + RawHelpers.escapeDBObjectName(tbl.md_nome_tabella, "mysql");
@@ -6581,11 +6863,11 @@ namespace metaModelRaw
                             }
 
                             string aliased = "";
-                            filterElement matchingFilter = filterInfo.filters.FirstOrDefault(x => (x.isHaving == false) && x.havingAggregation != null && x.field == x.havingAggregation + "_" + col.mc_nome_colonna + "_" + def.id);
+                            filterElement matchingFilter = filterInfo.filters.FirstOrDefault(x => (x.isHaving is false) && x.havingAggregation != null && x.field == x.havingAggregation + "_" + col.mc_nome_colonna + "_" + def.id);
                             if (matchingFilter == null)
                             {
                                 aliased = col.mc_nome_colonna + "_" + def.id;
-                                matchingFilter = filterInfo.filters.FirstOrDefault(x => (x.isHaving == false) && x.havingAggregation == null && x.field == aliased);
+                                matchingFilter = filterInfo.filters.FirstOrDefault(x => (x.isHaving is false) && x.havingAggregation == null && x.field == aliased);
                             }
                             if (matchingFilter != null)
                             {
@@ -6890,6 +7172,17 @@ namespace metaModelRaw
             }
         }
 
+
+        /// <summary>
+        /// Salva o aggiorna configurazione dashboard (layout, contenuti, sheet, modalit├á design/password).
+        /// </summary>
+        /// <param name="dashRoute">Nome route/metadato tabella su cui applicare l'operazione.</param>
+        /// <param name="boardcontent">Contenuto o riferimento file/report elaborato dal metodo.</param>
+        /// <param name="desc">Valore di input 'desc' utilizzato dalla logica del metodo.</param>
+        /// <param name="sheetPaths">Riferimento/contenuto file o documento da elaborare.</param>
+        /// <param name="designMode">Valore di input 'designMode' utilizzato dalla logica del metodo.</param>
+        /// <param name="pwd">Valore di input 'pwd' utilizzato dalla logica del metodo.</param>
+        /// <returns>Dashboard salvata/aggiornata con i metadati persistiti.</returns>
         public static domBoard saveDashboard(string dashRoute, string boardcontent, string desc, List<string> sheetPaths, string designMode, string pwd)
         {
             using (metaRawModel context = new metaRawModel())
@@ -6960,6 +7253,10 @@ namespace metaModelRaw
 
         public static void traceQuery(string method, string query, long durata, string route)
         {
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                SetLastCrudSqlQuery(query);
+            }
             bool trace = RawHelpers.ParseBool(ConfigHelper.GetSettingAsString("traceQuery") ?? "false");
             user user = RawHelpers.getUserFromCookie();
 
@@ -7112,11 +7409,11 @@ namespace metaModelRaw
 
                         if (uploadOption.fyle_type == "X")
                             dt = RawHelpers.createDataTablefromXLS(theName, log, fileName, uploadOption, ref errorCount);
-                        else // if(uploadOption.fyle_type=="C")
+                        else
                             dt = RawHelpers.createDataTablefromCSV(theName, log, fileName, uploadOption, ref errorCount);
 
                         var columns = dt.Columns.Cast<DataColumn>();
-                        List<_Metadati_Colonne> pkeys = tabel._Metadati_Colonnes.Where(x => x.mc_is_primary_key).ToList();
+                        List<_Metadati_Colonne> pkeys = tabel._Metadati_Colonnes.Where(x => x.mc_is_primary_key is true).ToList();
 
                         bool returnValue;
                         if (RawHelpers.CheckImportColumns(columns, tabel, log, uploadOption, fileName, out returnValue, ref errorCount, pkeys))
@@ -7185,7 +7482,7 @@ namespace metaModelRaw
 
                             if (uploadOption.import_type.Contains("I"))
                             {
-                                if (fkeyParsed == false)
+                                if (!fkeyParsed)
                                 {
                                     if (!parseFKey(uploadOption, tabel, record, context, ref errorCount, log, fileName, recordCounter, "mysql"))
                                         return log.ToString();
@@ -7237,7 +7534,7 @@ namespace metaModelRaw
                         if (record[key] != null && !string.IsNullOrEmpty(record[key].ToString()))
                         {
                             _Metadati_Tabelle tabbe = context.GetMetadati_Tabelles(lc.mc_ui_lookup_entity_name).FirstOrDefault();
-                            _Metadati_Colonne pkey = tabbe._Metadati_Colonnes.FirstOrDefault(x => x.mc_is_primary_key);
+                            _Metadati_Colonne pkey = tabbe._Metadati_Colonnes.FirstOrDefault(x => x.mc_is_primary_key is true);
                             rawPagedResult match;
 
                             match = metaQueryMySql.GetFlatData(uploadOption.user_id, tabbe.md_route_name, 0, null, null, null, RawHelpers.createStandardFilter(lc.mc_ui_lookup_dataTextField, record[key].ToString(), pkey), "AND", true, null, null);
@@ -7278,3 +7575,5 @@ namespace metaModelRaw
     }
 
 }
+
+
