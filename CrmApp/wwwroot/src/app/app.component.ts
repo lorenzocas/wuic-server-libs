@@ -89,6 +89,7 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
   private firstRunRealPath = '';
   selectedTheme = 'aura-blue';
   availableThemes = [
+    { label: 'Accessibilita Alto Contrasto', value: 'a11y-high-contrast', preset: 'aura', primary: 'blue', isHighContrast: true },
     { label: 'Aura Blue', value: 'aura-blue', preset: 'aura', primary: 'blue' },
     { label: 'Aura Emerald', value: 'aura-emerald', preset: 'aura', primary: 'emerald' },
     { label: 'Aura Violet', value: 'aura-violet', preset: 'aura', primary: 'violet' },
@@ -1037,11 +1038,13 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
   private applyThemePreset(themeName: string) {
     const selected = this.availableThemes.find(t => t.value === themeName);
     if (!selected) {
+      this.setHighContrastMode(false);
       return;
     }
 
     const preset = this.themePresets[selected.preset];
     if (!preset) {
+      this.setHighContrastMode(false);
       return;
     }
 
@@ -1050,6 +1053,22 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     const palette = this.primaryPalettes[selected.primary];
     if (palette) {
       updatePrimaryPalette(palette);
+    }
+
+    this.setHighContrastMode(!!selected.isHighContrast);
+  }
+
+  private setHighContrastMode(enabled: boolean): void {
+    const root = document?.documentElement;
+    const body = document?.body;
+    root?.classList.toggle('theme-high-contrast', enabled);
+    body?.classList.toggle('theme-high-contrast', enabled);
+    if (enabled) {
+      root?.setAttribute('data-contrast-mode', 'high');
+      body?.setAttribute('data-contrast-mode', 'high');
+    } else {
+      root?.removeAttribute('data-contrast-mode');
+      body?.removeAttribute('data-contrast-mode');
     }
   }
 }

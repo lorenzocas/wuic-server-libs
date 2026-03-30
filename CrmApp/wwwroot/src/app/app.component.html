@@ -6,6 +6,10 @@
 }
 }
 
+<main id="app-main-fallback" class="visually-hidden">
+    <h1>WUIC Application</h1>
+</main>
+
 @if (showFirstRunInstall) {
 <div class="first-run-overlay">
     <div class="first-run-card">
@@ -69,7 +73,7 @@
 
 @if (!showFirstRunInstall) {
 <div class="app-shell">
-    <div class="app-shell-header">
+    <header class="app-shell-header">
         <div class="app-shell-menu">
             <ng-container *ngComponentOutlet="metaMenuComponent"></ng-container>
         </div>
@@ -98,18 +102,19 @@
             </div>
         </div>
         }
-    </div>
+    </header>
     @if (showRightHeaderBlock) {
-    <div class="app-shell-content">
+    <main id="app-main" class="app-shell-content" role="main">
+        <h1 class="visually-hidden">WUIC Application</h1>
         <router-outlet />
-    </div>
+    </main>
     }
 </div>
 }
 
 <p-toast position="bottom-right" [baseZIndex]="3000"></p-toast>
 
-<p-dialog [header]="'error' | translate" [modal]="true" [(visible)]="visible" [style]="{ width: '75%' }">
+<p-dialog [header]="'error' | translate" [attr.title]="'error' | translate" [modal]="true" [(visible)]="visible" [style]="{ width: '75%' }">
 
     <h2>{{currentException?.title}}</h2>
 
@@ -120,5 +125,4 @@
     </div>
 </p-dialog>
 
-<p-confirmDialog />
-
+<p-confirmDialog [header]="'conferma'" />

@@ -1046,11 +1046,13 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
   private applyThemePreset(themeName: string) {
     const selected = this.availableThemes.find(t => t.value === themeName);
     if (!selected) {
+      this.setHighContrastMode(false);
       return;
     }
 
     const preset = this.themePresets[selected.preset];
     if (!preset) {
+      this.setHighContrastMode(false);
       return;
     }
 
@@ -1059,6 +1061,22 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     const palette = PRIMARY_PALETTES[selected.primary];
     if (palette) {
       updatePrimaryPalette(palette);
+    }
+
+    this.setHighContrastMode(!!selected.isHighContrast);
+  }
+
+  private setHighContrastMode(enabled: boolean): void {
+    const root = document?.documentElement;
+    const body = document?.body;
+    root?.classList.toggle('theme-high-contrast', enabled);
+    body?.classList.toggle('theme-high-contrast', enabled);
+    if (enabled) {
+      root?.setAttribute('data-contrast-mode', 'high');
+      body?.setAttribute('data-contrast-mode', 'high');
+    } else {
+      root?.removeAttribute('data-contrast-mode');
+      body?.removeAttribute('data-contrast-mode');
     }
   }
 }
