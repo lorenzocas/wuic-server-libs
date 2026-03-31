@@ -81,7 +81,7 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
   };
   firstRunDataDbOptions: { label: string; value: string }[] = [];
   private firstRunRealPath = '';
-  selectedTheme = 'a11y-high-contrast';
+  selectedTheme = 'aura-blue';
   availableThemes: ThemeOption[] = getThemeOptions();
 
   unreadNotificationsCount = 0;

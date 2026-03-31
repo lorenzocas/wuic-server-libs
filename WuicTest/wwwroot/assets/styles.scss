@@ -794,3 +794,12 @@ body.wuic-designer-edit-mode *:hover>.ng-resizable-handle {
     background-color: #bbf7d0 !important;
     color: var(--p-text-color, #111827) !important;
 }
+
+
+.wuic-progress-dialog .p-progressbar .p-progressbar-value,
+.wuic-progress-dialog .p-progressbar-value {
+  transition: none !important;
+  animation: none !important;
+}
+
+

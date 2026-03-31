@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using metaModelRaw;
 using WEB_UI_CRAFTER.Helpers;
 using WEB_UI_CRAFTER.ProjectData.Crud;
@@ -260,6 +262,60 @@ public class UtilityHost : IUtilityHost
         catch (Exception ex)
         {
             HandleHookError(handler, nameof(customizeCountSelect), ex);
+            throw;
+        }
+    }
+
+    public bool customizeExcelField(
+        string fieldName,
+        string routeName,
+        string type,
+        dynamic metaInfo,
+        SpreadsheetDocument spreadsheet,
+        Worksheet worksheet,
+        uint columnIndex,
+        uint rowIndex,
+        object value)
+    {
+        var handler = ResolveRouteHandler(routeName);
+        if (handler == null)
+        {
+            return false;
+        }
+
+        try
+        {
+            return handler.customizeExcelField(fieldName, routeName, type, metaInfo, spreadsheet, worksheet, columnIndex, rowIndex, value);
+        }
+        catch (Exception ex)
+        {
+            HandleHookError(handler, nameof(customizeExcelField), ex);
+            throw;
+        }
+    }
+
+    public void customizeRowImport(
+        string routeName,
+        dynamic metaInfo,
+        Dictionary<string, object> record,
+        uploadOptions uploadOption,
+        long recordCounter,
+        string fileName,
+        StringBuilder log)
+    {
+        var handler = ResolveRouteHandler(routeName);
+        if (handler == null)
+        {
+            return;
+        }
+
+        try
+        {
+            handler.customizeRowImport(routeName, metaInfo, record, uploadOption, recordCounter, fileName, log);
+        }
+        catch (Exception ex)
+        {
+            HandleHookError(handler, nameof(customizeRowImport), ex);
             throw;
         }
     }

@@ -34,3 +34,5 @@ codebase_docs/
 codebase_embeddings/
 CrmApp/.local-package-sync.stamp
 CrmApp/wwwroot/.wuic-framework-lib.lastinstall
+WuicTest/Tmp_export/*
+WuicTest/Upload/*

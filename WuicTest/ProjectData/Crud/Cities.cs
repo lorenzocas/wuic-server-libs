@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using metaModelRaw;
 using WEB_UI_CRAFTER.Helpers;
 
@@ -92,6 +95,31 @@ public class Cities : ICrudRouteHandler
         FilterInfos filterInfo = default!,
         List<SortInfo> sortInfo = default!,
         PageInfo pageInfo = default!)
+    {
+    }
+
+    public bool customizeExcelField(
+        string fieldName,
+        string routeName,
+        string type,
+        dynamic metaInfo,
+        SpreadsheetDocument spreadsheet,
+        Worksheet worksheet,
+        uint columnIndex,
+        uint rowIndex,
+        object value)
+    {
+        return false;
+    }
+
+    public void customizeRowImport(
+        string routeName,
+        dynamic metaInfo,
+        Dictionary<string, object> record,
+        uploadOptions uploadOption,
+        long recordCounter,
+        string fileName,
+        StringBuilder log)
     {
     }
 }
