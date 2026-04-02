@@ -110,38 +110,6 @@ namespace Dapper
         /// </summary>
         public CancellationToken CancellationToken { get; }
 
-        private static string ParseMySqlConn(IDbConnection cnn, string sql)
-        {
-            MySqlConnection myCon = cnn as MySqlConnection;
-            if (myCon != null)
-            {
-
-                sql = Regex.Replace(sql, @"\[dbo]\.", "", RegexOptions.IgnoreCase);
-                sql = Regex.Replace(sql, @"dbo\.", "", RegexOptions.IgnoreCase);
-                sql = Regex.Replace(sql, @"`dbo`.", "", RegexOptions.IgnoreCase);
-
-                sql = sql.Replace("[", "`").Replace("]", "`");
-
-                sql = Regex.Replace(sql, @"getdate\(\)", "NOW()", RegexOptions.IgnoreCase);
-
-                Regex rgxTop = new Regex(@"top ([\d])|top[\s]?\(([\d])\)");
-                MatchCollection tops = rgxTop.Matches(sql);
-                if (tops.Count == 1)
-                {
-                    sql = rgxTop.Replace(sql, "");
-                    string limitCount = tops.First().Captures[0].ToString();
-                    sql = sql + string.Format(" limit {0}", limitCount);
-
-                }
-                else if (tops.Count > 1)
-                {
-                    throw new Exception("Fix mysql query TOP (n) / TOP n -> limit n");
-                }
-            }
-
-            return sql;
-        }
-
         internal IDbCommand SetupCommand(IDbConnection cnn, Action<IDbCommand, object> paramReader)
         {
             var cmd = cnn.CreateCommand();
@@ -150,7 +118,7 @@ namespace Dapper
             if (Transaction != null)
                 cmd.Transaction = Transaction;
 
-            cmd.CommandText = ParseMySqlConn(cnn, CommandText);
+            cmd.CommandText = CommandText;
             if (CommandTimeout.HasValue)
             {
                 cmd.CommandTimeout = CommandTimeout.Value;
@@ -209,7 +177,7 @@ namespace Dapper
         private static MethodInfo GetBasicPropertySetter(Type declaringType, string name, Type expectedType)
         {
             var prop = declaringType.GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
-            if (prop?.CanWrite  is true && prop.PropertyType == expectedType && prop.GetIndexParameters().Length == 0)
+            if (prop?.CanWrite is true && prop.PropertyType == expectedType && prop.GetIndexParameters().Length == 0)
             {
                 return prop.GetSetMethod();
             }

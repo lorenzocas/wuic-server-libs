@@ -428,7 +428,7 @@ namespace metaModelRaw
 
         #region "PERMISSIONS"
 
-                public static OracleConnection getSpecificConnection(string db_name)
+        public static OracleConnection getSpecificConnection(string db_name)
         {
             OracleConnection connection;
             if (string.IsNullOrEmpty(db_name))
@@ -716,7 +716,7 @@ namespace metaModelRaw
         {
             return getRoleByUserID(user_id);
         }
-        
+
         public static role getRoleByUserID(string user_id)
         {
             using (metaRawModel context = new metaRawModel())
@@ -794,7 +794,7 @@ namespace metaModelRaw
         {
             return getUserByEMail(email);
         }
-        
+
         public static user getUserByEMail(string email)
         {
             using (metaRawModel context = new metaRawModel())
@@ -820,7 +820,7 @@ namespace metaModelRaw
         {
             return getUserByName(user_name);
         }
-        
+
         public static user getUserByName(string user_name)
         {
             using (metaRawModel context = new metaRawModel())
@@ -1678,12 +1678,12 @@ namespace metaModelRaw
                 current_fld = string.Format(" Cast({0} AS nvarchar(4000))", current_fld);
             }
 
-            if (fld.mc_db_column_type == "point")
+            if (fld.mc_db_column_type == "point" || fld.mc_ui_column_type == "point")
             {
                 current_fld = RawHelpers.sqlPointToString(current_fld, "mssql", fld);
             }
 
-            if (fld.mc_db_column_type == "geometry")
+            if (fld.mc_db_column_type == "geometry" || fld.mc_ui_column_type == "geometry")
             {
                 current_fld = string.Format(" cast({0} as geography).ToString()", current_fld);
             }
@@ -3672,13 +3672,14 @@ namespace metaModelRaw
             return query;
         }
 
-        public static string BuildDynamicDeleteQuery(Dictionary<string, object> entity, List<_Metadati_Colonne> metadata, string userId)
+
+        private static string BuildDynamicDeleteQuery(Dictionary<string, object> entity, List<_Metadati_Colonne> metadata, string user_id)
         {
             string where = "";
             string query = "";
 
             _Metadati_Tabelle tabel = metadata[0]._Metadati_Tabelle;
-            string table_name = GetTableName(tabel);
+            string table_name = RawHelpers.getStoreTableName(tabel, "mysql");
             string safetable_name = table_name;
 
             if (!tabel.md_deletable)
@@ -3687,16 +3688,16 @@ namespace metaModelRaw
             if (tabel.md_is_reticular)
             {
                 table_name = "tabella_reticolare";
-                safetable_name = (string.IsNullOrEmpty(tabel.md_db_name) ? "" : "[" + tabel.md_db_name + "]." + (!string.IsNullOrEmpty(tabel.md_schema_name) ? "[" + tabel.md_schema_name + "]" : "") + ".") + EscapeDBObjectName(table_name);
+                safetable_name = (string.IsNullOrEmpty(tabel.md_db_name) ? "" : "`" + tabel.md_db_name + "`." + (!string.IsNullOrEmpty(tabel.md_schema_name) ? "`" + tabel.md_schema_name + "`" : "") + ".") + RawHelpers.escapeDBObjectName(table_name, "mysql");
             }
 
             metadata.ForEach((fld) =>
             {
-                string safecolumn_name = EscapeDBObjectName(RawHelpers.getStoreColumnName(fld));
+                string safecolumn_name = RawHelpers.escapeDBObjectName(RawHelpers.getStoreColumnName(fld), "mysql");
 
                 string current_fld = safetable_name + "." + safecolumn_name;
 
-                if (fld.mc_is_primary_key)
+                if (fld.mc_is_primary_key is true)
                 {
                     if (string.IsNullOrEmpty(tabel.md_primary_key_type) || tabel.md_primary_key_type == "GUID")
                         where += ((where == "") ? " where " : " AND ") + current_fld + " = '" + entity[fld.mc_nome_colonna] + "'";
@@ -3715,15 +3716,21 @@ namespace metaModelRaw
 
             });
 
+
             if (tabel.md_has_logic_delete)
             {
-                _Metadati_Colonne logic_del_key = metadata.FirstOrDefault(x => x.mc_is_logic_delete_key.HasValue && x.mc_is_logic_delete_key.Value);
+                _Metadati_Colonne logic_del_key = metadata.FirstOrDefault(x => x.mc_is_logic_delete_key.Value);
                 if (logic_del_key != null)
                 {
                     string delete_log = "";
                     if (tabel.md_logging_enable)
                     {
-                        AppendLoggingDeleteFields(ref delete_log, tabel, userId, entity);
+                        if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
+                        {
+                            user_id = Utility.id_extraClient(ref user_id);
+                        }
+
+                        AppendLoggingDeleteFields(ref delete_log, tabel, user_id, entity);
                     }
                     query = string.Format("UPDATE {0} SET {1} = 1 {3} {2}", safetable_name, safetable_name + "." + RawHelpers.getStoreColumnName(logic_del_key), where, string.IsNullOrEmpty(delete_log) ? "" : ", " + delete_log);
                 }
@@ -3734,12 +3741,45 @@ namespace metaModelRaw
                         string delete_log = "";
                         if (tabel.md_logging_enable)
                         {
-                            AppendLoggingDeleteFields(ref delete_log, tabel, userId, entity);
+                            if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
+                            {
+                                user_id = Utility.id_extraClient(ref user_id);
+                            }
+
+                            AppendLoggingDeleteFields(ref delete_log, tabel, user_id, entity);
                         }
                         query = string.Format("UPDATE {0} SET {1} = 1 {3} {2}", safetable_name, safetable_name + ".[cancellato]", where, string.IsNullOrEmpty(delete_log) ? "" : ", " + delete_log);
                     }
                     else
                         throw new Exception("Missing logic delete key field.");
+                }
+            }
+            else if (!string.IsNullOrEmpty(RawHelpers.ParseNull(ConfigHelper.GetSettingAsString("logicDeleteField"))))
+            {
+                string logicDeleteField = ConfigHelper.GetSettingAsString("logicDeleteField");
+                string logicDeleteValue = ConfigHelper.GetSettingAsString("logicDeleteValue");
+
+                if (!string.IsNullOrEmpty(logicDeleteField))
+                {
+                    _Metadati_Colonne logic_del_key = metadata.FirstOrDefault(x => x.mc_nome_colonna == logicDeleteField);
+                    if (logic_del_key != null)
+                    {
+                        string delete_log = "";
+                        if (tabel.md_logging_enable)
+                        {
+                            if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
+                            {
+                                user_id = Utility.id_extraClient(ref user_id);
+                            }
+
+                            AppendLoggingDeleteFields(ref delete_log, tabel, user_id, entity);
+                        }
+                        query = string.Format("UPDATE {0} SET {1} = '{4}' {3} {2}", safetable_name, safetable_name + "." + RawHelpers.getStoreColumnName(logic_del_key), where, string.IsNullOrEmpty(delete_log) ? "" : ", " + delete_log, logicDeleteValue);
+                    }
+                    else
+                    {
+                        query = string.Format("DELETE FROM {0} {1}", safetable_name, where);
+                    }
                 }
             }
             else
@@ -3749,6 +3789,7 @@ namespace metaModelRaw
 
             return query;
         }
+
 
         private static bool OptimisticCheck(Dictionary<string, object> entity, string route, List<_Metadati_Colonne> metadata)
         {
@@ -4885,7 +4926,7 @@ namespace metaModelRaw
             }
         }
 
-                public static string GetLastCrudSqlQuery()
+        public static string GetLastCrudSqlQuery()
         {
             return null;
         }
@@ -5092,7 +5133,7 @@ namespace metaModelRaw
             // TODO provider-specific report query patching; keep behavior non-failing.
             needFilter = Math.Max(needFilter, 0);
         }
-#endregion
+        #endregion
 
 
 

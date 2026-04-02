@@ -163,7 +163,7 @@ namespace Dapper
         static readonly System.Collections.Concurrent.ConcurrentDictionary<Identity, CacheInfo> _queryCache = new System.Collections.Concurrent.ConcurrentDictionary<Identity, CacheInfo>();
         private static void SetQueryCache(Identity key, CacheInfo value)
         {
-            if(Interlocked.Increment(ref collect)==COLLECT_PER_ITEMS)
+            if (Interlocked.Increment(ref collect) == COLLECT_PER_ITEMS)
             {
                 CollectCacheGarbage();
             }
@@ -183,7 +183,7 @@ namespace Dapper
                     }
                 }
             }
-         
+
             finally
             {
                 Interlocked.Exchange(ref collect, 0);
@@ -194,7 +194,7 @@ namespace Dapper
         private static int collect;
         private static bool TryGetQueryCache(Identity key, out CacheInfo value)
         {
-            if(_queryCache.TryGetValue(key, out value))
+            if (_queryCache.TryGetValue(key, out value))
             {
                 value.RecordHit();
                 return true;
@@ -237,16 +237,17 @@ namespace Dapper
         /// Deep diagnostics only: find any hash collisions in the cache
         /// </summary>
         /// <returns></returns>
-        public static IEnumerable<Tuple<int,int>> GetHashCollissions()
+        public static IEnumerable<Tuple<int, int>> GetHashCollissions()
         {
             var counts = new Dictionary<int, int>();
-            foreach(var key in _queryCache.Keys)
+            foreach (var key in _queryCache.Keys)
             {
                 int count;
-                if(!counts.TryGetValue(key.hashCode, out count))
+                if (!counts.TryGetValue(key.hashCode, out count))
                 {
                     counts.Add(key.hashCode, 1);
-                } else
+                }
+                else
                 {
                     counts[key.hashCode] = count + 1;
                 }
@@ -349,7 +350,7 @@ namespace Dapper
             /// <returns></returns>
             public Identity ForDynamicParameters(Type type)
             {
-                return new Identity(sql, commandType, connectionString, this.type ,type, null, -1);
+                return new Identity(sql, commandType, connectionString, this.type, type, null, -1);
             }
 
             internal Identity(string sql, CommandType? commandType, IDbConnection connection, Type type, Type parametersType, Type[] otherTypes)
@@ -381,7 +382,7 @@ namespace Dapper
                     hashCode = hashCode * 23 + (parametersType == null ? 0 : parametersType.GetHashCode());
                 }
             }
-            
+
             /// <summary>
             /// 
             /// </summary>
@@ -399,7 +400,7 @@ namespace Dapper
             /// The command type 
             /// </summary>
             public readonly CommandType? commandType;
-            
+
             /// <summary>
             /// 
             /// </summary>
@@ -478,98 +479,98 @@ this IDbConnection cnn, string sql, dynamic param = null, IDbTransaction transac
             try
             {
 
-            IEnumerable multiExec = (object)param as IEnumerable;
-            Identity identity;
-            int identity_scope = 0;
-            CacheInfo info = null;
-            if (multiExec != null && !(multiExec is string))
-            { 
-                bool isFirst = true;
-                int total = 0;
-                using (var cmd = SetupCommand(cnn, transaction, sql, null, null, commandTimeout, commandType))
+                IEnumerable multiExec = (object)param as IEnumerable;
+                Identity identity;
+                int identity_scope = 0;
+                CacheInfo info = null;
+                if (multiExec != null && !(multiExec is string))
                 {
-                    
-                    string masterSql = null; 
-                    foreach (var obj in multiExec)
+                    bool isFirst = true;
+                    int total = 0;
+                    using (var cmd = SetupCommand(cnn, transaction, sql, null, null, commandTimeout, commandType))
                     {
-                        if (isFirst)
+
+                        string masterSql = null;
+                        foreach (var obj in multiExec)
                         {
-                            masterSql = cmd.CommandText;
-                            isFirst = false;
-                            identity = new Identity(sql, cmd.CommandType, cnn, null, obj.GetType(), null);
-                            info = GetCacheInfo(identity);
+                            if (isFirst)
+                            {
+                                masterSql = cmd.CommandText;
+                                isFirst = false;
+                                identity = new Identity(sql, cmd.CommandType, cnn, null, obj.GetType(), null);
+                                info = GetCacheInfo(identity);
+                            }
+                            else
+                            {
+                                cmd.CommandText = masterSql; // because we do magic replaces on "in" etc
+                                cmd.Parameters.Clear(); // current code is Add-tastic
+                            }
+                            info.ParamReader(cmd, obj);
+                            total += cmd.ExecuteNonQuery();
                         }
+
+                        if (cnn.GetType().Name == "MySqlConnection")
+                            cmd.CommandText = "SELECT LAST_INSERT_ID()";
                         else
-                        {
-                            cmd.CommandText = masterSql; // because we do magic replaces on "in" etc
-                            cmd.Parameters.Clear(); // current code is Add-tastic
-                        }
-                        info.ParamReader(cmd, obj);
-                        total += cmd.ExecuteNonQuery();
+                            cmd.CommandText = "SELECT SCOPE_IDENTITY()";
+
+                        identity_scope = (int)cmd.ExecuteScalar();
                     }
 
-                    if (cnn.GetType().Name == "MySqlConnection")
-                        cmd.CommandText = "SELECT LAST_INSERT_ID()";
-                    else
-                        cmd.CommandText = "SELECT SCOPE_IDENTITY()";
-
-                    identity_scope = (int)cmd.ExecuteScalar();
+                    return identity_scope;
                 }
-                
-                return identity_scope;
-            }
 
-            // nice and simple
-            if ((object)param != null)
-            {
-                identity = new Identity(sql, commandType, cnn, null, (object) param == null ? null : ((object) param).GetType(), null);
-                info = GetCacheInfo(identity);
-            }
-            int totale = ExecuteCommand(cnn, transaction, sql, (object)param == null ? null : info.ParamReader, (object)param, commandTimeout, commandType);
-
-            string identity_scope_query = "";
-
-            string connType = cnn.GetType().Name;
-
-            if(connType=="NpgsqlConnection")
-                identity_scope_query = "SELECT LASTVAL()";
-            else if (connType == "MySqlConnection")
-                identity_scope_query = "SELECT LAST_INSERT_ID()";
-            else if (connType == "OracleConnection")
-                identity_scope_query = "";
-            else if(connType == "OleDbConnection")
-                identity_scope_query = "";
-            else
-                identity_scope_query = "SELECT SCOPE_IDENTITY()";
-
-            if (!string.IsNullOrEmpty(identity_scope_query))
-            {
-                using (var cmd = SetupCommand(cnn, transaction, identity_scope_query, null, null, commandTimeout, CommandType.Text))
+                // nice and simple
+                if ((object)param != null)
                 {
-                    try
-                    {
-                        int indxx = sql.ToLower().IndexOf("insert");
-                        if (indxx != 0)
-                            return totale;
+                    identity = new Identity(sql, commandType, cnn, null, (object)param == null ? null : ((object)param).GetType(), null);
+                    info = GetCacheInfo(identity);
+                }
+                int totale = ExecuteCommand(cnn, transaction, sql, (object)param == null ? null : info.ParamReader, (object)param, commandTimeout, commandType);
 
-                        object scope_identity = cmd.ExecuteScalar();
-                        if (scope_identity != null)
+                string identity_scope_query = "";
+
+                string connType = cnn.GetType().Name;
+
+                if (connType == "NpgsqlConnection")
+                    identity_scope_query = "SELECT LASTVAL()";
+                else if (connType == "MySqlConnection")
+                    identity_scope_query = "SELECT LAST_INSERT_ID()";
+                else if (connType == "OracleConnection")
+                    identity_scope_query = "";
+                else if (connType == "OleDbConnection")
+                    identity_scope_query = "";
+                else
+                    identity_scope_query = "SELECT SCOPE_IDENTITY()";
+
+                if (!string.IsNullOrEmpty(identity_scope_query))
+                {
+                    using (var cmd = SetupCommand(cnn, transaction, identity_scope_query, null, null, commandTimeout, CommandType.Text))
+                    {
+                        try
                         {
-                            int.TryParse(scope_identity.ToString(), out identity_scope);
+                            int indxx = sql.ToLower().IndexOf("insert");
+                            if (indxx != 0)
+                                return totale;
+
+                            object scope_identity = cmd.ExecuteScalar();
+                            if (scope_identity != null)
+                            {
+                                int.TryParse(scope_identity.ToString(), out identity_scope);
+                            }
+
+                            return identity_scope;
+
                         }
+                        catch (Exception)
+                        {
 
-                        return identity_scope;
-
-                    }
-                    catch (Exception)
-                    {
-
-                        throw;
+                            throw;
+                        }
                     }
                 }
-            }
-            else
-                return 0;
+                else
+                    return 0;
             }
             finally
             {
@@ -584,41 +585,6 @@ this IDbConnection cnn, string sql, dynamic param = null, IDbTransaction transac
         {
             return Query<FastExpando>(cnn, sql, param as object, transaction, buffered, commandTimeout, commandType);
         }
-
-        public static string ParseMySqlConn(IDbConnection cnn, string sql)
-        {
-            MySqlConnection myCon = cnn as MySqlConnection;
-            if (myCon != null)
-            {
-
-                sql = Regex.Replace(sql, @"\[dbo]\.|dbo\.|`dbo`\.", "", RegexOptions.IgnoreCase);
-        
-                sql = sql.Replace("[", "`").Replace("]", "`");
-
-                sql = sql.Replace("geography::STGeomFromText", "ST_GeomFromText");
-                sql = sql.Replace(" Y(", " ST_Y(");
-                sql = sql.Replace(" X(", " ST_X(");
-
-                sql = Regex.Replace(sql, @"getdate\(\)", "NOW()", RegexOptions.IgnoreCase);
-
-                Regex rgxTop = new Regex(@"top ([\d]{1,5})|top[\s]?\(([\d]{1,5})\)", RegexOptions.IgnoreCase);
-                MatchCollection tops = rgxTop.Matches(sql);
-                if (tops.Count == 1)
-                {
-                    sql = rgxTop.Replace(sql, "");
-                    string limitCount = tops.First().Groups[1].ToString();
-                    sql = sql + string.Format(" limit {0}", limitCount);
-
-                }
-                else if (tops.Count > 1)
-                {
-                    throw new Exception("Fix mysql query TOP (n) / TOP n -> limit n");
-                }
-            }
-
-            return sql;
-        }
-
 
         /// <summary>
         /// Executes a query, returning the data typed as per T
@@ -677,7 +643,7 @@ this IDbConnection cnn, string sql, dynamic param = null, IDbTransaction transac
         /// </summary>        
 
         private static IEnumerable<T> QueryInternal<T>(this IDbConnection cnn, string sql, object param, IDbTransaction transaction, int? commandTimeout, CommandType? commandType)
-        {            
+        {
             var identity = new Identity(sql, commandType, cnn, typeof(T), param == null ? null : param.GetType(), null);
             var info = GetCacheInfo(identity);
             bool wasClosed = cnn.State == ConnectionState.Closed;
@@ -838,7 +804,7 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
             return buffered ? results.ToList() : results;
         }
 
-         
+
         static IEnumerable<TReturn> MultiMapImpl<TFirst, TSecond, TThird, TFourth, TFifth, TReturn>(this IDbConnection cnn, string sql, object map, object param, IDbTransaction transaction, string splitOn, int? commandTimeout, CommandType? commandType, IDataReader reader, Identity identity)
         {
             identity = identity ?? new Identity(sql, commandType, cnn, typeof(TFirst), (object)param == null ? null : ((object)param).GetType(), new[] { typeof(TFirst), typeof(TSecond), typeof(TThird), typeof(TFourth), typeof(TFifth) });
@@ -861,8 +827,8 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
                 Func<IDataReader, object>[] otherDeserializers = null;
 
                 Action cacheDeserializers = () =>
-                { 
-                    var deserializers = GenerateDeserializers(new Type[] { typeof(TFirst), typeof(TSecond), typeof(TThird), typeof(TFourth), typeof(TFifth)}, splitOn, reader);
+                {
+                    var deserializers = GenerateDeserializers(new Type[] { typeof(TFirst), typeof(TSecond), typeof(TThird), typeof(TFourth), typeof(TFifth) }, splitOn, reader);
                     deserializer = cinfo.Deserializer = deserializers[0];
                     otherDeserializers = cinfo.OtherDeserializers = deserializers.Skip(1).ToArray();
                     SetQueryCache(identity, cinfo);
@@ -915,7 +881,7 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
 
         private static Func<IDataReader, TReturn> GenerateMapper<TFirst, TSecond, TThird, TFourth, TFifth, TReturn>(Func<IDataReader, object> deserializer, Func<IDataReader, object>[] otherDeserializers, object map)
         {
-            switch(otherDeserializers.Length)
+            switch (otherDeserializers.Length)
             {
                 case 1:
                     return r => ((Func<TFirst, TSecond, TReturn>)map)((TFirst)deserializer(r), (TSecond)otherDeserializers[0](r));
@@ -1016,7 +982,7 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
                 {
                     if (typeof(IDynamicParameters).IsAssignableFrom(identity.parametersType))
                     {
-                        info.ParamReader = (cmd, obj) => { (obj as IDynamicParameters).AddParameters(cmd,identity); };
+                        info.ParamReader = (cmd, obj) => { (obj as IDynamicParameters).AddParameters(cmd, identity); };
                     }
                     else
                     {
@@ -1069,7 +1035,7 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
 
             public override IEnumerable<string> GetDynamicMemberNames()
             {
-	            return data.Keys;
+                return data.Keys;
             }
 
             #region IDictionary<string,object> Members
@@ -1112,7 +1078,7 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
                 }
                 set
                 {
-                    if (!data.ContainsKey(key)) 
+                    if (!data.ContainsKey(key))
                     {
                         data.Add(key, null);
                     }
@@ -1192,7 +1158,7 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
             if (length == 0)
                 return null;
 
-            if (fieldCount <= startBound && fieldCount!=0)
+            if (fieldCount <= startBound && fieldCount != 0)
             {
                 throw new ArgumentException("When using the multi-mapping APIs ensure you set the splitOn param if you have keys other than Id", "splitOn");
             }
@@ -1228,7 +1194,7 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
             if (value == null || value is DBNull) throw new ArgumentNullException("value");
             string s = value as string;
             if (s == null || s.Length != 1) throw new ArgumentException("A single-character was expected", "value");
-            return s[0];         
+            return s[0];
         }
 
         /// <summary>
@@ -1241,7 +1207,7 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
             if (value == null || value is DBNull) return null;
             string s = value as string;
             if (s == null || s.Length != 1) throw new ArgumentException("A single-character was expected", "value");
-            return s[0];            
+            return s[0];
         }
         /// <summary>
         /// Internal use only
@@ -1346,7 +1312,7 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
                         && identity.sql.IndexOf(":" + prop.Name, StringComparison.InvariantCultureIgnoreCase) < 0)
                     { // can't see the parameter in the text (even in a comment, etc) - burn it with fire
                         continue;
-                    }                    
+                    }
                 }
                 if (prop.PropertyType == typeof(DbString))
                 {
@@ -1471,8 +1437,6 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
 
         private static IDbCommand SetupCommand(IDbConnection cnn, IDbTransaction transaction, string sql, Action<IDbCommand, object> paramReader, object obj, int? commandTimeout, CommandType? commandType)
         {
-            sql = ParseMySqlConn(cnn, sql);
-
             var cmd = cnn.CreateCommand();
             var bindByName = GetBindByName(cmd.GetType());
             if (bindByName != null) bindByName(cmd, true);
@@ -1541,13 +1505,13 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
                   .Select(p => new PropInfo
                   {
                       Name = p.Name,
-                      Setter = p.DeclaringType == t ? 
-                        p.GetSetMethod(true) : 
+                      Setter = p.DeclaringType == t ?
+                        p.GetSetMethod(true) :
                         p.DeclaringType.GetProperty(p.Name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).GetSetMethod(true),
                       Type = p.PropertyType
                   })
                   .Where(info => info.Setter != null)
-                  .ToList();  
+                  .ToList();
         }
 
         static List<FieldInfo> GetSettableFields(Type t)
@@ -1621,10 +1585,11 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
                 il.Emit(OpCodes.Stloc_1);
             }
             il.BeginExceptionBlock();
-            if(type.IsValueType)
+            if (type.IsValueType)
             {
                 il.Emit(OpCodes.Ldloca_S, (byte)1);// [target]
-            } else
+            }
+            else
             {
                 il.Emit(OpCodes.Ldloc_1);// [target]
             }
@@ -1661,7 +1626,7 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
                         il.Emit(OpCodes.Brtrue_S, isDbNullLabel); // stack is now [target][target][value-as-object]
 
                         // unbox nullable enums as the primitive, i.e. byte etc
-                        
+
                         var nullUnderlyingType = Nullable.GetUnderlyingType(memberType);
                         var unboxType = nullUnderlyingType != null && nullUnderlyingType.IsEnum ? nullUnderlyingType : memberType;
 
@@ -1737,7 +1702,7 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
                     {
                         il.Emit(OpCodes.Stfld, item.Field); // stack is now [target]
                     }
-                    
+
                     il.Emit(OpCodes.Br_S, finishLabel); // stack is now [target]
 
                     il.MarkLabel(isDbNullLabel); // incoming stack: [target][target][value]
@@ -1774,13 +1739,13 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
             il.EndExceptionBlock();
 
             il.Emit(OpCodes.Ldloc_1); // stack is [rval]
-            if(type.IsValueType)
+            if (type.IsValueType)
             {
                 il.Emit(OpCodes.Box, type);
             }
             il.Emit(OpCodes.Ret);
 
-            return (Func<IDataReader, object>)dm.CreateDelegate(typeof(Func<IDataReader,object>));
+            return (Func<IDataReader, object>)dm.CreateDelegate(typeof(Func<IDataReader, object>));
         }
 
         /// <summary>
@@ -1842,7 +1807,7 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
             private IDataReader reader;
             private IDbCommand command;
             private Identity identity;
-            
+
             internal GridReader(IDbCommand command, IDataReader reader, Identity identity)
             {
                 this.command = command;
@@ -1860,7 +1825,7 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
                 CacheInfo cache = GetCacheInfo(typedIdentity);
                 var deserializer = cache.Deserializer;
 
-                Func<Func<IDataReader, object>> deserializerGenerator = () => 
+                Func<Func<IDataReader, object>> deserializerGenerator = () =>
                 {
                     deserializer = GetDeserializer(typeof(T), reader, 0, -1, false);
                     cache.Deserializer = deserializer;
@@ -1878,8 +1843,8 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
             private IEnumerable<TReturn> MultiReadInternal<TFirst, TSecond, TThird, TFourth, TFifth, TReturn>(object func, string splitOn)
             {
 
-                var identity = this.identity.ForGrid(typeof(TReturn), new Type[] { 
-                    typeof(TFirst), 
+                var identity = this.identity.ForGrid(typeof(TReturn), new Type[] {
+                    typeof(TFirst),
                     typeof(TSecond),
                     typeof(TThird),
                     typeof(TFourth),
@@ -1907,7 +1872,7 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
             /// <param name="func"></param>
             /// <param name="splitOn"></param>
             /// <returns></returns>
-#if CSHARP30  
+#if CSHARP30
             public IEnumerable<TReturn> Read<TFirst, TSecond, TReturn>(Func<TFirst, TSecond, TReturn> func, string splitOn)
 #else
             public IEnumerable<TReturn> Read<TFirst, TSecond, TReturn>(Func<TFirst, TSecond, TReturn> func, string splitOn = "id")
@@ -1926,7 +1891,7 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
             /// <param name="func"></param>
             /// <param name="splitOn"></param>
             /// <returns></returns>
-#if CSHARP30  
+#if CSHARP30
             public IEnumerable<TReturn> Read<TFirst, TSecond, TThird, TReturn>(Func<TFirst, TSecond, TThird, TReturn> func, string splitOn)
 #else
             public IEnumerable<TReturn> Read<TFirst, TSecond, TThird, TReturn>(Func<TFirst, TSecond, TThird, TReturn> func, string splitOn = "id")
@@ -1946,7 +1911,7 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
             /// <param name="func"></param>
             /// <param name="splitOn"></param>
             /// <returns></returns>
-#if CSHARP30  
+#if CSHARP30
             public IEnumerable<TReturn> Read<TFirst, TSecond, TThird, TFourth, TReturn>(Func<TFirst, TSecond, TThird, TFourth, TReturn> func, string splitOn)
 #else
             public IEnumerable<TReturn> Read<TFirst, TSecond, TThird, TFourth, TReturn>(Func<TFirst, TSecond, TThird, TFourth, TReturn> func, string splitOn = "id")
@@ -2178,11 +2143,12 @@ string name, object value = null, DbType? dbType = null, ParameterDirection? dir
                 string name = Clean(param.Name);
                 bool add = !command.Parameters.Contains(name);
                 IDbDataParameter p;
-                if(add)
+                if (add)
                 {
                     p = command.CreateParameter();
                     p.ParameterName = name;
-                } else
+                }
+                else
                 {
                     p = (IDbDataParameter)command.Parameters[name];
                 }

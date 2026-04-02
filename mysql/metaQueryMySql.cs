@@ -237,7 +237,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
             }
         }
 
-        
+
         public static DbConnection CreateOpenConnection(string connectionString)
         {
             if (string.IsNullOrWhiteSpace(connectionString))
@@ -1143,6 +1143,17 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
             return string.Format("`{0}`", obj);
         }
 
+        private static string GetUnqualifiedTableNameForMySql(string tableName)
+        {
+            string value = RawHelpers.ParseNull(tableName).Trim();
+            if (string.IsNullOrEmpty(value))
+                return value;
+
+            value = value.Replace("[", "").Replace("]", "").Replace("`", "");
+            string[] parts = value.Split(new[] { '.' }, StringSplitOptions.RemoveEmptyEntries);
+            return parts.Length == 0 ? value : parts[parts.Length - 1].Trim();
+        }
+
         private static string GetTableName(_Metadati_Tabelle tab)
         {
             string tablename = "";
@@ -1193,14 +1204,14 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
         {
             if (valore == null)
                 return valore;
-            return valore.ToString().Replace("'", "''");
+            return valore.ToString().Replace("'", "''").Replace("\\", "\\\\");
         }
 
         private static object EscapeValueStrict(object valore)
         {
             if (valore == null)
                 return valore;
-            return Regex.Replace(valore.ToString().Replace("'", "''").Replace("(", "").Replace(")", ""), @"\s", "");
+            return Regex.Replace(valore.ToString().Replace("'", "''").Replace("(", "").Replace(")", "").Replace("\\", "\\\\"), @"\s", "");
         }
 
         public static string readCustomSettings(string user_id, string key)
@@ -2230,7 +2241,6 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
             }
 #endif
             query = BuildDynamicUpdateQuery(entity, metadata, userId, false, isMeta);
-            query = SqlMapper.ParseMySqlConn(connection, query);
 
             Utility.customizeUpdate(ref query, route, entity, userId);
 
@@ -2378,8 +2388,8 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                 {
                     ChangeT ct = new ChangeT();
                     ct.field = x["field"].ToString();
-                    ct.oldValue = x["oldValue"].ToString();
-                    ct.newValue = x["newValue"].ToString();
+                    ct.oldValue = RawHelpers.ParseNull(x["oldValue"]);
+                    ct.newValue = RawHelpers.ParseNull(x["newValue"]);
                     ct.timestamp = DateTime.Parse(x["timestamp"].ToString());
 
                     changes.Add(ct);
@@ -2534,7 +2544,6 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
             Utility.beforeDelete(route, entity, userId);
 
             query = BuildDynamicDeleteQuery(entity, metadata, userId);
-            query = SqlMapper.ParseMySqlConn(connection, query);
 
             Utility.customizeDelete(ref query, route, entity, userId);
 
@@ -2682,23 +2691,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
             Utility.beforeInsert(route, entity, userId);
 
-#if DEMO
-            if (Global.pym != "fer" && !isMeta)
-            {
-                metadata.ForEach(m =>
-                {
-                    if (m.mc_ui_column_type == "text" && RawHelpers.ParseNull(m.mc_props_bag).IndexOf("color-cell") < 0 && entity.ContainsKey(m.mc_nome_colonna))
-                    {
-                        var val = RawHelpers.ParseNull(entity[m.mc_nome_colonna]);
-                        if (!string.IsNullOrEmpty(val) && val.Length > 2)
-                            entity[m.mc_nome_colonna] = "**" + entity[m.mc_nome_colonna].ToString().Substring(2);
-                    }
-                });
-            }
-#endif
-
             query = BuildDynamicInsertQuery(entity, metadata, userId, out generated_pkey);
-            query = SqlMapper.ParseMySqlConn(connection, query);
 
             Utility.customizeInsert(ref query, route, entity, userId);
 
@@ -2907,7 +2900,6 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
             Utility.beforeRestore(route, entity, userId);
 
             query = BuildDynamicRestoreQuery(entity, metadata, userId);
-            query = SqlMapper.ParseMySqlConn(connection, query);
 
             Utility.customizeRestore(ref query, route, entity, userId);
 
@@ -3122,14 +3114,13 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                 current_fld = string.Format(" Cast({0} AS nvarchar(4000))", current_fld);
             }
 
-            if (fld.mc_db_column_type == "point")
+            if (fld.mc_db_column_type == "point" || fld.mc_ui_column_type == "point")
             {
                 current_fld = RawHelpers.sqlPointToString(current_fld, "mysql", fld);
             }
-
-            if (fld.mc_db_column_type == "geometry")
+            else if (fld.mc_db_column_type == "geometry" || fld.mc_ui_column_type == "geometry")
             {
-                current_fld = string.Format(" AsText({0})", current_fld);
+                current_fld = string.Format(" ST_AsText({0})", current_fld);
             }
 
             return current_fld;
@@ -3248,7 +3239,6 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                         {
                             var watch = Stopwatch.StartNew();
 
-                            countQry = SqlMapper.ParseMySqlConn(connection, countQry);
                             totalRecords = connection.Query<long>(countQry, commandTimeout: int.Parse(ConfigHelper.GetSettingAsString("autoGeneratedQueryTimeout"))).FirstOrDefault();
 
                             watch.Stop();
@@ -3349,7 +3339,6 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                 }
                 #endregion
 
-                finalQry = SqlMapper.ParseMySqlConn(connection, finalQry);
                 return finalQry;
             }
         }
@@ -4922,13 +4911,14 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                 else
                 {
                     keyvalue = ute.role_id;
-                    where += ((where == "") ? " where " : " " + logicOperator + " ") + EscapeDBObjectName(sys.user_table_name) + "." + tab.md_record_restriction_key_user_field_list + " = '" + keyvalue + "'";
+                    string safeUserTableName = EscapeDBObjectName(GetUnqualifiedTableNameForMySql(sys.user_table_name));
+                    where += ((where == "") ? " where " : " " + logicOperator + " ") + safeUserTableName + "." + tab.md_record_restriction_key_user_field_list + " = '" + keyvalue + "'";
 
-                    aliasPair ap = joins.Keys.FirstOrDefault(x => x.table_name == EscapeDBObjectName(sys.user_table_name));
+                    aliasPair ap = joins.Keys.FirstOrDefault(x => x.table_name == safeUserTableName);
                     if (ap == null)
-                        joins.Add(new aliasPair() { table_name = EscapeDBObjectName(sys.user_table_name), alias_name = EscapeDBObjectName(sys.user_table_name) }, string.Format(" LEFT JOIN {0} ON {1}.{2} = {0}.{3} ", EscapeDBObjectName(sys.user_table_name), safetableName, EscapeDBObjectName(tab.md_logging_insert_user_field_name), sys.user_id_column_name));
+                        joins.Add(new aliasPair() { table_name = safeUserTableName, alias_name = safeUserTableName }, string.Format(" LEFT JOIN {0} ON {1}.{2} = {0}.{3} ", safeUserTableName, safetableName, EscapeDBObjectName(tab.md_logging_insert_user_field_name), sys.user_id_column_name));
                     else
-                        joins[ap] = joins[ap] + " AND " + string.Format("{1}.{2} = {0}.{3} ", EscapeDBObjectName(sys.user_table_name), safetableName, EscapeDBObjectName(tab.md_logging_insert_user_field_name), sys.user_id_column_name);
+                        joins[ap] = joins[ap] + " AND " + string.Format("{1}.{2} = {0}.{3} ", safeUserTableName, safetableName, EscapeDBObjectName(tab.md_logging_insert_user_field_name), sys.user_id_column_name);
                 }
             }
         }
@@ -5789,35 +5779,8 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
             });
 
-            if (ConfigHelper.GetSettingAsString("logicDeleteField") != null)
-            {
-                string logicDeleteField = ConfigHelper.GetSettingAsString("logicDeleteField");
-                string logicDeleteValue = ConfigHelper.GetSettingAsString("logicDeleteValue");
 
-                if (!string.IsNullOrEmpty(logicDeleteField))
-                {
-                    _Metadati_Colonne logic_del_key = metadata.FirstOrDefault(x => x.mc_nome_colonna == logicDeleteField);
-                    if (logic_del_key != null)
-                    {
-                        string delete_log = "";
-                        if (tabel.md_logging_enable)
-                        {
-                            if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
-                            {
-                                user_id = Utility.id_extraClient(ref user_id);
-                            }
-
-                            AppendLoggingDeleteFields(ref delete_log, tabel, user_id, entity);
-                        }
-                        query = string.Format("UPDATE {0} SET {1} = '{4}' {3} {2}", safetable_name, safetable_name + "." + RawHelpers.getStoreColumnName(logic_del_key), where, string.IsNullOrEmpty(delete_log) ? "" : ", " + delete_log, logicDeleteValue);
-                    }
-                    else
-                    {
-                        query = string.Format("DELETE FROM {0} {1}", safetable_name, where);
-                    }
-                }
-            }
-            else if (tabel.md_has_logic_delete)
+            if (tabel.md_has_logic_delete)
             {
                 _Metadati_Colonne logic_del_key = metadata.FirstOrDefault(x => x.mc_is_logic_delete_key.Value);
                 if (logic_del_key != null)
@@ -5852,6 +5815,34 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                     }
                     else
                         throw new Exception("Missing logic delete key field.");
+                }
+            }
+            else if (!string.IsNullOrEmpty(RawHelpers.ParseNull(ConfigHelper.GetSettingAsString("logicDeleteField"))))
+            {
+                string logicDeleteField = ConfigHelper.GetSettingAsString("logicDeleteField");
+                string logicDeleteValue = ConfigHelper.GetSettingAsString("logicDeleteValue");
+
+                if (!string.IsNullOrEmpty(logicDeleteField))
+                {
+                    _Metadati_Colonne logic_del_key = metadata.FirstOrDefault(x => x.mc_nome_colonna == logicDeleteField);
+                    if (logic_del_key != null)
+                    {
+                        string delete_log = "";
+                        if (tabel.md_logging_enable)
+                        {
+                            if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
+                            {
+                                user_id = Utility.id_extraClient(ref user_id);
+                            }
+
+                            AppendLoggingDeleteFields(ref delete_log, tabel, user_id, entity);
+                        }
+                        query = string.Format("UPDATE {0} SET {1} = '{4}' {3} {2}", safetable_name, safetable_name + "." + RawHelpers.getStoreColumnName(logic_del_key), where, string.IsNullOrEmpty(delete_log) ? "" : ", " + delete_log, logicDeleteValue);
+                    }
+                    else
+                    {
+                        query = string.Format("DELETE FROM {0} {1}", safetable_name, where);
+                    }
                 }
             }
             else
@@ -5953,6 +5944,49 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
             if (!tabel.md_insertable)
                 throw new ValidationException("Inserimento disabilitato");
 
+            if (table_name == "_metadati__colonne")
+            {
+                string widget = entity["mc_ui_column_type"].ToString();
+                switch (widget)
+                {
+                    case "lookupByID":
+                        entity["voa_class"] = 2;
+
+                        break;
+
+                    case "number_slider":
+                    case "number":
+                        entity["voa_class"] = 3;
+
+                        break;
+
+                    case "upload":
+                        entity["voa_class"] = 5;
+
+                        break;
+
+                    case "button":
+                        entity["voa_class"] = 6;
+
+                        break;
+
+                    case "multiple_check":
+                        entity["voa_class"] = 4;
+
+                        break;
+
+                    case "html_area":
+                        entity["voa_class"] = 7;
+
+                        break;
+
+                    default:
+                        entity["voa_class"] = 1;
+
+                        break;
+                }
+            }
+
             if (tabel.md_is_reticular)
             {
                 field_list += (field_list == "" ? "" : ", ") + tabel.reticular_key_name;
@@ -5980,7 +6014,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                     }
                 }
 
-                if (!entity.ContainsKey(fld.mc_nome_colonna))
+                if (!entity.ContainsKey(fld.mc_nome_colonna) && !fld.mc_is_primary_key)
                     return;
 
                 if ((!fld.mc_logic_editable.HasValue || !fld.mc_logic_editable.Value) && !fld.mc_is_primary_key & string.IsNullOrEmpty(fld.mc_default_value) & string.IsNullOrEmpty(fld.mc_default_value_callback))
@@ -6537,7 +6571,6 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                 {
                     var watch = Stopwatch.StartNew();
 
-                    countQry = SqlMapper.ParseMySqlConn(con, countQry);
                     totalRecords = con.Query<long>(countQry, commandTimeout: int.Parse(ConfigHelper.GetSettingAsString("autoGeneratedQueryTimeout"))).FirstOrDefault();
 
                     watch.Stop();
@@ -7191,7 +7224,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
             }
         }
 
-                        public static int GetMetadati_Tabelles_NonSystem_Count()
+        public static int GetMetadati_Tabelles_NonSystem_Count()
         {
             using (MySqlConnection con = GetOpenConnection(true))
             {
@@ -7265,7 +7298,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
         {
             using (MySqlConnection con = GetOpenConnection(true))
             {
-                string select = "SELECT * FROM _Metadati_Condition_Group WHERE md_id=@md_id";
+                string select = "SELECT CG_Id, CG_Name, _metadati_condition_group.md_id, CI_Id, FK_CG_Id, CI_Evaluation_Trigger, CI_Comparison_Left_Field, CI_Comparison_Operator, CI_Comparison_Right_Field, CI_Formula, CI_Enabled FROM _metadati_condition_group LEFT JOIN _metadati_condition_item ON _metadati_condition_group.CG_Id = _metadati_condition_item.FK_CG_Id  WHERE md_id=@md_id";
                 var dbArgs = new DynamicParameters();
                 dbArgs.Add("@md_id", md_id);
 
@@ -7275,7 +7308,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                 string ids = string.Join(",", ret.Select(x => x.CG_Id));
                 if (!string.IsNullOrWhiteSpace(ids))
                 {
-                    string selectCond = "SELECT * FROM _Metadati_Condition_Action_Group WHERE fk_cg_id IN (" + ids + ")";
+                    string selectCond = "SELECT CG_Id, CG_Name, _metadati_condition_group.md_id, CAG_Id, CAG_Name, FK_CG_Id, CAG_Execute_If_False, CAI_Id, FK_CAG_Id, CAI_Target_Field, CAI_Target_Action, CAI_Target_Action_Param_Value, CAI_Formula, CAI_Enabled FROM _metadati_condition_group INNER JOIN _metadati_condition_action_group ON _metadati_condition_group.CG_Id = _metadati_condition_action_group.FK_CG_Id LEFT JOIN _metadati_condition_action_item ON _metadati_condition_action_group.CAG_Id = _metadati_condition_action_item.FK_CAG_Id WHERE FK_CG_Id IN (" + ids + ")";
                     List<Dapper.SqlMapper.FastExpando> condRows = (List<Dapper.SqlMapper.FastExpando>)con.Query(selectCond);
                     List<WuicCore.MetaModel._Metadati_Condition_Action_Group> cond = metaRawModel.convertDictionariesToList<WuicCore.MetaModel._Metadati_Condition_Action_Group>(condRows);
                     ret.ForEach(c => c.ConditionActions = cond.Where(x => x.FK_CG_Id == c.CG_Id).ToList());
@@ -7294,7 +7327,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
             }
 
         }
-#endregion
+        #endregion
 
         public static List<domBoard> loadDashboard(string dashRoute)
         {
@@ -7440,8 +7473,6 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
                 string where = string.Format("{0} = {2}{1}{2}", RawHelpers.escapeDBObjectName(pkey.mc_nome_colonna, "mysql"), __id, quote);
                 string cmdStr = string.Format("select {0} from {1} where {2}", RawHelpers.escapeDBObjectName(uploader.MultipleUploadBlobFieldName, "mysql"), tabel_name, where);
-
-                cmdStr = SqlMapper.ParseMySqlConn(con, cmdStr);
 
                 using (MySqlCommand cmd = new MySqlCommand(cmdStr, con))
                 {
