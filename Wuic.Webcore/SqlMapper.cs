@@ -27,6 +27,16 @@ namespace Dapper
     /// </summary>
     public static partial class SqlMapper
     {
+        public static class Settings
+        {
+            public static bool RetryEnabled { get; set; } = true;
+            public static int RetryMaxAttempts { get; set; } = 3;
+            public static int RetryBaseDelayMs { get; set; } = 100;
+            public static bool RetryUseJitter { get; set; } = true;
+            public static bool RetryReadOperationsOnly { get; set; } = true;
+            public static bool RetryOnTransaction { get; set; } = false;
+        }
+
         /// <summary>
         /// Implement this interface to pass an arbitrary db specific set of parameters to Dapper
         /// </summary>
@@ -299,6 +309,138 @@ namespace Dapper
             typeMap[typeof(Guid?)] = DbType.Guid;
             typeMap[typeof(DateTime?)] = DbType.DateTime;
             typeMap[typeof(DateTimeOffset?)] = DbType.DateTimeOffset;
+        }
+
+        private static bool IsRetryAllowed(IDbTransaction transaction)
+        {
+            if (!Settings.RetryEnabled)
+                return false;
+
+            if (transaction != null && !Settings.RetryOnTransaction)
+                return false;
+
+            return true;
+        }
+
+        private static bool IsReadOnlySql(string sql, CommandType? commandType)
+        {
+            if (commandType.HasValue && commandType.Value != CommandType.Text)
+                return false;
+
+            if (string.IsNullOrWhiteSpace(sql))
+                return false;
+
+            string s = sql.TrimStart().ToLowerInvariant();
+            return s.StartsWith("select ")
+                || s.StartsWith("with ")
+                || s.StartsWith("show ")
+                || s.StartsWith("describe ")
+                || s.StartsWith("desc ")
+                || s.StartsWith("explain ")
+                || s.StartsWith("pragma ");
+        }
+
+        private static int ComputeRetryDelayMs(int attemptIndex)
+        {
+            int baseDelay = Math.Max(1, Settings.RetryBaseDelayMs);
+            double exp = Math.Pow(2, Math.Max(0, attemptIndex - 1));
+            int delay = (int)Math.Min(30000, baseDelay * exp);
+            if (Settings.RetryUseJitter)
+            {
+                int jitter = Random.Shared.Next(0, Math.Max(2, baseDelay));
+                delay = Math.Min(30000, delay + jitter);
+            }
+            return delay;
+        }
+
+        private static IEnumerable<Exception> FlattenExceptions(Exception ex)
+        {
+            for (Exception current = ex; current != null; current = current.InnerException)
+                yield return current;
+        }
+
+        private static bool IsTransientError(Exception ex)
+        {
+            foreach (var current in FlattenExceptions(ex))
+            {
+                if (current is TimeoutException)
+                    return true;
+
+                if (current is SqlException sqlEx)
+                {
+                    switch (sqlEx.Number)
+                    {
+                        case -2:
+                        case 1205:
+                        case 1222:
+                        case 40501:
+                        case 40613:
+                        case 10928:
+                        case 10929:
+                        case 10053:
+                        case 10054:
+                        case 10060:
+                        case 233:
+                        case 64:
+                        case 20:
+                            return true;
+                    }
+                }
+
+                if (current is MySqlException mySqlEx)
+                {
+                    switch (mySqlEx.Number)
+                    {
+                        case 1042:
+                        case 1047:
+                        case 1158:
+                        case 1159:
+                        case 1160:
+                        case 1161:
+                        case 1205:
+                        case 1213:
+                        case 2006:
+                        case 2013:
+                            return true;
+                    }
+                }
+
+                string typeName = current.GetType().FullName ?? current.GetType().Name;
+                if (typeName.IndexOf("Npgsql", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    var sqlStateProp = current.GetType().GetProperty("SqlState");
+                    string sqlState = Convert.ToString(sqlStateProp?.GetValue(current, null)) ?? string.Empty;
+                    if (sqlState.StartsWith("08", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(sqlState, "40001", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(sqlState, "40P01", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(sqlState, "55P03", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(sqlState, "57014", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(sqlState, "53300", StringComparison.OrdinalIgnoreCase))
+                        return true;
+                }
+
+                if (typeName.IndexOf("Oracle", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    var numberProp = current.GetType().GetProperty("Number");
+                    int number;
+                    if (numberProp != null && int.TryParse(Convert.ToString(numberProp.GetValue(current, null)), out number))
+                    {
+                        switch (number)
+                        {
+                            case 60:
+                            case 1013:
+                            case 3113:
+                            case 3114:
+                            case 12170:
+                            case 12514:
+                            case 12541:
+                                return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
         }
 
         private const string LinqBinary = "System.Data.Linq.Binary";
@@ -589,29 +731,41 @@ this IDbConnection cnn, string sql, dynamic param = null, IDbTransaction transac
 #endif
         )
         {
-            bool wasClosed = cnn.State == ConnectionState.Closed;
-            if (wasClosed) cnn.Open();
-            try
+            bool canRetry = IsRetryAllowed(transaction) && (!Settings.RetryReadOperationsOnly || IsReadOnlySql(sql, commandType));
+            int maxAttempts = canRetry ? Math.Max(1, Settings.RetryMaxAttempts) : 1;
+            for (int attempt = 1; attempt <= maxAttempts; attempt++)
             {
-                if ((object)param == null)
+                bool wasClosed = cnn.State == ConnectionState.Closed;
+                if (wasClosed) cnn.Open();
+                try
                 {
-                    using (var cmd = SetupCommand(cnn, transaction, sql, null, null, commandTimeout, commandType))
+                    if ((object)param == null)
+                    {
+                        using (var cmd = SetupCommand(cnn, transaction, sql, null, null, commandTimeout, commandType))
+                        {
+                            return cmd.ExecuteScalar();
+                        }
+                    }
+
+                    var identity = new Identity(sql, commandType, cnn, null, ((object)param).GetType(), null);
+                    CacheInfo info = GetCacheInfo(identity);
+                    using (var cmd = SetupCommand(cnn, transaction, sql, info.ParamReader, (object)param, commandTimeout, commandType))
                     {
                         return cmd.ExecuteScalar();
                     }
                 }
-
-                var identity = new Identity(sql, commandType, cnn, null, ((object)param).GetType(), null);
-                CacheInfo info = GetCacheInfo(identity);
-                using (var cmd = SetupCommand(cnn, transaction, sql, info.ParamReader, (object)param, commandTimeout, commandType))
+                catch (Exception ex) when (attempt < maxAttempts && IsTransientError(ex))
                 {
-                    return cmd.ExecuteScalar();
+                    if (wasClosed && cnn.State != ConnectionState.Closed) cnn.Close();
+                    Thread.Sleep(ComputeRetryDelayMs(attempt));
+                }
+                finally
+                {
+                    if (wasClosed && cnn.State != ConnectionState.Closed) cnn.Close();
                 }
             }
-            finally
-            {
-                if (wasClosed && cnn.State != ConnectionState.Closed) cnn.Close();
-            }
+
+            return null;
         }
 
         /// <summary>
@@ -676,24 +830,36 @@ this IDbConnection cnn, string sql, dynamic param = null, IDbTransaction transac
         {
             Identity identity = new Identity(sql, commandType, cnn, typeof(GridReader), (object)param == null ? null : ((object)param).GetType(), null);
             CacheInfo info = GetCacheInfo(identity);
-
-            IDbCommand cmd = null;
-            IDataReader reader = null;
             bool wasClosed = cnn.State == ConnectionState.Closed;
-            try
+            int maxAttempts = IsRetryAllowed(transaction) ? Math.Max(1, Settings.RetryMaxAttempts) : 1;
+            for (int attempt = 1; attempt <= maxAttempts; attempt++)
             {
-                if (wasClosed) cnn.Open();
-                cmd = SetupCommand(cnn, transaction, sql, info.ParamReader, (object)param, commandTimeout, commandType);
-                reader = cmd.ExecuteReader(wasClosed ? CommandBehavior.CloseConnection : CommandBehavior.Default);
-                return new GridReader(cmd, reader, identity);
+                IDbCommand cmd = null;
+                IDataReader reader = null;
+                try
+                {
+                    if (wasClosed && cnn.State == ConnectionState.Closed) cnn.Open();
+                    cmd = SetupCommand(cnn, transaction, sql, info.ParamReader, (object)param, commandTimeout, commandType);
+                    reader = cmd.ExecuteReader(wasClosed ? CommandBehavior.CloseConnection : CommandBehavior.Default);
+                    return new GridReader(cmd, reader, identity);
+                }
+                catch (Exception ex) when (attempt < maxAttempts && IsTransientError(ex))
+                {
+                    if (reader != null) reader.Dispose();
+                    if (cmd != null) cmd.Dispose();
+                    if (wasClosed && cnn.State != ConnectionState.Closed) cnn.Close();
+                    Thread.Sleep(ComputeRetryDelayMs(attempt));
+                }
+                catch
+                {
+                    if (reader != null) reader.Dispose();
+                    if (cmd != null) cmd.Dispose();
+                    if (wasClosed && cnn.State != ConnectionState.Closed) cnn.Close();
+                    throw;
+                }
             }
-            catch
-            {
-                if (reader != null) reader.Dispose();
-                if (cmd != null) cmd.Dispose();
-                if (wasClosed && cnn.State != ConnectionState.Closed) cnn.Close();
-                throw;
-            }
+
+            throw new InvalidOperationException("Unable to execute QueryMultiple.");
         }
 
         /// <summary>
@@ -705,45 +871,62 @@ this IDbConnection cnn, string sql, dynamic param = null, IDbTransaction transac
             var identity = new Identity(sql, commandType, cnn, typeof(T), param == null ? null : param.GetType(), null);
             var info = GetCacheInfo(identity);
             bool wasClosed = cnn.State == ConnectionState.Closed;
-
-            using (var cmd = SetupCommand(cnn, transaction, sql, info.ParamReader, param, commandTimeout, commandType))
+            int maxAttempts = IsRetryAllowed(transaction) ? Math.Max(1, Settings.RetryMaxAttempts) : 1;
+            for (int attempt = 1; attempt <= maxAttempts; attempt++)
             {
-                if (wasClosed) cnn.Open();
-                using (var reader = cmd.ExecuteReader(wasClosed ? CommandBehavior.CloseConnection : CommandBehavior.Default))
+                bool yieldedRows = false;
+                using (var cmd = SetupCommand(cnn, transaction, sql, info.ParamReader, param, commandTimeout, commandType))
                 {
-                    Func<Func<IDataReader, object>> cacheDeserializer = () =>
+                    IDataReader reader = null;
+                    try
                     {
-                        info.Deserializer = GetDeserializer(typeof(T), reader, 0, -1, false);
-                        SetQueryCache(identity, info);
-                        return info.Deserializer;
-                    };
-
-                    if (info.Deserializer == null)
+                        if (wasClosed && cnn.State == ConnectionState.Closed) cnn.Open();
+                        reader = cmd.ExecuteReader(wasClosed ? CommandBehavior.CloseConnection : CommandBehavior.Default);
+                    }
+                    catch (Exception ex) when (!yieldedRows && attempt < maxAttempts && IsTransientError(ex))
                     {
-                        cacheDeserializer();
+                        if (reader != null) reader.Dispose();
+                        if (wasClosed && cnn.State != ConnectionState.Closed) cnn.Close();
+                        Thread.Sleep(ComputeRetryDelayMs(attempt));
+                        continue;
                     }
 
-                    var deserializer = info.Deserializer;
-
-                    while (reader.Read())
+                    using (reader)
                     {
-                        object next;
-                        try
+                        Func<Func<IDataReader, object>> cacheDeserializer = () =>
                         {
-                            next = deserializer(reader);
-                        }
-                        catch (DataException)
-                        {
-                            // give it another shot, in case the underlying schema changed
-                            deserializer = cacheDeserializer();
-                            next = deserializer(reader);
-                        }
-                        yield return (T)next;
-                    }
+                            info.Deserializer = GetDeserializer(typeof(T), reader, 0, -1, false);
+                            SetQueryCache(identity, info);
+                            return info.Deserializer;
+                        };
 
+                        if (info.Deserializer == null)
+                        {
+                            cacheDeserializer();
+                        }
+
+                        var deserializer = info.Deserializer;
+
+                        while (reader.Read())
+                        {
+                            object next;
+                            try
+                            {
+                                next = deserializer(reader);
+                            }
+                            catch (DataException)
+                            {
+                                // give it another shot, in case the underlying schema changed
+                                deserializer = cacheDeserializer();
+                                next = deserializer(reader);
+                            }
+                            yieldedRows = true;
+                            yield return (T)next;
+                        }
+                    }
+                    break;
                 }
             }
-
         }
 
         /// <summary>
@@ -871,67 +1054,86 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
 
             IDbCommand ownedCommand = null;
             IDataReader ownedReader = null;
-
-            try
+            int maxAttempts = IsRetryAllowed(transaction) ? Math.Max(1, Settings.RetryMaxAttempts) : 1;
+            for (int attempt = 1; attempt <= maxAttempts; attempt++)
             {
-                if (reader == null)
-                {
-                    if (wasClosed) cnn.Open();
-                    ownedCommand = SetupCommand(cnn, transaction, sql, cinfo.ParamReader, (object)param, commandTimeout, commandType);
-                    ownedReader = ownedCommand.ExecuteReader(wasClosed ? CommandBehavior.CloseConnection : CommandBehavior.Default);
-                    reader = ownedReader;
-                }
-                Func<IDataReader, object> deserializer = null;
-                Func<IDataReader, object>[] otherDeserializers = null;
-
-                Action cacheDeserializers = () =>
-                {
-                    var deserializers = GenerateDeserializers(new Type[] { typeof(TFirst), typeof(TSecond), typeof(TThird), typeof(TFourth), typeof(TFifth) }, splitOn, reader);
-                    deserializer = cinfo.Deserializer = deserializers[0];
-                    otherDeserializers = cinfo.OtherDeserializers = deserializers.Skip(1).ToArray();
-                    SetQueryCache(identity, cinfo);
-                };
-
-                if ((deserializer = cinfo.Deserializer) == null || (otherDeserializers = cinfo.OtherDeserializers) == null)
-                {
-                    cacheDeserializers();
-                }
-
-                Func<IDataReader, TReturn> mapIt = GenerateMapper<TFirst, TSecond, TThird, TFourth, TFifth, TReturn>(deserializer, otherDeserializers, map);
-
-                if (mapIt != null)
-                {
-                    while (reader.Read())
-                    {
-                        TReturn next;
-                        try
-                        {
-                            next = mapIt(reader);
-                        }
-                        catch (DataException)
-                        {
-                            cacheDeserializers();
-                            mapIt = GenerateMapper<TFirst, TSecond, TThird, TFourth, TFifth, TReturn>(deserializer, otherDeserializers, map);
-                            next = mapIt(reader);
-                        }
-                        yield return next;
-                    }
-                }
-            }
-            finally
-            {
+                bool yieldedRows = false;
                 try
                 {
-                    if (ownedReader != null)
+                    if (reader == null)
                     {
-                        ownedReader.Dispose();
+                        if (wasClosed && cnn.State == ConnectionState.Closed) cnn.Open();
+                        ownedCommand = SetupCommand(cnn, transaction, sql, cinfo.ParamReader, (object)param, commandTimeout, commandType);
+                        try
+                        {
+                            ownedReader = ownedCommand.ExecuteReader(wasClosed ? CommandBehavior.CloseConnection : CommandBehavior.Default);
+                        }
+                        catch (Exception ex) when (!yieldedRows && attempt < maxAttempts && IsTransientError(ex))
+                        {
+                            if (ownedReader != null) ownedReader.Dispose();
+                            if (ownedCommand != null) ownedCommand.Dispose();
+                            ownedReader = null;
+                            ownedCommand = null;
+                            if (wasClosed && cnn.State != ConnectionState.Closed) cnn.Close();
+                            Thread.Sleep(ComputeRetryDelayMs(attempt));
+                            continue;
+                        }
+                        reader = ownedReader;
                     }
+                    Func<IDataReader, object> deserializer = null;
+                    Func<IDataReader, object>[] otherDeserializers = null;
+
+                    Action cacheDeserializers = () =>
+                    {
+                        var deserializers = GenerateDeserializers(new Type[] { typeof(TFirst), typeof(TSecond), typeof(TThird), typeof(TFourth), typeof(TFifth) }, splitOn, reader);
+                        deserializer = cinfo.Deserializer = deserializers[0];
+                        otherDeserializers = cinfo.OtherDeserializers = deserializers.Skip(1).ToArray();
+                        SetQueryCache(identity, cinfo);
+                    };
+
+                    if ((deserializer = cinfo.Deserializer) == null || (otherDeserializers = cinfo.OtherDeserializers) == null)
+                    {
+                        cacheDeserializers();
+                    }
+
+                    Func<IDataReader, TReturn> mapIt = GenerateMapper<TFirst, TSecond, TThird, TFourth, TFifth, TReturn>(deserializer, otherDeserializers, map);
+
+                    if (mapIt != null)
+                    {
+                        while (reader.Read())
+                        {
+                            TReturn next;
+                            try
+                            {
+                                next = mapIt(reader);
+                            }
+                            catch (DataException)
+                            {
+                                cacheDeserializers();
+                                mapIt = GenerateMapper<TFirst, TSecond, TThird, TFourth, TFifth, TReturn>(deserializer, otherDeserializers, map);
+                                next = mapIt(reader);
+                            }
+                            yieldedRows = true;
+                            yield return next;
+                        }
+                    }
+                    break;
                 }
                 finally
                 {
-                    if (ownedCommand != null)
+                    try
                     {
-                        ownedCommand.Dispose();
+                        if (ownedReader != null)
+                        {
+                            ownedReader.Dispose();
+                        }
+                    }
+                    finally
+                    {
+                        if (ownedCommand != null)
+                        {
+                            ownedCommand.Dispose();
+                        }
                     }
                 }
             }
