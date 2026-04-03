@@ -425,7 +425,7 @@ ORDER BY __pivot_key";
                     List<string> pivotKeys;
                     using (NpgsqlConnection dataConnection = GetOpenConnection(false, connectionName))
                     {
-                        pivotKeys = dataConnection.Query<string>(distinctPivotSql).Where(x => x != null).ToList();
+                        pivotKeys = dataConnection.QueryColumn<string>(distinctPivotSql).Where(x => x != null).ToList();
                     }
 
                     var pivotSelects = new List<string>();
@@ -1036,7 +1036,7 @@ FROM {fromTable}
                 string stored = "loggedUserCount";
                 var dbArgs = new DynamicParameters();
                 dbArgs.Add("@sessiontimeout", ConfigHelper.GetSettingAsString("sessionTimeoutMinutes"));
-                Int32 count = connection.Query<Int32>(stored, dbArgs, commandType: CommandType.StoredProcedure).FirstOrDefault();
+                Int32 count = connection.QueryColumn<Int32>(stored, dbArgs, commandType: CommandType.StoredProcedure).FirstOrDefault();
 
                 return count;
             }
@@ -1637,7 +1637,7 @@ FROM {fromTable}
                 try
                 {
                     query = query.Replace("{{user}}", user_id.ToString());
-                    return connection.Query<Int32>(query).FirstOrDefault();
+                    return connection.QueryColumn<Int32>(query).FirstOrDefault();
                 }
                 catch (Exception EX)
                 {
@@ -2242,7 +2242,7 @@ FROM {fromTable}
                     countQry = string.Format("SELECT {0} FROM {1} {2} {3} {4}", "count(*)", safetableName, join, where, "");
                     try
                     {
-                        totalRecords = connection.Query<Int32>(countQry).FirstOrDefault();
+                        totalRecords = connection.QueryColumn<Int32>(countQry).FirstOrDefault();
                     }
                     catch (Exception ex)
                     {
@@ -2420,7 +2420,7 @@ FROM {fromTable}
 
             try
             {
-                GroupInfo[0].groupCount = connection.Query<Int32>(countGroupQry).FirstOrDefault();
+                GroupInfo[0].groupCount = connection.QueryColumn<Int32>(countGroupQry).FirstOrDefault();
             }
             catch (Exception ex)
             {
@@ -4299,76 +4299,39 @@ FROM {fromTable}
             using (NpgsqlConnection connection = GetOpenConnection(isMeta, tab.md_conn_name))
             {
                 string fltr = "";
-                string table_name = tab.md_nome_tabella;
-                string safetable_name = RawHelpers.getStoreTableName(tab, "mssql");
+                string safetable_name = RawHelpers.getStoreTableName(tab, "postgresql");
 
-                Dictionary<string, object> original = entity["__original"] as Dictionary<string, object>;
-                if (original == null) //android
-                {
-                    XmlNode[] propsValues = entity["__original"] as XmlNode[];
-                    if (propsValues != null)
-                    {
-                        original = new Dictionary<string, object>();
-                        for (int i = 1; i < propsValues.Length; i++)
-                        {
-                            var value = propsValues[i].LastChild.Name == "Value" ? (propsValues[i].LastChild.FirstChild == null ? null : propsValues[i].LastChild.FirstChild.Value) : null;
-                            original.Add(propsValues[i].FirstChild.FirstChild.Value.ToString(), value);
+                if (!entity.ContainsKey("__original"))
+                    return true;
 
-                        }
-                    }
-                    entity["__original"] = original;
-                }
+                Dictionary<string, object> original = NormalizeOriginalPayload(entity["__original"]);
+                entity["__original"] = original;
 
                 foreach (string key in original.Keys)
                 {
                     string local_key = key;
 
                     _Metadati_Colonne col = metadata.FirstOrDefault(x => x.mc_nome_colonna == local_key);
+                    if (col == null)
+                        continue;
 
-                    if (col != null && col.mc_db_column_type != "varbinary" && col.mc_db_column_type != "binary" && !col.mc_is_db_computed.Value && !col.mc_is_computed.Value)
+                    if (string.Equals(col.mc_ui_column_type, "multiple_check", StringComparison.OrdinalIgnoreCase))
                     {
-                        string quote = RawHelpers.getQuoteFromColumn(col);
+                        _Metadati_Colonne_Grid manyToManyColumn = col as _Metadati_Colonne_Grid;
+                        if (!OptimisticCheckManyToMany(connection, entity, original, metadata, manyToManyColumn))
+                            return false;
 
-                        string field_compare = RawHelpers.getStoreColumnName(col);
-                        if (col.mc_ui_column_type == "txt_area" || col.mc_db_column_type == "text" || col.mc_ui_column_type == "html_area" || col.mc_ui_column_type == "localized_text" || col.mc_ui_column_type == "localized_html")
-                            field_compare = string.Format("CAST ({0} AS varchar(MAX))", RawHelpers.getStoreColumnName(col));
+                        continue;
+                    }
 
-                        if (original[key] == null)
-                        {
-                            if (col.mc_db_column_type == "point" || col.mc_db_column_type == "geometry")
-                            {
-                                fltr += string.Format((string.IsNullOrEmpty(fltr) ? "" : " AND ") + field_compare + ".ToString()" + " is null", RawHelpers.getQuoteFromColumn(col));
-                            }
-                            else
-                            {
-                                fltr += string.Format((string.IsNullOrEmpty(fltr) ? "" : " AND ") + field_compare + " is null", RawHelpers.getQuoteFromColumn(col));
-                            }
-                        }
-                        else
-                        {
-                            string valore = original[key].ToString();
-                            if (col.mc_ui_column_type == "number" || col.mc_ui_column_type == "number_slider")
-                                valore = valore.Replace(",", ".");
+                    object originalValue = original[key];
+                    if (!IsOptimisticComparableValue(originalValue))
+                        continue;
 
-                            if (col.mc_ui_column_type == "boolean" || col.mc_ui_column_type == "number_boolean")
-                            {
-                                if (bool.Parse(valore.ToString()))
-                                    valore = "1";
-                                else
-                                    valore = "0";
-                            }
-                            else if (col.mc_db_column_type == "point")
-                            {
-                                continue;
-                            }
-                            else if (col.mc_db_column_type == "geometry")
-                            {
-                                continue;
-                            }
-
-                            fltr += (string.IsNullOrEmpty(fltr) ? "" : " AND ") + field_compare + "=" + quote + EscapeValue(valore) + quote;
-
-                        }
+                    if (col.mc_db_column_type != "varbinary" && col.mc_db_column_type != "binary" && (!col.mc_is_db_computed.HasValue || !col.mc_is_db_computed.Value) && (!col.mc_is_computed.HasValue || !col.mc_is_computed.Value) && col.mc_db_column_type != "float" && col.mc_db_column_type != "point" && col.mc_db_column_type != "geometry")
+                    {
+                        string currentFld = RawHelpers.escapeDBObjectName(RawHelpers.getStoreColumnName(col), "postgresql");
+                        AppendOptimisticPredicate(col, currentFld, originalValue, ref fltr);
                     }
                 }
 
@@ -4378,7 +4341,7 @@ FROM {fromTable}
 
                     try
                     {
-                        return connection.Query<Int32>(optQry).FirstOrDefault() > 0;
+                        return connection.QueryColumn<Int32>(optQry).FirstOrDefault() > 0;
                     }
                     catch (Exception ex)
                     {
@@ -4390,6 +4353,304 @@ FROM {fromTable}
                     return true;
 
             }
+        }
+
+        private static Dictionary<string, object> NormalizeOriginalPayload(object rawOriginal)
+        {
+            if (rawOriginal == null)
+                return new Dictionary<string, object>();
+
+            if (rawOriginal is Dictionary<string, object> typedDict)
+                return typedDict;
+
+            if (rawOriginal is JObject jObject)
+                return jObject.ToObject<Dictionary<string, object>>() ?? new Dictionary<string, object>();
+
+            if (rawOriginal is JToken jToken)
+            {
+                if (jToken.Type == JTokenType.Object)
+                    return jToken.ToObject<Dictionary<string, object>>() ?? new Dictionary<string, object>();
+
+                if (jToken.Type == JTokenType.String)
+                {
+                    string raw = jToken.ToObject<string>();
+                    if (!string.IsNullOrEmpty(raw))
+                    {
+                        var fromJson = JsonConvert.DeserializeObject<Dictionary<string, object>>(raw);
+                        if (fromJson != null)
+                            return fromJson;
+                    }
+                }
+            }
+
+            if (rawOriginal is XmlNode[] propsValues)
+            {
+                var original = new Dictionary<string, object>();
+                for (int i = 1; i < propsValues.Length; i++)
+                {
+                    var value = propsValues[i].LastChild.Name == "Value"
+                        ? (propsValues[i].LastChild.FirstChild == null ? null : propsValues[i].LastChild.FirstChild.Value)
+                        : null;
+                    original.Add(propsValues[i].FirstChild.FirstChild.Value.ToString(), value);
+                }
+
+                return original;
+            }
+
+            if (rawOriginal is string rawJson && !string.IsNullOrEmpty(rawJson))
+            {
+                var fromJson = JsonConvert.DeserializeObject<Dictionary<string, object>>(rawJson);
+                if (fromJson != null)
+                    return fromJson;
+            }
+
+            var fallback = JsonConvert.DeserializeObject<Dictionary<string, object>>(JsonConvert.SerializeObject(rawOriginal));
+            return fallback ?? new Dictionary<string, object>();
+        }
+
+        private static void AppendOptimisticPredicate(_Metadati_Colonne col, string currentFld, object originalValue, ref string fltr)
+        {
+            if (col == null || string.IsNullOrEmpty(currentFld))
+                return;
+
+            if (originalValue == null)
+            {
+                fltr += (string.IsNullOrEmpty(fltr) ? "" : " AND ") + currentFld + " is null";
+                return;
+            }
+
+            string quote = RawHelpers.getQuoteFromColumn(col);
+            string value = originalValue.ToString();
+
+            if (col.mc_ui_column_type == "number" || col.mc_ui_column_type == "number_slider")
+                value = value.Replace(",", ".");
+            else if (col.mc_ui_column_type == "boolean" || col.mc_ui_column_type == "number_boolean")
+            {
+                if (bool.TryParse(value, out bool parsedBool))
+                    value = parsedBool ? "1" : "0";
+            }
+
+            fltr += (string.IsNullOrEmpty(fltr) ? "" : " AND ")
+                + currentFld + "=" + quote + EscapeValue(value) + quote;
+        }
+
+        private static bool IsOptimisticComparableValue(object value)
+        {
+            if (value == null)
+                return true;
+
+            if (value is string || value is char || value is bool || value is byte[])
+                return true;
+
+            if (value is JValue)
+                return true;
+
+            Type type = value.GetType();
+            if (type.IsPrimitive || value is decimal || value is DateTime || value is DateTimeOffset || value is Guid || value is TimeSpan)
+                return true;
+
+            return false;
+        }
+
+        private static bool OptimisticCheckManyToMany(
+            NpgsqlConnection connection,
+            Dictionary<string, object> entity,
+            Dictionary<string, object> original,
+            List<_Metadati_Colonne> metadata,
+            _Metadati_Colonne_Grid manyToManyColumn)
+        {
+            if (connection == null || manyToManyColumn == null || string.IsNullOrEmpty(manyToManyColumn.mc_nome_colonna))
+                return true;
+
+            if (!original.TryGetValue(manyToManyColumn.mc_nome_colonna, out object originalRaw))
+                return true;
+
+            HashSet<string> originalIds = ExtractManyToManyIds(originalRaw, manyToManyColumn.mc_ui_grid_related_id_field);
+
+            object localId = null;
+            if (!string.IsNullOrEmpty(manyToManyColumn.mc_ui_grid_local_id_field))
+            {
+                entity?.TryGetValue(manyToManyColumn.mc_ui_grid_local_id_field, out localId);
+                if (localId == null)
+                    original?.TryGetValue(manyToManyColumn.mc_ui_grid_local_id_field, out localId);
+            }
+
+            if (localId == null)
+            {
+                _Metadati_Colonne pkey = metadata?.FirstOrDefault(x => x.mc_is_primary_key is true);
+                if (pkey != null)
+                {
+                    entity?.TryGetValue(pkey.mc_nome_colonna, out localId);
+                    if (localId == null)
+                        original?.TryGetValue(pkey.mc_nome_colonna, out localId);
+                }
+            }
+
+            if (localId == null)
+                return true;
+
+            _Metadati_Tabelle mmTable = _Metadati_Tabelle.getTableMetadataFromRoute(manyToManyColumn.mc_ui_grid_manytomany_route);
+            if (mmTable == null)
+                return true;
+
+            string safeMmTable = RawHelpers.getStoreTableName(mmTable, "postgresql");
+            string localField = RawHelpers.escapeDBObjectName(manyToManyColumn.mc_ui_grid_manytomany_local_id_field, "postgresql");
+            string relatedField = RawHelpers.escapeDBObjectName(manyToManyColumn.mc_ui_grid_manytomany_related_id_field, "postgresql");
+
+            _Metadati_Colonne localMetaColumn = mmTable._Metadati_Colonnes?.FirstOrDefault(x => x.mc_nome_colonna == manyToManyColumn.mc_ui_grid_manytomany_local_id_field);
+            string quote = localMetaColumn != null ? RawHelpers.getQuoteFromColumn(localMetaColumn) : "'";
+            string safeLocalValue = localId == null ? "null" : quote + EscapeValueStrict(localId)?.ToString() + quote;
+
+            string sql = string.Format(
+                "SELECT {0}.{1} AS value FROM {0} WHERE {0}.{2} = {3}",
+                safeMmTable,
+                relatedField,
+                localField,
+                safeLocalValue);
+
+            List<object> dbValues;
+            string mmConnName = mmTable.md_conn_name;
+            if (!string.IsNullOrEmpty(mmConnName))
+            {
+                using (NpgsqlConnection mmConnection = GetOpenConnection(false, mmConnName))
+                {
+                    dbValues = mmConnection.QueryColumn(sql);
+                }
+            }
+            else
+            {
+                dbValues = connection.QueryColumn(sql);
+            }
+
+            HashSet<string> currentIds = new HashSet<string>(
+                dbValues
+                    .Select(x => ExtractComparableIdFromNode(x, manyToManyColumn.mc_ui_grid_manytomany_related_id_field))
+                    .Where(x => !string.IsNullOrEmpty(x)),
+                StringComparer.OrdinalIgnoreCase);
+
+            return originalIds.SetEquals(currentIds);
+        }
+
+        private static HashSet<string> ExtractManyToManyIds(object raw, string relatedIdField)
+        {
+            HashSet<string> result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (raw == null)
+                return result;
+
+            if (raw is string rawString)
+            {
+                foreach (string token in rawString.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    string normalized = NormalizeComparableId(token);
+                    if (!string.IsNullOrEmpty(normalized))
+                        result.Add(normalized);
+                }
+                return result;
+            }
+
+            if (raw is IEnumerable enumerable && !(raw is byte[]) && !(raw is string))
+            {
+                foreach (object item in enumerable)
+                {
+                    string normalized = ExtractComparableIdFromNode(item, relatedIdField);
+                    if (!string.IsNullOrEmpty(normalized))
+                        result.Add(normalized);
+                }
+                return result;
+            }
+
+            string single = ExtractComparableIdFromNode(raw, relatedIdField);
+            if (!string.IsNullOrEmpty(single))
+                result.Add(single);
+
+            return result;
+        }
+
+        private static string ExtractComparableIdFromNode(object node, string relatedIdField)
+        {
+            if (node == null)
+                return null;
+
+            if (node is JValue jValue)
+                return NormalizeComparableId(jValue.Value);
+
+            if (node is JObject jObj)
+            {
+                JToken token = null;
+                if (!string.IsNullOrEmpty(relatedIdField))
+                    token = jObj[relatedIdField];
+                token = token ?? jObj["value"];
+                if (token == null)
+                    return null;
+                return NormalizeComparableId(token.Type == JTokenType.Null ? null : token.ToObject<object>());
+            }
+
+            if (node is SqlMapper.FastExpando fastExpando && fastExpando.data != null)
+            {
+                if (!string.IsNullOrEmpty(relatedIdField) && fastExpando.data.TryGetValue(relatedIdField, out object valByField))
+                    return NormalizeComparableId(valByField);
+                if (fastExpando.data.TryGetValue("value", out object valByValue))
+                    return NormalizeComparableId(valByValue);
+            }
+
+            Dictionary<string, object> dict = NormalizeToDictionary(node);
+            if (dict != null)
+            {
+                if (!string.IsNullOrEmpty(relatedIdField) && dict.TryGetValue(relatedIdField, out object valByField))
+                    return NormalizeComparableId(valByField);
+                if (dict.TryGetValue("value", out object valByValue))
+                    return NormalizeComparableId(valByValue);
+                return null;
+            }
+
+            return NormalizeComparableId(node);
+        }
+
+        private static Dictionary<string, object> NormalizeToDictionary(object item)
+        {
+            if (item == null)
+                return null;
+
+            if (item is Dictionary<string, object> dict)
+                return dict;
+
+            if (item is IDictionary<string, object> genericDict)
+                return new Dictionary<string, object>(genericDict);
+
+            if (item is IDictionary legacyDict)
+            {
+                Dictionary<string, object> converted = new Dictionary<string, object>();
+                foreach (DictionaryEntry entry in legacyDict)
+                {
+                    string entryKey = entry.Key?.ToString() ?? string.Empty;
+                    converted[entryKey] = entry.Value;
+                }
+
+                return converted;
+            }
+
+            return null;
+        }
+
+        private static string NormalizeComparableId(object value)
+        {
+            if (value == null || value is DBNull)
+                return null;
+
+            if (value is JValue jValue)
+                return NormalizeComparableId(jValue.Value);
+
+            if (value is string s)
+            {
+                string trimmed = s.Trim().Trim('\'', '"');
+                return string.IsNullOrEmpty(trimmed) ? null : trimmed;
+            }
+
+            if (value is IFormattable formattable)
+                return formattable.ToString(null, CultureInfo.InvariantCulture);
+
+            string text = value.ToString();
+            return string.IsNullOrWhiteSpace(text) ? null : text.Trim();
         }
 
         public static string BuildDynamicInsertQuery(IDictionary<string, object> entity, List<_Metadati_Colonne> metadata, string userId, out string generatedPkey, bool importing = false)
@@ -5167,7 +5428,7 @@ FROM {fromTable}
                     string countQry = string.Format("SELECT count(*) FROM ( SELECT {0} FROM {1} {2} {3} {4} {5} ) as T", select_clause, from_clause, join_clause, where_clause, groupby_clause, having_clause);
                     try
                     {
-                        totalRecords = connection.Query<Int32>(countQry).FirstOrDefault();
+                        totalRecords = connection.QueryColumn<Int32>(countQry).FirstOrDefault();
                     }
                     catch (Exception ex)
                     {
@@ -5505,7 +5766,7 @@ FROM {fromTable}
         {
             using (NpgsqlConnection con = GetOpenConnection(true))
             {
-                return (int)con.Query<long>("select count(*) from _metadati__tabelle where coalesce(issystemroute,0)=0").FirstOrDefault();
+                return (int)con.QueryColumn<long>("select count(*) from _metadati__tabelle where coalesce(issystemroute,0)=0").FirstOrDefault();
             }
         }
 
@@ -5608,7 +5869,7 @@ FROM {fromTable}
             using (var con = new NpgsqlConnection(connection))
             {
                 con.Open();
-                var dbs = con.Query<string>("SELECT datname FROM pg_database WHERE datistemplate=false ORDER BY datname").ToList();
+                var dbs = con.QueryColumn<string>("SELECT datname FROM pg_database WHERE datistemplate=false ORDER BY datname");
                 return dbs.Select(x => new bind_list() { valore = x, text = x }).ToList();
             }
         }
@@ -5623,7 +5884,7 @@ FROM {fromTable}
             {
                 con.Open();
                 string q = $"SELECT {EscapeDBObjectName(uploader.mc_nome_colonna)} FROM {EscapeDBObjectName(tabel_name)} WHERE {EscapeDBObjectName(pkey.mc_nome_colonna)}=@id LIMIT 1";
-                file = con.Query<byte[]>(q, new { id = __id }).FirstOrDefault();
+                file = con.QueryColumn<byte[]>(q, new { id = __id }).FirstOrDefault();
             }
         }
 

@@ -791,6 +791,35 @@ this IDbConnection cnn, string sql, dynamic param = null, IDbTransaction transac
         }
 
         /// <summary>
+        /// Executes a query and returns the first column of each row mapped to <typeparamref name="T"/>.
+        /// Useful when custom dynamic materialization would otherwise return FastExpando wrappers.
+        /// </summary>
+        public static List<T> QueryColumn<T>(
+#if CSHARP30
+            this IDbConnection cnn, string sql, object param, IDbTransaction transaction, bool buffered, int? commandTimeout, CommandType? commandType
+#else
+            this IDbConnection cnn, string sql, dynamic param = null, IDbTransaction transaction = null, bool buffered = true, int? commandTimeout = null, CommandType? commandType = null
+#endif
+        )
+        {
+            return Query<T>(cnn, sql, param as object, transaction, buffered, commandTimeout, commandType).ToList();
+        }
+
+        /// <summary>
+        /// Executes a query and returns the first column of each row as objects.
+        /// </summary>
+        public static List<object> QueryColumn(
+#if CSHARP30
+            this IDbConnection cnn, string sql, object param, IDbTransaction transaction, bool buffered, int? commandTimeout, CommandType? commandType
+#else
+            this IDbConnection cnn, string sql, dynamic param = null, IDbTransaction transaction = null, bool buffered = true, int? commandTimeout = null, CommandType? commandType = null
+#endif
+        )
+        {
+            return Query<object>(cnn, sql, param as object, transaction, buffered, commandTimeout, commandType).ToList();
+        }
+
+        /// <summary>
         /// Return a list of dynamic objects, reader is closed after the call
         /// </summary>
         public static IEnumerable<dynamic> Query(this IDbConnection cnn, string sql, dynamic param = null, IDbTransaction transaction = null, bool buffered = true, int? commandTimeout = null, CommandType? commandType = null)
