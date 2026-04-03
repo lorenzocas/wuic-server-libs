@@ -264,6 +264,33 @@ public class UtilityHost : IUtilityHost
         }
     }
 
+
+    public bool customizeExcelField(
+        string fieldName,
+        string routeName,
+        string type,
+        dynamic metaInfo,
+        DocumentFormat.OpenXml.Packaging.SpreadsheetDocument spreadsheet,
+        DocumentFormat.OpenXml.Spreadsheet.Worksheet worksheet,
+        uint columnIndex,
+        uint rowIndex,
+        object value)
+    {
+        // Fallback host: nessuna customizzazione excel route-level.
+        return false;
+    }
+
+    public void customizeRowImport(
+        string routeName,
+        dynamic metaInfo,
+        Dictionary<string, object> record,
+        uploadOptions uploadOption,
+        long recordCounter,
+        string fileName,
+        StringBuilder log)
+    {
+        // Fallback host: nessuna customizzazione import route-level.
+    }
     private static ICrudRouteHandler? ResolveRouteHandler(string route)
     {
         string normalizedRoute = NormalizeRoute(route);
@@ -433,3 +460,4 @@ public class UtilityHost : IUtilityHost
         return sb.ToString();
     }
 }
+

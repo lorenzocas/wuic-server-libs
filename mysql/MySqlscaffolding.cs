@@ -449,13 +449,15 @@ WHERE t.mddbname = @db OR (@db = '' AND IFNULL(t.mddbname, '') = '');";
             connection = connection + ";database=information_schema";
             StringBuilder log = new StringBuilder();
 
+            _Metadati_Tabelle currentMT = null;
+
             using (metaRawModel mmd = new metaRawModel())
             {
                 string viewT = mmd.getViewVWMySql(connection, db).FirstOrDefault(x => x == view);
                 if (!string.IsNullOrEmpty(viewT))
                 {
                     List<columnDefinition> columns = mmd.getColumnsVWMySql(connection, db, viewT, log);
-                    mmd.scaffoldOfViewMySql(connection, connName, viewT, mmd, log, db, createMenu);
+                    currentMT = mmd.scaffoldOfViewMySql(connection, connName, viewT, mmd, log, db, createMenu);
 
                     foreach (columnDefinition col in columns)
                     {
@@ -473,7 +475,8 @@ WHERE t.mddbname = @db OR (@db = '' AND IFNULL(t.mddbname, '') = '');";
 
             return new Dictionary<string, string>()
             {
-                { "message", logg }
+                { "message", logg },
+                { "id", currentMT != null ? currentMT.md_id.ToString() : string.Empty }
             };
         }
 

@@ -579,6 +579,64 @@ this IDbConnection cnn, string sql, dynamic param = null, IDbTransaction transac
         }
 
         /// <summary>
+        /// Execute parameterized SQL and return the first column of the first row.
+        /// </summary>
+        public static object ExecuteScalar(
+#if CSHARP30
+            this IDbConnection cnn, string sql, object param, IDbTransaction transaction, int? commandTimeout, CommandType? commandType
+#else
+            this IDbConnection cnn, string sql, dynamic param = null, IDbTransaction transaction = null, int? commandTimeout = null, CommandType? commandType = null
+#endif
+        )
+        {
+            bool wasClosed = cnn.State == ConnectionState.Closed;
+            if (wasClosed) cnn.Open();
+            try
+            {
+                if ((object)param == null)
+                {
+                    using (var cmd = SetupCommand(cnn, transaction, sql, null, null, commandTimeout, commandType))
+                    {
+                        return cmd.ExecuteScalar();
+                    }
+                }
+
+                var identity = new Identity(sql, commandType, cnn, null, ((object)param).GetType(), null);
+                CacheInfo info = GetCacheInfo(identity);
+                using (var cmd = SetupCommand(cnn, transaction, sql, info.ParamReader, (object)param, commandTimeout, commandType))
+                {
+                    return cmd.ExecuteScalar();
+                }
+            }
+            finally
+            {
+                if (wasClosed && cnn.State != ConnectionState.Closed) cnn.Close();
+            }
+        }
+
+        /// <summary>
+        /// Execute parameterized SQL and return the first column of the first row as <typeparamref name="T"/>.
+        /// </summary>
+        public static T ExecuteScalar<T>(
+#if CSHARP30
+            this IDbConnection cnn, string sql, object param, IDbTransaction transaction, int? commandTimeout, CommandType? commandType
+#else
+            this IDbConnection cnn, string sql, dynamic param = null, IDbTransaction transaction = null, int? commandTimeout = null, CommandType? commandType = null
+#endif
+        )
+        {
+            object value = ExecuteScalar(cnn, sql, param, transaction, commandTimeout, commandType);
+            if (value == null || value is DBNull)
+                return default(T);
+
+            Type targetType = Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T);
+            if (targetType.IsInstanceOfType(value))
+                return (T)value;
+
+            return (T)Convert.ChangeType(value, targetType);
+        }
+
+        /// <summary>
         /// Return a list of dynamic objects, reader is closed after the call
         /// </summary>
         public static IEnumerable<dynamic> Query(this IDbConnection cnn, string sql, dynamic param = null, IDbTransaction transaction = null, bool buffered = true, int? commandTimeout = null, CommandType? commandType = null)

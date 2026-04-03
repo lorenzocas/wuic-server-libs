@@ -25,11 +25,508 @@ using Newtonsoft.Json.Linq;
 using WEB_UI_CRAFTER.Helpers;
 using Npgsql;
 using HttpContext = System.WebCore.HttpContext;
+using System.Globalization;
 
 namespace metaModelRaw
 {
     public class metaQueryPostgreSql
     {
+        public static SerializableDictionary<string, object> GeneratePivotQuery(
+            string route,
+            List<string> rowColumns,
+            List<string> columnColumns,
+            string valueColumn,
+            string aggregateFunction = "SUM",
+            List<string> valueColumns = null,
+            object filterInfo = null,
+            object sortInfo = null,
+            object valueAggregates = null,
+            object rowColumnOptions = null,
+            object columnColumnOptions = null,
+            int topRows = 300)
+        {
+            return GeneratePivotQueryPostgreSqlCore(
+                route,
+                rowColumns,
+                columnColumns,
+                valueColumn,
+                aggregateFunction,
+                valueColumns,
+                filterInfo,
+                sortInfo,
+                valueAggregates,
+                rowColumnOptions,
+                columnColumnOptions,
+                topRows);
+        }
+
+        private static SerializableDictionary<string, object> GeneratePivotQueryPostgreSqlCore(
+            string route,
+            List<string> rowColumns,
+            List<string> columnColumns,
+            string valueColumn,
+            string aggregateFunction,
+            List<string> valueColumns,
+            object filterInfo,
+            object sortInfo,
+            object rowColumnOptions,
+            object columnColumnOptions,
+            object valueAggregates,
+            int topRows)
+        {
+            var response = new SerializableDictionary<string, object>();
+            try
+            {
+                int normalizedTopRows = Math.Max(0, Math.Min(100000, topRows));
+                var normalizedRoute = (route ?? string.Empty).Trim();
+                if (string.IsNullOrWhiteSpace(normalizedRoute))
+                    throw new Exception("Route obbligatoria.");
+
+                var normalizedSingleValueColumn = (valueColumn ?? string.Empty).Trim();
+                var normalizedValueColumns = (valueColumns ?? new List<string>())
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Select(x => x.Trim())
+                    .ToList();
+                if (!string.IsNullOrWhiteSpace(normalizedSingleValueColumn))
+                    normalizedValueColumns.Insert(0, normalizedSingleValueColumn);
+                if (!normalizedValueColumns.Any())
+                    throw new Exception("Selezionare almeno una valueColumn.");
+
+                var rowAliases = (rowColumns ?? new List<string>())
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Select(x => x.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                string NormalizeDateGroupBy(string value)
+                {
+                    var normalized = (value ?? string.Empty).Trim().ToLowerInvariant();
+                    return normalized == "year"
+                        || normalized == "month"
+                        || normalized == "day"
+                        || normalized == "hour"
+                        || normalized == "minute"
+                        || normalized == "second"
+                        ? normalized
+                        : string.Empty;
+                }
+
+                var rowCastDateByAlias = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+                var rowGroupByByAlias = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                var rowOptionsRoot = ToJTokenSafePivot(rowColumnOptions);
+                if (rowOptionsRoot is JArray rowOptionsArray)
+                {
+                    foreach (var item in rowOptionsArray.OfType<JObject>())
+                    {
+                        var alias = Convert.ToString(item["alias"] ?? string.Empty)?.Trim();
+                        if (string.IsNullOrWhiteSpace(alias))
+                            continue;
+                        var castDate = item["castDate"]?.Value<bool?>()
+                            ?? item["castToDate"]?.Value<bool?>()
+                            ?? item["applyDateCast"]?.Value<bool?>()
+                            ?? false;
+                        rowCastDateByAlias[alias] = castDate;
+                        rowGroupByByAlias[alias] = NormalizeDateGroupBy(Convert.ToString(item["groupBy"] ?? item["dateGroupBy"] ?? string.Empty));
+                    }
+                }
+                else if (rowOptionsRoot is JObject rowOptionsObj)
+                {
+                    foreach (var p in rowOptionsObj.Properties())
+                    {
+                        var alias = (p.Name ?? string.Empty).Trim();
+                        if (string.IsNullOrWhiteSpace(alias))
+                            continue;
+                        var castDate = false;
+                        if (p.Value is JObject nested)
+                        {
+                            castDate = nested["castDate"]?.Value<bool?>()
+                                ?? nested["castToDate"]?.Value<bool?>()
+                                ?? nested["applyDateCast"]?.Value<bool?>()
+                                ?? false;
+                            rowGroupByByAlias[alias] = NormalizeDateGroupBy(Convert.ToString(nested["groupBy"] ?? nested["dateGroupBy"] ?? string.Empty));
+                        }
+                        else if (p.Value is JValue jv)
+                        {
+                            castDate = jv.Value<bool?>() ?? false;
+                            rowGroupByByAlias[alias] = string.Empty;
+                        }
+                        rowCastDateByAlias[alias] = castDate;
+                    }
+                }
+
+                var pivotAliases = (columnColumns ?? new List<string>())
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Select(x => x.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+                if (!pivotAliases.Any())
+                    throw new Exception("Selezionare almeno una colonna pivot (asse colonne).");
+
+                var colCastDateByAlias = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+                var colGroupByByAlias = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                var colOptionsRoot = ToJTokenSafePivot(columnColumnOptions);
+                if (colOptionsRoot is JArray colOptionsArray)
+                {
+                    foreach (var item in colOptionsArray.OfType<JObject>())
+                    {
+                        var alias = Convert.ToString(item["alias"] ?? string.Empty)?.Trim();
+                        if (string.IsNullOrWhiteSpace(alias))
+                            continue;
+                        var castDate = item["castDate"]?.Value<bool?>()
+                            ?? item["castToDate"]?.Value<bool?>()
+                            ?? item["applyDateCast"]?.Value<bool?>()
+                            ?? false;
+                        colCastDateByAlias[alias] = castDate;
+                        colGroupByByAlias[alias] = NormalizeDateGroupBy(Convert.ToString(item["groupBy"] ?? item["dateGroupBy"] ?? string.Empty));
+                    }
+                }
+                else if (colOptionsRoot is JObject colOptionsObj)
+                {
+                    foreach (var p in colOptionsObj.Properties())
+                    {
+                        var alias = (p.Name ?? string.Empty).Trim();
+                        if (string.IsNullOrWhiteSpace(alias))
+                            continue;
+                        var castDate = false;
+                        if (p.Value is JObject nested)
+                        {
+                            castDate = nested["castDate"]?.Value<bool?>()
+                                ?? nested["castToDate"]?.Value<bool?>()
+                                ?? nested["applyDateCast"]?.Value<bool?>()
+                                ?? false;
+                            colGroupByByAlias[alias] = NormalizeDateGroupBy(Convert.ToString(nested["groupBy"] ?? nested["dateGroupBy"] ?? string.Empty));
+                        }
+                        else if (p.Value is JValue jv)
+                        {
+                            castDate = jv.Value<bool?>() ?? false;
+                            colGroupByByAlias[alias] = string.Empty;
+                        }
+                        colCastDateByAlias[alias] = castDate;
+                    }
+                }
+
+                var agg = (aggregateFunction ?? "SUM").Trim().ToUpperInvariant();
+                var allowedAgg = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "SUM", "AVG", "MIN", "MAX", "COUNT" };
+                if (!allowedAgg.Contains(agg))
+                    agg = "SUM";
+
+                using (metaRawModel mrm = new metaRawModel())
+                {
+                    _Metadati_Tabelle table = mrm.GetMetadati_Tabelles(normalizedRoute).FirstOrDefault();
+                    if (table == null)
+                        throw new Exception($"Route '{normalizedRoute}' non trovata nei metadati.");
+
+                    int mdId = table.md_id;
+                    string tableName = (table.md_nome_tabella ?? string.Empty).Trim();
+                    string schemaName = (table.md_schema_name ?? string.Empty).Trim();
+                    string connectionName = string.IsNullOrWhiteSpace(table.md_conn_name) ? "DataSQLConnection" : table.md_conn_name.Trim();
+                    if (string.IsNullOrWhiteSpace(tableName))
+                        throw new Exception($"La route '{normalizedRoute}' non ha md_nome_tabella valorizzata.");
+
+                    var metaColumns = mrm.GetMetadati_Colonnes("", mdId.ToString())
+                        .Where(c => !string.IsNullOrWhiteSpace(c.mc_nome_colonna))
+                        .ToList();
+
+                    var mapAliasToReal = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                    var mapAliasToDisplay = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var c in metaColumns)
+                    {
+                        var alias = (c.mc_nome_colonna ?? string.Empty).Trim();
+                        if (string.IsNullOrWhiteSpace(alias))
+                            continue;
+                        var real = string.IsNullOrWhiteSpace(c.mc_real_column_name) ? alias : c.mc_real_column_name.Trim();
+                        mapAliasToReal[alias] = real;
+                        mapAliasToDisplay[alias] = string.IsNullOrWhiteSpace(c.mc_display_string_in_view) ? alias : c.mc_display_string_in_view.Trim();
+                    }
+
+                    string ResolveReal(string alias)
+                    {
+                        if (!mapAliasToReal.TryGetValue(alias, out var real))
+                            throw new Exception($"Colonna '{alias}' non trovata nelle colonne della route.");
+                        return real;
+                    }
+
+                    var valueAggMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                    var valueDefinitionItems = new List<(string Alias, string Aggregate, string Caption)>();
+                    var valueAggRoot = ToJTokenSafePivot(valueAggregates);
+                    if (valueAggRoot is JArray aggArray)
+                    {
+                        foreach (var item in aggArray.OfType<JObject>())
+                        {
+                            var alias = Convert.ToString(item["alias"] ?? string.Empty)?.Trim();
+                            if (string.IsNullOrWhiteSpace(alias))
+                                continue;
+                            var configuredAgg = Convert.ToString(item["aggregateFunction"] ?? agg)?.Trim()?.ToUpperInvariant();
+                            if (!allowedAgg.Contains(configuredAgg))
+                                configuredAgg = agg;
+                            var caption = Convert.ToString(item["caption"] ?? string.Empty)?.Trim();
+                            valueDefinitionItems.Add((alias, configuredAgg, caption));
+                        }
+                    }
+                    else if (valueAggRoot is JObject aggObj)
+                    {
+                        foreach (var p in aggObj.Properties())
+                        {
+                            var key = (p.Name ?? string.Empty).Trim();
+                            if (string.IsNullOrWhiteSpace(key))
+                                continue;
+                            var val = Convert.ToString(p.Value ?? string.Empty)?.Trim()?.ToUpperInvariant();
+                            if (!allowedAgg.Contains(val))
+                                val = agg;
+                            valueAggMap[key] = val;
+                        }
+                    }
+
+                    var effectiveValueDefs = valueDefinitionItems.Any()
+                        ? valueDefinitionItems
+                        : normalizedValueColumns.Select(v =>
+                        {
+                            var confAgg = valueAggMap.TryGetValue(v, out var mAgg) ? mAgg : agg;
+                            return (Alias: v, Aggregate: confAgg, Caption: string.Empty);
+                        }).ToList();
+
+                    var valueDefs = effectiveValueDefs
+                        .Select(v => new
+                        {
+                            Alias = v.Alias,
+                            Real = ResolveReal(v.Alias),
+                            Caption = string.IsNullOrWhiteSpace(v.Caption)
+                                ? (mapAliasToDisplay.TryGetValue(v.Alias, out var d) ? d : v.Alias)
+                                : v.Caption,
+                            Aggregate = v.Aggregate
+                        })
+                        .ToList();
+
+                    string baseAlias = "base_src";
+                    string BaseCol(string real) => $"{QuoteAnsiSqlIdentifierPivot(baseAlias)}.{QuoteAnsiSqlIdentifierPivot(real)}";
+                    string BuildAnsiDateGroupExpr(string sourceExpr, string dateGroupBy)
+                    {
+                        string normalized = (dateGroupBy ?? string.Empty).Trim().ToLowerInvariant();
+                        return normalized switch
+                        {
+                            "year" => $"TO_CHAR({sourceExpr}, 'YYYY')",
+                            "month" => $"TO_CHAR({sourceExpr}, 'YYYY-MM')",
+                            "day" => $"CAST({sourceExpr} AS DATE)",
+                            "hour" => $"TO_CHAR({sourceExpr}, 'YYYY-MM-DD HH24:00:00')",
+                            "minute" => $"TO_CHAR({sourceExpr}, 'YYYY-MM-DD HH24:MI:00')",
+                            "second" => $"TO_CHAR({sourceExpr}, 'YYYY-MM-DD HH24:MI:SS')",
+                            _ => sourceExpr
+                        };
+                    }
+                    string ResolveAxisExpr(
+                        string alias,
+                        Dictionary<string, bool> castDateMap,
+                        Dictionary<string, string> groupByMap)
+                    {
+                        string sourceExpr = BaseCol(ResolveReal(alias));
+                        string configuredGroupBy = groupByMap.TryGetValue(alias, out var gb) ? gb : string.Empty;
+                        if (!string.IsNullOrWhiteSpace(configuredGroupBy))
+                            return BuildAnsiDateGroupExpr(sourceExpr, configuredGroupBy);
+                        bool castDate = castDateMap.TryGetValue(alias, out var cast) && cast;
+                        if (!castDate)
+                            return sourceExpr;
+                        return $"CAST({sourceExpr} AS DATE)";
+                    }
+                    string ToPivotTokenExpr(string sourceExpr)
+                    {
+                        return $"COALESCE(CAST({sourceExpr} AS TEXT), '')";
+                    }
+
+                    var rowExprs = rowAliases.Select(a => ResolveAxisExpr(a, rowCastDateByAlias, rowGroupByByAlias)).ToList();
+                    var rowSelects = rowAliases.Select(a =>
+                    {
+                        var label = mapAliasToDisplay.TryGetValue(a, out var d) ? d : a;
+                        return $"{ResolveAxisExpr(a, rowCastDateByAlias, rowGroupByByAlias)} AS {QuoteAnsiSqlIdentifierPivot(label)}";
+                    }).ToList();
+
+                    var pivotExprs = pivotAliases
+                        .Select(a => ResolveAxisExpr(a, colCastDateByAlias, colGroupByByAlias))
+                        .Select(ToPivotTokenExpr)
+                        .ToList();
+                    string pivotKeyExpr = pivotExprs.Count == 1
+                        ? pivotExprs[0]
+                        : $"CONCAT_WS('|', {string.Join(", ", pivotExprs)})";
+
+                    var filterParts = new List<string>();
+                    var filterRoot = ToJTokenSafePivot(filterInfo);
+                    string filterLogic = "AND";
+                    JArray filterItems = null;
+                    if (filterRoot is JObject filterObj)
+                    {
+                        var logicRaw = Convert.ToString(filterObj["logic"] ?? filterObj["logicOperator"] ?? "AND");
+                        filterLogic = string.Equals(logicRaw, "OR", StringComparison.OrdinalIgnoreCase) ? "OR" : "AND";
+                        filterItems = filterObj["filters"] as JArray;
+                    }
+                    else if (filterRoot is JArray filterArray)
+                    {
+                        filterItems = filterArray;
+                    }
+                    if (filterItems != null)
+                    {
+                        foreach (var f in filterItems.OfType<JObject>())
+                        {
+                            var fieldAlias = Convert.ToString(f["field"] ?? string.Empty)?.Trim();
+                            if (string.IsNullOrWhiteSpace(fieldAlias) || !mapAliasToReal.TryGetValue(fieldAlias, out var fieldReal))
+                                continue;
+                            var op = Convert.ToString(f["operatore"] ?? f["operator"] ?? "eq")?.Trim().ToLowerInvariant();
+                            var val = f["value"];
+                            string colExpr = BaseCol(fieldReal);
+                            switch (op)
+                            {
+                                case "eq":
+                                case "=":
+                                    filterParts.Add((val == null || val.Type == JTokenType.Null) ? $"{colExpr} IS NULL" : $"{colExpr} = {ToProviderLiteralPivot(val)}");
+                                    break;
+                                case "neq":
+                                case "!=":
+                                case "<>":
+                                    filterParts.Add((val == null || val.Type == JTokenType.Null) ? $"{colExpr} IS NOT NULL" : $"{colExpr} <> {ToProviderLiteralPivot(val)}");
+                                    break;
+                                case "gt":
+                                case ">":
+                                    filterParts.Add($"{colExpr} > {ToProviderLiteralPivot(val)}");
+                                    break;
+                                case "gte":
+                                case ">=":
+                                    filterParts.Add($"{colExpr} >= {ToProviderLiteralPivot(val)}");
+                                    break;
+                                case "lt":
+                                case "<":
+                                    filterParts.Add($"{colExpr} < {ToProviderLiteralPivot(val)}");
+                                    break;
+                                case "lte":
+                                case "<=":
+                                    filterParts.Add($"{colExpr} <= {ToProviderLiteralPivot(val)}");
+                                    break;
+                                case "contains":
+                                    filterParts.Add($"{colExpr} LIKE '%{EscapeSqlStringPivot(Convert.ToString(val ?? string.Empty))}%'");
+                                    break;
+                                case "startswith":
+                                    filterParts.Add($"{colExpr} LIKE '{EscapeSqlStringPivot(Convert.ToString(val ?? string.Empty))}%'");
+                                    break;
+                                case "endswith":
+                                    filterParts.Add($"{colExpr} LIKE '%{EscapeSqlStringPivot(Convert.ToString(val ?? string.Empty))}'");
+                                    break;
+                            }
+                        }
+                    }
+                    string whereClause = filterParts.Count > 0 ? "WHERE " + string.Join($" {filterLogic} ", filterParts) : string.Empty;
+
+                    string fromTable = string.IsNullOrWhiteSpace(schemaName)
+                        ? $"{QuoteAnsiSqlIdentifierPivot(tableName)} {QuoteAnsiSqlIdentifierPivot(baseAlias)}"
+                        : $"{QuoteAnsiSqlIdentifierPivot(schemaName)}.{QuoteAnsiSqlIdentifierPivot(tableName)} {QuoteAnsiSqlIdentifierPivot(baseAlias)}";
+
+                    var distinctPivotSql = $@"
+SELECT DISTINCT {pivotKeyExpr} AS __pivot_key
+FROM {fromTable}
+{whereClause}
+ORDER BY __pivot_key";
+
+                    List<string> pivotKeys;
+                    using (NpgsqlConnection dataConnection = GetOpenConnection(false, connectionName))
+                    {
+                        pivotKeys = dataConnection.Query<string>(distinctPivotSql).Where(x => x != null).ToList();
+                    }
+
+                    var pivotSelects = new List<string>();
+                    foreach (var v in valueDefs)
+                    {
+                        string sourceExpr = BaseCol(v.Real);
+                        string valueExpr = string.Equals(v.Aggregate, "COUNT", StringComparison.OrdinalIgnoreCase)
+                            ? $"(CASE WHEN {sourceExpr} IS NULL THEN NULL ELSE 1 END)"
+                            : sourceExpr;
+                        foreach (var key in pivotKeys)
+                        {
+                            string outName = $"{v.Caption} ({key})";
+                            pivotSelects.Add($"{v.Aggregate}(CASE WHEN {pivotKeyExpr} = {ToProviderLiteralPivot(JToken.FromObject(key))} THEN {valueExpr} END) AS {QuoteAnsiSqlIdentifierPivot(outName)}");
+                        }
+                    }
+                    if (!pivotSelects.Any())
+                        pivotSelects.Add($"CAST(NULL AS TEXT) AS {QuoteAnsiSqlIdentifierPivot("__empty__")}");
+
+                    string groupByClause = rowExprs.Count > 0 ? " GROUP BY " + string.Join(", ", rowExprs) : string.Empty;
+                    string orderByClause = rowExprs.Count > 0 ? " ORDER BY " + string.Join(", ", rowExprs) : string.Empty;
+                    string limitClause = normalizedTopRows > 0 ? $" LIMIT {normalizedTopRows}" : string.Empty;
+                    string query = $@"
+SELECT {string.Join(", ", rowSelects.Concat(pivotSelects))}
+FROM {fromTable}
+{whereClause}{groupByClause}{orderByClause}{limitClause};";
+
+                    response["ok"] = true;
+                    response["route"] = normalizedRoute;
+                    response["schema"] = schemaName;
+                    response["table"] = tableName;
+                    response["connectionName"] = connectionName;
+                    response["dbms"] = "postgresql";
+                    response["query"] = query.Trim();
+                    response["topRows"] = normalizedTopRows;
+                    response["valueColumns"] = valueDefs.Select(x => x.Alias).ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                FillErrorResponsePivot(response, ex);
+            }
+            return response;
+        }
+
+        private static void FillErrorResponsePivot(SerializableDictionary<string, object> response, Exception ex)
+        {
+            if (response == null)
+                return;
+
+            response["ok"] = false;
+            response["error"] = ex?.Message ?? "Unhandled exception";
+            response["stackTrace"] = ex?.ToString() ?? string.Empty;
+        }
+
+        private static JToken ToJTokenSafePivot(object value)
+        {
+            if (value == null)
+                return null;
+            if (value is JToken token)
+                return token;
+            try
+            {
+                return JToken.FromObject(value);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static string EscapeSqlStringPivot(string value)
+        {
+            return (value ?? string.Empty).Replace("'", "''");
+        }
+
+        private static string QuoteAnsiSqlIdentifierPivot(string identifier)
+        {
+            return $"\"{(identifier ?? string.Empty).Replace("\"", "\"\"")}\"";
+        }
+
+        private static string ToProviderLiteralPivot(JToken token)
+        {
+            if (token == null || token.Type == JTokenType.Null || token.Type == JTokenType.Undefined)
+                return "NULL";
+
+            switch (token.Type)
+            {
+                case JTokenType.Integer:
+                case JTokenType.Float:
+                    return Convert.ToString(((JValue)token).Value, CultureInfo.InvariantCulture);
+                case JTokenType.Boolean:
+                    return token.Value<bool>() ? "1" : "0";
+                case JTokenType.Date:
+                    return $"'{EscapeSqlStringPivot(token.Value<DateTime>().ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture))}'";
+                case JTokenType.String:
+                    return $"'{EscapeSqlStringPivot(token.Value<string>())}'";
+                default:
+                    return $"'{EscapeSqlStringPivot(token.ToString(Newtonsoft.Json.Formatting.None))}'";
+            }
+        }
+
         #region "CHARTING"
 
         public static string buildChartSelect(string chartType, string route, string user_id, string aggregationFunction, string valueField, FilterInfos filters, string categoryAxFld)
