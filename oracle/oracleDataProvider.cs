@@ -67,8 +67,8 @@ public class oracleDataProvider : IMetaQuery
         if (user.data.ContainsKey("language") && user.data["language"] != null)
             u.language = user.data["language"].ToString();
 
-        foreach (string extraField in user.data.Keys.Where(x => x != infos.password_column_name))
-            u.extra_keys[extraField] = user.data[extraField]?.ToString() ?? "";
+        // foreach (string extraField in user.data.Keys.Where(x => x != infos.password_column_name))
+        //     u.extra_keys[extraField] = user.data[extraField]?.ToString() ?? "";
 
         if (user.data.ContainsKey(infos.azienda_id_column_name) && user.data[infos.azienda_id_column_name] != null)
             u.azienda_id = int.Parse(user.data[infos.azienda_id_column_name].ToString());

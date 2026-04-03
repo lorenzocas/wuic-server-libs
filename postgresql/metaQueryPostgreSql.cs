@@ -1075,6 +1075,7 @@ FROM {fromTable}
 
                 {
                     user u = mapUserFields(infos, user);
+                    u.extra_keys.Add("optimistic_concurrency_check", ConfigHelper.GetSettingAsString("optimisticCheckEnabled"));
 
                     if (bool.Parse(ConfigHelper.GetSettingAsString("enableCookieAuthentication")))
                     {
@@ -1120,11 +1121,11 @@ FROM {fromTable}
 
             var extra_fields = user.data.Keys.Where(x => x != infos.password_column_name);
 
-            foreach (string extra_field in extra_fields)
-            {
-                var user_param = user.data[extra_field];
-                u.extra_keys.Add(extra_field, user_param != null ? user_param.ToString() : "");
-            }
+            // foreach (string extra_field in extra_fields)
+            // {
+            //     var user_param = user.data[extra_field];
+            //     u.extra_keys.Add(extra_field, user_param != null ? user_param.ToString() : "");
+            // }
 
             KeyValuePair<string, object>? az_field = user.Where(x => x.Key == infos.azienda_id_column_name).FirstOrDefault();
             if (az_field != null)
@@ -3824,6 +3825,8 @@ FROM {fromTable}
             string field_value_list = "";
             string where = "";
             string query = "";
+            HashSet<string> changedFields = GetChangedFieldSet(entity);
+            bool deltaMode = changedFields.Count > 0;
 
             Dictionary<string, object> original = (importing ? new Dictionary<string, object>() : (Dictionary<string, object>)(entity["__original"]));
 
@@ -3886,6 +3889,12 @@ FROM {fromTable}
 
             metadata.Where(x => x.mc_is_computed != true || x.GetType() == typeof(_Metadati_Colonne_Grid)).ToList().ForEach((fld) =>
             {
+                if (!entity.ContainsKey(fld.mc_nome_colonna))
+                    return;
+
+                if (deltaMode && !(fld.mc_is_primary_key is true) && !changedFields.Contains(fld.mc_nome_colonna))
+                    return;
+
                 if (tabel.md_logging_enable)
                 {
                     if (fld.mc_nome_colonna == tabel.md_logging_last_mod_date_field_name || fld.mc_nome_colonna == tabel.md_logging_last_mod_user_field_name)
@@ -4165,6 +4174,16 @@ FROM {fromTable}
                 AppendLoggingUpdateFields(ref field_value_list, tabel, userId, entity);
             }
 
+            if (string.IsNullOrWhiteSpace(field_value_list))
+            {
+                _Metadati_Colonne pk = metadata.FirstOrDefault(x => x.mc_is_primary_key is true);
+                if (pk != null)
+                {
+                    string safePk = EscapeDBObjectName(RawHelpers.getStoreColumnName(pk));
+                    field_value_list = safetable_name + "." + safePk + "=" + safetable_name + "." + safePk;
+                }
+            }
+
             query = string.Format("UPDATE {0} SET {1} WHERE {2}", safetable_name, field_value_list, where);
 
             return query;
@@ -4306,9 +4325,14 @@ FROM {fromTable}
 
                 Dictionary<string, object> original = NormalizeOriginalPayload(entity["__original"]);
                 entity["__original"] = original;
+                HashSet<string> changedFields = GetChangedFieldSet(entity);
+                HashSet<string> optimisticKeys = GetOptimisticKeys(original, metadata, changedFields);
 
                 foreach (string key in original.Keys)
                 {
+                    if (optimisticKeys.Count > 0 && !optimisticKeys.Contains(key))
+                        continue;
+
                     string local_key = key;
 
                     _Metadati_Colonne col = metadata.FirstOrDefault(x => x.mc_nome_colonna == local_key);
@@ -4406,6 +4430,65 @@ FROM {fromTable}
 
             var fallback = JsonConvert.DeserializeObject<Dictionary<string, object>>(JsonConvert.SerializeObject(rawOriginal));
             return fallback ?? new Dictionary<string, object>();
+        }
+
+        private static HashSet<string> GetChangedFieldSet(Dictionary<string, object> entity)
+        {
+            HashSet<string> result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (entity == null || !entity.ContainsKey("__changes") || entity["__changes"] == null)
+                return result;
+
+            if (entity["__changes"] is IEnumerable<object> enumerableChanges)
+            {
+                foreach (object entry in enumerableChanges)
+                {
+                    if (entry is IDictionary<string, object> dict && dict.ContainsKey("field") && dict["field"] != null)
+                    {
+                        string fieldName = RawHelpers.ParseNull(dict["field"]).Trim();
+                        if (!string.IsNullOrEmpty(fieldName))
+                            result.Add(fieldName);
+                    }
+                    else if (entry is JObject jObj && jObj["field"] != null)
+                    {
+                        string fieldName = RawHelpers.ParseNull(jObj["field"]).Trim();
+                        if (!string.IsNullOrEmpty(fieldName))
+                            result.Add(fieldName);
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        private static HashSet<string> GetOptimisticKeys(
+            Dictionary<string, object> original,
+            List<_Metadati_Colonne> metadata,
+            HashSet<string> changedFields)
+        {
+            HashSet<string> keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (original == null || original.Count == 0)
+                return keys;
+
+            if (changedFields == null || changedFields.Count == 0)
+            {
+                foreach (string key in original.Keys)
+                    keys.Add(key);
+                return keys;
+            }
+
+            foreach (string key in original.Keys)
+            {
+                if (changedFields.Contains(key))
+                    keys.Add(key);
+            }
+
+            foreach (var pk in (metadata ?? new List<_Metadati_Colonne>()).Where(x => x.mc_is_primary_key is true))
+            {
+                if (!string.IsNullOrEmpty(pk?.mc_nome_colonna) && original.ContainsKey(pk.mc_nome_colonna))
+                    keys.Add(pk.mc_nome_colonna);
+            }
+
+            return keys;
         }
 
         private static void AppendOptimisticPredicate(_Metadati_Colonne col, string currentFld, object originalValue, ref string fltr)

@@ -834,11 +834,11 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziPostgreSql
             var extra_fields = user.data.Keys.Where(x => x != infos.password_column_name).Any() ? user.data.Keys.Where(x => x != infos.password_column_name) : null;
             if (extra_fields != null)
             {
-                foreach (string extra_field in extra_fields)
-                {
-                    var user_param = user.data[extra_field];
-                    u.extra_keys.Add(extra_field, user_param != null ? user_param.ToString() : "");
-                }
+                // foreach (string extra_field in extra_fields)
+                // {
+                //     var user_param = user.data[extra_field];
+                //     u.extra_keys.Add(extra_field, user_param != null ? user_param.ToString() : "");
+                // }
             }
 
             if (user.Where(x => x.Key == infos.azienda_id_column_name).Any())
