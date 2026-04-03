@@ -2312,17 +2312,27 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
                         if (string.IsNullOrEmpty(rootPath))
                             rootPath = "/" + (ConfigHelper.GetSettingAsString("uploadFolder") ?? "/upload/");
-                        else
-                        {
-                            if (rootPath.Substring(rootPath.Length - 1, 1) != "/")
-                            {
-                                rootPath += "/";
-                            }
-                        }
 
-                        string pth = HttpContext.Current.Server.MapPath(rootPath + (upload_fix.UseRouteNameAsSubfolder ? "/" + route : "") + (upload_fix.UseRecordIDAsSubfolder ? "/" + __id : ""));
+                        string normalizedRootPath = (rootPath ?? string.Empty).Trim().Trim('\'', '"');
+                        if (normalizedRootPath.StartsWith("/") && normalizedRootPath.Length > 2 && normalizedRootPath[2] == ':')
+                            normalizedRootPath = normalizedRootPath.TrimStart('/');
 
-                        string new_dir = System.IO.Path.Combine(HttpContext.Current.Server.MapPath(rootPath + route), result);
+                        string rootPhysicalPath = System.IO.Path.IsPathRooted(normalizedRootPath)
+                            ? normalizedRootPath
+                            : HttpContext.Current.Server.MapPath(normalizedRootPath);
+
+                        string routeSegment = (route ?? string.Empty).Trim().Trim('\'', '"').Trim('\\', '/');
+                        string idSegment = (__id ?? string.Empty).Trim().Trim('\'', '"').Trim('\\', '/');
+
+                        string pth = rootPhysicalPath;
+                        if (upload_fix.UseRouteNameAsSubfolder && !string.IsNullOrWhiteSpace(routeSegment))
+                            pth = System.IO.Path.Combine(pth, routeSegment);
+                        if (upload_fix.UseRecordIDAsSubfolder && !string.IsNullOrWhiteSpace(idSegment))
+                            pth = System.IO.Path.Combine(pth, idSegment);
+
+                        string new_dir = string.IsNullOrWhiteSpace(routeSegment)
+                            ? System.IO.Path.Combine(rootPhysicalPath, result)
+                            : System.IO.Path.Combine(rootPhysicalPath, routeSegment, result);
 
                         string fname = System.IO.Path.Combine(pth, entity[upload_fix.mc_nome_colonna].ToString());
 
@@ -2783,20 +2793,30 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
                         if (string.IsNullOrEmpty(rootPath))
                             rootPath = "/" + (ConfigHelper.GetSettingAsString("uploadFolder") ?? "/upload/");
-                        else
-                        {
-                            if (rootPath.Substring(rootPath.Length - 1, 1) != "/")
-                            {
-                                rootPath += "/";
-                            }
-                        }
 
-                        string pth = HttpContext.Current.Server.MapPath(rootPath + (upload_fix.UseRouteNameAsSubfolder ? "/" + route : "") + (upload_fix.UseRecordIDAsSubfolder ? "/" + __id : ""));
+                        string normalizedRootPath = (rootPath ?? string.Empty).Trim().Trim('\'', '"');
+                        if (normalizedRootPath.StartsWith("/") && normalizedRootPath.Length > 2 && normalizedRootPath[2] == ':')
+                            normalizedRootPath = normalizedRootPath.TrimStart('/');
+
+                        string rootPhysicalPath = System.IO.Path.IsPathRooted(normalizedRootPath)
+                            ? normalizedRootPath
+                            : HttpContext.Current.Server.MapPath(normalizedRootPath);
+
+                        string routeSegment = (route ?? string.Empty).Trim().Trim('\'', '"').Trim('\\', '/');
+                        string idSegment = (__id ?? string.Empty).Trim().Trim('\'', '"').Trim('\\', '/');
+
+                        string pth = rootPhysicalPath;
+                        if (upload_fix.UseRouteNameAsSubfolder && !string.IsNullOrWhiteSpace(routeSegment))
+                            pth = System.IO.Path.Combine(pth, routeSegment);
+                        if (upload_fix.UseRecordIDAsSubfolder && !string.IsNullOrWhiteSpace(idSegment))
+                            pth = System.IO.Path.Combine(pth, idSegment);
 
                         if (!System.IO.Directory.Exists(pth))
                             System.IO.Directory.CreateDirectory(pth);
 
-                        string new_dir = System.IO.Path.Combine(HttpContext.Current.Server.MapPath(rootPath + route), result);
+                        string new_dir = string.IsNullOrWhiteSpace(routeSegment)
+                            ? System.IO.Path.Combine(rootPhysicalPath, result)
+                            : System.IO.Path.Combine(rootPhysicalPath, routeSegment, result);
 
                         string fname = System.IO.Path.Combine(pth, entity[upload_fix.mc_nome_colonna].ToString());
 
@@ -2820,7 +2840,36 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                                 }
                             }
                             System.IO.File.Delete(fname);
-                            System.IO.Directory.Delete(pth, true);
+                            if (!upload_fix.isDBUpload)
+                            {
+                                System.IO.Directory.Delete(pth, true);
+                            }
+                        }
+
+                        if (upload_fix.isDBUpload
+                            && !string.IsNullOrWhiteSpace(result)
+                            && !string.Equals(idSegment, result, StringComparison.OrdinalIgnoreCase)
+                            && System.IO.Directory.Exists(pth))
+                        {
+                            string targetParent = System.IO.Path.GetDirectoryName(new_dir);
+                            if (!string.IsNullOrWhiteSpace(targetParent) && !System.IO.Directory.Exists(targetParent))
+                                System.IO.Directory.CreateDirectory(targetParent);
+
+                            if (!System.IO.Directory.Exists(new_dir))
+                            {
+                                System.IO.Directory.Move(pth, new_dir);
+                            }
+                            else
+                            {
+                                foreach (string srcFile in System.IO.Directory.GetFiles(pth))
+                                {
+                                    string destFile = System.IO.Path.Combine(new_dir, System.IO.Path.GetFileName(srcFile));
+                                    if (System.IO.File.Exists(destFile))
+                                        System.IO.File.Delete(destFile);
+                                    System.IO.File.Move(srcFile, destFile);
+                                }
+                                System.IO.Directory.Delete(pth, true);
+                            }
                         }
                     }
                 }

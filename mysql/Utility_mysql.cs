@@ -64,6 +64,35 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
             return true;
         }
 
+        private static string ResolveUploadRecordDirectory(_Metadati_Colonne_Upload uploader, _Metadati_Tabelle tabel, string recordId)
+        {
+            string basePath = string.IsNullOrEmpty(uploader.DefaultUploadRootPath) || uploader.DefaultUploadRootPath == "null"
+                ? ((ConfigHelper.GetSettingAsString("uploadFolder") != null ? (ConfigHelper.GetSettingAsString("uploadFolder") + "/") : ("~/upload/")))
+                : uploader.DefaultUploadRootPath;
+
+            string normalizedBasePath = (basePath ?? string.Empty).Trim().Trim('\'', '"');
+            if (normalizedBasePath.StartsWith("/") && normalizedBasePath.Length > 2 && normalizedBasePath[2] == ':')
+            {
+                normalizedBasePath = normalizedBasePath.TrimStart('/');
+            }
+            string resolved = System.IO.Path.IsPathRooted(normalizedBasePath)
+                ? normalizedBasePath
+                : HttpContext.Current.Server.MapPath(normalizedBasePath);
+            string routeName = (tabel.md_route_name ?? string.Empty).Trim().Trim('\'', '"').Trim('\\', '/');
+            string safeRecordId = (recordId ?? string.Empty).Trim().Trim('\'', '"').Trim('\\', '/');
+            if (uploader.UseRouteNameAsSubfolder)
+            {
+                resolved = System.IO.Path.Combine(resolved, routeName);
+            }
+
+            if (uploader.UseRecordIDAsSubfolder && !string.IsNullOrWhiteSpace(safeRecordId))
+            {
+                resolved = System.IO.Path.Combine(resolved, safeRecordId);
+            }
+
+            return resolved;
+        }
+
 
         public static void customizeImgDBInsert(Dictionary<string, object> entity, _Metadati_Colonne_Upload uploader, _Metadati_Tabelle tabel, string safetable_name, ref string field_list, ref string value_list, bool base64Image)
         {
@@ -71,9 +100,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
             if (!string.IsNullOrEmpty(RawHelpers.ParseNull(entity[uploader.mc_nome_colonna])))
             {
                 string __id = entity.ContainsKey("__id") ? entity["__id"].ToString() : entity["__guid"].ToString();
-                string realPath = getCustomerProjectPath();
-
-                string pth = HttpContext.Current.Server.MapPath(string.IsNullOrEmpty(uploader.DefaultUploadRootPath) || uploader.DefaultUploadRootPath == "null" ? ((ConfigHelper.GetSettingAsString("uploadFolder") != null ? (ConfigHelper.GetSettingAsString("uploadFolder") + "/") : ("~/upload/"))) : uploader.DefaultUploadRootPath);
+                string pth = ResolveUploadRecordDirectory(uploader, tabel, __id);
 
                 string tmp_path = System.IO.Path.Combine(pth, entity[uploader.mc_nome_colonna].ToString());
 
@@ -112,9 +139,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
             {
                 bool base64Image = RawHelpers.ParseBool(ConfigHelper.GetSettingAsString("base64Image") ?? "false");
                 string __id = entity[tabel._Metadati_Colonnes.First(x => x.mc_is_primary_key).mc_nome_colonna].ToString();
-                string realPath = getCustomerProjectPath();
-
-                string pth = HttpContext.Current.Server.MapPath(string.IsNullOrEmpty(uploader.DefaultUploadRootPath) || uploader.DefaultUploadRootPath == "null" ? ((ConfigHelper.GetSettingAsString("uploadFolder") != null ? (ConfigHelper.GetSettingAsString("uploadFolder") + "/") : ("~/upload/"))) : uploader.DefaultUploadRootPath);
+                string pth = ResolveUploadRecordDirectory(uploader, tabel, __id);
 
                 string tmp_path = System.IO.Path.Combine(pth, entity[uploader.mc_nome_colonna].ToString());
 
