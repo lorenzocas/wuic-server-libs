@@ -25,13 +25,12 @@ using MySql.Data.MySqlClient;
 using System.Diagnostics;
 using System.Configuration;
 using System.Threading;
-using WEB_UI_CRAFTER.ProjectData.Servizi;
 using Westwind.Utilities.Dynamic;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml;
 using ExcelOpenXMLBasics;
-
+using WEB_UI_CRAFTER.ProjectData.ServiziMySql;
 
 namespace metaModelRaw
 {
@@ -2225,21 +2224,6 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
             Utility.beforeUpdate(route, entity, userId);
 
-
-#if DEMO
-            if (Global.pym != "fer" && !isMeta)
-            {
-                metadata.ForEach(m =>
-                {
-                    if (m.mc_ui_column_type == "text" && RawHelpers.ParseNull(m.mc_props_bag).IndexOf("color-cell") < 0 && entity.ContainsKey(m.mc_nome_colonna))
-                    {
-                        var val = RawHelpers.ParseNull(entity[m.mc_nome_colonna]);
-                        if (!string.IsNullOrEmpty(val) && val.Length > 2)
-                            entity[m.mc_nome_colonna] = "**" + entity[m.mc_nome_colonna].ToString().Substring(2);
-                    }
-                });
-            }
-#endif
             query = BuildDynamicUpdateQuery(entity, metadata, userId, false, isMeta);
 
             Utility.customizeUpdate(ref query, route, entity, userId);
@@ -2319,24 +2303,25 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
             {
                 if (upload_fix != null)
                 {
-                    string __id = entity[metadata.First(x => x.mc_is_primary_key is true).mc_nome_colonna].ToString();
-
-                    string rootPath = upload_fix.DefaultUploadRootPath;
-
-                    if (string.IsNullOrEmpty(rootPath))
-                        rootPath = "/" + (ConfigHelper.GetSettingAsString("uploadFolder") ?? "/upload/");
-                    else
-                    {
-                        if (rootPath.Substring(rootPath.Length - 1, 1) != "/")
-                        {
-                            rootPath += "/";
-                        }
-                    }
-
-                    string pth = HttpContext.Current.Server.MapPath(rootPath + (upload_fix.UseRouteNameAsSubfolder ? "/" + route : "") + (upload_fix.UseRecordIDAsSubfolder ? "/" + __id : ""));
 
                     if (entity[upload_fix.mc_nome_colonna] != null && upload_fix.UseRecordIDAsSubfolder)
                     {
+                        string __id = entity[metadata.First(x => x.mc_is_primary_key is true).mc_nome_colonna].ToString();
+
+                        string rootPath = upload_fix.DefaultUploadRootPath;
+
+                        if (string.IsNullOrEmpty(rootPath))
+                            rootPath = "/" + (ConfigHelper.GetSettingAsString("uploadFolder") ?? "/upload/");
+                        else
+                        {
+                            if (rootPath.Substring(rootPath.Length - 1, 1) != "/")
+                            {
+                                rootPath += "/";
+                            }
+                        }
+
+                        string pth = HttpContext.Current.Server.MapPath(rootPath + (upload_fix.UseRouteNameAsSubfolder ? "/" + route : "") + (upload_fix.UseRecordIDAsSubfolder ? "/" + __id : ""));
+
                         string new_dir = System.IO.Path.Combine(HttpContext.Current.Server.MapPath(rootPath + route), result);
 
                         string fname = System.IO.Path.Combine(pth, entity[upload_fix.mc_nome_colonna].ToString());
@@ -2782,34 +2767,35 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
             {
                 if (upload_fix != null)
                 {
-                    string __id = "";
-
-                    if (entity.ContainsKey("__guid"))
-                        __id = entity["__guid"].ToString();
-                    else if (entity.ContainsKey("__id"))
-                        __id = entity["__id"].ToString();
-                    else if (entity.ContainsKey("uid"))
-                        __id = entity["uid"].ToString();
-
-                    string rootPath = upload_fix.DefaultUploadRootPath;
-
-                    if (string.IsNullOrEmpty(rootPath))
-                        rootPath = "/" + (ConfigHelper.GetSettingAsString("uploadFolder") != null ? ConfigHelper.GetSettingAsString("uploadFolder") + "/" : "/upload/");
-
-                    else
-                    {
-                        if (rootPath.Substring(rootPath.Length - 1, 1) != "/")
-                        {
-                            rootPath += "/";
-                        }
-                    }
-
-                    string pth = HttpContext.Current.Server.MapPath(rootPath + (upload_fix.UseRouteNameAsSubfolder ? "/" + route : "") + (upload_fix.UseRecordIDAsSubfolder ? "/" + __id : ""));
-                    if (!System.IO.Directory.Exists(pth))
-                        System.IO.Directory.CreateDirectory(pth);
 
                     if (entity.ContainsKey(upload_fix.mc_nome_colonna) && entity[upload_fix.mc_nome_colonna] != null && upload_fix.UseRecordIDAsSubfolder)
                     {
+                        string __id = "";
+
+                        if (entity.ContainsKey("__guid"))
+                            __id = entity["__guid"].ToString();
+                        else if (entity.ContainsKey("__id"))
+                            __id = entity["__id"].ToString();
+                        else if (entity.ContainsKey("uid"))
+                            __id = entity["uid"].ToString();
+
+                        string rootPath = upload_fix.DefaultUploadRootPath;
+
+                        if (string.IsNullOrEmpty(rootPath))
+                            rootPath = "/" + (ConfigHelper.GetSettingAsString("uploadFolder") ?? "/upload/");
+                        else
+                        {
+                            if (rootPath.Substring(rootPath.Length - 1, 1) != "/")
+                            {
+                                rootPath += "/";
+                            }
+                        }
+
+                        string pth = HttpContext.Current.Server.MapPath(rootPath + (upload_fix.UseRouteNameAsSubfolder ? "/" + route : "") + (upload_fix.UseRecordIDAsSubfolder ? "/" + __id : ""));
+
+                        if (!System.IO.Directory.Exists(pth))
+                            System.IO.Directory.CreateDirectory(pth);
+
                         string new_dir = System.IO.Path.Combine(HttpContext.Current.Server.MapPath(rootPath + route), result);
 
                         string fname = System.IO.Path.Combine(pth, entity[upload_fix.mc_nome_colonna].ToString());
@@ -2970,10 +2956,10 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                     string delete_log = "";
                     if (tabel.md_logging_enable)
                     {
-                        if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
-                        {
-                            userId = Utility.id_extraClient(ref userId);
-                        }
+                        //if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
+                        //{
+                        //    userId = Utility.id_extraClient(ref userId);
+                        //}
 
                         AppendLoggingDeleteFields(ref delete_log, tabel, userId, entity);
                     }
@@ -2996,10 +2982,10 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                         string delete_log = "";
                         if (tabel.md_logging_enable)
                         {
-                            if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
-                            {
-                                userId = Utility.id_extraClient(ref userId);
-                            }
+                            //if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
+                            //{
+                            //    userId = Utility.id_extraClient(ref userId);
+                            //}
 
                             AppendLoggingDeleteFields(ref delete_log, tabel, userId, entity);
                         }
@@ -5661,72 +5647,25 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
                     field_value_list += (field_value_list == "" ? "" : ", ") + current_fld + "=" + string.Format("{0}{1}{0}", quote, ((valore.ToString() == "") ? (string.IsNullOrEmpty(fld.convert_null_to_string) ? "null" : "'" + valore.ToString() + "'") : valore.ToString()));
 
-
                     if (fld.mc_ui_column_type == "upload")
                     {
                         _Metadati_Colonne_Upload uploader = fld as _Metadati_Colonne_Upload;
                         if (uploader.isDBUpload)
                         {
-                            if (entity[fld.mc_nome_colonna] != null)
-                            {
 
-                                bool base64Image = RawHelpers.ParseBool(ConfigHelper.GetSettingAsString("base64Image") ?? "false");
-
-                                //get path of the uploaded file
-                                string __id = entity[tabel._Metadati_Colonnes.First(x => x.mc_is_primary_key is true).mc_nome_colonna].ToString();
-                                string pth = HttpContext.Current.Server.MapPath("/Upload" + (uploader.UseRouteNameAsSubfolder ? "/" + tabel.md_route_name : "") + (uploader.UseRecordIDAsSubfolder ? "/" + __id : ""));
-                                string tmp_path = System.IO.Path.Combine(pth, entity[fld.mc_nome_colonna].ToString());
-
-                                ////append to query
-                                if (base64Image)
-                                {
-                                    string base64Converted = "";
-                                    if (entity[fld.mc_nome_colonna].ToString() != "")
-                                    {
-                                        base64Converted = Utility.ImageToBase64(tmp_path);
-
-                                    }
-                                    field_value_list += (field_value_list == "" ? "" : ", ") + uploader.MultipleUploadBlobFieldName + "='" + base64Converted + "'";
-
-                                }
-                                else
-                                {
-                                    if (!System.IO.File.Exists(tmp_path))
-                                    {
-                                        return;
-                                    }
-                                    //serialize
-                                    byte[] bytes = System.IO.File.ReadAllBytes(tmp_path);
-
-                                    ////HexFormat introduced in postgresql 9.0
-                                    string hexString = RawHelpers.convertByteToHexString(bytes);
-
-                                    ////for older version bytea Escape Format
-                                    ////use decode('...', 'hex')
-
-                                    field_value_list += (field_value_list == "" ? "" : ", ") + RawHelpers.escapeDBObjectName(uploader.MultipleUploadBlobFieldName, "mysql") + "=x'" + hexString + "'";
-
-                                    ////append to query
-                                    ////alternative like openrowset ->  http://www.sql-workbench.net/manual/using.html#blob-support
-
-                                }
-                            }
-                            else
-                                field_value_list += (field_value_list == "" ? "" : ", ") + RawHelpers.escapeDBObjectName(uploader.MultipleUploadBlobFieldName, "mysql") + "=" + "null";
+                            Utility.customizeImgDBUpdate(entity, uploader, tabel, ref field_value_list);
                         }
                     }
-
                 }
-
 
             });
 
             if (tabel.md_logging_enable)
             {
-                if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
-                {
-                    user_id = Utility.id_extraClient(ref user_id);
-                }
+                //if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
+                //{
+                //    user_id = Utility.id_extraClient(ref user_id);
+                //}
 
                 AppendLoggingUpdateFields(ref field_value_list, tabel, user_id, entity);
             }
@@ -5788,10 +5727,10 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                     string delete_log = "";
                     if (tabel.md_logging_enable)
                     {
-                        if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
-                        {
-                            user_id = Utility.id_extraClient(ref user_id);
-                        }
+                        //if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
+                        //{
+                        //    user_id = Utility.id_extraClient(ref user_id);
+                        //}
 
                         AppendLoggingDeleteFields(ref delete_log, tabel, user_id, entity);
                     }
@@ -5804,10 +5743,10 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                         string delete_log = "";
                         if (tabel.md_logging_enable)
                         {
-                            if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
-                            {
-                                user_id = Utility.id_extraClient(ref user_id);
-                            }
+                            //if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
+                            //{
+                            //    user_id = Utility.id_extraClient(ref user_id);
+                            //}
 
                             AppendLoggingDeleteFields(ref delete_log, tabel, user_id, entity);
                         }
@@ -5830,10 +5769,10 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                         string delete_log = "";
                         if (tabel.md_logging_enable)
                         {
-                            if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
-                            {
-                                user_id = Utility.id_extraClient(ref user_id);
-                            }
+                            //if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
+                            //{
+                            //    user_id = Utility.id_extraClient(ref user_id);
+                            //}
 
                             AppendLoggingDeleteFields(ref delete_log, tabel, user_id, entity);
                         }
@@ -6360,46 +6299,10 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                         _Metadati_Colonne_Upload uploader = fld as _Metadati_Colonne_Upload;
                         if (uploader.isDBUpload && (entity.ContainsKey("__guid") || entity.ContainsKey("__id")))
                         {
-                            field_list += (field_list == "" ? "" : ", ") + safetable_name + "." + RawHelpers.escapeDBObjectName(uploader.MultipleUploadBlobFieldName, "mysql");
 
-                            if (entity[fld.mc_nome_colonna] != null)
-                            {
-                                string uploadBasePath = "/" + (ConfigHelper.GetSettingAsString("uploadFolder") ?? "/upload");
-
-                                //get path of the uploaded file
-                                string __id = entity.ContainsKey("__id") ? entity["__id"].ToString() : entity["__guid"].ToString();
-                                string pth = HttpContext.Current.Server.MapPath("/Upload" + (uploader.UseRouteNameAsSubfolder ? "/" + tabel.md_route_name : "") + (uploader.UseRecordIDAsSubfolder ? "/" + __id : ""));
-
-                                string tmp_path = System.IO.Path.Combine(pth, entity[fld.mc_nome_colonna].ToString());
-
-                                //serialize
-                                byte[] bytes = System.IO.File.ReadAllBytes(tmp_path);
-
-                                ////HexFormat introduced in postgresql 9.0
-                                string hexString = RawHelpers.convertByteToHexString(bytes);
-
-                                if (base64Image)
-                                {
-                                    string base64Converted = "";
-                                    base64Converted = Utility.ImageToBase64(tmp_path);
-
-                                    value_list += (value_list == "" ? "" : ", ") + "'" + base64Converted + "'";
-
-                                }
-                                else
-                                {
-                                    //append to query
-                                    value_list += (value_list == "" ? "" : ", ") + "x'" + hexString + "'";
-                                }
-
-                                //...
-
-                            }
-                            else
-                                value_list += (value_list == "" ? "" : ", ") + "null";
+                            Utility.customizeImgDBInsert((Dictionary<string, object>)entity, uploader, tabel, safetable_name, ref field_list, ref value_list, base64Image);
                         }
                     }
-
                 }
                 else
                 {
@@ -6461,10 +6364,10 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
             if (tabel.md_logging_enable)
             {
-                if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
-                {
-                    user_id = Utility.id_extraClient(ref user_id);
-                }
+                //if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
+                //{
+                //    user_id = Utility.id_extraClient(ref user_id);
+                //}
 
                 AppendLoggingInsertFields(ref field_list, ref value_list, tabel, user_id, entity);
             }

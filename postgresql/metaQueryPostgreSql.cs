@@ -3726,10 +3726,10 @@ namespace metaModelRaw
                     string delete_log = "";
                     if (tabel.md_logging_enable)
                     {
-                        if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
-                        {
-                            user_id = Utility.id_extraClient(ref user_id);
-                        }
+                        //if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
+                        //{
+                        //    user_id = Utility.id_extraClient(ref user_id);
+                        //}
 
                         AppendLoggingDeleteFields(ref delete_log, tabel, user_id, entity);
                     }
@@ -3742,10 +3742,10 @@ namespace metaModelRaw
                         string delete_log = "";
                         if (tabel.md_logging_enable)
                         {
-                            if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
-                            {
-                                user_id = Utility.id_extraClient(ref user_id);
-                            }
+                            //if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
+                            //{
+                            //    user_id = Utility.id_extraClient(ref user_id);
+                            //}
 
                             AppendLoggingDeleteFields(ref delete_log, tabel, user_id, entity);
                         }
@@ -3768,10 +3768,10 @@ namespace metaModelRaw
                         string delete_log = "";
                         if (tabel.md_logging_enable)
                         {
-                            if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
-                            {
-                                user_id = Utility.id_extraClient(ref user_id);
-                            }
+                            //if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
+                            //{
+                            //    user_id = Utility.id_extraClient(ref user_id);
+                            //}
 
                             AppendLoggingDeleteFields(ref delete_log, tabel, user_id, entity);
                         }
