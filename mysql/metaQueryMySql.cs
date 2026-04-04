@@ -2676,6 +2676,11 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
             query = BuildDynamicUpdateQuery(entity, metadata, userId, false, isMeta);
 
+            if (string.IsNullOrEmpty(query))
+            {
+                return "";
+            }
+
             Utility.customizeUpdate(ref query, route, entity, userId);
 
             _Metadati_Tabelle tableMetadata = metadata.FirstOrDefault()._Metadati_Tabelle;
@@ -5725,7 +5730,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
             if (!tabel.md_editable)
                 throw new ValidationException("Modifica disabilitata");
 
-            if (table_name == "_metadati__colonne")
+            if (table_name == "_metadati__colonne" && entity.ContainsKey("mc_ui_column_type") && entity["mc_ui_column_type"] != null)
             {
                 string widget = entity["mc_ui_column_type"].ToString();
                 switch (widget)
@@ -6174,17 +6179,12 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                 AppendLoggingUpdateFields(ref field_value_list, tabel, user_id, entity);
             }
 
+            query = string.Format("UPDATE {0} SET {1} WHERE {2}", safetable_name, field_value_list, where);
+
             if (string.IsNullOrWhiteSpace(field_value_list))
             {
-                _Metadati_Colonne pk = metadata.FirstOrDefault(x => x.mc_is_primary_key is true);
-                if (pk != null)
-                {
-                    string safePk = EscapeDBObjectName(RawHelpers.getStoreColumnName(pk));
-                    field_value_list = safetable_name + "." + safePk + "=" + safetable_name + "." + safePk;
-                }
+                query = "";
             }
-
-            query = string.Format("UPDATE {0} SET {1} WHERE {2}", safetable_name, field_value_list, where);
 
             return query;
         }
