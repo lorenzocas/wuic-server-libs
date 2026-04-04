@@ -183,12 +183,12 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
       gridRowImports: [ButtonModule, TableModule, NgFor, NgIf, NgClass, NgStyle, FormsModule, ui.LazyDataActionButtonComponent, ui.LazyDataSourceComponent, ui.VisibleFieldListPipe, ui.CallbackPipe, ui.CallbackPipe2, ui.IsSelectedRowPipe, ui.FormatGridViewValuePipe, ui.GetSrcUploadPreviewPipe, ui.LazyFieldEditorComponent, ui.LazyImageWrapperComponent],
       dynamicFormImports: [NgFor, NgIf, ui.LazyDataActionButtonComponent, ui.LazyDataSourceComponent, ui.VisibleFieldListPipe, TableModule, ButtonModule, ui.LazyFieldEditorComponent],
       //      gridRowTemplate: `
-      //     <td *ngIf="metaInfo.tableMetadata.md_nested_grid_routes">
+      //     <td *ngIf="metaInfo.tableMetadata.md_nested_grid_routes" pFrozenColumn [frozen]="true" alignFrozen="left">
       //        <button type="button" class="p-button p-button-text p-button-rounded p-button-sm p-0" [pRowToggler]="rowData" [attr.aria-label]="'Espandi riga'">
       //          <i class="pi" [ngClass]="{'pi-chevron-down': expanded, 'pi-chevron-right': !expanded }"></i>
       //        </button>
       //     </td>
-      //     <td *ngIf="metaInfo.tableMetadata.md_multiple_selection">
+      //     <td *ngIf="metaInfo.tableMetadata.md_multiple_selection" pFrozenColumn [frozen]="true" alignFrozen="left">
       //      <input class="p-checkbox-box" type="checkbox" style="margin-left: 15px" (click)="rowSelect(rowData, $event, dt)" [checked]="dt.selection | isSelectedRow : rowData : metaInfo" [attr.aria-label]="'Seleziona riga'" />
       //     </td>
       //     <td *ngIf="metaInfo.tableMetadata.md_editable || metaInfo.tableMetadata.md_deletable || metaInfo.tableMetadata.md_detail_action || metaInfo.tableMetadata.md_clonable || metaInfo.tableMetadata.md_inline_edit">
