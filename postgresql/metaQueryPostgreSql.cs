@@ -3069,10 +3069,10 @@ FROM {fromTable}
 
                     dynamic extraProps = RawHelpers.deserialize(fld.mc_props_bag, null);
                     dynamic mapProps = null;
-                    if (extraProps != null)
-                    {
-                        mapProps = extraProps.mapProperties;
-                    }
+                    // if (extraProps != null)
+                    // {
+                    //     mapProps = extraProps.mapProperties;
+                    // }
 
                     string lat = "";
                     string lng = "";
@@ -3134,10 +3134,10 @@ FROM {fromTable}
                 {
                     dynamic extraProps = RawHelpers.deserialize(fld.mc_props_bag, null);
                     dynamic mapProps = null;
-                    if (extraProps != null)
-                    {
-                        mapProps = extraProps.mapProperties;
-                    }
+                    // if (extraProps != null)
+                    // {
+                    //     mapProps = extraProps.mapProperties;
+                    // }
 
                     string lat = "";
                     string lng = "";

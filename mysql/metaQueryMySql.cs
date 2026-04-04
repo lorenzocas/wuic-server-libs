@@ -4365,18 +4365,18 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                     string lon_field = "";
 
                     dynamic mapProps = null;
-                    if (!string.IsNullOrEmpty(fld.mc_props_bag))
-                    {
-                        dynamic extraProps = RawHelpers.deserialize(fld.mc_props_bag, null);
-                        if (extraProps != null)
-                        {
-                            mapProps = extraProps.mapProperties;
-                        }
-                    }
+                    // if (!string.IsNullOrEmpty(fld.mc_props_bag))
+                    // {
+                    //     dynamic extraProps = RawHelpers.deserialize(fld.mc_props_bag, null);
+                    //     if (extraProps != null)
+                    //     {
+                    //         mapProps = extraProps.mapProperties;
+                    //     }
+                    // }
 
                     bool singleGeography = false;
 
-                    if ((mapProps != null && mapProps.map_type == "point") || fld.mc_db_column_type == "point")
+                    if (fld.mc_ui_column_type == "point")
                     {
                         singleGeography = true;
                         lat_field = string.Format("X({0})", fld.mc_nome_colonna);
@@ -4426,14 +4426,14 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                 else if (realOperator == "mapdistance")
                 {
                     dynamic mapProps = null;
-                    if (!string.IsNullOrEmpty(fld.mc_props_bag))
-                    {
-                        dynamic extraProps = RawHelpers.deserialize(fld.mc_props_bag, null);
-                        if (extraProps != null)
-                        {
-                            mapProps = extraProps.mapProperties;
-                        }
-                    }
+                    // if (!string.IsNullOrEmpty(fld.mc_props_bag))
+                    // {
+                    //     dynamic extraProps = RawHelpers.deserialize(fld.mc_props_bag, null);
+                    //     if (extraProps != null)
+                    //     {
+                    //         mapProps = extraProps.mapProperties;
+                    //     }
+                    // }
 
                     string lat = "";
                     string lng = "";
