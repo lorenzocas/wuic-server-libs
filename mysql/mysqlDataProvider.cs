@@ -11,9 +11,39 @@ using MySql.Data.MySqlClient;
 using metaModelRaw;
 using ngUicOrm.metaModel;
 using WEB_UI_CRAFTER.Helpers;
+using WuicCore.Services.Licensing;
 
 public class mysqlDataProvider : IMetaQuery
 {
+    private const int UnlicensedMaxRecords = 20;
+
+    private static void ApplyUnlicensedRequestCap(PageInfo pageInfo)
+    {
+        if (pageInfo == null)
+            return;
+
+        pageInfo.pageSize = UnlicensedMaxRecords;
+        pageInfo.currentPage = Math.Max(pageInfo.currentPage, 1);
+    }
+
+    private static void ApplyUnlicensedResultCap(rawPagedResult pr, LicenseEvaluationResult licenseEvaluation, string operation, string routeOrStored)
+    {
+        if (pr == null)
+            return;
+
+        pr.licenseLimited = true;
+        pr.licenseLimitReason = licenseEvaluation?.Reason ?? "license_invalid";
+        if (pr.results != null && pr.results.Count > UnlicensedMaxRecords)
+            pr.results = pr.results.Take(UnlicensedMaxRecords).ToList();
+
+        pr.TotalRecords = Math.Min(pr.TotalRecords, UnlicensedMaxRecords);
+        pr.cursorMode = false;
+        pr.nextPageCursor = null;
+        pr.prevPageCursor = null;
+
+        LicenseRuntime.Service.TryLogInvalidLicenseWarning(licenseEvaluation, operation, routeOrStored);
+    }
+
     public void logOut(user user) => metaQueryMySql.logOut(user);
 
     public void logOutForce()
@@ -202,7 +232,17 @@ public class mysqlDataProvider : IMetaQuery
         string extraFields = "",
         SerializableDictionary<string, object> currentRecord = null)
     {
-        return metaQueryMySql.GetFlatData(user_id, route, lookup_table_id, SortInfo, GroupInfo, PageInfo, filterInfo, logicOperator, has_server_operation, aggregates, columnRestrictionLists, formula_lookup, mc_id, skipNested);
+        LicenseEvaluationResult licenseEvaluation = LicenseRuntime.Service.Evaluate();
+        bool enforceUnlicensedCap = licenseEvaluation == null || !licenseEvaluation.IsValid;
+        if (enforceUnlicensedCap)
+            ApplyUnlicensedRequestCap(PageInfo);
+
+        rawPagedResult result = metaQueryMySql.GetFlatData(user_id, route, lookup_table_id, SortInfo, GroupInfo, PageInfo, filterInfo, logicOperator, has_server_operation, aggregates, columnRestrictionLists, formula_lookup, mc_id, skipNested);
+
+        if (enforceUnlicensedCap)
+            ApplyUnlicensedResultCap(result, licenseEvaluation, "MySqlProvider.GetFlatData", route);
+
+        return result;
     }
 
     public string UpdateflatData(Dictionary<string, object> entity, string route, string userId, DbConnection conn = null, IDbTransaction trn = null)
@@ -245,7 +285,17 @@ public class mysqlDataProvider : IMetaQuery
         bool skipExtraParams = false,
         bool noResults = false)
     {
-        return metaQueryMySql.GetFlatDataFromStored(user_id, stored, parameters, __pageIndex, __pageSize, __sortField, __sortDir, skipExtraParams, noResults);
+        LicenseEvaluationResult licenseEvaluation = LicenseRuntime.Service.Evaluate();
+        bool enforceUnlicensedCap = licenseEvaluation == null || !licenseEvaluation.IsValid;
+        if (enforceUnlicensedCap && __pageSize > 0 && __pageSize > UnlicensedMaxRecords)
+            __pageSize = UnlicensedMaxRecords;
+
+        rawPagedResult result = metaQueryMySql.GetFlatDataFromStored(user_id, stored, parameters, __pageIndex, __pageSize, __sortField, __sortDir, skipExtraParams, noResults);
+
+        if (enforceUnlicensedCap)
+            ApplyUnlicensedResultCap(result, licenseEvaluation, "MySqlProvider.GetFlatDataFromStored", stored);
+
+        return result;
     }
 
     public string CloneData(IDictionary<string, object> entity, string route, string user_id, List<routePair> relatedRouteToClone)

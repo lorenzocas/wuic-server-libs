@@ -73,10 +73,18 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     { label: 'Oracle', value: 'oracle' },
     { label: 'PostgreSQL', value: 'postgres' }
   ];
+  firstRunSetupModeOptions = [
+    { label: 'DB esistente', value: 'existing' },
+    { label: 'Tutorial WideWorldImporters', value: 'tutorial' }
+  ];
   firstRunForm = {
+    setupMode: 'existing',
+    createTutorialIfMissing: true,
     dbms: 'mssql',
     dataConnectionString: '',
     dataDbName: '',
+    tutorialDataDbName: 'WideWorldImporters',
+    tutorialMetadataDbName: 'MetadataCRM',
     metadataDbName: 'metadataDB'
   };
   firstRunDataDbOptions: { label: string; value: string }[] = [];
@@ -381,7 +389,17 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
 
     const dbms = this.normalizeDbms(this.firstRunForm.dbms);
     const conn = this.parseConnectionString(this.firstRunForm.dataConnectionString || '');
-    const selectedDataDbName = String(this.firstRunForm.dataDbName || conn.databaseName || '').trim();
+    const isTutorialMode = this.firstRunForm.setupMode === 'tutorial';
+    const selectedDataDbName = String(
+      isTutorialMode
+        ? (this.firstRunForm.tutorialDataDbName || this.firstRunForm.dataDbName || conn.databaseName || 'WideWorldImporters')
+        : (this.firstRunForm.dataDbName || conn.databaseName || '')
+    ).trim();
+    const selectedMetadataDbName = String(
+      isTutorialMode
+        ? (this.firstRunForm.tutorialMetadataDbName || this.firstRunForm.metadataDbName || 'MetadataCRM')
+        : (this.firstRunForm.metadataDbName || 'metadataDB')
+    ).trim();
     if (!conn.userId || !conn.password) {
       this.firstRunError = 'Stringa DataSQLConnection non valida: servono almeno user e password.';
       return;
@@ -427,7 +445,7 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
         rdbDBMSMeta: dbms,
         conn_datasource_meta: conn.dataSource,
         portMeta: conn.port,
-        conn_metadata_db_name: (this.firstRunForm.metadataDbName || 'metadataDB').trim(),
+        conn_metadata_db_name: selectedMetadataDbName,
         conn_user_id_meta: conn.userId,
         conn_password_meta: conn.password,
         psqlPath: '',
@@ -438,7 +456,11 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
         email_username: '',
         email_password: '',
         realPath,
-        confirmDropExistingMetadataDb: confirmDropExistingMetadataDb ? 'true' : 'false'
+        confirmDropExistingMetadataDb: confirmDropExistingMetadataDb ? 'true' : 'false',
+        enableTutorialDbProvisioning: (isTutorialMode && this.firstRunForm.createTutorialIfMissing) ? 'true' : 'false',
+        tutorialDataDbName: isTutorialMode ? selectedDataDbName : '',
+        tutorialMetadataDbName: isTutorialMode ? selectedMetadataDbName : '',
+        scaffoldTutorialDatabase: isTutorialMode ? 'true' : 'false'
       }));
 
       this.showFirstRunInstall = false;
@@ -451,8 +473,21 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
       this.firstRunError = this.extractErrorMessage(error);
 
       if (!confirmDropExistingMetadataDb && this.firstRunError.includes('METADATA_DB_EXISTS_CONFIRM_REQUIRED')) {
-        const metadataDbName = (this.firstRunForm.metadataDbName || 'metadataDB').trim();
-        const confirmDrop = globalThis.confirm(`Il database metadati '${metadataDbName}' esiste gia. Vuoi eliminarlo e ricrearlo?`);
+        const metadataDbName = selectedMetadataDbName || 'metadataDB';
+        const promptResult = await WtoolboxService.promptDialog('Conferma ricreazione metadata DB', [
+          {
+            name: 'confirmDrop',
+            caption: `Il database metadati '${metadataDbName}' esiste già. Vuoi eliminarlo e ricrearlo?`,
+            type: 'dictionary_radio',
+            value: 'no',
+            required: true,
+            dictionaryData: [
+              { label: 'No', value: 'no' },
+              { label: 'Sì', value: 'yes' }
+            ]
+          }
+        ], '620px');
+        const confirmDrop = String(promptResult?.confirmDrop || 'no').toLowerCase() === 'yes';
         if (confirmDrop) {
           await this.submitFirstRunInstallInternal(true);
           return;
@@ -590,6 +625,7 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     // During first-run the user is not authenticated yet, so avoid admin-only APIs (MetaService.getConnections).
     const fallbackConn = String(settings['connection'] || '').trim();
     const fallbackDb = String(settings['DataDBName'] || settings['datadbname'] || '').trim();
+    const fallbackMetaDb = String(settings['metaDataDBName'] || settings['metadataDbName'] || settings['MetaDataDBName'] || this.firstRunForm.metadataDbName || 'MetadataCRM').trim();
     if (fallbackConn && fallbackDb && !/initial\s+catalog\s*=|database\s*=|dbq\s*=/i.test(fallbackConn)) {
       this.firstRunForm.dataConnectionString = `${fallbackConn};initial catalog=${fallbackDb}`;
     } else {
@@ -598,6 +634,9 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
 
     const parsed = this.parseConnectionString(this.firstRunForm.dataConnectionString || '');
     this.firstRunForm.dataDbName = parsed.databaseName || fallbackDb || '';
+    this.firstRunForm.metadataDbName = fallbackMetaDb || this.firstRunForm.metadataDbName || 'MetadataCRM';
+    this.firstRunForm.tutorialDataDbName = this.firstRunForm.dataDbName || 'WideWorldImporters';
+    this.firstRunForm.tutorialMetadataDbName = String(this.firstRunForm.metadataDbName || 'MetadataCRM').trim() || 'MetadataCRM';
   }
 
   onFirstRunConnectionChanged(value: string): void {
@@ -606,6 +645,17 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     this.firstRunForm.dataDbName = parsed.databaseName || '';
     this.firstRunDataDbOptions = [];
     this.firstRunConnectionValid = false;
+  }
+
+  onFirstRunSetupModeChanged(value: string): void {
+    const mode = String(value || '').trim().toLowerCase() === 'tutorial' ? 'tutorial' : 'existing';
+    this.firstRunForm.setupMode = mode;
+    if (mode === 'tutorial') {
+      this.firstRunForm.tutorialDataDbName = String(this.firstRunForm.tutorialDataDbName || 'WideWorldImporters').trim();
+      this.firstRunForm.tutorialMetadataDbName = String(this.firstRunForm.tutorialMetadataDbName || this.firstRunForm.metadataDbName || 'MetadataCRM').trim();
+      this.firstRunForm.dataDbName = this.firstRunForm.tutorialDataDbName;
+      this.firstRunForm.metadataDbName = this.firstRunForm.tutorialMetadataDbName;
+    }
   }
 
   onFirstRunDbmsChanged(value: string): void {

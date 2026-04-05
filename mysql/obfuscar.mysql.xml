@@ -1,0 +1,18 @@
+<?xml version='1.0'?>
+<Obfuscator>
+  <Var name="InPath" value="..\mysql\bin\Release\net10.0" />
+  <Var name="OutPath" value="..\mysql\bin\Release\net10.0-obfuscated" />
+  <Var name="ExtraFrameworkFolders" value="C:\Program Files\dotnet\packs\Microsoft.AspNetCore.App.Ref\10.0.4\ref\net10.0;C:\Program Files\dotnet\packs\Microsoft.NETCore.App.Ref\10.0.4\ref\net10.0;C:\Program Files\dotnet\packs\Microsoft.WindowsDesktop.App.Ref\10.0.4\ref\net10.0" />
+
+  <Var name="KeepPublicApi" value="true" />
+  <Var name="HidePrivateApi" value="true" />
+  <Var name="RenameProperties" value="false" />
+  <Var name="RenameEvents" value="false" />
+  <Var name="RenameFields" value="false" />
+  <Var name="UseUnicodeNames" value="false" />
+  <Var name="HideStrings" value="false" />
+  <Var name="OptimizeMethods" value="true" />
+  <Var name="SuppressIldasm" value="true" />
+
+  <Module file="$(InPath)\mysql.dll" />
+</Obfuscator>

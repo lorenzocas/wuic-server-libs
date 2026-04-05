@@ -6,6 +6,15 @@
     <Nullable>disable</Nullable>
     <EnableNETAnalyzers>false</EnableNETAnalyzers>
     <WarningLevel>0</WarningLevel>
+    <IsPackable>true</IsPackable>
+    <PackageId>Wuic.MySqlProvider</PackageId>
+    <Version>1.0.1</Version>
+    <Authors>Wuic</Authors>
+    <Description>Wuic MySQL provider for metadata/data runtime.</Description>
+    <EnableObfuscationOnPack Condition="'$(EnableObfuscationOnPack)' == ''">true</EnableObfuscationOnPack>
+    <ObfuscarConfigFile>$(MSBuildProjectDirectory)\obfuscar.mysql.xml</ObfuscarConfigFile>
+    <ObfuscatedOutputDirectory>$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)-obfuscated</ObfuscatedOutputDirectory>
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);UseObfuscatedBuildOutput</TargetsForTfmSpecificBuildOutput>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,5 +26,22 @@
     <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="8.0.1" />
     <PackageReference Include="System.Security.Cryptography.Xml" Version="8.0.2" />
   </ItemGroup>
+
+  <Target Name="ObfuscateBeforePack" BeforeTargets="Pack" Condition="'$(EnableObfuscationOnPack)' == 'true' and '$(Configuration)' == 'Release'">
+    <Message Text="Running Obfuscar for mysql provider before NuGet pack..." Importance="high" />
+    <Exec Command="dotnet tool restore" WorkingDirectory="$(MSBuildProjectDirectory)\..\KonvergenceCore" />
+    <Exec Command="dotnet tool run obfuscar.console &quot;$(ObfuscarConfigFile)&quot;" WorkingDirectory="$(MSBuildProjectDirectory)\..\KonvergenceCore" />
+    <Error Condition="!Exists('$(ObfuscatedOutputDirectory)\$(AssemblyName).dll')" Text="Obfuscated assembly not found at $(ObfuscatedOutputDirectory)\$(AssemblyName).dll" />
+    <Copy SourceFiles="$(ObfuscatedOutputDirectory)\$(AssemblyName).dll" DestinationFiles="$(TargetDir)$(AssemblyName).dll" OverwriteReadOnlyFiles="true" />
+  </Target>
+
+  <Target Name="UseObfuscatedBuildOutput" DependsOnTargets="ObfuscateBeforePack" Condition="'$(EnableObfuscationOnPack)' == 'true' and '$(Configuration)' == 'Release'">
+    <ItemGroup>
+      <BuildOutputInPackage Remove="$(TargetDir)$(AssemblyName).dll" />
+      <BuildOutputInPackage Include="$(ObfuscatedOutputDirectory)\$(AssemblyName).dll">
+        <TargetPath>$(AssemblyName).dll</TargetPath>
+      </BuildOutputInPackage>
+    </ItemGroup>
+  </Target>
 
 </Project>
