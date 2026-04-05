@@ -1,0 +1,49 @@
+{
+  "href": "http://localhost:4200/#/cities-data-repeater-events",
+  "viewportH": 1080,
+  "pageRoot": {
+    "x": 8,
+    "y": 48.40625,
+    "width": 1904,
+    "height": 1031.59375,
+    "top": 48.40625,
+    "right": 1912,
+    "bottom": 1080,
+    "left": 8
+  },
+  "repeaterShell": {
+    "x": 8,
+    "y": 154.84375,
+    "width": 1904,
+    "height": 619.15625,
+    "top": 154.84375,
+    "right": 1912,
+    "bottom": 774,
+    "left": 8
+  },
+  "eventsPanel": {
+    "x": 8,
+    "y": 784,
+    "width": 1904,
+    "height": 296,
+    "top": 784,
+    "right": 1912,
+    "bottom": 1080,
+    "left": 8
+  },
+  "paginator": {
+    "x": 9,
+    "y": 716,
+    "width": 1902,
+    "height": 57,
+    "top": 716,
+    "right": 1911,
+    "bottom": 773,
+    "left": 9
+  },
+  "footerSum": null,
+  "detailsOpen": true,
+  "shellRatio": 0.6001938747690164,
+  "eventsBottomOk": true,
+  "paginatorVisible": true
+}

@@ -6,7 +6,7 @@
       <label for="actionSelect">Action:</label>
       <select id="actionSelect" [value]="selectedAction" (change)="onActionSelectChange($event)">
         @for (action of actionOptions; track action) {
-          <option [value]="action">{{ action }}</option>
+        <option [value]="action">{{ action }}</option>
         }
       </select>
     </div>
@@ -15,18 +15,18 @@
   <wuic-data-source #citiesDs [hardcodedRoute]="'cities'" [autoload]="true"></wuic-data-source>
 
   <div class="repeater-shell">
-    <wuic-data-repeater
-      [hardcodedDatasource]="citiesDs"
-      [action]="action$">
+    <wuic-data-repeater [hardcodedDatasource]="citiesDs" [hardcodedAction]="'list'" [fillHeight]="true">
     </wuic-data-repeater>
   </div>
 
-  <div class="events-panel">
-    <h4>Event log</h4>
-    <ul>
-      @for (line of eventLog; track $index) {
+  <details class="events-panel">
+    <summary>Event log ({{ eventLog.length }})</summary>
+    <div class="events-scroll">
+      <ul>
+        @for (line of eventLog; track $index) {
         <li>{{ line }}</li>
-      }
-    </ul>
-  </div>
+        }
+      </ul>
+    </div>
+  </details>
 </div>

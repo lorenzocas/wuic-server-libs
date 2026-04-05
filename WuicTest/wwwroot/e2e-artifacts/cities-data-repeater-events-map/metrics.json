@@ -1,0 +1,52 @@
+{
+  "href": "http://localhost:4200/#/cities-data-repeater-events",
+  "viewportH": 1080,
+  "detailsOpen": true,
+  "repeaterHostClass": "wuic-data-repeater-fill-height",
+  "shell": {
+    "x": 8,
+    "y": 154.84375,
+    "width": 1904,
+    "height": 619.15625,
+    "top": 154.84375,
+    "right": 1912,
+    "bottom": 774,
+    "left": 8
+  },
+  "mapRoot": {
+    "x": 9,
+    "y": 155.84375,
+    "width": 1902,
+    "height": 200,
+    "top": 155.84375,
+    "right": 1911,
+    "bottom": 355.84375,
+    "left": 9
+  },
+  "mapRootInlineHeight": "",
+  "mapRootComputedHeight": "200px",
+  "mapRootComputedMaxHeight": "none",
+  "googleMap": {
+    "x": 9,
+    "y": 155.84375,
+    "width": 1902,
+    "height": 200,
+    "top": 155.84375,
+    "right": 1911,
+    "bottom": 355.84375,
+    "left": 9
+  },
+  "eventsPanel": {
+    "x": 8,
+    "y": 784,
+    "width": 1904,
+    "height": 296,
+    "top": 784,
+    "right": 1912,
+    "bottom": 1080,
+    "left": 8
+  },
+  "mapInShell": true,
+  "mapVisible": true,
+  "eventsBottomOk": true
+}
