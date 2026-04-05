@@ -1,7 +1,7 @@
 import { Component, Input, OnDestroy } from '@angular/core';
 import { BehaviorSubject, Subscription } from 'rxjs';
 import { Title } from '@angular/platform-browser';
-import type { DataSourceComponent } from 'wuic-framework-lib-src/component/data-source/data-source.component';
+import { DataSourceAfterSyncEvent, DataSourceBeforeSyncEvent, DataSourceComponent, IDataBoundHostComponent } from 'wuic-framework-lib';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -10,7 +10,7 @@ import { CommonModule } from '@angular/common';
   templateUrl: './custom-list.component.html',
   styleUrl: './custom-list.component.css'
 })
-export class CustomListComponent implements OnDestroy {
+export class CustomListComponent implements OnDestroy, IDataBoundHostComponent {
 
   @Input() hardcodedRoute: string = '';
   @Input() datasource: BehaviorSubject<DataSourceComponent> = null as any;
@@ -25,11 +25,10 @@ export class CustomListComponent implements OnDestroy {
   loading: boolean = false;
   pageIndex: number = 0;
   initCompleted: boolean = false;
+  datasourceReadySubscription?: Subscription;
+  fetchInfoSubscription?: Subscription;
 
-  private datasourceReadySubscription?: Subscription;
-  private fetchInfoSubscription?: Subscription;
-
-  constructor(private titleService: Title) {}
+  constructor(private titleService: Title) { }
 
   async ngOnInit() {
     if (this.hardcodedDatasource) {
@@ -41,25 +40,96 @@ export class CustomListComponent implements OnDestroy {
   }
 
   async subscribeToDS() {
-    const self = this;
-
+    this.datasourceReadySubscription?.unsubscribe();
     this.fetchInfoSubscription?.unsubscribe();
-    this.fetchInfoSubscription = self.datasource.value.fetchInfo.subscribe(async (info) => {
-      if (!info) {
+
+    this.datasourceReadySubscription = this.datasource?.subscribe((ds) => {
+      if (!ds) {
         return;
       }
 
-      self.metaInfo = info.metaInfo;
+      void this.onDatasourceReady?.(ds);
 
-      if (!self.initCompleted) {
-        const title = self.metaInfo.tableMetadata.md_display_string;
-        self.titleService.setTitle(title);
-        await self.datasource.value.fetchData();
-        self.initCompleted = true;
-      } else {
-        self.records = self.parseData(info.resultInfo.dato);
-      }
+      this.fetchInfoSubscription?.unsubscribe();
+      this.fetchInfoSubscription = new Subscription();
+
+      this.fetchInfoSubscription.add(
+        ds.fetchInfo$.subscribe((info: any) => {
+          if (!info) {
+            return;
+          }
+
+          void this.onFetchInfo?.(info);
+        })
+      );
+
+      this.fetchInfoSubscription.add(
+        ds.afterFirstLoad$?.subscribe((payload: any) => {
+          if (!payload) {
+            return;
+          }
+
+          void this.onAfterFirstLoad?.();
+        })
+      );
+
+      this.fetchInfoSubscription.add(
+        ds.beforeSync$.subscribe((event: DataSourceBeforeSyncEvent) => {
+          if (!event) {
+            return;
+          }
+
+          void this.onBeforeSync?.(event);
+        })
+      );
+
+      this.fetchInfoSubscription.add(
+        ds.afterSync$.subscribe((event: DataSourceAfterSyncEvent) => {
+          if (!event) {
+            return;
+          }
+
+          void this.onAfterSync?.(event);
+        })
+      );
     });
+  }
+
+  async onDatasourceReady(_datasource: DataSourceComponent) {
+    this.initCompleted = false;
+  }
+
+  async onFetchInfo(info: any) {
+    if (!info) {
+      return;
+    }
+
+    this.metaInfo = info.metaInfo;
+
+    if (!this.initCompleted) {
+      const title = this.metaInfo?.tableMetadata?.md_display_string || '';
+      if (title) {
+        this.titleService.setTitle(title);
+      }
+
+      await this.datasource.value.fetchData();
+      this.initCompleted = true;
+      return;
+    }
+
+    this.records = this.parseData(info.resultInfo?.dato || []);
+  }
+
+  onAfterFirstLoad() {
+    // Hook opzionale: pronto per eventuale logica post-primo-load.
+  }
+
+  onBeforeSync(event: DataSourceBeforeSyncEvent) {
+    // Esempio: per bloccare una sync, chiamare event.cancelSync('motivo').
+  }
+
+  onAfterSync(_event: DataSourceAfterSyncEvent) {
+    // Hook opzionale post-sync.
   }
 
   ngOnDestroy(): void {
@@ -161,3 +231,5 @@ export class CustomListComponent implements OnDestroy {
     return data;
   }
 }
+
+

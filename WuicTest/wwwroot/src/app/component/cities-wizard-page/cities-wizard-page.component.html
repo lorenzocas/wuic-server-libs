@@ -1,0 +1,5 @@
+<div class="cities-wizard-page">
+  <wuic-data-source #citiesDs [hardcodedRoute]="'cities'" [autoload]="true"></wuic-data-source>
+
+  <wuic-parametric-dialog #citiesWizard [hardcodedDatasource]="citiesDs" [isWizard]="true"></wuic-parametric-dialog>
+</div>

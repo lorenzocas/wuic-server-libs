@@ -263,7 +263,7 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     // // Example of editor widget registration:
     // MetadataProviderService.widgetMap['my-text'] = { component: CustomTextFieldComponent };
 
-    //Example of custom designer component and tool registration:
+    //Example of custom designer bindable-component and tool registration:
     MetadataProviderService.customDesignerComponents = [CustomListComponent]
     MetadataProviderService.customDesignerTools = [
       {

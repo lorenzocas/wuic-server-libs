@@ -2,10 +2,7 @@ import { AsyncPipe, CommonModule, NgClass, NgStyle } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AfterViewInit, Component, Input } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
-import { MetaInfo } from 'wuic-framework-lib-src/class/metaInfo';
-import { ValidationRule } from 'wuic-framework-lib-src/class/validationRule';
-import { IFieldEditor } from 'wuic-framework-lib-src/class/IFieldEditor';
-import { MetadatiColonna, WtoolboxService } from 'src/app/wuic-bridges/core';
+import { MetaInfo, ValidationRule, IFieldEditor, MetadatiColonna, WtoolboxService } from 'wuic-framework-lib';
 import { InputTextModule } from 'primeng/inputtext';
 
 
@@ -21,11 +18,11 @@ export class CustomTextFieldComponent implements IFieldEditor, AfterViewInit {
   /**
    * Input dal componente padre per record; usata nella configurazione e nel rendering del componente.
    */
-  @Input() record: { [key: string]: BehaviorSubject<any> };
+  @Input() record!: { [key: string]: BehaviorSubject<any> };
   /**
    * Input dal componente padre per field; usata nella configurazione e nel rendering del componente.
    */
-  @Input() field: MetadatiColonna;
+  @Input() field!: MetadatiColonna;
   /**
    * Input dal componente padre per meta info; usata nella configurazione e nel rendering del componente.
    */
@@ -37,15 +34,15 @@ export class CustomTextFieldComponent implements IFieldEditor, AfterViewInit {
   /**
    * Input dal componente padre per nested index; usata nella configurazione e nel rendering del componente.
    */
-  @Input() nestedIndex: number;
+  @Input() nestedIndex!: number;
   /**
    * Input dal componente padre per trigger prop; usata nella configurazione e nel rendering del componente.
    */
-  @Input() triggerProp: BehaviorSubject<any>;
+  @Input() triggerProp!: BehaviorSubject<any>;
   /**
    * Input dal componente padre per read only; usata nella configurazione e nel rendering del componente.
    */
-  @Input() readOnly: boolean;
+  @Input() readOnly!: boolean;
 
   /**
    * Proprieta di stato del componente per valore, usata dalla logica interna e dal template.
@@ -82,8 +79,9 @@ export class CustomTextFieldComponent implements IFieldEditor, AfterViewInit {
 * Gestisce la logica di `modelChangeFn` con regole guidate dai metadati server `_Metadati_*` (tabella/colonna), propagando aggiornamenti sui campi reattivi usati dalla UI.
 * @param $event Evento UI/payload evento che innesca la logica del metodo.
 */
-  async modelChangeFn($event) {
-    var newValue = $event.target.value;
+  async modelChangeFn($event: Event) {
+    const target = $event.target as HTMLInputElement | null;
+    const newValue = target?.value ?? '';
 
     this.record[this.field.mc_nome_colonna].next(newValue);
 
@@ -100,7 +98,7 @@ export class CustomTextFieldComponent implements IFieldEditor, AfterViewInit {
 * Gestisce la logica di `beforeChange` con regole guidate dai metadati server `_Metadati_*` (tabella/colonna).
 * @param $event Evento UI/payload evento che innesca la logica del metodo.
 */
-  beforeChange($event) {
+  beforeChange($event: KeyboardEvent) {
     if ($event.key != "Shift" && $event.key != "Control" && $event.key != "Alt" && $event.key != "ArrowLeft" && $event.key != "ArrowRight" && $event.key != "ArrowUp" && $event.key != "ArrowDown" && $event.key != "CapsLock" && $event.key != "Tab" && $event.key != "Enter" && $event.key != "Escape" && $event.key != "Delete" && $event.key != "End" && $event.key != "Home" && $event.key != "PageUp" && $event.key != "PageDown") {
       // debugger;
       // $event.preventDefault();
@@ -123,3 +121,7 @@ export class CustomTextFieldComponent implements IFieldEditor, AfterViewInit {
   }
 
 }
+
+
+
+

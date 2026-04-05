@@ -1,0 +1,5 @@
+<div class="cities-scheduler-page">
+  <wuic-data-source #citiesDs [hardcodedRoute]="'cities'" [autoload]="true"></wuic-data-source>
+
+  <wuic-scheduler-list #citiesScheduler [hardcodedDatasource]="citiesDs"></wuic-scheduler-list>
+</div>

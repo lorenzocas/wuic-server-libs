@@ -1,53 +1,56 @@
 {
-	"folders": [
-		{
-			"path": "KonvergenceCore"
-		},
-		{
-			"path": "RuntimeEfCore"
-		},
-		{
-			"path": "Wuic.Webcore"
-		},
-		{
-			"path": "WuicOData"
-		},
-		{
-			"path": "postgresql"
-		},
-		{
-			"path": "oracle"
-		},
-		{
-			"path": "mysql"
-		},
-		{
-			"path": "CrmApp"
-		},
-		{
-			"path": "codebase_docs"
-		},
-		{
-			"path": "codebase_embeddings"
-		},
-		{
-			"path": "WuicTest"
-		}
-	],
-	"settings": {
-		"search.exclude": {
-			"**/lib-src/**": true
-		},
-		"CodeGPT.apiKey": "Claude Code",
-		"powershell.cwd": "KonvergenceCore",
-		"sarif-viewer.connectToGithubCodeScanning": "off",
-		"semgrep.scan.configuration": [
-			"p/csharp",
-			"p/typescript"
-		],
-		"semgrep.scan.onlyGitDirty": false,
-		"semgrep.scan.secrets": false,
-		"chatgpt.openOnStartup": true,
-		"chat.imageCarousel.enabled": true
-	}
+  "folders": [
+    {
+      "path": "KonvergenceCore"
+    },
+    {
+      "path": "RuntimeEfCore"
+    },
+    {
+      "path": "Wuic.Webcore"
+    },
+    {
+      "path": "WuicOData"
+    },
+    {
+      "path": "postgresql"
+    },
+    {
+      "path": "oracle"
+    },
+    {
+      "path": "mysql"
+    },
+    {
+      "path": "CrmApp"
+    },
+    {
+      "path": "codebase_docs"
+    },
+    {
+      "path": "codebase_embeddings"
+    },
+    {
+      "path": "WuicTest"
+    }
+  ],
+  "settings": {
+    "search.exclude": {
+      "**/lib-src/**": true
+    },
+    "CodeGPT.apiKey": "Claude Code",
+    "powershell.cwd": "KonvergenceCore",
+    "sarif-viewer.connectToGithubCodeScanning": "off",
+    "semgrep.scan.configuration": [
+      "p/csharp",
+      "p/typescript"
+    ],
+    "semgrep.scan.onlyGitDirty": false,
+    "semgrep.scan.secrets": false,
+    "chatgpt.openOnStartup": true,
+    "chat.imageCarousel.enabled": true,
+    "typescript.tsdk": "WuicTest/wwwroot/node_modules/typescript/lib",
+    "typescript.enablePromptUseWorkspaceTsdk": true,
+    "js/ts.tsdk.path": "WuicTest/wwwroot/node_modules/typescript/lib"
+  }
 }

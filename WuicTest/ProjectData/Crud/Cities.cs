@@ -5,6 +5,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using metaModelRaw;
 using WEB_UI_CRAFTER.Helpers;
+using WEB_UI_CRAFTER.ProjectData.Servizi;
 
 namespace WEB_UI_CRAFTER.ProjectData.Crud;
 
@@ -25,45 +26,78 @@ public class Cities : ICrudRouteHandler
     public void Initialize(IServiceProvider? serviceProvider)
     {
         // opzionale: inizializzazione risorse/servizi
+
+        var ctx = Utility.GetCurrentCrudHookContext();
+
+        string ctxRoute = ctx?.route ?? "";
     }
 
     public void OnError(string hookName, Exception exception)
     {
         // opzionale: logging custom per hook route-level
+
+        var ctx = Utility.GetCurrentCrudHookContext();
+
+        string ctxRoute = ctx?.route ?? "";
     }
 
     public void beforeInsert(string route, Dictionary<string, object> entity, string userId)
     {
         // Esempio:
         // entity["created_by"] = userId;
+
+        var ctx = Utility.GetCurrentCrudHookContext();
+
+        string ctxRoute = ctx?.route ?? "";
     }
 
     public void beforeUpdate(string route, Dictionary<string, object> entity, string userId)
     {
+        var ctx = Utility.GetCurrentCrudHookContext();
+
+        string ctxRoute = ctx?.route ?? "";
     }
 
     public void beforeDelete(string route, Dictionary<string, object> entity, string userId)
     {
+        var ctx = Utility.GetCurrentCrudHookContext();
+
+        string ctxRoute = ctx?.route ?? "";
     }
 
     public void beforeRestore(string route, Dictionary<string, object> entity, string userId)
     {
+        var ctx = Utility.GetCurrentCrudHookContext();
+
+        string ctxRoute = ctx?.route ?? "";
     }
 
     public void customizeInsert(ref string query, string route, Dictionary<string, object> entity, string userId)
     {
+        var ctx = Utility.GetCurrentCrudHookContext();
+
+        string ctxRoute = ctx?.route ?? "";
     }
 
     public void customizeUpdate(ref string query, string route, Dictionary<string, object> entity, string userId)
     {
+        var ctx = Utility.GetCurrentCrudHookContext();
+
+        string ctxRoute = ctx?.route ?? "";
     }
 
     public void customizeDelete(ref string query, string route, Dictionary<string, object> entity, string userId)
     {
+        var ctx = Utility.GetCurrentCrudHookContext();
+
+        string ctxRoute = ctx?.route ?? "";
     }
 
     public void customizeRestore(ref string query, string route, Dictionary<string, object> entity, string userId)
     {
+        var ctx = Utility.GetCurrentCrudHookContext();
+
+        string ctxRoute = ctx?.route ?? "";
     }
 
     public void customizeSelect(
@@ -80,7 +114,9 @@ public class Cities : ICrudRouteHandler
         List<SortInfo> sortInfo = default!,
         PageInfo pageInfo = default!)
     {
+        var ctx = Utility.GetCurrentCrudHookContext();
 
+        string ctxRoute = ctx?.route ?? "";
     }
 
     public void customizeCountSelect(
@@ -96,6 +132,9 @@ public class Cities : ICrudRouteHandler
         List<SortInfo> sortInfo = default!,
         PageInfo pageInfo = default!)
     {
+        var ctx = Utility.GetCurrentCrudHookContext();
+
+        string ctxRoute = ctx?.route ?? "";
     }
 
     public bool customizeExcelField(
@@ -109,6 +148,10 @@ public class Cities : ICrudRouteHandler
         uint rowIndex,
         object value)
     {
+        var ctx = Utility.GetCurrentCrudHookContext();
+
+        string ctxRoute = ctx?.route ?? "";
+
         return false;
     }
 
@@ -121,5 +164,9 @@ public class Cities : ICrudRouteHandler
         string fileName,
         StringBuilder log)
     {
+        var ctx = Utility.GetCurrentCrudHookContext();
+
+        string ctxRoute = ctx?.route ?? "";
     }
 }
+
