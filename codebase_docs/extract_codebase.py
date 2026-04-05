@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Iterable, List, Optional
 
 
-FILE_EXTENSIONS = {".cs", ".ts", ".sql", ".ps1", ".json"}
+FILE_EXTENSIONS = {".cs", ".ts", ".sql", ".ps1", ".json", ".md"}
 EXCLUDE_DIRS = {"bin", "obj", "node_modules", "wwwroot_js", ".angular", ".git"}
 INCLUDE_DIRS = [
     "KonvergenceCore/Controllers",
@@ -39,8 +39,10 @@ DB_FOCUS_TABLES = {
     "_wuic_workflow_graph",
     "_wuic_workflow_graph_route_metadata",
     "dom_board",
-    "dom_board_element",
     "dom_board_sheet",
+    "_notifications",
+    "scheduler",
+    "scheduler_execution"
 }
 
 DEFAULT_WINDOW_LINES = 60
@@ -376,6 +378,44 @@ def extract_db_chunks(conn_str: str, output_jsonl: Path, db_label: str, max_rows
     return len(chunks)
 
 
+def sanitize_filename(value: str) -> str:
+    return re.sub(r"[^A-Za-z0-9._-]+", "_", (value or "").strip())[:140] or "chunk"
+
+
+def write_markdown_chunks_from_jsonl(output_jsonl: Path, output_md_dir: Path) -> int:
+    if not output_jsonl.exists():
+        return 0
+
+    output_md_dir.mkdir(parents=True, exist_ok=True)
+    count = 0
+
+    with output_jsonl.open("r", encoding="utf-8") as f:
+        for idx, line in enumerate(f, start=1):
+            raw = line.strip()
+            if not raw:
+                continue
+            payload = json.loads(raw)
+            chunk = Chunk(**payload)
+
+            fname = f"{idx:06d}_{sanitize_filename(chunk.rel_path)}_{sanitize_filename(chunk.symbol_name)}_{chunk.chunk_id[:10]}.md"
+            md_path = output_md_dir / fname
+            md_content = (
+                f"# {chunk.symbol_name}\n\n"
+                f"- chunk_id: `{chunk.chunk_id}`\n"
+                f"- source: `{chunk.source}`\n"
+                f"- source_type: `{chunk.source_type}`\n"
+                f"- language: `{chunk.language}`\n"
+                f"- rel_path: `{chunk.rel_path}`\n"
+                f"- symbol_type: `{chunk.symbol_type}`\n"
+                f"- lines: `{chunk.start_line}-{chunk.end_line}`\n\n"
+                f"```{chunk.language if chunk.language else 'text'}\n{chunk.text}\n```\n"
+            )
+            md_path.write_text(md_content, encoding="utf-8")
+            count += 1
+
+    return count
+
+
 def main():
     parser = argparse.ArgumentParser(description="Extract codebase + DB into chunked JSONL for RAG ingestion.")
     parser.add_argument("--root-dir", default=r"c:/src/Wuic", help="Repository root.")
@@ -384,6 +424,11 @@ def main():
     parser.add_argument("--overlap-lines", type=int, default=DEFAULT_OVERLAP_LINES, help="Window overlap in lines.")
     parser.add_argument("--skip-db", action="store_true", help="Skip DB extraction.")
     parser.add_argument("--db-max-rows", type=int, default=80, help="Max sampled rows for focus tables.")
+    parser.add_argument(
+        "--output-md-dir",
+        default=r"c:/src/Wuic/codebase_docs/md_chunks",
+        help="Output directory for markdown chunk files.",
+    )
     args = parser.parse_args()
 
     root_dir = Path(args.root_dir)
@@ -418,6 +463,11 @@ def main():
 
     print(f"[extract] db chunks: {db_count}")
     print(f"[extract] output: {output_jsonl}")
+
+    md_dir = Path(args.output_md_dir)
+    md_count = write_markdown_chunks_from_jsonl(output_jsonl, md_dir)
+    print(f"[extract] markdown chunks: {md_count}")
+    print(f"[extract] markdown output dir: {md_dir}")
 
 
 if __name__ == "__main__":

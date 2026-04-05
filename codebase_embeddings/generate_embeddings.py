@@ -505,7 +505,7 @@ def main():
     p_build.add_argument("--input-jsonl", default=r"c:/src/Wuic/codebase_docs/code_chunks.jsonl")
     p_build.add_argument("--output-dir", default=r"c:/src/Wuic/codebase_embeddings/index")
     p_build.add_argument("--model", default=os.getenv("RAG_EMBED_MODEL", DEFAULT_MODEL))
-    p_build.add_argument("--batch-size", type=int, default=64)
+    p_build.add_argument("--batch-size", type=int, default=int(os.getenv("RAG_BATCH_SIZE", "64")))
     p_build.add_argument("--resume-build", action="store_true")
     p_build.add_argument("--hf-token", default="")
     p_build.add_argument("--hf-token-env", default="RAG_HF_TOKEN")
@@ -533,3 +533,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
