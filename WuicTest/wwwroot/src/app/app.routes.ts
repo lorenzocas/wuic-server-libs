@@ -17,10 +17,10 @@ export const appRoutes: Routes = [
     }
   },
   {
-    path: 'cities-scheduler',
-    loadComponent: () => import('./component/cities-scheduler-page/cities-scheduler-page.component').then((m) => m.CitiesSchedulerPageComponent),
+    path: 'schedules-scheduler',
+    loadComponent: () => import('./component/schedules-scheduler-page/schedules-scheduler-page.component').then((m) => m.SchedulesSchedulerPageComponent),
     data: {
-      breadcrumbs: 'cities-scheduler'
+      breadcrumbs: 'schedules-scheduler'
     }
   },
   {
@@ -31,10 +31,10 @@ export const appRoutes: Routes = [
     }
   },
   {
-    path: 'cities-carousel',
-    loadComponent: () => import('./component/cities-carousel-page/cities-carousel-page.component').then((m) => m.CitiesCarouselPageComponent),
+    path: 'uploadsample-carousel',
+    loadComponent: () => import('./component/uploadsample-carousel-page/uploadsample-carousel-page.component').then((m) => m.UploadsampleCarouselPageComponent),
     data: {
-      breadcrumbs: 'cities-carousel'
+      breadcrumbs: 'uploadsample-carousel'
     }
   },
   {
@@ -45,17 +45,17 @@ export const appRoutes: Routes = [
     }
   },
   {
-    path: 'cities-kanban',
-    loadComponent: () => import('./component/cities-kanban-page/cities-kanban-page.component').then((m) => m.CitiesKanbanPageComponent),
+    path: 'kanban-task',
+    loadComponent: () => import('./component/kanban-task-page/kanban-task-page.component').then((m) => m.KanbanTaskPageComponent),
     data: {
-      breadcrumbs: 'cities-kanban'
+      breadcrumbs: 'kanban-task'
     }
   },
   {
-    path: 'cities-tree',
-    loadComponent: () => import('./component/cities-tree-page/cities-tree-page.component').then((m) => m.CitiesTreePageComponent),
+    path: 'tree-sample',
+    loadComponent: () => import('./component/tree-sample-page/tree-sample-page.component').then((m) => m.TreeSamplePageComponent),
     data: {
-      breadcrumbs: 'cities-tree'
+      breadcrumbs: 'tree-sample'
     }
   },
   {

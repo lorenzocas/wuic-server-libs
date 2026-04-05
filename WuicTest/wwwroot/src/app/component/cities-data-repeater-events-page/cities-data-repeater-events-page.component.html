@@ -15,7 +15,7 @@
   <wuic-data-source #citiesDs [hardcodedRoute]="'cities'" [autoload]="true"></wuic-data-source>
 
   <div class="repeater-shell">
-    <wuic-data-repeater [hardcodedDatasource]="citiesDs" [hardcodedAction]="'list'" [fillHeight]="true">
+    <wuic-data-repeater [hardcodedDatasource]="citiesDs" [action]="action$" [fillHeight]="true">
     </wuic-data-repeater>
   </div>
 

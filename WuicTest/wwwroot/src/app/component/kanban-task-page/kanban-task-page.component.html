@@ -1,0 +1,5 @@
+<div class="kanban-task-page">
+  <wuic-data-source #kanbanTaskDs [hardcodedRoute]="'wuic_kanban_task'" [autoload]="true"></wuic-data-source>
+
+  <wuic-kanban-list #kanbanTaskBoard [hardcodedDatasource]="kanbanTaskDs"></wuic-kanban-list>
+</div>

@@ -1,11 +1,12 @@
 import { AfterViewInit, Component, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DataSourceAfterSyncEvent, DataSourceBeforeSyncEvent, DataSourceComponent, ParametricDialogComponent } from 'wuic-framework-lib';
+import { PagerComponent } from 'wuic-framework-lib';
 import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-cities-edit-page',
-  imports: [CommonModule, DataSourceComponent, ParametricDialogComponent],
+  imports: [CommonModule, DataSourceComponent, ParametricDialogComponent, PagerComponent],
   templateUrl: './cities-edit-page.component.html',
   styleUrls: ['./cities-edit-page.component.css']
 })

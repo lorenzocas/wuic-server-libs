@@ -1,3 +1,29 @@
-.cities-edit-page {
+:host {
   display: block;
+  height: 100%;
+  min-height: 0;
+}
+
+.cities-edit-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.cities-edit-body {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.cities-edit-body > wuic-parametric-dialog {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.cities-edit-pager {
+  flex: 0 0 auto;
 }

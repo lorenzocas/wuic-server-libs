@@ -1,5 +1,11 @@
 <div class="cities-edit-page">
   <wuic-data-source #citiesDs [hardcodedRoute]="'cities'" [autoload]="true"></wuic-data-source>
 
-  <wuic-parametric-dialog #citiesEdit [hardcodedDatasource]="citiesDs" [isEditForm]="true"></wuic-parametric-dialog>
+  <div class="cities-edit-body">
+    <wuic-parametric-dialog #citiesEdit [hardcodedDatasource]="citiesDs" [isEditForm]="true"></wuic-parametric-dialog>
+  </div>
+
+  <div class="cities-edit-pager">
+    <wuic-pager [hardcodedDatasource]="citiesDs" [pageSize]="1"></wuic-pager>
+  </div>
 </div>
