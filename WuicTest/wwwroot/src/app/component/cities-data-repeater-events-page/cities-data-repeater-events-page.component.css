@@ -1,0 +1,65 @@
+:host {
+  display: block;
+  height: calc(100dvh - 120px);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.cities-data-repeater-events-page {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.top-controls {
+  display: grid;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.action-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.action-toolbar select {
+  min-width: 180px;
+}
+
+.repeater-shell {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid #e0e6ef;
+  border-radius: 6px;
+}
+
+.repeater-shell wuic-data-repeater {
+  display: block;
+  height: 100%;
+  min-height: 0;
+}
+
+.events-panel {
+  flex: 0 0 170px;
+  min-height: 120px;
+  max-height: 220px;
+  border: 1px solid #d5dbe6;
+  border-radius: 6px;
+  padding: 10px;
+  background: #f8fafd;
+  overflow: auto;
+}
+
+.events-panel h4 {
+  margin: 0 0 8px;
+}
+
+.events-panel ul {
+  margin: 0;
+  padding-left: 20px;
+}

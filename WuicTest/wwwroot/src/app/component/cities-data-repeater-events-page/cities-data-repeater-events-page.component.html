@@ -1,0 +1,32 @@
+<div class="cities-data-repeater-events-page">
+  <div class="top-controls">
+    <h3>DataRepeater events demo</h3>
+
+    <div class="action-toolbar">
+      <label for="actionSelect">Action:</label>
+      <select id="actionSelect" [value]="selectedAction" (change)="onActionSelectChange($event)">
+        @for (action of actionOptions; track action) {
+          <option [value]="action">{{ action }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  <wuic-data-source #citiesDs [hardcodedRoute]="'cities'" [autoload]="true"></wuic-data-source>
+
+  <div class="repeater-shell">
+    <wuic-data-repeater
+      [hardcodedDatasource]="citiesDs"
+      [action]="action$">
+    </wuic-data-repeater>
+  </div>
+
+  <div class="events-panel">
+    <h4>Event log</h4>
+    <ul>
+      @for (line of eventLog; track $index) {
+        <li>{{ line }}</li>
+      }
+    </ul>
+  </div>
+</div>

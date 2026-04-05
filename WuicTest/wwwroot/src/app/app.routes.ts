@@ -73,6 +73,13 @@ export const appRoutes: Routes = [
     }
   },
   {
+    path: 'cities-data-repeater-events',
+    loadComponent: () => import('./component/cities-data-repeater-events-page/cities-data-repeater-events-page.component').then((m) => m.CitiesDataRepeaterEventsPageComponent),
+    data: {
+      breadcrumbs: 'cities-data-repeater-events'
+    }
+  },
+  {
     path: 'custom-cities-list',
     loadComponent: () => import('./component/custom-cities-list/custom-cities-list.component').then((m) => m.CustomCitiesListComponent),
     data: {
@@ -88,3 +95,4 @@ export const appRoutes: Routes = [
   },
   ...wuicRoutes
 ];
+
