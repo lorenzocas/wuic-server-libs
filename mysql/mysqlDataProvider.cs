@@ -34,7 +34,7 @@ public class mysqlDataProvider : IMetaQuery
         pr.licenseLimited = true;
         pr.licenseLimitReason = licenseEvaluation?.Reason ?? "license_invalid";
         if (pr.results != null && pr.results.Count > UnlicensedMaxRecords)
-            pr.results = pr.results.Take(UnlicensedMaxRecords).ToList();
+            pr.results = pr.results.Cast<object>().Take(UnlicensedMaxRecords).ToList();
 
         pr.TotalRecords = Math.Min(pr.TotalRecords, UnlicensedMaxRecords);
         pr.cursorMode = false;

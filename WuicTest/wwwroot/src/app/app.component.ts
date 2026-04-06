@@ -1,7 +1,7 @@
 import { AfterContentInit, Component, forwardRef, Injector, OnDestroy, OnInit } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { utility } from './classes/utility';
-import { AsyncPipe, NgClass, NgComponentOutlet, NgFor, NgIf, NgStyle } from '@angular/common';
+import { AsyncPipe, CommonModule, NgClass, NgComponentOutlet, NgFor, NgIf, NgStyle } from '@angular/common';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { SelectModule } from 'primeng/select';
 import { FormsModule } from '@angular/forms';
@@ -29,14 +29,15 @@ import Material from '@primeng/themes/material';
 import { updatePrimaryPalette, usePreset } from '@primeuix/styled';
 import { WtoolboxService, MetadataProviderService, GlobalHandler, CustomException, TranslationManagerService, AuthSessionService } from './wuic-bridges/core';
 import { CustomListComponent } from './component/custom-list/custom-list.component';
-import { getThemeOptions, PRIMARY_PALETTES, ThemeOption } from 'wuic-framework-lib-src/config/theme-catalog';
+import { getThemeOptions, PRIMARY_PALETTES, ThemeOption } from 'wuic-framework-lib';
+import { ImageWrapperComponent } from 'wuic-framework-lib';
 
 // import { CustomTextFieldComponent } from './component/field/custom-text-field/custom-text-field.component';
 // import { CustomListComponent } from './component/custom-list/custom-list.component';
 
 @Component({
   selector: 'app-root',
-  imports: [AsyncPipe, NgIf, RouterOutlet, NgComponentOutlet, ToggleSwitchModule, SelectModule, FormsModule, DialogModule, ButtonModule, TranslateModule, ToastModule, ConfirmDialogModule],
+  imports: [AsyncPipe, CommonModule, RouterOutlet, NgComponentOutlet, ToggleSwitchModule, SelectModule, FormsModule, DialogModule, ButtonModule, TranslateModule, ToastModule, ConfirmDialogModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
   providers: [MessageService, ConfirmationService, DialogService, GlobalHandler]
@@ -188,8 +189,8 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
         liWidth: "33%",
         itemCountThreshold: 6
       },
-      gridRowImports: [ButtonModule, TableModule, NgFor, NgIf, NgClass, NgStyle, FormsModule, ui.LazyDataActionButtonComponent, ui.LazyDataSourceComponent, ui.VisibleFieldListPipe, ui.CallbackPipe, ui.CallbackPipe2, ui.IsSelectedRowPipe, ui.FormatGridViewValuePipe, ui.GetSrcUploadPreviewPipe, ui.LazyFieldEditorComponent, ui.LazyImageWrapperComponent],
-      dynamicFormImports: [NgFor, NgIf, ui.LazyDataActionButtonComponent, ui.LazyDataSourceComponent, ui.VisibleFieldListPipe, TableModule, ButtonModule, ui.LazyFieldEditorComponent],
+      gridRowImports: [ButtonModule, TableModule, CommonModule, NgClass, NgStyle, FormsModule, ui.LazyDataActionButtonComponent, ui.LazyDataSourceComponent, ui.VisibleFieldListPipe, ui.CallbackPipe, ui.CallbackPipe2, ui.IsSelectedRowPipe, ui.FormatGridViewValuePipe, ui.GetSrcUploadPreviewPipe, ui.LazyFieldEditorComponent, ui.LazyImageWrapperComponent, ImageWrapperComponent],
+      dynamicFormImports: [CommonModule, ui.LazyDataActionButtonComponent, ui.LazyDataSourceComponent, ui.VisibleFieldListPipe, TableModule, ButtonModule, ui.LazyFieldEditorComponent, ImageWrapperComponent],
       //      gridRowTemplate: `
       //     <td *ngIf="metaInfo.tableMetadata.md_nested_grid_routes" pFrozenColumn [frozen]="true" alignFrozen="left">
       //        <button type="button" class="p-button p-button-text p-button-rounded p-button-sm p-0" [pRowToggler]="rowData" [attr.aria-label]="'Espandi riga'">
@@ -1154,6 +1155,8 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     }
   }
 }
+
+
 
 
 
