@@ -2756,6 +2756,11 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
             upload_fixes.ForEach(upload_fix =>
             {
+                if (!entity.ContainsKey(upload_fix.mc_nome_colonna))
+                {
+                    return;
+                }
+
                 if (upload_fix != null)
                 {
 

@@ -1685,6 +1685,11 @@ FROM {fromTable}
 
                     upload_fixes.ForEach(upload_fix =>
                     {
+                        if (!entity.ContainsKey(upload_fix.mc_nome_colonna))
+                        {
+                            return;
+                        }
+
                         if (upload_fix != null)
                         {
                             string __id = entity[metadata.First(x => x.mc_is_primary_key).mc_nome_colonna].ToString();
