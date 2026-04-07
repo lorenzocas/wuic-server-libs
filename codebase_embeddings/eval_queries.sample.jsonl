@@ -1,5 +1,0 @@
-{"query":"mc_hide_in_list dove viene usato lato frontend", "expected":[{"rel_path_contains":"wuic-framework-lib/src/lib/component/list-grid","symbol_name":"hideColumnByMetadata"}]}
-{"query":"salvataggio workflow graph in tabella _wuic_workflow_graph", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"saveWorkflowGraph"}]}
-{"query":"caricamento workflow graph route metadata", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"loadWorkflowGraph"}]}
-{"query":"suggerimento callback action tabella md_action_type", "expected":[{"rel_path_contains":"wuic-framework-lib/src/lib/service/wtoolbox.service.ts","symbol_name":"suggestTableActionCallback"}]}
-{"query":"autocomplete oggetti sql in code editor", "expected":[{"rel_path_contains":"KonvergenceCore/Services/MetaService.cs","symbol_name":"AutocompleteSqlObjects"}]}
