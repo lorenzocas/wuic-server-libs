@@ -54,7 +54,6 @@ internal static class Program
         }
 
         UpsertAppSetting(exeConfig, "projectDataFolder", configuredProjectDataFolder);
-        UpsertAppSetting(exeConfig, "projectAssemblyName", Path.Combine(legacyRoot, "bin", "Debug", "net10.0", "KonvergenceCore.dll"));
 
         exeConfig.Save(ConfigurationSaveMode.Modified);
         System.Configuration.ConfigurationManager.RefreshSection("connectionStrings");
@@ -197,11 +196,25 @@ internal static class Program
             return Path.GetFullPath(basePath);
         }
 
-        return Path.GetFullPath(Path.Combine(hostProjectRoot, "..", "KonvergenceCore"));
+        // Dev fallback: sibling KonvergenceCore folder (in-repo dev mode)
+        string devCandidate = Path.GetFullPath(Path.Combine(hostProjectRoot, "..", "KonvergenceCore"));
+        if (Directory.Exists(devCandidate))
+            return devCandidate;
+
+        // Published fallback: hostProjectRoot itself (everything bundled in the publish output)
+        return hostProjectRoot;
     }
 
     private static string ResolveHostProjectRoot()
     {
-        return Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", ".."));
+        string baseDir = AppContext.BaseDirectory;
+
+        // Dev layout: bin/Debug|Release/net10.0/.. .. .. = csproj folder
+        string devCandidate = Path.GetFullPath(Path.Combine(baseDir, "..", "..", ".."));
+        if (File.Exists(Path.Combine(devCandidate, "WuicTest.csproj")))
+            return devCandidate;
+
+        // Published layout: AppContext.BaseDirectory IS the publish output root
+        return Path.GetFullPath(baseDir);
     }
 }

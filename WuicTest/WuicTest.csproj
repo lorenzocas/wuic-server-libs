@@ -10,8 +10,17 @@
     <Content Remove="wwwroot\**" />
     <EmbeddedResource Remove="wwwroot\**" />
     <None Remove="wwwroot\**" />
+  </ItemGroup>
+  <!--
+    Dev (default): direct ProjectReference to the in-tree library.
+    Release/deploy: the pipeline injects a Directory.Build.props alongside the staged copy
+    that sets <UseWuicCoreNuget>true</UseWuicCoreNuget> + <WuicCoreNugetVersion>X.Y.Z</WuicCoreNugetVersion>,
+    which switches the conditional below to PackageReference.
+  -->
+  <ItemGroup Condition="'$(UseWuicCoreNuget)' != 'true'">
     <ProjectReference Include="..\KonvergenceCore\KonvergenceCore.csproj" />
   </ItemGroup>
-  <ItemGroup>
+  <ItemGroup Condition="'$(UseWuicCoreNuget)' == 'true'">
+    <PackageReference Include="WuicCore" Version="$(WuicCoreNugetVersion)" />
   </ItemGroup>
 </Project>
