@@ -93,6 +93,13 @@ export const appRoutes: Routes = [
       breadcrumbs: 'unauthorized'
     }
   },
+  {
+    path: 'rag-chatbot-demo',
+    loadComponent: () => import('./component/rag-chatbot-demo-page/rag-chatbot-demo-page.component').then((m) => m.RagChatbotDemoPageComponent),
+    data: {
+      breadcrumbs: 'rag-chatbot-demo'
+    }
+  },
   ...wuicRoutes
 ];
 

@@ -1,0 +1,71 @@
+<div class="rag-chatbot-demo-page">
+
+  <header class="rag-chatbot-demo-page__header">
+    <h1>RAG Chatbot — Codebase Assistant</h1>
+    <p>
+      Chiedi qualcosa in linguaggio naturale (italiano o inglese) sul codebase WUIC.
+      Le risposte vengono generate dalla pipeline RAG ibrida (BM25 + bge-m3 +
+      LoRA cross-encoder Phase C). In assenza di <code>ANTHROPIC_API_KEY</code>
+      sul server Python il chatbot degrada automaticamente in modalita'
+      <em>retrieval-only</em>.
+    </p>
+  </header>
+
+  <main class="rag-chatbot-demo-page__main">
+    <wuic-rag-chatbot
+      title="Assistente codebase WUIC"
+      mode="auto"
+      [topK]="5"
+      [showSources]="true"
+      [maxHistory]="20"
+      chatHeight="520px"
+      (resultSelected)="onResultSelected($event)"
+      (errorOccurred)="onErrorOccurred($event)"
+      (turnAdded)="onTurnAdded()">
+    </wuic-rag-chatbot>
+  </main>
+
+  <aside class="rag-chatbot-demo-page__aside">
+    <section>
+      <h3>Stato demo</h3>
+      <ul>
+        <li><strong>Turn totali:</strong> {{ turnCount }}</li>
+        <li><strong>Source ultimi cliccati:</strong> {{ lastSelectedSources.length }}</li>
+      </ul>
+    </section>
+
+    @if (lastSelectedSources.length > 0) {
+      <section>
+        <h3>Ultimi source selezionati</h3>
+        <ol>
+          @for (s of lastSelectedSources; track s.chunk_id) {
+            <li>
+              <code>{{ s.rel_path }}</code>
+              @if (s.symbol_name) { <span> :: <strong>{{ s.symbol_name }}</strong></span> }
+              @if (s.start_line && s.end_line) { <span> (linee {{ s.start_line }}–{{ s.end_line }})</span> }
+            </li>
+          }
+        </ol>
+      </section>
+    }
+
+    @if (lastError) {
+      <section class="rag-chatbot-demo-page__error">
+        <h3>Ultimo errore</h3>
+        <pre>{{ lastError.message }}</pre>
+        <button type="button" (click)="clearLastError()">Chiudi</button>
+      </section>
+    }
+
+    <section>
+      <h3>Prerequisiti</h3>
+      <ul>
+        <li>Server Python <code>rag_server.py</code> attivo su <code>127.0.0.1:8765</code></li>
+        <li>KonvergenceCore in esecuzione (espone <code>/api/Rag</code>)</li>
+        <li>Login con cookie <code>k-user</code> valido</li>
+        <li><em>Opzionale:</em> <code>ANTHROPIC_API_KEY</code> per modalita' RAG+LLM</li>
+      </ul>
+    </section>
+  </aside>
+
+</div>
