@@ -31,7 +31,10 @@
 **/MySqlDB/
 NugetFeed/
 codebase_docs/
-codebase_embeddings/
+codebase_embeddings/*
+# Whitelist: source code del RAG chatbot server (resta nel folder per import diretto da generate_embeddings)
+!codebase_embeddings/rag_server.py
+!codebase_embeddings/requirements_rag_server.txt
 CrmApp/.local-package-sync.stamp
 CrmApp/wwwroot/.wuic-framework-lib.lastinstall
 WuicTest/Tmp_export/*

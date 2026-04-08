@@ -1,0 +1,8 @@
+# Dipendenze del WUIC Codebase RAG server (rag_server.py).
+# Installa con: ../KonvergenceCore/.venv/Scripts/python.exe -m pip install -r requirements_rag_server.txt
+# Le altre dipendenze (torch, transformers, peft, sentence-transformers, ecc.) sono gia' installate dal RAG core.
+
+fastapi>=0.135,<1.0
+uvicorn[standard]>=0.44,<1.0
+pydantic>=2.12,<3.0
+anthropic>=0.92,<1.0
