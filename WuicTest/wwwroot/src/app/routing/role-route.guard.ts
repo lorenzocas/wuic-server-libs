@@ -1,7 +1,6 @@
 import { inject } from '@angular/core';
 import { ActivatedRouteSnapshot, CanActivateFn, CanMatchFn, Route, Router, RouterStateSnapshot, UrlSegment, UrlTree } from '@angular/router';
-import { AuthSessionService } from '../wuic-bridges/core';
-import { UserInfoService } from 'wuic-framework-lib-src/service/user-info.service';
+import { AuthSessionService, UserInfoService } from '../wuic-bridges-npm/core';
 import { FRAMEWORK_ROUTE_ROLE_RULES, RouteRoleRule } from './route-role-map';
 
 type GuardRouteData = { roleRuleKey?: string };

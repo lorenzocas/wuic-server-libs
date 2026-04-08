@@ -1,4 +1,4 @@
-import { MetadatiColonna } from "../wuic-bridges/core";
+import { MetadatiColonna } from "../wuic-bridges-npm/core";
 
 export class utility {
 

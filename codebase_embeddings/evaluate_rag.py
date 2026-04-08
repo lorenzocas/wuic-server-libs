@@ -64,14 +64,27 @@ def run_eval(
     top_k: int,
     hf_token: str = "",
     hf_token_env: str = "RAG_HF_TOKEN",
-    alpha_vector: float = 0.65,
-    alpha_bm25: float = 0.35,
-    adaptive_alpha: bool = False,
-    alpha_vector_technical: float = 0.20,
-    alpha_vector_descriptive: float = 0.80,
+    alpha_vector: float = 0.55,
+    alpha_bm25: float = 0.45,
+    adaptive_alpha: bool = True,
+    alpha_vector_technical: float = 0.10,
+    alpha_vector_descriptive: float = 0.90,
     rerank_symbol_weight: float = 1.35,
-    rerank_path_weight: float = 0.85,
-    rerank_text_overlap_weight: float = 1.00,
+    rerank_path_weight: float = 0.70,
+    rerank_text_overlap_weight: float = 0.60,
+    use_cross_encoder: bool = False,
+    cross_encoder_top_n: int = 20,
+    cross_encoder_blend: float = 0.65,
+    cross_encoder_device: str = "auto",
+    cross_encoder_batch_size: int = 32,
+    cross_encoder_fp16: bool = True,
+    cross_encoder_intent_weight: float = 0.00,
+    use_hyde: bool = False,
+    hyde_weight: float = 0.40,
+    hyde_device: str = "auto",
+    hyde_fp16: bool = True,
+    hyde_max_new_tokens: int = 96,
+    hyde_mode: str = "blend_concat",
 ) -> Dict:
     cases = load_eval_cases(eval_file)
     if not cases:
@@ -104,6 +117,19 @@ def run_eval(
             rerank_symbol_weight=rerank_symbol_weight,
             rerank_path_weight=rerank_path_weight,
             rerank_text_overlap_weight=rerank_text_overlap_weight,
+            use_cross_encoder=use_cross_encoder,
+            cross_encoder_top_n=cross_encoder_top_n,
+            cross_encoder_blend=cross_encoder_blend,
+            cross_encoder_device=cross_encoder_device,
+            cross_encoder_batch_size=cross_encoder_batch_size,
+            cross_encoder_fp16=cross_encoder_fp16,
+            cross_encoder_intent_weight=cross_encoder_intent_weight,
+            use_hyde=use_hyde,
+            hyde_weight=hyde_weight,
+            hyde_device=hyde_device,
+            hyde_fp16=hyde_fp16,
+            hyde_max_new_tokens=hyde_max_new_tokens,
+            hyde_mode=hyde_mode,
         )
         hit, rr, rank = evaluate_case(results, expected)
 
@@ -146,14 +172,37 @@ def main():
     parser.add_argument("--output-json", default=r"c:/src/Wuic/codebase_embeddings/eval_results.json")
     parser.add_argument("--hf-token", default="")
     parser.add_argument("--hf-token-env", default="RAG_HF_TOKEN")
-    parser.add_argument("--alpha-vector", type=float, default=0.65)
-    parser.add_argument("--alpha-bm25", type=float, default=0.35)
-    parser.add_argument("--adaptive-alpha", action="store_true")
-    parser.add_argument("--alpha-vector-technical", type=float, default=0.20)
-    parser.add_argument("--alpha-vector-descriptive", type=float, default=0.80)
+    parser.add_argument("--alpha-vector", type=float, default=0.55)
+    parser.add_argument("--alpha-bm25", type=float, default=0.45)
+    parser.add_argument(
+        "--adaptive-alpha",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Adapt alpha_vector per query based on technicality score. Use --no-adaptive-alpha to disable.",
+    )
+    parser.add_argument("--alpha-vector-technical", type=float, default=0.10)
+    parser.add_argument("--alpha-vector-descriptive", type=float, default=0.90)
     parser.add_argument("--rerank-symbol-weight", type=float, default=1.35)
-    parser.add_argument("--rerank-path-weight", type=float, default=0.85)
-    parser.add_argument("--rerank-text-overlap-weight", type=float, default=1.00)
+    parser.add_argument("--rerank-path-weight", type=float, default=0.70)
+    parser.add_argument("--rerank-text-overlap-weight", type=float, default=0.60)
+    parser.add_argument("--use-cross-encoder", action="store_true",
+                        help="Enable BAAI/bge-reranker-v2-m3 second-stage rerank (~600MB download first time)")
+    parser.add_argument("--cross-encoder-top-n", type=int, default=20)
+    parser.add_argument("--cross-encoder-blend", type=float, default=0.65)
+    parser.add_argument("--cross-encoder-intent-weight", type=float, default=0.00,
+                        help="Post-CE architectural intent path boost weight (0.0 to disable)")
+    parser.add_argument("--use-hyde", action="store_true",
+                        help="EXPERIMENTAL: HyDE query expansion (did not improve metrics in our tests)")
+    parser.add_argument("--hyde-weight", type=float, default=0.35)
+    parser.add_argument("--hyde-mode", default="blend_code",
+                        choices=["blend_concat", "blend_code", "max"])
+    parser.add_argument("--hyde-device", default="auto")
+    parser.add_argument("--hyde-no-fp16", action="store_true")
+    parser.add_argument("--cross-encoder-device", default="auto",
+                        help="Device for cross-encoder: 'auto' (cuda if available), 'cuda', 'cpu'")
+    parser.add_argument("--cross-encoder-batch-size", type=int, default=32)
+    parser.add_argument("--cross-encoder-no-fp16", action="store_true",
+                        help="Disable FP16 for cross-encoder (FP16 is on by default on cuda, ~3x speedup)")
     args = parser.parse_args()
 
     metrics = run_eval(
@@ -170,6 +219,18 @@ def main():
         rerank_symbol_weight=args.rerank_symbol_weight,
         rerank_path_weight=args.rerank_path_weight,
         rerank_text_overlap_weight=args.rerank_text_overlap_weight,
+        use_cross_encoder=args.use_cross_encoder,
+        cross_encoder_top_n=args.cross_encoder_top_n,
+        cross_encoder_blend=args.cross_encoder_blend,
+        cross_encoder_device=args.cross_encoder_device,
+        cross_encoder_batch_size=args.cross_encoder_batch_size,
+        cross_encoder_fp16=not args.cross_encoder_no_fp16,
+        cross_encoder_intent_weight=args.cross_encoder_intent_weight,
+        use_hyde=args.use_hyde,
+        hyde_weight=args.hyde_weight,
+        hyde_mode=args.hyde_mode,
+        hyde_device=args.hyde_device,
+        hyde_fp16=not args.hyde_no_fp16,
     )
     output_path = Path(args.output_json)
     output_path.parent.mkdir(parents=True, exist_ok=True)

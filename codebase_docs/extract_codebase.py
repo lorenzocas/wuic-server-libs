@@ -8,8 +8,29 @@ from pathlib import Path
 from typing import Iterable, List, Optional
 
 
-FILE_EXTENSIONS = {".cs", ".ts", ".sql", ".ps1", ".json", ".md"}
+FILE_EXTENSIONS = {".cs", ".ts", ".md"}
 EXCLUDE_DIRS = {"bin", "obj", "node_modules", "wwwroot_js", ".angular", ".git"}
+# Files we never want in the index: pure noise that produces only sliding-window
+# chunks (no real symbols), or generated artifacts that flood BM25 with repeated
+# tokens. Match against the file name (case-insensitive).
+EXCLUDE_FILE_NAME_PATTERNS = (
+    "package-lock.json",
+    "screenshots.manifest.json",
+)
+EXCLUDE_FILE_NAME_SUFFIXES = (
+    ".generated.cs",
+    ".generated.ts",
+    ".spec.ts",
+    ".spec.cs",
+    ".e2e.spec.ts",
+)
+# Path fragments (case-insensitive substring match on rel_path)
+EXCLUDE_PATH_FRAGMENTS = (
+    "/playwright/",
+    "/test-results/",
+    "/dist/",
+    "/.angular/",
+)
 INCLUDE_DIRS = [
     "KonvergenceCore/Controllers",
     "KonvergenceCore/MetaModel",
@@ -47,6 +68,14 @@ DB_FOCUS_TABLES = {
 
 DEFAULT_WINDOW_LINES = 60
 DEFAULT_OVERLAP_LINES = 12
+
+# Symbol-level sub-chunking: when a symbol (method/class) is larger than this
+# many lines, split it into overlapping sub-windows. This keeps the rerank's
+# substring match on `symbol_name` working (each sub-chunk's name still
+# contains the original symbol name as a prefix) while preventing one giant
+# 600+ line method from drowning the relevant 30-line section in noise.
+DEFAULT_MAX_SYMBOL_LINES = 120
+DEFAULT_SYMBOL_OVERLAP_LINES = 20
 
 
 @dataclass
@@ -160,7 +189,50 @@ def sliding_windows(lines: List[str], window_lines: int, overlap_lines: int) -> 
     return chunks
 
 
-def chunk_file(path: Path, root_dir: Path, window_lines: int, overlap_lines: int) -> List[Chunk]:
+def split_large_symbol_range(
+    sym_type: str,
+    sym_name: str,
+    start_line: int,
+    end_line: int,
+    max_lines: int,
+    overlap_lines: int,
+) -> List[tuple]:
+    """Split an oversized symbol range into overlapping sub-windows.
+
+    Each sub-window keeps the original symbol_type and prefixes its name with
+    the original symbol_name so that the rerank's substring match on
+    `symbol_name` (`if t in sname`) still fires for sub-chunks. The first
+    sub-chunk reuses the bare original name; subsequent ones append `__partN`.
+    """
+    n = end_line - start_line + 1
+    if n <= max_lines or max_lines <= 0:
+        return [(sym_type, sym_name, start_line, end_line)]
+    step = max(1, max_lines - max(0, overlap_lines))
+    out = []
+    cursor = start_line
+    part = 1
+    while cursor <= end_line:
+        sub_end = min(end_line, cursor + max_lines - 1)
+        if part == 1:
+            sub_name = sym_name
+        else:
+            sub_name = f"{sym_name}__part{part}"
+        out.append((sym_type, sub_name, cursor, sub_end))
+        if sub_end == end_line:
+            break
+        cursor += step
+        part += 1
+    return out
+
+
+def chunk_file(
+    path: Path,
+    root_dir: Path,
+    window_lines: int,
+    overlap_lines: int,
+    max_symbol_lines: int = DEFAULT_MAX_SYMBOL_LINES,
+    symbol_overlap_lines: int = DEFAULT_SYMBOL_OVERLAP_LINES,
+) -> List[Chunk]:
     content = safe_read_text(path)
     lines = content.splitlines()
     if not lines:
@@ -171,6 +243,21 @@ def chunk_file(path: Path, root_dir: Path, window_lines: int, overlap_lines: int
     ranges = symbol_ranges(lines, language)
     if not ranges:
         ranges = sliding_windows(lines, window_lines, overlap_lines)
+    else:
+        # Sub-split oversized symbol ranges (huge methods, no-method classes).
+        expanded = []
+        for sym_type, sym_name, sl, el in ranges:
+            expanded.extend(
+                split_large_symbol_range(
+                    sym_type,
+                    sym_name,
+                    sl,
+                    el,
+                    max_lines=max_symbol_lines,
+                    overlap_lines=symbol_overlap_lines,
+                )
+            )
+        ranges = expanded
 
     chunks = []
     for sym_type, sym_name, start_line, end_line in ranges:
@@ -195,6 +282,20 @@ def chunk_file(path: Path, root_dir: Path, window_lines: int, overlap_lines: int
     return chunks
 
 
+def is_noise_file(path: Path) -> bool:
+    name_lower = path.name.lower()
+    if name_lower in EXCLUDE_FILE_NAME_PATTERNS:
+        return True
+    for suffix in EXCLUDE_FILE_NAME_SUFFIXES:
+        if name_lower.endswith(suffix):
+            return True
+    rel_lower = normalize_path(path).lower()
+    for frag in EXCLUDE_PATH_FRAGMENTS:
+        if frag in rel_lower:
+            return True
+    return False
+
+
 def iter_included_files(root_dir: Path) -> Iterable[Path]:
     for include_dir in INCLUDE_DIRS:
         full_dir = root_dir / include_dir
@@ -209,13 +310,31 @@ def iter_included_files(root_dir: Path) -> Iterable[Path]:
                 continue
             if "mysql" in path.name.lower():
                 continue
+            if is_noise_file(path):
+                continue
             yield path
 
 
-def extract_code_chunks(root_dir: Path, output_jsonl: Path, window_lines: int, overlap_lines: int) -> int:
+def extract_code_chunks(
+    root_dir: Path,
+    output_jsonl: Path,
+    window_lines: int,
+    overlap_lines: int,
+    max_symbol_lines: int = DEFAULT_MAX_SYMBOL_LINES,
+    symbol_overlap_lines: int = DEFAULT_SYMBOL_OVERLAP_LINES,
+) -> int:
     all_chunks: List[Chunk] = []
     for path in iter_included_files(root_dir):
-        all_chunks.extend(chunk_file(path, root_dir, window_lines, overlap_lines))
+        all_chunks.extend(
+            chunk_file(
+                path,
+                root_dir,
+                window_lines,
+                overlap_lines,
+                max_symbol_lines=max_symbol_lines,
+                symbol_overlap_lines=symbol_overlap_lines,
+            )
+        )
 
     output_jsonl.parent.mkdir(parents=True, exist_ok=True)
     with output_jsonl.open("w", encoding="utf-8") as f:
@@ -422,7 +541,20 @@ def main():
     parser.add_argument("--output-jsonl", default=r"c:/src/Wuic/codebase_docs/code_chunks.jsonl", help="Output JSONL.")
     parser.add_argument("--window-lines", type=int, default=DEFAULT_WINDOW_LINES, help="Fallback window size in lines.")
     parser.add_argument("--overlap-lines", type=int, default=DEFAULT_OVERLAP_LINES, help="Window overlap in lines.")
+    parser.add_argument(
+        "--max-symbol-lines",
+        type=int,
+        default=DEFAULT_MAX_SYMBOL_LINES,
+        help="Maximum lines per symbol chunk before sub-splitting (0 disables).",
+    )
+    parser.add_argument(
+        "--symbol-overlap-lines",
+        type=int,
+        default=DEFAULT_SYMBOL_OVERLAP_LINES,
+        help="Overlap lines between sub-windows of an oversized symbol.",
+    )
     parser.add_argument("--skip-db", action="store_true", help="Skip DB extraction.")
+    parser.add_argument("--skip-md", action="store_true", help="Skip writing markdown chunk files.")
     parser.add_argument("--db-max-rows", type=int, default=80, help="Max sampled rows for focus tables.")
     parser.add_argument(
         "--output-md-dir",
@@ -438,7 +570,14 @@ def main():
     if output_jsonl.exists():
         output_jsonl.unlink()
 
-    code_count = extract_code_chunks(root_dir, output_jsonl, args.window_lines, args.overlap_lines)
+    code_count = extract_code_chunks(
+        root_dir,
+        output_jsonl,
+        args.window_lines,
+        args.overlap_lines,
+        max_symbol_lines=args.max_symbol_lines,
+        symbol_overlap_lines=args.symbol_overlap_lines,
+    )
     print(f"[extract] code chunks: {code_count}")
 
     if args.skip_db:
@@ -463,6 +602,10 @@ def main():
 
     print(f"[extract] db chunks: {db_count}")
     print(f"[extract] output: {output_jsonl}")
+
+    if args.skip_md:
+        print("[extract] markdown chunk generation skipped (--skip-md).")
+        return
 
     md_dir = Path(args.output_md_dir)
     md_count = write_markdown_chunks_from_jsonl(output_jsonl, md_dir)

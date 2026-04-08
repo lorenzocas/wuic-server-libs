@@ -27,7 +27,7 @@ import Lara from '@primeng/themes/lara';
 import Nora from '@primeng/themes/nora';
 import Material from '@primeng/themes/material';
 import { updatePrimaryPalette, usePreset } from '@primeuix/styled';
-import { WtoolboxService, MetadataProviderService, GlobalHandler, CustomException, TranslationManagerService, AuthSessionService } from './wuic-bridges/core';
+import { WtoolboxService, MetadataProviderService, GlobalHandler, CustomException, TranslationManagerService, AuthSessionService } from './wuic-bridges-npm/core';
 import { CustomListComponent } from './component/custom-list/custom-list.component';
 import { getThemeOptions, PRIMARY_PALETTES, ThemeOption } from 'wuic-framework-lib';
 import { ImageWrapperComponent } from 'wuic-framework-lib';
@@ -129,9 +129,9 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
   }
 
   private async configureWidgetRuntimeMetadata(): Promise<void> {
-    const ui = await import('./wuic-bridges/ui');
-    const loaders = await import('./wuic-bridges/widget-loaders');
-    const advancedLoaders = () => import('./wuic-bridges/widget-loaders-advanced');
+    const ui = await import('./wuic-bridges-npm/ui');
+    const loaders = await import('./wuic-bridges-npm/widget-loaders');
+    const advancedLoaders = () => import('./wuic-bridges-npm/widget-loaders-advanced');
 
     Object.assign(MetadataProviderService.widgetDefinition, {
       defaultHeight: "70px",
@@ -300,8 +300,8 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
 
   private async loadShellWidgets(): Promise<void> {
     const [ui, notifications] = await Promise.all([
-      import('./wuic-bridges/ui'),
-      import('./wuic-bridges/notifications')
+      import('./wuic-bridges-npm/ui'),
+      import('./wuic-bridges-npm/notifications')
     ]);
 
     this.metaMenuComponent = ui.LazyMetaMenuComponent;
