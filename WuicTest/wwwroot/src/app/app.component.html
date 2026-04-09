@@ -10,12 +10,14 @@
         <div class="first-run-title">Configurazione iniziale progetto</div>
         <div class="first-run-subtitle">Seleziona DBMS, connessione dati e nome database metadati.</div>
 
+        @if (firstRunSetupModeOptions.length > 1) {
         <div class="first-run-field">
             <label for="first-run-mode">Modalità setup</label>
             <p-select [options]="firstRunSetupModeOptions" optionLabel="label" optionValue="value"
                 [ngModel]="firstRunForm.setupMode" (ngModelChange)="onFirstRunSetupModeChanged($event)"
                 [disabled]="firstRunInstalling" [style]="{ width: '100%' }" inputId="first-run-mode"></p-select>
         </div>
+        }
 
         <div class="first-run-field">
             <label for="first-run-dbms">DBMS</label>
@@ -68,6 +70,39 @@
             <input id="first-run-metadb" class="first-run-input" type="text" [ngModel]="firstRunForm.metadataDbName"
                 (ngModelChange)="firstRunForm.metadataDbName = $event" [disabled]="firstRunInstalling"
                 placeholder="metadataDB" />
+        </div>
+
+        @if (firstRunForm.setupMode !== 'tutorial') {
+        <div class="first-run-field first-run-checkbox-row">
+            <label>
+                <input type="checkbox" [ngModel]="firstRunForm.scaffoldExistingDatabase"
+                    (ngModelChange)="firstRunForm.scaffoldExistingDatabase = !!$event"
+                    [disabled]="firstRunInstalling" />
+                Esegui scaffold automatico delle tabelle del DB selezionato
+            </label>
+            <small style="display:block; margin-top:4px; opacity:0.75; font-size:0.8rem; line-height:1.35;">
+                Popola <code>_metadati__tabelle</code> / <code>_metadati__colonne</code> al termine dell'installazione.
+                Operazione potenzialmente lunga su DB con molte tabelle.
+            </small>
+        </div>
+        }
+
+        <div class="first-run-field">
+            <label for="first-run-admin-username">Username admin iniziale</label>
+            <input id="first-run-admin-username" class="first-run-input" type="text"
+                [ngModel]="firstRunForm.adminUsername"
+                (ngModelChange)="firstRunForm.adminUsername = $event"
+                [disabled]="firstRunInstalling" autocomplete="off"
+                placeholder="admin" />
+        </div>
+
+        <div class="first-run-field">
+            <label for="first-run-admin-password">Password admin iniziale</label>
+            <input id="first-run-admin-password" class="first-run-input" type="password"
+                [ngModel]="firstRunForm.adminPassword"
+                (ngModelChange)="firstRunForm.adminPassword = $event"
+                [disabled]="firstRunInstalling" autocomplete="new-password"
+                placeholder="(min 4 caratteri)" />
         </div>
 
         @if (firstRunError) {

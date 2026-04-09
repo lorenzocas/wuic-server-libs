@@ -110,7 +110,12 @@
 .first-run-overlay {
     position: fixed;
     inset: 0;
-    z-index: 2000;
+    // Stay below PrimeNG's DynamicDialog stacking range so the wizard's "il database
+    // metadati esiste già, vuoi ricrearlo?" prompt opens VISUALLY ON TOP of the wizard
+    // overlay instead of being painted underneath it. PrimeNG DynamicDialog default
+    // base z-index is 1100 and increments per stacked dialog, so we keep the wizard
+    // below that range.
+    z-index: 900;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -120,6 +125,21 @@
 
 .first-run-card {
     width: min(860px, 100%);
+    // Cap the card to the viewport (minus the overlay's 24px top/bottom padding) and make
+    // its body scroll when the form gets tall (e.g. tutorial mode + admin user fields +
+    // a long error stack trace from the backend). Without this the card grows beyond the
+    // viewport and the action button at the bottom becomes unreachable.
+    //
+    // We also impose a min-height so the card uses most of the viewport even when the
+    // form is short — without it the card collapses to the natural height of its content
+    // and on a 1080p display the user sees a small box centered with lots of empty space
+    // around. min(720px, calc(100vh - 48px)) gives a comfortable working area on
+    // anything from a laptop to a 4K monitor without sticking the card edge-to-edge.
+    min-height: min(720px, calc(100vh - 48px));
+    max-height: calc(100vh - 48px);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
     border-radius: 14px;
     padding: 22px;
     background: var(--p-surface-0);
@@ -179,6 +199,23 @@
     border: 1px solid #fca5a5;
     border-radius: 8px;
     padding: 10px 12px;
+    // Long backend stack traces (es. "AsmxProxy invocation failed... InvalidOperationException...")
+    // can be hundreds of lines and would push the action button off-screen even with
+    // a scrollable card. Give the error block its own scroll boundary so the dialog
+    // remains usable.
+    //
+    // Sized to fit ~18-20 lines of monospace stack trace at 0.85rem before scrolling kicks in,
+    // which covers the typical SqlException + a few CLR frames without forcing the user to
+    // scroll just to read the cause line. The min-height prevents the box from squishing on
+    // short single-line errors (where it would otherwise be barely taller than the padding).
+    min-height: 120px;
+    max-height: 360px;
+    overflow-y: auto;
+    word-break: break-word;
+    white-space: pre-wrap;
+    font-family: ui-monospace, "Cascadia Code", "Consolas", monospace;
+    font-size: 0.85rem;
+    line-height: 1.4;
 }
 
 .first-run-actions {
