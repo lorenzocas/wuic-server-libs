@@ -4,6 +4,7 @@ import { utility } from './classes/utility';
 import { AsyncPipe, CommonModule, NgClass, NgComponentOutlet, NgFor, NgIf, NgStyle } from '@angular/common';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { SelectModule } from 'primeng/select';
+import { CheckboxModule } from 'primeng/checkbox';
 import { FormsModule } from '@angular/forms';
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
@@ -37,7 +38,7 @@ import { ImageWrapperComponent } from 'wuic-framework-lib';
 
 @Component({
   selector: 'app-root',
-  imports: [AsyncPipe, CommonModule, RouterOutlet, NgComponentOutlet, ToggleSwitchModule, SelectModule, FormsModule, DialogModule, ButtonModule, TranslateModule, ToastModule, ConfirmDialogModule],
+  imports: [AsyncPipe, CommonModule, RouterOutlet, NgComponentOutlet, ToggleSwitchModule, SelectModule, CheckboxModule, FormsModule, DialogModule, ButtonModule, TranslateModule, ToastModule, ConfirmDialogModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
   providers: [MessageService, ConfirmationService, DialogService, GlobalHandler]
@@ -74,10 +75,19 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     { label: 'Oracle', value: 'oracle' },
     { label: 'PostgreSQL', value: 'postgres' }
   ];
-  firstRunSetupModeOptions = [
+  // Default both modes; bootstrapFirstRun() narrows the list to just "DB esistente"
+  // when the backend reports tutorialAvailable=false (i.e. the deploy zip variant
+  // ships only minimal-metadata.<dbms>.sql, not the WideWorldImporters tutorial bundle).
+  firstRunSetupModeOptions: { label: string; value: string }[] = [
     { label: 'DB esistente', value: 'existing' },
     { label: 'Tutorial WideWorldImporters', value: 'tutorial' }
   ];
+  // Mirrors the backend FirstRunStatus.tutorialAvailable flag (file-existence probe of
+  // tutorial-data.<dbms>.sql + tutorial-metadata.<dbms>.sql, > 1 KB to exclude stubs).
+  // Drives the *visibility* of the tutorial option in firstRunSetupModeOptions; the form
+  // value is forced to 'existing' when this is false so submit can never accidentally
+  // hit a tutorial code path with no scripts on disk.
+  firstRunTutorialAvailable = true;
   firstRunForm = {
     setupMode: 'existing',
     createTutorialIfMissing: true,
@@ -86,7 +96,10 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     dataDbName: '',
     tutorialDataDbName: 'WideWorldImporters',
     tutorialMetadataDbName: 'MetadataCRM',
-    metadataDbName: 'metadataDB'
+    metadataDbName: 'metadataDB',
+    adminUsername: 'admin',
+    adminPassword: '',
+    scaffoldExistingDatabase: false
   };
   firstRunDataDbOptions: { label: string; value: string }[] = [];
   private firstRunRealPath = '';
@@ -421,6 +434,17 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
       return;
     }
 
+    const adminUsername = String(this.firstRunForm.adminUsername || '').trim();
+    const adminPassword = String(this.firstRunForm.adminPassword || '');
+    if (!adminUsername) {
+      this.firstRunError = 'Inserisci un username per l\'utente admin iniziale.';
+      return;
+    }
+    if (!adminPassword || adminPassword.length < 4) {
+      this.firstRunError = 'Inserisci una password (almeno 4 caratteri) per l\'utente admin iniziale.';
+      return;
+    }
+
     const dataBaseConnection = this.buildConnectionWithoutDatabase(this.firstRunForm.dataConnectionString || '', dbms);
     if (!dataBaseConnection) {
       this.firstRunError = 'Stringa DataSQLConnection non valida: impossibile derivare la connessione base senza database.';
@@ -461,11 +485,32 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
         enableTutorialDbProvisioning: (isTutorialMode && this.firstRunForm.createTutorialIfMissing) ? 'true' : 'false',
         tutorialDataDbName: isTutorialMode ? selectedDataDbName : '',
         tutorialMetadataDbName: isTutorialMode ? selectedMetadataDbName : '',
-        scaffoldTutorialDatabase: isTutorialMode ? 'true' : 'false'
+        scaffoldTutorialDatabase: isTutorialMode ? 'true' : 'false',
+        // Auto-scaffold the existing data DB only when the operator opted in via the
+        // "Esegui scaffold automatico" checkbox AND we are NOT in tutorial mode (the
+        // tutorial bootstrap script already ships fully populated metadata tables).
+        scaffoldExistingDatabase: (!isTutorialMode && this.firstRunForm.scaffoldExistingDatabase) ? 'true' : 'false',
+        adminUsername,
+        adminPassword
       }));
 
       this.showFirstRunInstall = false;
       await this.clearClientStateForFirstRunLogin();
+
+      // The successful configure_wuic call flips AppSettings.firstRun -> false in
+      // appsettings.json on disk. ASP.NET Core's IConfigurationRoot has reloadOnChange=true
+      // (Program.cs), so the file watcher fires and ANCM (in-process hosting model)
+      // restarts the worker process. During those 1-3 seconds the IIS site responds
+      // 503 "Application Shutting Down" to every request. If we redirect to /login
+      // immediately the user lands on a 503 error page that looks like a deploy failure.
+      //
+      // Sentinel poll: hammer the anonymous /api/Meta/FirstRunStatus endpoint (which
+      // doesn't need a session and is already used by the bootstrap flow) until it
+      // returns 200 again. That confirms the worker is back up and the next page load
+      // will succeed. Cap the wait at ~30s; after the cap we redirect anyway and let
+      // the user retry manually if the restart took longer than expected.
+      await this.waitForBackendReady();
+
       const scaffoldRoute = '/scaffolding/dialog/1556';
       const loginRedirectUrl = `/?redirect=${encodeURIComponent(scaffoldRoute)}&firstRunLogin=1`;
       globalThis.location.assign(loginRedirectUrl);
@@ -488,7 +533,25 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
             ]
           }
         ], '620px');
-        const confirmDrop = String(promptResult?.confirmDrop || 'no').toLowerCase() === 'yes';
+
+        // promptDialog returns the parametric-dialog `record` object as-is. Each field is
+        // wrapped in a `BehaviorSubject<any>` (see WtoolboxService.promptDialog: `record[field
+        // .name] = new BehaviorSubject<any>(field.value)`), so a naive `String(promptResult
+        // .confirmDrop)` would yield "[object Object]" and the check would always fall back
+        // to "No". Unwrap the BehaviorSubject explicitly. Also handle the case where
+        // promptResult is undefined (operator clicked Cancel) or where the value got mapped
+        // to a `{ value: ..., label: ... }` dictionary item shape by the field editor.
+        const rawConfirm = promptResult?.confirmDrop;
+        let confirmDropValue: any = rawConfirm;
+        if (rawConfirm && typeof rawConfirm === 'object' && 'value' in rawConfirm && typeof (rawConfirm as any).value !== 'function') {
+          confirmDropValue = (rawConfirm as any).value;
+        } else if (rawConfirm && typeof (rawConfirm as any).getValue === 'function') {
+          confirmDropValue = (rawConfirm as any).getValue();
+        }
+        if (confirmDropValue && typeof confirmDropValue === 'object' && 'value' in confirmDropValue) {
+          confirmDropValue = (confirmDropValue as any).value;
+        }
+        const confirmDrop = String(confirmDropValue ?? 'no').toLowerCase() === 'yes';
         if (confirmDrop) {
           await this.submitFirstRunInstallInternal(true);
           return;
@@ -516,6 +579,39 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
 
     await this.deleteIndexedDbByName('MetaDB');
     await this.deleteIndexedDbByName('WuicClientSideCrudDB');
+  }
+
+  /**
+   * Polls an anonymous backend endpoint (/api/Meta/FirstRunStatus) until it returns
+   * a successful response, then resolves. Used after `MetaService.configure_wuic`
+   * flips firstRun=false in appsettings.json: ASP.NET Core's reloadOnChange watcher
+   * triggers an in-process worker restart, IIS responds 503 for ~1-3 seconds, and we
+   * must wait for the worker to be back up before redirecting the user to /login —
+   * otherwise they land on a "503 Application Shutting Down" error page that looks
+   * like a deploy failure. Capped at ~30s to avoid an infinite loop if the restart
+   * itself crashes; on timeout we redirect anyway and let the browser surface the
+   * real error from the next page load.
+   */
+  private async waitForBackendReady(): Promise<void> {
+    const sentinelUrl = `${appSettings.api_url}Meta/FirstRunStatus`;
+    const startedAt = Date.now();
+    const timeoutMs = 30_000;
+    const intervalMs = 500;
+
+    // Optimistic small delay so we don't hit the very first 503 in the log.
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    while (Date.now() - startedAt < timeoutMs) {
+      try {
+        // 200 = worker is back up. Any non-2xx (incl. 503 during restart) throws.
+        await firstValueFrom(this.http.get<any>(sentinelUrl));
+        return;
+      } catch {
+        await new Promise((resolve) => setTimeout(resolve, intervalMs));
+      }
+    }
+    // Timeout: redirect anyway. The next page load will surface whatever error is
+    // really happening (if any).
   }
 
   private deleteIndexedDbByName(dbName: string): Promise<void> {
@@ -568,6 +664,19 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
       const currentDbms = String(settings['dbms'] || '').trim().toLowerCase();
       if (['mssql', 'mysql', 'oracle', 'postgres', 'postgresql'].includes(currentDbms)) {
         this.firstRunForm.dbms = currentDbms === 'postgresql' ? 'postgres' : currentDbms;
+      }
+
+      // Backend reports whether the tutorial bootstrap scripts (tutorial-data /
+      // tutorial-metadata) are physically present in the deploy and not placeholder
+      // stubs. If they're missing (no-tutorial zip variant), strip "Tutorial
+      // WideWorldImporters" from the setup mode dropdown so the operator can only
+      // pick "DB esistente". If the field is absent (older backend), assume the
+      // tutorial IS available and let the runtime resolver fail loudly if it isn't.
+      const tutorialFlag = settings['tutorialAvailable'] ?? settings['tutorialavailable'];
+      this.firstRunTutorialAvailable = tutorialFlag === undefined ? true : this.toBoolean(tutorialFlag);
+      if (!this.firstRunTutorialAvailable) {
+        this.firstRunSetupModeOptions = [{ label: 'DB esistente', value: 'existing' }];
+        this.firstRunForm.setupMode = 'existing';
       }
 
       if (!isFirstRun) {
@@ -1090,9 +1199,23 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     }
 
     if (fromBackend && typeof fromBackend === 'object') {
+      // The AsmxProxy invocation envelope wraps the real exception in a few different
+      // fields: `message` is the long "AsmxProxy invocation failed..." outer message,
+      // `rootMessage` is the inner exception's Message (e.g.
+      // "METADATA_DB_EXISTS_CONFIRM_REQUIRED:metadataDB"), `rootType` is its CLR type.
+      // Some callers (notably the firstRun wizard) need to detect specific token strings
+      // in the inner message to drive UX, so we concatenate the two — `rootMessage` is
+      // appended even when `message` is present, otherwise the wizard never sees the
+      // real cause and the "exists, drop and recreate?" dialog never opens.
+      const parts: string[] = [];
       const detail = fromBackend.message || fromBackend.error || fromBackend.title;
-      if (detail) {
-        return String(detail);
+      if (detail) parts.push(String(detail));
+      const rootMessage = (fromBackend as any).rootMessage;
+      if (rootMessage && (!detail || !String(detail).includes(String(rootMessage)))) {
+        parts.push(String(rootMessage));
+      }
+      if (parts.length > 0) {
+        return parts.join(' | ');
       }
     }
 
