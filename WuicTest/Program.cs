@@ -118,6 +118,22 @@ internal static class Program
             return;
         }
 
+        // The release pipeline ships an `appsettings.json` in firstRun mode where every
+        // secret-like field is set to a `__SET_<NAME>__` placeholder so the operator can
+        // find them via search-and-replace. We must NOT propagate those placeholders into
+        // the legacy app.config: SqlConnectionStringBuilder treats the leading underscores
+        // as illegal characters in a key name and crashes with
+        //   System.ArgumentException: Format of the initialization string does not conform
+        //   to specification starting at index 0
+        // — which is exactly the symptom seen in the very first IIS deploy of v1.0.5. Skip
+        // any value matching the placeholder shape so the legacy connection string entry
+        // simply doesn't exist; the firstRun wizard will populate it later via the host's
+        // primary configuration source (appsettings.json) once the operator has filled it.
+        if (value.StartsWith("__SET_", StringComparison.Ordinal) && value.EndsWith("__", StringComparison.Ordinal))
+        {
+            return;
+        }
+
         var settings = config.ConnectionStrings.ConnectionStrings[name];
         if (settings == null)
         {
@@ -160,9 +176,26 @@ internal static class Program
             {
                 webBuilder.UseStartup<WuicCore.Startup>();
                 webBuilder.UseSetting(WebHostDefaults.ApplicationKey, typeof(Program).Assembly.GetName().Name!);
-                webBuilder.UseIISIntegration();
-                webBuilder.UseKestrel();
-                webBuilder.UseUrls("http://0.0.0.0:5000");
+
+                // Do NOT call UseKestrel() / UseIISIntegration() / UseUrls() here.
+                //
+                // ConfigureWebHostDefaults already wires both servers conditionally:
+                //   - When the process is launched by IIS in in-process mode (web.config:
+                //     hostingModel="inprocess"), the ASPNETCORE_IIS_HTTPAUTH / ANCM_HTTP_PORT
+                //     env vars are set by ANCM, and ConfigureWebHostDefaults registers the
+                //     IIS in-process server (Microsoft.AspNetCore.Server.IIS) — Kestrel is
+                //     NOT used at all because requests come straight from w3wp.exe via the
+                //     in-process module, not over a TCP socket.
+                //   - When the same binary is launched standalone (`dotnet WuicTest.dll`),
+                //     ConfigureWebHostDefaults falls back to Kestrel automatically.
+                //
+                // Calling UseKestrel() explicitly here OVERRODE the IIS in-process server
+                // and triggered the in-process startup error:
+                //   "Application is running inside IIS process but is not configured to
+                //    use IIS server" (System.InvalidOperationException from
+                //    Microsoft.AspNetCore.Server.IIS.Core.IISServerSetupFilter).
+                // UseUrls("http://0.0.0.0:5000") was also a no-op in in-process mode (the
+                // bind comes from the IIS site bindings) and is safe to drop.
 
                 if (Directory.Exists(legacyRoot))
                 {

@@ -541,11 +541,15 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     this.firstRunError = '';
 
     try {
-      if (this.hasLegacyAuthCookie()) {
-        this.showFirstRunInstall = false;
-        return;
-      }
-
+      // NOTE: we used to short-circuit here on `hasLegacyAuthCookie()` (presence of the
+      // `k-user` cookie) as an optimization to skip the Auth/Me roundtrip. That was wrong:
+      // a stale `k-user` cookie left over from a previous session — in particular from a
+      // local dev session, which is exactly the situation a developer hits the very first
+      // time they open a fresh deploy on the same machine — would silently bypass the
+      // first-run wizard and route them straight to the (broken) login page. The cookie
+      // itself proves NOTHING about server-side session validity; only Auth/Me does.
+      // So always ask the server. The cost is one ~200-500 ms HTTP call on cold start,
+      // which is acceptable since this code path runs once per page load.
       const authenticated = await this.isAuthenticatedQuickly();
       if (authenticated) {
         // First-run setup is a pre-login flow; skip checks once the session is authenticated.
@@ -569,6 +573,40 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
       if (!isFirstRun) {
         this.showFirstRunInstall = false;
         return;
+      }
+
+      // Filter the DBMS dropdown to only the providers actually available on this deploy.
+      // mssql is implicit (Microsoft.Data.SqlClient is a hard dep of WuicCore); the optional
+      // drop-in providers (mysql.dll, postgresql.dll, oracle.dll) need to be physically
+      // present in the publish output for the wizard to offer them. The backend probes the
+      // candidate folders and returns the matching list — see MetaController.AvailableDbms.
+      try {
+        const availableResp = await firstValueFrom(this.http.get<any>(`${appSettings.api_url}Meta/AvailableDbms`));
+        const availableList: Array<{ id: string; label: string }> = availableResp?.dbms || [];
+        if (Array.isArray(availableList) && availableList.length > 0) {
+          // Backend uses 'postgresql' as the canonical id; the frontend internally uses
+          // 'postgres' as the form value (mapped to 'postgresql' before calling APIs in
+          // normalizeDbms). Translate here so the dropdown values match firstRunForm.dbms.
+          const filtered = availableList.map(entry => {
+            const id = String(entry?.id || '').trim().toLowerCase();
+            const label = String(entry?.label || id).trim();
+            const value = id === 'postgresql' ? 'postgres' : id;
+            return { label, value };
+          }).filter(opt => !!opt.value);
+          if (filtered.length > 0) {
+            this.firstRunDbmsOptions = filtered;
+            // Snap the form to the first available option if the current selection is no
+            // longer valid (e.g. backend says only mssql is available but the form had
+            // dbms='mysql' from a previous session).
+            if (!filtered.some(opt => opt.value === this.firstRunForm.dbms)) {
+              this.firstRunForm.dbms = filtered[0].value;
+            }
+          }
+        }
+      } catch {
+        // If the AvailableDbms endpoint is missing (older backend) or fails, leave the
+        // hardcoded list — the user will see all four entries and the backend will reject
+        // with a clear error if the chosen provider isn't actually deployed.
       }
 
       this.showFirstRunInstall = true;
@@ -602,11 +640,6 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     } finally {
       this.firstRunLoading = false;
     }
-  }
-
-  private hasLegacyAuthCookie(): boolean {
-    const cookie = String(globalThis.document?.cookie || '');
-    return cookie.split(';').some((part) => part.trim().startsWith('k-user='));
   }
 
   private async isAuthenticatedQuickly(): Promise<boolean> {
