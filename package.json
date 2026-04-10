@@ -1,0 +1,9 @@
+{
+  "name": "wuic-monorepo",
+  "private": true,
+  "workspaces": [
+    "KonvergenceCore/wwwroot/my-workspace",
+    "WuicTest/wwwroot",
+    "CrmApp/wwwroot"
+  ]
+}
