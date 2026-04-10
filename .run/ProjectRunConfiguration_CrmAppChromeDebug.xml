@@ -1,0 +1,7 @@
+﻿<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Fullstack: CrmApp + Chrome Debug" type="CompoundRunConfigurationType" factoryName="Compound">
+    <toRun name="_Backend: CrmApp (Debug Breakpoints)" type="DotNetProject" />
+    <toRun name="Frontend: Chrome CrmApp (Start Frontend Tasks)" type="JavascriptDebugType" />
+    <method v="2" />
+  </configuration>
+</component>

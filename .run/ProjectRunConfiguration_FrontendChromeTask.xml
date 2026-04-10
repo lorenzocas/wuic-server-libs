@@ -1,0 +1,9 @@
+﻿<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Frontend: Chrome CrmApp (Start Frontend Tasks)" type="JavascriptDebugType" factoryName="JavaScript Debug">
+    <option name="uri" value="http://localhost:4200" />
+    <option name="engineId" value="chrome" />
+    <option name="browserFamily" value="CHROME" />
+    <option name="sourceMaps" value="true" />
+    <method v="2" />
+  </configuration>
+</component>

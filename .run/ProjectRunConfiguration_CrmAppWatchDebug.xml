@@ -1,0 +1,13 @@
+﻿<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="_Backend: CrmApp (Watch + Debug)" type="ShConfigurationType" factoryName="Shell Script">
+    <option name="SCRIPT_TEXT" value="dotnet watch --project ../CrmApp/CrmApp.csproj run" />
+    <option name="INDEPENDENT_SCRIPT_TEXT" value="true" />
+    <option name="SCRIPT_WORKING_DIRECTORY" value="$PROJECT_DIR$/../CrmApp" />
+    <option name="INDEPENDENT_SCRIPT_WORKING_DIRECTORY" value="true" />
+    <envs>
+      <env name="ASPNETCORE_ENVIRONMENT" value="Development" />
+      <env name="DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER" value="1" />
+    </envs>
+    <method v="2" />
+  </configuration>
+</component>

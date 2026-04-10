@@ -1,0 +1,13 @@
+﻿<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Backend: KonvergenceCore (Hot Reload Watch)" type="ShConfigurationType" factoryName="Shell Script">
+    <option name="SCRIPT_TEXT" value="dotnet watch --no-restore --project KonvergenceCore.csproj run --no-launch-profile -p:StaticWebAssetsEnabled=false" />
+    <option name="INDEPENDENT_SCRIPT_TEXT" value="true" />
+    <option name="SCRIPT_WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <option name="INDEPENDENT_SCRIPT_WORKING_DIRECTORY" value="true" />
+    <envs>
+      <env name="ASPNETCORE_ENVIRONMENT" value="Development" />
+      <env name="DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER" value="1" />
+    </envs>
+    <method v="2" />
+  </configuration>
+</component>

@@ -1,0 +1,9 @@
+﻿<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="_Frontend: Chrome (npm package)" type="JavascriptDebugType" factoryName="JavaScript Debug">
+    <option name="uri" value="http://localhost:4200" />
+    <option name="engineId" value="chrome" />
+    <option name="browserFamily" value="CHROME" />
+    <option name="sourceMaps" value="true" />
+    <method v="2" />
+  </configuration>
+</component>
