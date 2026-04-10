@@ -39,3 +39,7 @@ CrmApp/.local-package-sync.stamp
 CrmApp/wwwroot/.wuic-framework-lib.lastinstall
 WuicTest/Tmp_export/*
 WuicTest/Upload/*
+_dataset_backup/tutorial-mssql/tutorial-data.mssql.bak
+_dataset_backup/tutorial-mssql/tutorial-data.mssql.sql
+_dataset_backup/tutorial-mssql/tutorial-metadata.mssql.sql
+_dataset_backup/tutorial-mssql/tutorial-metadata.mssql.bak

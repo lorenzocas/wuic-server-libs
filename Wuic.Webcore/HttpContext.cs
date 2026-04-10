@@ -828,6 +828,23 @@ namespace System.WebCore
 
         public static ContextCurrent Current;
 
+        /// <summary>
+        /// Escape hatch used by KonvergenceCore-side helpers that need
+        /// direct access to the current ASP.NET Core <c>HttpContext</c>
+        /// (e.g. to emit <c>Set-Cookie</c> headers with a policy that the
+        /// shim doesn't know about). Returns <c>null</c> if the shim has
+        /// not been configured yet, so callers must null-check.
+        ///
+        /// Deliberately kept minimal here: the shim doesn't own cookie
+        /// policy (that belongs next to the auth reader in
+        /// <c>KonvergenceCore/Helpers/Helpers.cs</c>), it only exposes the
+        /// accessor so the caller can reach <c>Response.Cookies</c>.
+        /// </summary>
+        public static Microsoft.AspNetCore.Http.HttpContext GetAspNetCoreContext()
+        {
+            return _accessor?.HttpContext;
+        }
+
         public static ContextCurrent Configure(IHttpContextAccessor httpContextAccessor, object hosting)
         {
             _accessor = httpContextAccessor;
