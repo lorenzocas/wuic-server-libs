@@ -35,19 +35,25 @@
               },
               {
                 "glob": "**/*",
-                "input": "./node_modules/monaco-editor/min/vs",
+                "input": "../../node_modules/monaco-editor/min/vs",
                 "output": "assets/monaco-editor/min/vs"
               }
             ],
             "styles": [
-              "node_modules/bootstrap/dist/css/bootstrap-grid.min.css",
-              "node_modules/primeicons/primeicons.css",
-              "node_modules/primeflex/primeflex.css",
+              "../../node_modules/bootstrap/dist/css/bootstrap-grid.min.css",
+              "../../node_modules/primeicons/primeicons.css",
+              "../../node_modules/primeflex/primeflex.css",
               "assets/styles.scss",
-              "node_modules/jsuites/dist/jsuites.css",
-              "node_modules/jspreadsheet/dist/jspreadsheet.css"
+              "../../node_modules/jsuites/dist/jsuites.css",
+              "../../node_modules/jspreadsheet/dist/jspreadsheet.css"
             ],
             "scripts": [],
+            "stylePreprocessorOptions": {
+              "includePaths": [
+                "../../KonvergenceCore/wwwroot/my-workspace/projects/wuic-framework-lib/assets",
+                "node_modules/wuic-framework-lib"
+              ]
+            },
             "preserveSymlinks": true
           },
           "configurations": {

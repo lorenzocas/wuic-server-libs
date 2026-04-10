@@ -1,1 +1,1 @@
-export { routes } from 'wuic-framework-lib/routes';
+export { routes } from 'wuic-framework-lib';

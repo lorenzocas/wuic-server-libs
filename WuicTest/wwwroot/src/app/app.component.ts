@@ -29,10 +29,8 @@ import Lara from '@primeng/themes/lara';
 import Nora from '@primeng/themes/nora';
 import Material from '@primeng/themes/material';
 import { updatePrimaryPalette, usePreset } from '@primeuix/styled';
-import { WtoolboxService, MetadataProviderService, GlobalHandler, CustomException, TranslationManagerService, AuthSessionService } from './wuic-bridges-npm/core';
+import { WtoolboxService, MetadataProviderService, GlobalHandler, CustomException, TranslationManagerService, AuthSessionService, getThemeOptions, PRIMARY_PALETTES, ThemeOption, ImageWrapperComponent } from 'wuic-framework-lib';
 import { CustomListComponent } from './component/custom-list/custom-list.component';
-import { getThemeOptions, PRIMARY_PALETTES, ThemeOption } from 'wuic-framework-lib';
-import { ImageWrapperComponent } from 'wuic-framework-lib';
 
 // import { CustomTextFieldComponent } from './component/field/custom-text-field/custom-text-field.component';
 // import { CustomListComponent } from './component/custom-list/custom-list.component';

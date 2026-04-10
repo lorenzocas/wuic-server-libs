@@ -7,4 +7,4 @@ export {
   loadButtonEditorComponent,
   loadDateEditorComponent,
   loadDictionaryEditorComponent
-} from 'wuic-framework-lib/widget-loaders';
+} from 'wuic-framework-lib';

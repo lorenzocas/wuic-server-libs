@@ -1,1 +1,1 @@
-export { NotificationBellComponent } from 'wuic-framework-lib/notifications';
+export { NotificationBellComponent } from 'wuic-framework-lib';

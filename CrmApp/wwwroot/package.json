@@ -1,5 +1,5 @@
 {
-  "name": "my-workspace",
+  "name": "crm-app-workspace",
   "version": "0.0.1",
   "scripts": {
     "ng": "ng",
@@ -69,7 +69,6 @@
     "stimulsoft-reports-js": "^2026.1.4",
     "stimulsoft-viewer-angular": "^2024.4.3",
     "tslib": "^2.3.0",
-    "wuic-framework-lib": "file:../../KonvergenceCore/wwwroot/my-workspace/dist/wuic-framework-lib",
     "zone.js": "~0.15.0"
   },
   "devDependencies": {

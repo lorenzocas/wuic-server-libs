@@ -14,7 +14,7 @@
     "allowJs": true,
     "paths": {
       "wuic-framework-lib": [
-        "./node_modules/wuic-framework-lib"
+        "../../KonvergenceCore/wwwroot/my-workspace/projects/wuic-framework-lib/src/public-api"
       ],
       "wuic-framework-lib/*": [
         "./node_modules/wuic-framework-lib/*"

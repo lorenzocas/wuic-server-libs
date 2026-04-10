@@ -35,6 +35,7 @@
     }
   ],
   "settings": {
+    // ── Search / File watcher (workspace-level) ─────────────────
     "search.exclude": {
       "**/lib-src/**": true,
       "**/codebase_docs/md_chunks/**": true,
@@ -49,25 +50,75 @@
       "**/codebase_docs/md_chunks/**": true,
       "**/codebase_embeddings/**": true,
       "**/.venv/**": true,
-      "**/App_Data/**": true
+      "**/App_Data/**": true,
+      "**/wwwroot_js/**": true
     },
-    "CodeGPT.apiKey": "Claude Code",
-    "powershell.cwd": "KonvergenceCore",
-    "sarif-viewer.connectToGithubCodeScanning": "off",
-    "semgrep.scan.configuration": [
-      "p/csharp",
-      "p/typescript"
-    ],
-    "semgrep.scan.onlyGitDirty": false,
-    "semgrep.scan.secrets": false,
-    "chatgpt.openOnStartup": true,
-    "chat.imageCarousel.enabled": true,
+
+    // ── Extension Host isolation (anti-crash) ───────────────────
+    // Distribute heavy extensions across separate Extension Host processes.
+    // If one crashes, the others survive.
+    "extensions.experimental.affinity": {
+      "anthropic.claude-code": 1,
+      "ms-dotnettools.csharp": 2,
+      "ms-dotnettools.csdevkit": 2,
+      "angular.ng-template": 3,
+      "dbaeumer.vscode-eslint": 3,
+      "eamodio.gitlens": 4
+    },
+
+    // ── Git / GitLens: reduce background work ───────────────────
+    "git.autorefresh": false,
+    "git.decorations.enabled": false,
+    "git.scanRepositories": [".."],
+    "git.openRepositoryInParentFolders": "always",
+    "gitlens.codeLens.enabled": false,
+    "gitlens.currentLine.enabled": false,
+    "gitlens.hovers.enabled": false,
+    "gitlens.statusBar.enabled": false,
+
+    // ── Editor performance ──────────────────────────────────────
+    "editor.minimap.enabled": false,
+    "editor.bracketPairColorization.independentColorPoolPerBracketType": false,
+    "editor.suggest.preview": false,
+    "editor.quickSuggestions": {
+      "other": "on",
+      "comments": "off",
+      "strings": "off"
+    },
+
+    // ── ESLint: only on save (not on every keystroke) ───────────
+    "eslint.run": "onSave",
+
+    // ── TypeScript ──────────────────────────────────────────────
     "typescript.tsdk": "WuicTest/wwwroot/node_modules/typescript/lib",
     "typescript.enablePromptUseWorkspaceTsdk": true,
     "js/ts.tsdk.path": "WuicTest/wwwroot/node_modules/typescript/lib",
     "typescript.tsserver.maxTsServerMemory": 2048,
+
+    // ── Python: minimal footprint ───────────────────────────────
     "python.languageServer": "None",
     "python.analysis.indexing": false,
-    "python.analysis.diagnosticMode": "openFilesOnly"
+    "python.analysis.diagnosticMode": "openFilesOnly",
+
+    // ── PowerShell ──────────────────────────────────────────────
+    "powershell.cwd": "KonvergenceCore",
+
+    // ── Misc ────────────────────────────────────────────────────
+    "sarif-viewer.connectToGithubCodeScanning": "off",
+    "chat.imageCarousel.enabled": true
+  },
+
+  // ── Disable extensions not needed in this workspace ───────────
+  // These extensions stay installed globally but won't activate here,
+  // saving ~2-3 GB RAM and reducing Extension Host crash risk.
+  "extensions": {
+    "unwantedRecommendations": [
+      "bmewburn.vscode-intelephense-client",
+      "xdebug.php-debug",
+      "zobo.php-intellisense",
+      "keesschollaart.vscode-home-assistant",
+      "aaravb.chrome-extension-developer-tools",
+      "sidthesloth.html5-boilerplate"
+    ]
   }
 }

@@ -6,4 +6,4 @@ export {
   loadTreeViewSelectorComponent,
   loadPropertyArrayEditorComponent,
   loadPropertyObjectEditorComponent
-} from 'wuic-framework-lib/widget-loaders';
+} from 'wuic-framework-lib';
