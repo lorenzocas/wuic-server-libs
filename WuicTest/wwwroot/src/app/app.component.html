@@ -51,8 +51,18 @@
                 (onClick)="testFirstRunConnectionAndLoadDatabases()"></p-button>
         </div>
 
+        @if (firstRunForm.setupMode === 'tutorial') {
         <div class="first-run-field">
-            <label for="first-run-datadb">@if (firstRunForm.setupMode === 'tutorial') {Database dati tutorial} @else {Database dati}</label>
+            <label for="first-run-datadb">Database dati tutorial</label>
+            <input id="first-run-datadb" class="first-run-input" type="text"
+                [ngModel]="firstRunForm.tutorialDataDbName"
+                (ngModelChange)="firstRunForm.tutorialDataDbName = $event; firstRunForm.dataDbName = $event"
+                [disabled]="firstRunInstalling || !firstRunConnectionValid"
+                placeholder="WideWorldImporters" />
+        </div>
+        } @else {
+        <div class="first-run-field">
+            <label for="first-run-datadb">Database dati</label>
             <p-select [options]="firstRunDataDbOptions" optionLabel="label" optionValue="value"
                 [ngModel]="firstRunForm.dataDbName" (ngModelChange)="firstRunForm.dataDbName = $event"
                 [disabled]="firstRunInstalling || firstRunDbLoading || !firstRunConnectionValid" [filter]="true"
@@ -64,6 +74,7 @@
                     (onClick)="testFirstRunConnectionAndLoadDatabases()"></p-button>
             </div>
         </div>
+        }
 
         <div class="first-run-field">
             <label for="first-run-metadb">@if (firstRunForm.setupMode === 'tutorial') {Nome DB metadati tutorial} @else {Nome DB metadati}</label>
@@ -107,6 +118,28 @@
 
         @if (firstRunError) {
         <div class="first-run-error">{{ firstRunError }}</div>
+        }
+
+        @if (firstRunInstalling && firstRunProgress.active) {
+        <div class="first-run-progress">
+            <div class="first-run-progress-label">
+                <strong>{{ firstRunProgress.phase }}</strong>
+                @if (firstRunProgress.total > 0) {
+                <span class="first-run-progress-count">
+                    — batch {{ firstRunProgress.current }} / {{ firstRunProgress.total }}
+                </span>
+                }
+            </div>
+            <p-progressBar [value]="firstRunProgress.percent" [showValue]="true"></p-progressBar>
+            @if (firstRunProgress.message) {
+            <div class="first-run-progress-message">{{ firstRunProgress.message }}</div>
+            }
+            @if (firstRunProgress.elapsedMs > 0) {
+            <div class="first-run-progress-elapsed">
+                Elapsed: {{ (firstRunProgress.elapsedMs / 1000) | number:'1.0-0' }}s
+            </div>
+            }
+        </div>
         }
 
         <div class="first-run-actions">

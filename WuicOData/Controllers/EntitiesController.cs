@@ -117,13 +117,29 @@ namespace WuicCore.Controllers
         [HttpPost("odata/{entityset}")]
         public async Task<IActionResult> Post(string entityset)
         {
-            var writeFlags = TryGetWriteFlagsFromMetadata(entityset);
-            if (!writeFlags.HasValue || !writeFlags.Value.EnableInsert)
-                return Forbid();
-
+            // Resolve the CLR type FIRST so we can derive the real SQL table
+            // name to look up metadata flags. The OData EntitySet name is
+            // PascalCase (e.g. "E2eOdataDemo") via MetadataModelGenerator.ToPascalCase,
+            // but `_metadati__tabelle.mdroutename` / `md_nome_tabella` use the
+            // original SQL table name (`_e2e_odata_demo`). Without this step
+            // TryGetWriteFlagsFromMetadata cannot find the row → returns null
+            // → CUD is silently denied.
             Type t = ResolveEntityType(entityset);
             if (t == null)
                 return NotFound($"Unknown entity set '{entityset}' (CLR type not found).");
+
+            var lookupName = ResolveMetadataLookupName(t, entityset);
+            var writeFlags = TryGetWriteFlagsFromMetadata(lookupName);
+            if (!writeFlags.HasValue || !writeFlags.Value.EnableInsert)
+                // Use plain StatusCode(403) instead of Forbid() because
+                // WUIC does not register an ASP.NET authentication scheme
+                // by default (uses the custom k-user middleware in
+                // Startup.cs:HydrateLegacyPrincipalFromKUserCookie). When
+                // Forbid() falls through to AuthenticationService.ForbidAsync
+                // it throws "No authenticationScheme was specified, and
+                // there was no DefaultForbidScheme found", masking the real
+                // 403 response with an HTTP 500.
+                return StatusCode(StatusCodes.Status403Forbidden, new { error = "insert_disabled", entityset, lookupName, hint = "Set _metadati__tabelle.mdserviceenableinsert = 1 + mdexposeinwebapi = 1 for this route." });
 
             var payloadResolution = await ResolvePayloadObjectAsync();
             if (!payloadResolution.Ok)
@@ -140,13 +156,15 @@ namespace WuicCore.Controllers
         [HttpPatch("odata/{entityset}({key})")]
         public async Task<IActionResult> Patch(string entityset, string key)
         {
-            var writeFlags = TryGetWriteFlagsFromMetadata(entityset);
-            if (!writeFlags.HasValue || !writeFlags.Value.EnableEdit)
-                return Forbid();
-
             Type t = ResolveEntityType(entityset);
             if (t == null)
                 return NotFound($"Unknown entity set '{entityset}' (CLR type not found).");
+
+            var lookupName = ResolveMetadataLookupName(t, entityset);
+            var writeFlags = TryGetWriteFlagsFromMetadata(lookupName);
+            if (!writeFlags.HasValue || !writeFlags.Value.EnableEdit)
+                // See Post() comment above for the StatusCode vs Forbid() rationale.
+                return StatusCode(StatusCodes.Status403Forbidden, new { error = "edit_disabled", entityset, lookupName, hint = "Set _metadati__tabelle.mdserviceenableedit = 1 + mdexposeinwebapi = 1 for this route." });
 
             var keyInfo = GetSingleKeyInfo(t);
             if (keyInfo.ErrorResult != null)
@@ -180,13 +198,15 @@ namespace WuicCore.Controllers
         [HttpDelete("odata/{entityset}({key})")]
         public async Task<IActionResult> Delete(string entityset, string key)
         {
-            var writeFlags = TryGetWriteFlagsFromMetadata(entityset);
-            if (!writeFlags.HasValue || !writeFlags.Value.EnableDelete)
-                return Forbid();
-
             Type t = ResolveEntityType(entityset);
             if (t == null)
                 return NotFound($"Unknown entity set '{entityset}' (CLR type not found).");
+
+            var lookupName = ResolveMetadataLookupName(t, entityset);
+            var writeFlags = TryGetWriteFlagsFromMetadata(lookupName);
+            if (!writeFlags.HasValue || !writeFlags.Value.EnableDelete)
+                // See Post() comment above for the StatusCode vs Forbid() rationale.
+                return StatusCode(StatusCodes.Status403Forbidden, new { error = "delete_disabled", entityset, lookupName, hint = "Set _metadati__tabelle.mdserviceenabledelete = 1 + mdexposeinwebapi = 1 for this route." });
 
             var keyInfo = GetSingleKeyInfo(t);
             if (keyInfo.ErrorResult != null)
@@ -210,6 +230,33 @@ namespace WuicCore.Controllers
             await _context.SaveChangesAsync();
 
             return NoContent();
+        }
+
+        /// <summary>
+        /// Compute the name to use when looking up `_metadati__tabelle.mdroutename`
+        /// / `md_nome_tabella` for write-flag enforcement. The OData EntitySet
+        /// name is PascalCase (e.g. `E2eOdataDemo`) but the metadata DB stores
+        /// the original SQL table name (e.g. `_e2e_odata_demo`). We extract the
+        /// table name from the EF Core model first, then fall back to the
+        /// entityset string itself if the EF model is unavailable for some
+        /// reason (defensive — should not happen in practice).
+        /// </summary>
+        private string ResolveMetadataLookupName(Type clrType, string entityset)
+        {
+            try
+            {
+                var efEntity = _context?.Model?.FindEntityType(clrType);
+                var tableName = efEntity?.GetTableName();
+                if (!string.IsNullOrWhiteSpace(tableName))
+                {
+                    return tableName;
+                }
+            }
+            catch
+            {
+                // Best effort — fall through to entityset.
+            }
+            return entityset;
         }
 
         private Type ResolveEntityType(string entityset)

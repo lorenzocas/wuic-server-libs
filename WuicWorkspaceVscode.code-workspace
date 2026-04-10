@@ -36,7 +36,20 @@
   ],
   "settings": {
     "search.exclude": {
-      "**/lib-src/**": true
+      "**/lib-src/**": true,
+      "**/codebase_docs/md_chunks/**": true,
+      "**/codebase_embeddings/**": true
+    },
+    "files.watcherExclude": {
+      "**/node_modules/**": true,
+      "**/dist/**": true,
+      "**/.angular/**": true,
+      "**/bin/**": true,
+      "**/obj/**": true,
+      "**/codebase_docs/md_chunks/**": true,
+      "**/codebase_embeddings/**": true,
+      "**/.venv/**": true,
+      "**/App_Data/**": true
     },
     "CodeGPT.apiKey": "Claude Code",
     "powershell.cwd": "KonvergenceCore",
@@ -51,6 +64,10 @@
     "chat.imageCarousel.enabled": true,
     "typescript.tsdk": "WuicTest/wwwroot/node_modules/typescript/lib",
     "typescript.enablePromptUseWorkspaceTsdk": true,
-    "js/ts.tsdk.path": "WuicTest/wwwroot/node_modules/typescript/lib"
+    "js/ts.tsdk.path": "WuicTest/wwwroot/node_modules/typescript/lib",
+    "typescript.tsserver.maxTsServerMemory": 2048,
+    "python.languageServer": "None",
+    "python.analysis.indexing": false,
+    "python.analysis.diagnosticMode": "openFilesOnly"
   }
 }

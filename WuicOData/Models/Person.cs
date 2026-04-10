@@ -15,6 +15,18 @@ public partial class Person: GenericConfiguration<Person>
 
     public string FullName { get; set; }
 
+    // Manually added: the EF Core Power Tools scaffolder skipped this NOT NULL
+    // column when re-generating Person.cs (cause unknown — possibly a bug in
+    // the Power Tools temporal-table handling that incorrectly treats
+    // "PreferredName" as system-managed; the column is a regular nvarchar(50)
+    // NOT NULL with no default in `Application.People`). Without this property,
+    // any INSERT/UPDATE through the OData EntitiesController fails with SQL
+    // error 515 "Cannot insert NULL into column 'PreferredName'" because the
+    // controller's `propMap` (built from EF model properties) has no entry to
+    // bind the JSON `preferredName` field to. If the file is ever regenerated
+    // by Power Tools, this property + the matching `entity.Property(e => e.PreferredName).IsRequired().HasMaxLength(50)`
+    // configuration in SpecialConfigure must be re-added by hand.
+    public string PreferredName { get; set; }
 
     public string SearchName { get; set; }
 

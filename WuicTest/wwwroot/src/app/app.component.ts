@@ -5,6 +5,7 @@ import { AsyncPipe, CommonModule, NgClass, NgComponentOutlet, NgFor, NgIf, NgSty
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { SelectModule } from 'primeng/select';
 import { CheckboxModule } from 'primeng/checkbox';
+import { ProgressBarModule } from 'primeng/progressbar';
 import { FormsModule } from '@angular/forms';
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
@@ -38,7 +39,7 @@ import { ImageWrapperComponent } from 'wuic-framework-lib';
 
 @Component({
   selector: 'app-root',
-  imports: [AsyncPipe, CommonModule, RouterOutlet, NgComponentOutlet, ToggleSwitchModule, SelectModule, CheckboxModule, FormsModule, DialogModule, ButtonModule, TranslateModule, ToastModule, ConfirmDialogModule],
+  imports: [AsyncPipe, CommonModule, RouterOutlet, NgComponentOutlet, ToggleSwitchModule, SelectModule, CheckboxModule, ProgressBarModule, FormsModule, DialogModule, ButtonModule, TranslateModule, ToastModule, ConfirmDialogModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
   providers: [MessageService, ConfirmationService, DialogService, GlobalHandler]
@@ -103,6 +104,40 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
   };
   firstRunDataDbOptions: { label: string; value: string }[] = [];
   private firstRunRealPath = '';
+
+  // Progress state polled from GET /api/Meta/FirstRunProgress every ~500ms while
+  // the configure_wuic POST is in flight. Mirrors the shape written to
+  // firstrun-progress.json by MetaService.FirstRunProgressTracker. The wizard UI
+  // renders a <p-progressBar> bound to `firstRunProgress.percent` and a label
+  // built from `phase` + `message` + elapsed seconds. The "active" flag is the
+  // master switch that decides whether to show the bar at all — false when the
+  // backend hasn't written a session yet (pre-POST or post-Cleanup).
+  firstRunProgress: {
+    active: boolean;
+    phase: string;
+    current: number;
+    total: number;
+    percent: number;
+    message: string;
+    elapsedMs: number;
+    finished: boolean;
+    failed: boolean;
+    error: string | null;
+  } = {
+    active: false,
+    phase: 'idle',
+    current: 0,
+    total: 0,
+    percent: 0,
+    message: '',
+    elapsedMs: 0,
+    finished: false,
+    failed: false,
+    error: null
+  };
+  // Opaque handle to the setInterval timer so we can clear it in the finally
+  // block of submitFirstRunInstallInternal regardless of success or failure.
+  private firstRunProgressTimer: ReturnType<typeof setInterval> | null = null;
   selectedTheme = 'aura-blue';
   availableThemes: ThemeOption[] = getThemeOptions();
 
@@ -452,6 +487,7 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     }
 
     this.firstRunInstalling = true;
+    this.startFirstRunProgressPolling();
 
     try {
       const endpoint = `${appSettings.global_root_url}MetaService.configure_wuic`;
@@ -561,6 +597,67 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
       this.messageService.add({ severity: 'error', summary: 'Installazione fallita', detail: this.firstRunError });
     } finally {
       this.firstRunInstalling = false;
+      this.stopFirstRunProgressPolling();
+    }
+  }
+
+  /**
+   * Starts a ~500ms polling loop against the public
+   * `GET /api/Meta/FirstRunProgress` endpoint and mirrors the file-backed
+   * state written by MetaService.FirstRunProgressTracker into
+   * `this.firstRunProgress`. The <p-progressBar> in the wizard overlay is
+   * bound to this field and updates live as the backend streams through
+   * the bootstrap script batches.
+   *
+   * Transient network errors (worker ANCM restart at the end of
+   * configure_wuic, momentary DB lock, etc.) are swallowed — the next
+   * tick will retry. The loop is stopped in the finally block of
+   * submitFirstRunInstallInternal so it never outlives the HTTP POST.
+   */
+  private startFirstRunProgressPolling(): void {
+    this.stopFirstRunProgressPolling();
+    this.firstRunProgress = {
+      active: false,
+      phase: 'starting',
+      current: 0,
+      total: 0,
+      percent: 0,
+      message: 'Inizializzazione...',
+      elapsedMs: 0,
+      finished: false,
+      failed: false,
+      error: null
+    };
+    this.firstRunProgressTimer = setInterval(async () => {
+      try {
+        const resp = await firstValueFrom(this.http.get<any>(`${appSettings.api_url}Meta/FirstRunProgress`));
+        if (resp && typeof resp === 'object') {
+          this.firstRunProgress = {
+            active: !!resp.active,
+            phase: String(resp.phase || 'idle'),
+            current: Number(resp.current || 0),
+            total: Number(resp.total || 0),
+            percent: Number(resp.percent || 0),
+            message: String(resp.message || ''),
+            elapsedMs: Number(resp.elapsedMs || 0),
+            finished: !!resp.finished,
+            failed: !!resp.failed,
+            error: resp.error || null
+          };
+        }
+      } catch {
+        // Silently ignore transient failures. The polling loop keeps ticking
+        // and will recover on the next successful response. If the backend is
+        // down long enough for the configure_wuic POST itself to fail, the
+        // outer error handler surfaces the real error to the user.
+      }
+    }, 500);
+  }
+
+  private stopFirstRunProgressPolling(): void {
+    if (this.firstRunProgressTimer) {
+      clearInterval(this.firstRunProgressTimer);
+      this.firstRunProgressTimer = null;
     }
   }
 
