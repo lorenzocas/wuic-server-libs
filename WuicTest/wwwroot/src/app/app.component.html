@@ -124,13 +124,17 @@
         <div class="first-run-progress">
             <div class="first-run-progress-label">
                 <strong>{{ firstRunProgress.phase }}</strong>
-                @if (firstRunProgress.total > 0) {
+                @if (firstRunProgress.total > 0 && !firstRunProgress.phase.includes('.restore')) {
                 <span class="first-run-progress-count">
                     — batch {{ firstRunProgress.current }} / {{ firstRunProgress.total }}
                 </span>
                 }
             </div>
+            @if (firstRunProgress.phase.includes('.restore') && firstRunProgress.percent < 5) {
+            <p-progressBar mode="indeterminate" [style]="{'height': '1.5rem'}"></p-progressBar>
+            } @else {
             <p-progressBar [value]="firstRunProgress.percent" [showValue]="true"></p-progressBar>
+            }
             @if (firstRunProgress.message) {
             <div class="first-run-progress-message">{{ firstRunProgress.message }}</div>
             }

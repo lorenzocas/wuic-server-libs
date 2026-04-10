@@ -17,11 +17,12 @@ import { providePrimeNG } from 'primeng/config';
 registerLocaleData(localeIt, 'it-IT', localeItExtra);
 import Aura from '@primeng/themes/aura';
 import { credentialsInterceptor } from './interceptors/credentials.interceptor';
+import { authExpiredInterceptor } from 'wuic-framework-lib';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
-    provideHttpClient(withInterceptors([credentialsInterceptor])),
+    provideHttpClient(withInterceptors([credentialsInterceptor, authExpiredInterceptor])),
     importProvidersFrom(TranslateModule.forRoot()),
     importProvidersFrom(BrowserAnimationsModule),
     // importProvidersFrom(ResizableModule),
