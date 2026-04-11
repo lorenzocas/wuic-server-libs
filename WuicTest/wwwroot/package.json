@@ -7,7 +7,7 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "serve:dev": "ng serve wuic-test --configuration=development --host localhost --port 4200",
+    "serve:dev": "ng serve wuic-test --configuration=development --prebundle=true --host localhost --port 4200",
     "serve:npm": "ng serve wuic-test --configuration=npm --host localhost --port 4200",
     "build:dev": "ng build wuic-test --configuration=development",
     "build:prod": "ng build wuic-test --configuration=production",

@@ -54,11 +54,17 @@
                 "node_modules/wuic-framework-lib"
               ]
             },
+            "allowedCommonJsDependencies": [
+              "stimulsoft-reports-js/Scripts/stimulsoft.reports",
+              "quill-delta",
+              "jspreadsheet",
+              "@babel/runtime/regenerator"
+            ],
             "preserveSymlinks": true
           },
           "configurations": {
             "production": {
-              "optimization": false,
+              "optimization": true,
               "budgets": [
                 {
                   "type": "initial",
@@ -74,7 +80,7 @@
               "outputHashing": "all"
             },
             "development": {
-              "optimization": true,
+              "optimization": false,
               "extractLicenses": false,
               "sourceMap": {
                 "scripts": true,
@@ -83,13 +89,10 @@
               }
             },
             "npm": {
-              "optimization": false,
-              "extractLicenses": false,
-              "sourceMap": {
-                "scripts": true,
-                "styles": true,
-                "vendor": true
-              },
+              "optimization": true,
+              "extractLicenses": true,
+              "sourceMap": false,
+              "outputHashing": "all",
               "fileReplacements": [
                 { "replace": "src/app/wuic-bridges/core.ts", "with": "src/app/wuic-bridges-npm/core.ts" },
                 { "replace": "src/app/wuic-bridges/ui.ts", "with": "src/app/wuic-bridges-npm/ui.ts" },

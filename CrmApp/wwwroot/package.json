@@ -17,7 +17,7 @@
     "test:stress:server": "node scripts/run-wuic-k6-stress.mjs",
     "test:stress:server:quick": "node scripts/run-wuic-k6-stress.mjs -e WUIC_K6_DURATION=30s -e WUIC_K6_VUS=8",
     "test:stress:server:matrix": "powershell -ExecutionPolicy Bypass -File scripts/run-wuic-k6-matrix.ps1",
-    "serve:dev": "ng serve crm-app --configuration=development --host localhost --port 4200",
+    "serve:dev": "ng serve crm-app --configuration=development --prebundle=true --host localhost --port 4200",
     "serve:npm": "ng serve crm-app --configuration=npm --host localhost --port 4200",
     "build:lib:npm": "ng build wuic-framework-lib -c production",
     "build:lib": "ng build wuic-framework-lib --watch",

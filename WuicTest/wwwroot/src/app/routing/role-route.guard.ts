@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { ActivatedRouteSnapshot, CanActivateFn, CanMatchFn, Route, Router, RouterStateSnapshot, UrlSegment, UrlTree } from '@angular/router';
-import { AuthSessionService, UserInfoService } from '../wuic-bridges-npm/core';
+import { AuthSessionService, UserInfoService } from '../wuic-bridges/core';
 import { FRAMEWORK_ROUTE_ROLE_RULES, RouteRoleRule } from './route-role-map';
 
 type GuardRouteData = { roleRuleKey?: string };
@@ -103,4 +103,3 @@ function normalizeRoles(roles: string[]): string[] {
 function normalizeRole(value: string): string {
   return String(value || '').trim().toLowerCase();
 }
-
