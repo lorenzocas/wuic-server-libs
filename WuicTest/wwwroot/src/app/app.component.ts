@@ -1,7 +1,7 @@
 import { AfterContentInit, Component, forwardRef, Injector, OnDestroy, OnInit } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { utility } from './classes/utility';
-import { AsyncPipe, CommonModule, NgClass, NgComponentOutlet, NgFor, NgIf, NgStyle } from '@angular/common';
+import { CommonModule, NgClass, NgComponentOutlet, NgFor, NgIf, NgStyle } from '@angular/common';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { SelectModule } from 'primeng/select';
 import { CheckboxModule } from 'primeng/checkbox';
@@ -38,7 +38,7 @@ import { CustomListComponent } from './component/custom-list/custom-list.compone
 
 @Component({
   selector: 'app-root',
-  imports: [AsyncPipe, CommonModule, RouterOutlet, NgComponentOutlet, ToggleSwitchModule, SelectModule, CheckboxModule, ProgressBarModule, FormsModule, DialogModule, ButtonModule, TranslateModule, ToastModule, ConfirmDialogModule],
+  imports: [CommonModule, RouterOutlet, NgComponentOutlet, ToggleSwitchModule, SelectModule, CheckboxModule, ProgressBarModule, FormsModule, DialogModule, ButtonModule, TranslateModule, ToastModule, ConfirmDialogModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
   providers: [MessageService, ConfirmationService, DialogService, GlobalHandler]
