@@ -11,7 +11,9 @@
     "serve:npm": "ng serve wuic-test --configuration=npm --host localhost --port 4200",
     "build:dev": "ng build wuic-test --configuration=development",
     "build:prod": "ng build wuic-test --configuration=production",
-    "build:npm": "ng build wuic-test --configuration=npm"
+    "build:npm": "ng build wuic-test --configuration=npm",
+    "test:selectors:ngdeep": "node e2e/check-ngdeep-selectors.mjs",
+    "test:selectors:ngdeep:strict": "node e2e/check-ngdeep-selectors.mjs --strict"
   },
   "private": true,
   "dependencies": {
@@ -35,7 +37,7 @@
     "@googlemaps/markerclusterer": "^2.5.3",
     "@materia-ui/ngx-monaco-editor": "^6.0.0",
     "@ngx-translate/core": "^15.0.0",
-    "@primeng/themes": "^21.0.4",
+    "@primeuix/themes": "^2.0.3",
     "bootstrap": "^5.3.3",
     "chart.js": "^4.4.6",
     "dexie": "^4.0.8",

@@ -1,0 +1,60 @@
+.ngdeep-showcase-page {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.showcase-section {
+  border: 1px solid #ccc;
+  padding: 8px;
+  min-height: 120px;
+  position: relative;
+}
+.showcase-section h4 {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  color: #666;
+}
+.list-grid-section {
+  height: 350px;
+  overflow: hidden;
+}
+.spreadsheet-section {
+  height: 300px;
+  overflow: hidden;
+}
+.carousel-section {
+  height: 250px;
+  overflow: hidden;
+}
+.scheduler-section {
+  height: 300px;
+  overflow: hidden;
+}
+.map-section {
+  height: 300px;
+  overflow: hidden;
+}
+.tree-section {
+  height: 250px;
+  overflow: hidden;
+}
+.kanban-section {
+  height: 300px;
+  overflow: hidden;
+}
+.datarepeater-section {
+  height: 300px;
+  overflow: hidden;
+}
+.edit-section {
+  height: 400px;
+  overflow: hidden;
+}
+.code-editor-section {
+  height: 250px;
+  overflow: hidden;
+}
+.misc-section {
+  min-height: 60px;
+}

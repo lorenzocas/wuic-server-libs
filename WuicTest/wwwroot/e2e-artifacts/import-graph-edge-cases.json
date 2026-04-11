@@ -1,0 +1,264 @@
+{
+  "generatedAt": "2026-04-11T15:35:33.886Z",
+  "entry": [
+    "src/main.ts",
+    "src/app/app.component.ts",
+    "src/app/app.config.ts",
+    "src/app/app.routes.ts"
+  ],
+  "totals": {
+    "tsFiles": 42,
+    "imports": 260,
+    "scoped": 132,
+    "reachableFiles": 31
+  },
+  "byClassification": {
+    "bridge-source-local": 12,
+    "dev-alias": 18,
+    "source": 75,
+    "package": 27
+  },
+  "edgeCases": [
+    {
+      "id": "runtime-package-imports-cleared",
+      "severity": "info",
+      "detail": "No reachable runtime imports from wuic-framework-lib package."
+    },
+    {
+      "id": "dead-package-graph-present",
+      "severity": "medium",
+      "detail": "Unreachable package imports remain in source tree (mainly wuic-bridges-npm).",
+      "count": 27
+    }
+  ],
+  "packageImportsReachable": [],
+  "packageImportsUnreachable": [
+    {
+      "file": "src/app/wuic-bridges-npm/core.ts",
+      "spec": "wuic-framework-lib/core",
+      "kind": "export-from"
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/core.ts",
+      "spec": "wuic-framework-lib/core",
+      "kind": "export-from"
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/core.ts",
+      "spec": "wuic-framework-lib",
+      "kind": "export-from"
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/core.ts",
+      "spec": "wuic-framework-lib/core",
+      "kind": "export-from"
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/core.ts",
+      "spec": "wuic-framework-lib/core",
+      "kind": "export-from"
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/core.ts",
+      "spec": "wuic-framework-lib/core",
+      "kind": "export-from"
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/core.ts",
+      "spec": "wuic-framework-lib/core",
+      "kind": "export-from"
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/core.ts",
+      "spec": "wuic-framework-lib/core",
+      "kind": "export-from"
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/core.ts",
+      "spec": "wuic-framework-lib/core",
+      "kind": "export-from"
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/core.ts",
+      "spec": "wuic-framework-lib/core",
+      "kind": "export-from"
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/core.ts",
+      "spec": "wuic-framework-lib/core",
+      "kind": "export-from"
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/notifications.ts",
+      "spec": "wuic-framework-lib/notifications",
+      "kind": "export-from"
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/routes.ts",
+      "spec": "wuic-framework-lib/routes",
+      "kind": "export-from"
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/ui.ts",
+      "spec": "wuic-framework-lib/ui",
+      "kind": "export-from"
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/ui.ts",
+      "spec": "wuic-framework-lib/ui",
+      "kind": "export-from"
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/ui.ts",
+      "spec": "wuic-framework-lib/ui",
+      "kind": "export-from"
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/ui.ts",
+      "spec": "wuic-framework-lib/ui",
+      "kind": "export-from"
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/ui.ts",
+      "spec": "wuic-framework-lib/ui",
+      "kind": "export-from"
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/ui.ts",
+      "spec": "wuic-framework-lib",
+      "kind": "export-from"
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/ui.ts",
+      "spec": "wuic-framework-lib/ui",
+      "kind": "export-from"
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/ui.ts",
+      "spec": "wuic-framework-lib/ui",
+      "kind": "export-from"
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/ui.ts",
+      "spec": "wuic-framework-lib/ui",
+      "kind": "export-from"
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/ui.ts",
+      "spec": "wuic-framework-lib/ui",
+      "kind": "export-from"
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/ui.ts",
+      "spec": "wuic-framework-lib/ui",
+      "kind": "export-from"
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/ui.ts",
+      "spec": "wuic-framework-lib/ui",
+      "kind": "export-from"
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/widget-loaders-advanced.ts",
+      "spec": "wuic-framework-lib/widget-loaders",
+      "kind": "export-from"
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/widget-loaders.ts",
+      "spec": "wuic-framework-lib/widget-loaders",
+      "kind": "export-from"
+    }
+  ],
+  "devAliasReachable": [
+    {
+      "file": "src/app/component/cities-chart-page/cities-chart-page.component.ts",
+      "spec": "wuic-framework-lib-dev",
+      "kind": "import"
+    },
+    {
+      "file": "src/app/component/cities-data-repeater-events-page/cities-data-repeater-events-page.component.ts",
+      "spec": "wuic-framework-lib-dev",
+      "kind": "import"
+    },
+    {
+      "file": "src/app/component/cities-edit-page/cities-edit-page.component.ts",
+      "spec": "wuic-framework-lib-dev",
+      "kind": "import"
+    },
+    {
+      "file": "src/app/component/cities-edit-page/cities-edit-page.component.ts",
+      "spec": "wuic-framework-lib-dev",
+      "kind": "import"
+    },
+    {
+      "file": "src/app/component/cities-list-grid-page/cities-list-grid-page.component.ts",
+      "spec": "wuic-framework-lib-dev",
+      "kind": "import"
+    },
+    {
+      "file": "src/app/component/cities-map-page/cities-map-page.component.ts",
+      "spec": "wuic-framework-lib-dev",
+      "kind": "import"
+    },
+    {
+      "file": "src/app/component/cities-spreadsheet-page/cities-spreadsheet-page.component.ts",
+      "spec": "wuic-framework-lib-dev",
+      "kind": "import"
+    },
+    {
+      "file": "src/app/component/cities-wizard-page/cities-wizard-page.component.ts",
+      "spec": "wuic-framework-lib-dev",
+      "kind": "import"
+    },
+    {
+      "file": "src/app/component/custom-cities-list/custom-cities-list.component.ts",
+      "spec": "wuic-framework-lib-dev",
+      "kind": "import"
+    },
+    {
+      "file": "src/app/component/custom-cities-list/custom-cities-list.component.ts",
+      "spec": "wuic-framework-lib-dev",
+      "kind": "import"
+    },
+    {
+      "file": "src/app/component/custom-cities-list/custom-cities-list.component.ts",
+      "spec": "wuic-framework-lib-dev",
+      "kind": "import"
+    },
+    {
+      "file": "src/app/component/custom-list/custom-list.component.ts",
+      "spec": "wuic-framework-lib-dev",
+      "kind": "import"
+    },
+    {
+      "file": "src/app/component/field/custom-text-field/custom-text-field.component.ts",
+      "spec": "wuic-framework-lib-dev",
+      "kind": "import"
+    },
+    {
+      "file": "src/app/component/kanban-task-page/kanban-task-page.component.ts",
+      "spec": "wuic-framework-lib-dev",
+      "kind": "import"
+    },
+    {
+      "file": "src/app/component/rag-chatbot-demo-page/rag-chatbot-demo-page.component.ts",
+      "spec": "wuic-framework-lib-dev",
+      "kind": "import"
+    },
+    {
+      "file": "src/app/component/schedules-scheduler-page/schedules-scheduler-page.component.ts",
+      "spec": "wuic-framework-lib-dev",
+      "kind": "import"
+    },
+    {
+      "file": "src/app/component/tree-sample-page/tree-sample-page.component.ts",
+      "spec": "wuic-framework-lib-dev",
+      "kind": "import"
+    },
+    {
+      "file": "src/app/component/uploadsample-carousel-page/uploadsample-carousel-page.component.ts",
+      "spec": "wuic-framework-lib-dev",
+      "kind": "import"
+    }
+  ]
+}

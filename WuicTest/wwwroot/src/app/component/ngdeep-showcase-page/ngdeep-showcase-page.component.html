@@ -1,0 +1,87 @@
+<div class="ngdeep-showcase-page">
+  <!-- DataSources -->
+  <wuic-data-source #citiesDs [hardcodedRoute]="'cities'" [autoload]="true"></wuic-data-source>
+  <wuic-data-source #uploadDs [hardcodedRoute]="'uploadsample'" [autoload]="true"></wuic-data-source>
+  <wuic-data-source #schedulesDs [hardcodedRoute]="'schedules'" [autoload]="true"></wuic-data-source>
+  <wuic-data-source #treeSampleDs [hardcodedRoute]="'tree_sample'" [autoload]="true"></wuic-data-source>
+  <wuic-data-source #kanbanDs [hardcodedRoute]="'kanban_task'" [autoload]="true"></wuic-data-source>
+
+  <!-- ListGrid + FilterBar -->
+  <div class="showcase-section list-grid-section">
+    <h4>ListGrid + FilterBar</h4>
+    <wuic-list-grid [hardcodedDatasource]="citiesDs"></wuic-list-grid>
+  </div>
+
+  <!-- SpreadsheetList -->
+  <div class="showcase-section spreadsheet-section">
+    <h4>SpreadsheetList</h4>
+    <wuic-spreadsheet-list [hardcodedDatasource]="citiesDs"></wuic-spreadsheet-list>
+  </div>
+
+  <!-- CarouselList -->
+  <div class="showcase-section carousel-section">
+    <h4>CarouselList</h4>
+    <wuic-carousel-list [hardcodedDatasource]="uploadDs"></wuic-carousel-list>
+  </div>
+
+  <!-- SchedulerList -->
+  <div class="showcase-section scheduler-section">
+    <h4>SchedulerList</h4>
+    <wuic-scheduler-list [hardcodedDatasource]="schedulesDs"></wuic-scheduler-list>
+  </div>
+
+  <!-- MapList -->
+  <div class="showcase-section map-section">
+    <h4>MapList</h4>
+    <wuic-map-list [hardcodedDatasource]="citiesDs"></wuic-map-list>
+  </div>
+
+  <!-- TreeList -->
+  <div class="showcase-section tree-section">
+    <h4>TreeList</h4>
+    <wuic-tree-list [hardcodedDatasource]="treeSampleDs"></wuic-tree-list>
+  </div>
+
+  <!-- KanbanList -->
+  <div class="showcase-section kanban-section">
+    <h4>KanbanList</h4>
+    <wuic-kanban-list [hardcodedDatasource]="kanbanDs"></wuic-kanban-list>
+  </div>
+
+  <!-- DataRepeater -->
+  <div class="showcase-section datarepeater-section">
+    <h4>DataRepeater</h4>
+    <wuic-data-repeater [hardcodedDatasource]="citiesDs" [action]="repeaterAction$" [fillHeight]="true"></wuic-data-repeater>
+  </div>
+
+  <!-- ParametricDialog (edit form) + Pager -->
+  <div class="showcase-section edit-section">
+    <h4>ParametricDialog (edit) + Pager</h4>
+    <wuic-parametric-dialog [hardcodedDatasource]="citiesDs" [isEditForm]="true"></wuic-parametric-dialog>
+    <wuic-pager [hardcodedDatasource]="citiesDs" [pageSize]="1"></wuic-pager>
+  </div>
+
+  <!-- CodeEditor -->
+  <div class="showcase-section code-editor-section">
+    <h4>CodeEditor</h4>
+    <wuic-code-editor></wuic-code-editor>
+  </div>
+
+  <!-- Misc: ImageWrapper, ImportExportButton, NotificationBell -->
+  <div class="showcase-section misc-section">
+    <h4>Misc components</h4>
+    <div style="display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap;">
+      <wuic-image-wrapper
+        [src]="'https://via.placeholder.com/100x80'"
+        [alt]="'test image'"
+        [width]="'100'"
+        [height]="'80'"
+        [preview]="true">
+      </wuic-image-wrapper>
+
+      <wuic-import-export-button [routeName]="'cities'"></wuic-import-export-button>
+
+      <wuic-notification-bell></wuic-notification-bell>
+    </div>
+  </div>
+</div>

@@ -27,6 +27,9 @@
       ],
       "jspreadsheet/*": [
         "./node_modules/jspreadsheet/*"
+      ],
+      "wuic-framework-lib-dev": [
+        "./src/app/wuic-bridges/public.ts"
       ]
     },
     "esModuleInterop": true,

@@ -1,6 +1,6 @@
 import { AfterViewInit, Component, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { DataRepeaterComponent, DataSourceComponent } from 'wuic-framework-lib';
+import { DataRepeaterComponent, DataSourceComponent } from 'wuic-framework-lib-dev';
 import { BehaviorSubject, Subscription } from 'rxjs';
 
 @Component({
@@ -73,3 +73,4 @@ export class CitiesDataRepeaterEventsPageComponent implements AfterViewInit, OnD
     }
   }
 }
+

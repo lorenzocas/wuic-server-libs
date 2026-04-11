@@ -15,7 +15,7 @@ import { GlobalHandler } from './wuic-bridges/core';
 import { providePrimeNG } from 'primeng/config';
 
 registerLocaleData(localeIt, 'it-IT', localeItExtra);
-import Aura from '@primeng/themes/aura';
+import Aura from '@primeuix/themes/aura';
 import { credentialsInterceptor } from './interceptors/credentials.interceptor';
 import { authExpiredInterceptor } from './wuic-bridges/core';
 

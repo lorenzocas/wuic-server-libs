@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { WuicRagChatbotComponent, RagSource } from 'wuic-framework-lib';
+import { WuicRagChatbotComponent, RagSource } from 'wuic-framework-lib-dev';
 
 /**
  * Demo page per il componente <wuic-rag-chatbot> del framework lib.
@@ -53,3 +53,4 @@ export class RagChatbotDemoPageComponent {
     this.lastError = null;
   }
 }
+

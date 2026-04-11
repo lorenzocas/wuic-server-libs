@@ -1,6 +1,6 @@
 import { AfterViewInit, Component, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { DataSourceAfterSyncEvent, DataSourceBeforeSyncEvent, DataSourceComponent, SpreadsheetListComponent } from 'wuic-framework-lib';
+import { DataSourceAfterSyncEvent, DataSourceBeforeSyncEvent, DataSourceComponent, SpreadsheetListComponent } from 'wuic-framework-lib-dev';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -41,3 +41,4 @@ export class CitiesSpreadsheetPageComponent implements AfterViewInit, OnDestroy 
     this.subscriptions.unsubscribe();
   }
 }
+

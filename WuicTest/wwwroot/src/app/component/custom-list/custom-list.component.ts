@@ -1,7 +1,7 @@
 import { Component, Input, OnDestroy } from '@angular/core';
 import { BehaviorSubject, Subscription } from 'rxjs';
 import { Title } from '@angular/platform-browser';
-import { DataSourceAfterSyncEvent, DataSourceBeforeSyncEvent, DataSourceComponent, IDataBoundHostComponent } from 'wuic-framework-lib';
+import { DataSourceAfterSyncEvent, DataSourceBeforeSyncEvent, DataSourceComponent, IDataBoundHostComponent } from 'wuic-framework-lib-dev';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -231,5 +231,6 @@ export class CustomListComponent implements OnDestroy, IDataBoundHostComponent {
     return data;
   }
 }
+
 
 

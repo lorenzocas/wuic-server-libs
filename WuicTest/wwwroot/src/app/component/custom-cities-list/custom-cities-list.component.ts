@@ -1,10 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { Title } from '@angular/platform-browser';
-import { DataSourceComponent } from 'wuic-framework-lib';
+import { DataSourceComponent } from 'wuic-framework-lib-dev';
 import { CommonModule } from '@angular/common';
 import { CustomListComponent } from '../custom-list/custom-list.component';
-import { FilterBarComponent } from 'wuic-framework-lib';
-import { PagerComponent } from 'wuic-framework-lib';
+import { FilterBarComponent } from 'wuic-framework-lib-dev';
+import { PagerComponent } from 'wuic-framework-lib-dev';
 
 @Component({
   selector: 'app-custom-cities-list',
@@ -23,6 +23,7 @@ export class CustomCitiesListComponent implements OnInit {
   }
 
 }
+
 
 
 

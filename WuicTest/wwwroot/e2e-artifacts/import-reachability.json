@@ -1,0 +1,158 @@
+{
+  "generatedAt": "2026-04-11T15:34:00.897Z",
+  "entry": [
+    "src/main.ts",
+    "src/app/app.component.ts",
+    "src/app/app.config.ts",
+    "src/app/app.routes.ts"
+  ],
+  "reachableFileCount": 31,
+  "totalTsFiles": 42,
+  "packageImportsReachable": [],
+  "packageImportsUnreachable": [
+    {
+      "file": "src/app/wuic-bridges-npm/core.ts",
+      "spec": "wuic-framework-lib/core",
+      "reachable": false
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/core.ts",
+      "spec": "wuic-framework-lib/core",
+      "reachable": false
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/core.ts",
+      "spec": "wuic-framework-lib",
+      "reachable": false
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/core.ts",
+      "spec": "wuic-framework-lib/core",
+      "reachable": false
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/core.ts",
+      "spec": "wuic-framework-lib/core",
+      "reachable": false
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/core.ts",
+      "spec": "wuic-framework-lib/core",
+      "reachable": false
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/core.ts",
+      "spec": "wuic-framework-lib/core",
+      "reachable": false
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/core.ts",
+      "spec": "wuic-framework-lib/core",
+      "reachable": false
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/core.ts",
+      "spec": "wuic-framework-lib/core",
+      "reachable": false
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/core.ts",
+      "spec": "wuic-framework-lib/core",
+      "reachable": false
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/core.ts",
+      "spec": "wuic-framework-lib/core",
+      "reachable": false
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/notifications.ts",
+      "spec": "wuic-framework-lib/notifications",
+      "reachable": false
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/routes.ts",
+      "spec": "wuic-framework-lib/routes",
+      "reachable": false
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/ui.ts",
+      "spec": "wuic-framework-lib/ui",
+      "reachable": false
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/ui.ts",
+      "spec": "wuic-framework-lib/ui",
+      "reachable": false
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/ui.ts",
+      "spec": "wuic-framework-lib/ui",
+      "reachable": false
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/ui.ts",
+      "spec": "wuic-framework-lib/ui",
+      "reachable": false
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/ui.ts",
+      "spec": "wuic-framework-lib/ui",
+      "reachable": false
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/ui.ts",
+      "spec": "wuic-framework-lib",
+      "reachable": false
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/ui.ts",
+      "spec": "wuic-framework-lib/ui",
+      "reachable": false
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/ui.ts",
+      "spec": "wuic-framework-lib/ui",
+      "reachable": false
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/ui.ts",
+      "spec": "wuic-framework-lib/ui",
+      "reachable": false
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/ui.ts",
+      "spec": "wuic-framework-lib/ui",
+      "reachable": false
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/ui.ts",
+      "spec": "wuic-framework-lib/ui",
+      "reachable": false
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/ui.ts",
+      "spec": "wuic-framework-lib/ui",
+      "reachable": false
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/widget-loaders-advanced.ts",
+      "spec": "wuic-framework-lib/widget-loaders",
+      "reachable": false
+    },
+    {
+      "file": "src/app/wuic-bridges-npm/widget-loaders.ts",
+      "spec": "wuic-framework-lib/widget-loaders",
+      "reachable": false
+    }
+  ],
+  "npmBridgeFiles": [
+    "src/app/wuic-bridges-npm/core.ts",
+    "src/app/wuic-bridges-npm/notifications.ts",
+    "src/app/wuic-bridges-npm/routes.ts",
+    "src/app/wuic-bridges-npm/ui.ts",
+    "src/app/wuic-bridges-npm/widget-loaders-advanced.ts",
+    "src/app/wuic-bridges-npm/widget-loaders.ts"
+  ],
+  "npmBridgeReachFiles": []
+}

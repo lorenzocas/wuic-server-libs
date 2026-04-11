@@ -24,10 +24,10 @@ import { DialogService } from 'primeng/dynamicdialog';
 
 
 import { PrimeNG } from 'primeng/config';
-import Aura from '@primeng/themes/aura';
-import Lara from '@primeng/themes/lara';
-import Nora from '@primeng/themes/nora';
-import Material from '@primeng/themes/material';
+import Aura from '@primeuix/themes/aura';
+import Lara from '@primeuix/themes/lara';
+import Nora from '@primeuix/themes/nora';
+import Material from '@primeuix/themes/material';
 import { updatePrimaryPalette, usePreset } from '@primeuix/styled';
 import { WtoolboxService, MetadataProviderService, GlobalHandler, CustomException, TranslationManagerService, AuthSessionService, getThemeOptions, PRIMARY_PALETTES, ThemeOption } from './wuic-bridges/core';
 import { ImageWrapperComponent } from './wuic-bridges/ui';

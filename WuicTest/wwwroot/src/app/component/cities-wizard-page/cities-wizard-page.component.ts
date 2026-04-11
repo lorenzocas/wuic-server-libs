@@ -1,6 +1,6 @@
 import { AfterViewInit, Component, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { DataSourceAfterSyncEvent, DataSourceBeforeSyncEvent, DataSourceComponent, ParametricDialogComponent } from 'wuic-framework-lib';
+import { DataSourceAfterSyncEvent, DataSourceBeforeSyncEvent, DataSourceComponent, ParametricDialogComponent } from 'wuic-framework-lib-dev';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -42,3 +42,4 @@ export class CitiesWizardPageComponent implements AfterViewInit, OnDestroy {
     this.subscriptions.unsubscribe();
   }
 }
+

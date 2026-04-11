@@ -100,5 +100,12 @@ export const appRoutes: Routes = [
       breadcrumbs: 'rag-chatbot-demo'
     }
   },
+  {
+    path: 'ngdeep-showcase',
+    loadComponent: () => import('./component/ngdeep-showcase-page/ngdeep-showcase-page.component').then((m) => m.NgdeepShowcasePageComponent),
+    data: {
+      breadcrumbs: 'ngdeep-showcase'
+    }
+  },
   ...wuicRoutes
 ];

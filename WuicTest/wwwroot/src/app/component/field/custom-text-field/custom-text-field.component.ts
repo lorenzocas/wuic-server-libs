@@ -2,7 +2,7 @@ import { AsyncPipe, CommonModule, NgClass, NgStyle } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AfterViewInit, Component, Input } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
-import { MetaInfo, ValidationRule, IFieldEditor, MetadatiColonna, WtoolboxService } from 'wuic-framework-lib';
+import { MetaInfo, ValidationRule, IFieldEditor, MetadatiColonna, WtoolboxService } from 'wuic-framework-lib-dev';
 import { InputTextModule } from 'primeng/inputtext';
 
 
@@ -121,6 +121,7 @@ export class CustomTextFieldComponent implements IFieldEditor, AfterViewInit {
   }
 
 }
+
 
 
 

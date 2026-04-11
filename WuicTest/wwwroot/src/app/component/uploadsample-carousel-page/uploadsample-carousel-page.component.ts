@@ -1,6 +1,6 @@
 import { AfterViewInit, Component, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { CarouselListComponent, DataSourceAfterSyncEvent, DataSourceBeforeSyncEvent, DataSourceComponent } from 'wuic-framework-lib';
+import { CarouselListComponent, DataSourceAfterSyncEvent, DataSourceBeforeSyncEvent, DataSourceComponent } from 'wuic-framework-lib-dev';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -38,3 +38,4 @@ export class UploadsampleCarouselPageComponent implements AfterViewInit, OnDestr
     this.subscriptions.unsubscribe();
   }
 }
+

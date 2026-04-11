@@ -1,6 +1,6 @@
 import { AfterViewInit, Component, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { DataSourceComponent, ListGridAfterRenderEvent, ListGridAfterRowRenderEvent, ListGridBeforeRowRenderEvent, ListGridComponent } from 'wuic-framework-lib';
+import { DataSourceComponent, ListGridAfterRenderEvent, ListGridAfterRowRenderEvent, ListGridBeforeRowRenderEvent, ListGridComponent } from 'wuic-framework-lib-dev';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -117,3 +117,4 @@ export class CitiesListGridPageComponent implements AfterViewInit, OnDestroy {
     console.debug('[CitiesListGridPage] onPTableColumnReorder', event);
   }
 }
+
