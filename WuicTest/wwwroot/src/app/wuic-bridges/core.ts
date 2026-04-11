@@ -2,7 +2,10 @@ export { WtoolboxService } from 'wuic-framework-lib-src/service/wtoolbox.service
 export { MetadataProviderService } from 'wuic-framework-lib-src/service/metadata-provider.service';
 export { MetadataEditorService } from 'wuic-framework-lib-src/service/metadata-editor.service';
 export { AuthSessionService } from 'wuic-framework-lib-src/service/auth-session.service';
+export { authExpiredInterceptor } from 'wuic-framework-lib-src/interceptor/auth-expired.interceptor';
 export { TranslationManagerService } from 'wuic-framework-lib-src/service/translation-manager.service';
+export { getThemeOptions, PRIMARY_PALETTES } from 'wuic-framework-lib-src/config/theme-catalog';
+export type { ThemeOption } from 'wuic-framework-lib-src/config/theme-catalog';
 export { GlobalHandler } from 'wuic-framework-lib-src/handler/GlobalHandler';
 export { CustomException } from 'wuic-framework-lib-src/class/customException';
 export { MetadatiColonna } from 'wuic-framework-lib-src/class/metadati_colonna';

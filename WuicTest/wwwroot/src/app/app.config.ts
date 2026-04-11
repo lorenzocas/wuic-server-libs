@@ -10,14 +10,14 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { TranslateModule } from '@ngx-translate/core';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
-import { GlobalHandler } from './wuic-bridges-npm/core';
+import { GlobalHandler } from './wuic-bridges/core';
 // import { ResizableModule } from 'angular-resizable-element';
 import { providePrimeNG } from 'primeng/config';
 
 registerLocaleData(localeIt, 'it-IT', localeItExtra);
 import Aura from '@primeng/themes/aura';
 import { credentialsInterceptor } from './interceptors/credentials.interceptor';
-import { authExpiredInterceptor } from 'wuic-framework-lib';
+import { authExpiredInterceptor } from './wuic-bridges/core';
 
 export const appConfig: ApplicationConfig = {
   providers: [

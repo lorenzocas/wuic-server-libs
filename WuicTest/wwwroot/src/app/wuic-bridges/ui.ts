@@ -3,6 +3,7 @@ export { LazyDataSourceComponent } from 'wuic-framework-lib-src/component/data-s
 export { LazyDataActionButtonComponent } from 'wuic-framework-lib-src/component/data-action-button/data-action-button.lazy.component';
 export { LazyFieldEditorComponent } from 'wuic-framework-lib-src/component/field/field-editor/field-editor.lazy.component';
 export { LazyImageWrapperComponent } from 'wuic-framework-lib-src/component/image-wrapper/image-wrapper.lazy.component';
+export { ImageWrapperComponent } from 'wuic-framework-lib-src/component/image-wrapper/image-wrapper.component';
 export { CallbackPipe } from 'wuic-framework-lib-src/pipe/callback.pipe';
 export { IsSelectedRowPipe } from 'wuic-framework-lib-src/pipe/is-selected-row.pipe';
 export { VisibleFieldListPipe } from 'wuic-framework-lib-src/pipe/visible-field-list.pipe';

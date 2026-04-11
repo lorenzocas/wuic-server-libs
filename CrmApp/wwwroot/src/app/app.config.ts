@@ -17,7 +17,7 @@ import { providePrimeNG } from 'primeng/config';
 registerLocaleData(localeIt, 'it-IT', localeItExtra);
 import Aura from '@primeng/themes/aura';
 import { credentialsInterceptor } from './interceptors/credentials.interceptor';
-import { authExpiredInterceptor } from 'wuic-framework-lib';
+import { authExpiredInterceptor } from './wuic-bridges/core';
 
 export const appConfig: ApplicationConfig = {
   providers: [
