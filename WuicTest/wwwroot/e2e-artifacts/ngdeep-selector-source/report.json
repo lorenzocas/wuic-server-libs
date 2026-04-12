@@ -1,0 +1,905 @@
+{
+  "timestamp": "2026-04-11T21:16:03.266Z",
+  "styleRoot": "C:\\src\\Wuic\\WuicTest\\wwwroot\\lib-src",
+  "nodeModulesRoot": "C:/src/Wuic/node_modules",
+  "totals": {
+    "styleFiles": 59,
+    "selectorsExtracted": 309,
+    "uniqueClassTokens": 231,
+    "ownClasses": 78,
+    "unknownClasses": 31,
+    "thirdPartyChecked": 122,
+    "thirdPartyAlive": 104,
+    "thirdPartyDead": 18
+  },
+  "libraryVersions": {
+    "primeng": "21.1.5",
+    "jspreadsheet": "11.30.0",
+    "fullcalendar": "unknown",
+    "monaco-editor": "0.45.0"
+  },
+  "registrySizes": {
+    "primeng": 1161,
+    "jspreadsheet": 143,
+    "fullcalendar": 163,
+    "monaco-editor": 86
+  },
+  "dead": [
+    {
+      "className": "p-splitterpanel-content",
+      "sources": [
+        "lib-src/component/designer/designer.component.css"
+      ],
+      "library": "primeng"
+    },
+    {
+      "className": "p-image-preview-container",
+      "sources": [
+        "lib-src/component/framework-docs/framework-docs.component.scss",
+        "lib-src/component/image-wrapper/image-wrapper.component.css"
+      ],
+      "library": "primeng"
+    },
+    {
+      "className": "p-image-preview-close",
+      "sources": [
+        "lib-src/component/framework-docs/framework-docs.component.scss",
+        "lib-src/component/image-wrapper/image-wrapper.component.css"
+      ],
+      "library": "primeng"
+    },
+    {
+      "className": "p-image-preview-indicator",
+      "sources": [
+        "lib-src/component/framework-docs/framework-docs.component.scss"
+      ],
+      "library": "primeng"
+    },
+    {
+      "className": "p-datatable-wrapper",
+      "sources": [
+        "lib-src/component/list-grid/list-grid.component.scss",
+        "lib-src/component/pivot-builder/pivot-builder.component.css"
+      ],
+      "library": "primeng"
+    },
+    {
+      "className": "p-datatable-scrollable-view",
+      "sources": [
+        "lib-src/component/list-grid/list-grid.component.scss"
+      ],
+      "library": "primeng"
+    },
+    {
+      "className": "p-datatable-scrollable-body",
+      "sources": [
+        "lib-src/component/list-grid/list-grid.component.scss"
+      ],
+      "library": "primeng"
+    },
+    {
+      "className": "p-datatable-frozen-view",
+      "sources": [
+        "lib-src/component/list-grid/list-grid.component.scss"
+      ],
+      "library": "primeng"
+    },
+    {
+      "className": "p-splitbutton-defaultbutton",
+      "sources": [
+        "lib-src/component/list-grid/list-grid.component.scss"
+      ],
+      "library": "primeng"
+    },
+    {
+      "className": "p-splitbutton-menubutton",
+      "sources": [
+        "lib-src/component/list-grid/list-grid.component.scss"
+      ],
+      "library": "primeng"
+    },
+    {
+      "className": "p-menuitem-content",
+      "sources": [
+        "lib-src/component/map-list/map-list.component.css"
+      ],
+      "library": "primeng"
+    },
+    {
+      "className": "p-splitter-panel",
+      "sources": [
+        "lib-src/component/pivot-builder/pivot-builder.component.css"
+      ],
+      "library": "primeng"
+    },
+    {
+      "className": "p-accordionpanel-content",
+      "sources": [
+        "lib-src/component/pivot-builder/pivot-builder.component.css"
+      ],
+      "library": "primeng"
+    },
+    {
+      "className": "p-tree-wrapper",
+      "sources": [
+        "lib-src/component/tree-list/tree-list.component.css"
+      ],
+      "library": "primeng"
+    },
+    {
+      "className": "jexcel",
+      "sources": [
+        "lib-src/component/spreadsheet-list/spreadsheet-list.component.css"
+      ],
+      "library": "jspreadsheet"
+    },
+    {
+      "className": "jexcel_content",
+      "sources": [
+        "lib-src/component/spreadsheet-list/spreadsheet-list.component.css"
+      ],
+      "library": "jspreadsheet"
+    },
+    {
+      "className": "jexcel_pagination",
+      "sources": [
+        "lib-src/component/spreadsheet-list/spreadsheet-list.component.css"
+      ],
+      "library": "jspreadsheet"
+    },
+    {
+      "className": "jpagination",
+      "sources": [
+        "lib-src/component/spreadsheet-list/spreadsheet-list.component.css"
+      ],
+      "library": "jspreadsheet"
+    }
+  ],
+  "alive": [
+    {
+      "className": "p-carousel",
+      "library": "primeng"
+    },
+    {
+      "className": "p-carousel-item-list",
+      "library": "primeng"
+    },
+    {
+      "className": "p-carousel-content-container",
+      "library": "primeng"
+    },
+    {
+      "className": "p-carousel-viewport",
+      "library": "primeng"
+    },
+    {
+      "className": "p-carousel-item",
+      "library": "primeng"
+    },
+    {
+      "className": "p-datatable",
+      "library": "primeng"
+    },
+    {
+      "className": "p-splitterpanel",
+      "library": "primeng"
+    },
+    {
+      "className": "p-tree",
+      "library": "primeng"
+    },
+    {
+      "className": "p-tree-node-content",
+      "library": "primeng"
+    },
+    {
+      "className": "p-highlight",
+      "library": "primeng"
+    },
+    {
+      "className": "p-colorpicker-preview",
+      "library": "primeng"
+    },
+    {
+      "className": "p-select-overlay",
+      "library": "primeng"
+    },
+    {
+      "className": "p-select-list-container",
+      "library": "primeng"
+    },
+    {
+      "className": "p-inputnumber",
+      "library": "primeng"
+    },
+    {
+      "className": "p-inputnumber-input",
+      "library": "primeng"
+    },
+    {
+      "className": "p-tabpanels",
+      "library": "primeng"
+    },
+    {
+      "className": "p-tabpanel",
+      "library": "primeng"
+    },
+    {
+      "className": "p-image",
+      "library": "primeng"
+    },
+    {
+      "className": "p-image-preview-mask",
+      "library": "primeng"
+    },
+    {
+      "className": "p-image-mask",
+      "library": "primeng"
+    },
+    {
+      "className": "p-image-toolbar",
+      "library": "primeng"
+    },
+    {
+      "className": "p-image-action",
+      "library": "primeng"
+    },
+    {
+      "className": "p-image-preview",
+      "library": "primeng"
+    },
+    {
+      "className": "p-component-overlay",
+      "library": "primeng"
+    },
+    {
+      "className": "p-overlay-mask",
+      "library": "primeng"
+    },
+    {
+      "className": "p-progressbar",
+      "library": "primeng"
+    },
+    {
+      "className": "p-progressbar-value",
+      "library": "primeng"
+    },
+    {
+      "className": "p-datatable-table-container",
+      "library": "primeng"
+    },
+    {
+      "className": "p-datatable-scrollable",
+      "library": "primeng"
+    },
+    {
+      "className": "p-datatable-thead",
+      "library": "primeng"
+    },
+    {
+      "className": "p-datatable-tbody",
+      "library": "primeng"
+    },
+    {
+      "className": "p-datatable-table",
+      "library": "primeng"
+    },
+    {
+      "className": "p-datatable-scrollable-table",
+      "library": "primeng"
+    },
+    {
+      "className": "p-datatable-tfoot",
+      "library": "primeng"
+    },
+    {
+      "className": "p-paginator",
+      "library": "primeng"
+    },
+    {
+      "className": "p-button",
+      "library": "primeng"
+    },
+    {
+      "className": "p-splitbutton",
+      "library": "primeng"
+    },
+    {
+      "className": "p-inputtext",
+      "library": "primeng"
+    },
+    {
+      "className": "p-button-label",
+      "library": "primeng"
+    },
+    {
+      "className": "p-button-icon",
+      "library": "primeng"
+    },
+    {
+      "className": "p-datepicker",
+      "library": "primeng"
+    },
+    {
+      "className": "p-autocomplete",
+      "library": "primeng"
+    },
+    {
+      "className": "p-select",
+      "library": "primeng"
+    },
+    {
+      "className": "p-multiselect",
+      "library": "primeng"
+    },
+    {
+      "className": "p-datepicker-input",
+      "library": "primeng"
+    },
+    {
+      "className": "p-datepicker-dropdown",
+      "library": "primeng"
+    },
+    {
+      "className": "p-disabled",
+      "library": "primeng"
+    },
+    {
+      "className": "p-tieredmenu",
+      "library": "primeng"
+    },
+    {
+      "className": "p-menubar",
+      "library": "primeng"
+    },
+    {
+      "className": "p-menubar-item-link",
+      "library": "primeng"
+    },
+    {
+      "className": "p-menubar-mobile-active",
+      "library": "primeng"
+    },
+    {
+      "className": "p-menubar-root-list",
+      "library": "primeng"
+    },
+    {
+      "className": "p-menubar-submenu",
+      "library": "primeng"
+    },
+    {
+      "className": "p-menubar-item",
+      "library": "primeng"
+    },
+    {
+      "className": "p-contextmenu",
+      "library": "primeng"
+    },
+    {
+      "className": "p-menubar-separator",
+      "library": "primeng"
+    },
+    {
+      "className": "p-menubar-item-content",
+      "library": "primeng"
+    },
+    {
+      "className": "p-menubar-item-label",
+      "library": "primeng"
+    },
+    {
+      "className": "p-tabs",
+      "library": "primeng"
+    },
+    {
+      "className": "p-tablist",
+      "library": "primeng"
+    },
+    {
+      "className": "p-tab",
+      "library": "primeng"
+    },
+    {
+      "className": "p-accordion",
+      "library": "primeng"
+    },
+    {
+      "className": "p-accordionpanel",
+      "library": "primeng"
+    },
+    {
+      "className": "p-accordioncontent",
+      "library": "primeng"
+    },
+    {
+      "className": "p-accordioncontent-content",
+      "library": "primeng"
+    },
+    {
+      "className": "p-dialog",
+      "library": "primeng"
+    },
+    {
+      "className": "p-dialog-content",
+      "library": "primeng"
+    },
+    {
+      "className": "p-menu",
+      "library": "primeng"
+    },
+    {
+      "className": "p-menu-item-content",
+      "library": "primeng"
+    },
+    {
+      "className": "p-dialog-header",
+      "library": "primeng"
+    },
+    {
+      "className": "p-dialog-footer",
+      "library": "primeng"
+    },
+    {
+      "className": "jss_container",
+      "library": "jspreadsheet"
+    },
+    {
+      "className": "jspreadsheet",
+      "library": "jspreadsheet"
+    },
+    {
+      "className": "jtabs-content",
+      "library": "jspreadsheet"
+    },
+    {
+      "className": "jss_worksheet",
+      "library": "jspreadsheet"
+    },
+    {
+      "className": "jss_content",
+      "library": "jspreadsheet"
+    },
+    {
+      "className": "jss_corner",
+      "library": "jspreadsheet"
+    },
+    {
+      "className": "jss_row",
+      "library": "jspreadsheet"
+    },
+    {
+      "className": "jss_highlight",
+      "library": "jspreadsheet"
+    },
+    {
+      "className": "jss_contextmenu",
+      "library": "jspreadsheet"
+    },
+    {
+      "className": "jss_filters",
+      "library": "jspreadsheet"
+    },
+    {
+      "className": "jss_filters_options",
+      "library": "jspreadsheet"
+    },
+    {
+      "className": "jdropdown-container",
+      "library": "jspreadsheet"
+    },
+    {
+      "className": "jss_tooltip",
+      "library": "jspreadsheet"
+    },
+    {
+      "className": "jss_style_form_group",
+      "library": "jspreadsheet"
+    },
+    {
+      "className": "jss_filters_icon",
+      "library": "jspreadsheet"
+    },
+    {
+      "className": "jss_filters_active",
+      "library": "jspreadsheet"
+    },
+    {
+      "className": "jss_header",
+      "library": "jspreadsheet"
+    },
+    {
+      "className": "jss_toolbar",
+      "library": "jspreadsheet"
+    },
+    {
+      "className": "jtoolbar-item",
+      "library": "jspreadsheet"
+    },
+    {
+      "className": "jss_toolbar_item",
+      "library": "jspreadsheet"
+    },
+    {
+      "className": "jpicker-header",
+      "library": "jspreadsheet"
+    },
+    {
+      "className": "jss_toolbar_selected",
+      "library": "jspreadsheet"
+    },
+    {
+      "className": "jss_pagination",
+      "library": "jspreadsheet"
+    },
+    {
+      "className": "fc",
+      "library": "fullcalendar"
+    },
+    {
+      "className": "fc-h-event",
+      "library": "fullcalendar"
+    },
+    {
+      "className": "fc-v-event",
+      "library": "fullcalendar"
+    },
+    {
+      "className": "fc-daygrid-event",
+      "library": "fullcalendar"
+    },
+    {
+      "className": "fc-timegrid-event",
+      "library": "fullcalendar"
+    },
+    {
+      "className": "monaco-editor",
+      "library": "monaco-editor"
+    },
+    {
+      "className": "monaco-hover",
+      "library": "monaco-editor"
+    },
+    {
+      "className": "monaco-list",
+      "library": "monaco-editor"
+    },
+    {
+      "className": "monaco-list-rows",
+      "library": "monaco-editor"
+    },
+    {
+      "className": "monaco-scrollable-element",
+      "library": "monaco-editor"
+    }
+  ],
+  "skipped": [
+    {
+      "className": "carousel-content"
+    },
+    {
+      "className": "carousel-item-card"
+    },
+    {
+      "className": "carousel-item-caption"
+    },
+    {
+      "className": "wuic-preview-component"
+    },
+    {
+      "className": "wuic-preview-component__title"
+    },
+    {
+      "className": "wuic-preview-component__content"
+    },
+    {
+      "className": "wuic-preview-field__label"
+    },
+    {
+      "className": "wuic-preview-field__input"
+    },
+    {
+      "className": "data-repeater-body"
+    },
+    {
+      "className": "list-grid-container"
+    },
+    {
+      "className": "map-list-root"
+    },
+    {
+      "className": "designer-left-bottom-splitter"
+    },
+    {
+      "className": "hierarchy-tree-wrap"
+    },
+    {
+      "className": "hierarchy-node-label"
+    },
+    {
+      "className": "dashboard-design"
+    },
+    {
+      "className": "designer-hide-datasources"
+    },
+    {
+      "className": "datasource-descriptor"
+    },
+    {
+      "className": "designer-footer-hover-target"
+    },
+    {
+      "className": "wuic-dictionary-panel"
+    },
+    {
+      "className": "wuic-range-filter-item"
+    },
+    {
+      "className": "wuic-filter-bar"
+    },
+    {
+      "className": "filter-bar-collapse-row"
+    },
+    {
+      "className": "filter-bar-collapse-btn"
+    },
+    {
+      "className": "advanced-rule-value"
+    },
+    {
+      "className": "data-field-wrapper"
+    },
+    {
+      "className": "data-field-field"
+    },
+    {
+      "className": "editor-wapper"
+    },
+    {
+      "className": "section-html"
+    },
+    {
+      "className": "code-block"
+    },
+    {
+      "className": "tok-comment"
+    },
+    {
+      "className": "tok-string"
+    },
+    {
+      "className": "tok-number"
+    },
+    {
+      "className": "tok-keyword"
+    },
+    {
+      "className": "tok-type"
+    },
+    {
+      "className": "tok-fn"
+    },
+    {
+      "className": "tok-prop"
+    },
+    {
+      "className": "tok-op"
+    },
+    {
+      "className": "tok-tag"
+    },
+    {
+      "className": "tok-attr"
+    },
+    {
+      "className": "tok-key"
+    },
+    {
+      "className": "screenshots"
+    },
+    {
+      "className": "wuic-progress-dialog"
+    },
+    {
+      "className": "wuic-export-progress-dialog"
+    },
+    {
+      "className": "wuic-nested-grid"
+    },
+    {
+      "className": "wuic-row-selected"
+    },
+    {
+      "className": "list-grid-cell-text-content"
+    },
+    {
+      "className": "grid-caption-bar"
+    },
+    {
+      "className": "wuic-inline-cell-editing"
+    },
+    {
+      "className": "caption-wrapper"
+    },
+    {
+      "className": "disabled-textfield"
+    },
+    {
+      "className": "wuic-inline-editing"
+    },
+    {
+      "className": "map-info"
+    },
+    {
+      "className": "map-info-title"
+    },
+    {
+      "className": "wuic-open-upward"
+    },
+    {
+      "className": "notification-item-progress"
+    },
+    {
+      "className": "pivot-chip-agg-select"
+    },
+    {
+      "className": "pivot-result-table"
+    },
+    {
+      "className": "pivot-buckets-splitter"
+    },
+    {
+      "className": "pivot-result-splitter"
+    },
+    {
+      "className": "pivot-panel"
+    },
+    {
+      "className": "pivot-builder"
+    },
+    {
+      "className": "pivot-filter-full"
+    },
+    {
+      "className": "wuic-spreadsheet-host"
+    },
+    {
+      "className": "wuic-jss-contextmenu-item-hover"
+    },
+    {
+      "className": "wuic-server-pagination"
+    },
+    {
+      "className": "wuic-server-pagination-center"
+    },
+    {
+      "className": "wuic-server-pagination-nav"
+    },
+    {
+      "className": "wuic-server-pagination-strip"
+    },
+    {
+      "className": "wuic-server-pagination-right"
+    },
+    {
+      "className": "wuic-server-page-btn"
+    },
+    {
+      "className": "wuic-server-page-spacer"
+    },
+    {
+      "className": "wuic-server-page-dots"
+    },
+    {
+      "className": "wuic-server-pagination-summary"
+    },
+    {
+      "className": "wuic-server-pagination-label"
+    },
+    {
+      "className": "wuic-server-pagination-input"
+    },
+    {
+      "className": "tree-list-root"
+    },
+    {
+      "className": "workflow-route-metadata-dialog"
+    },
+    {
+      "className": "workflow-canvas"
+    },
+    {
+      "className": "html-preview-pane__body"
+    },
+    {
+      "className": "suggest-widget"
+    },
+    {
+      "className": "parameter-hints-widget"
+    },
+    {
+      "className": "tree"
+    },
+    {
+      "className": "active"
+    },
+    {
+      "className": "color-editor-root"
+    },
+    {
+      "className": "row"
+    },
+    {
+      "className": "filter-buttons"
+    },
+    {
+      "className": "lang-html"
+    },
+    {
+      "className": "lang-json"
+    },
+    {
+      "className": "lang-ts"
+    },
+    {
+      "className": "lang-cs"
+    },
+    {
+      "className": "width_defined"
+    },
+    {
+      "className": "gm-style"
+    },
+    {
+      "className": "gm-style-iw-c"
+    },
+    {
+      "className": "gm-style-iw-d"
+    },
+    {
+      "className": "gm-ui-hover-effect"
+    },
+    {
+      "className": "gm-style-iw-tc"
+    },
+    {
+      "className": "dropdown-content"
+    },
+    {
+      "className": "metadata-editor"
+    },
+    {
+      "className": "parametric-toolbar-btn"
+    },
+    {
+      "className": "stiDesignerMainPanel"
+    },
+    {
+      "className": "stiJsViewerForm"
+    },
+    {
+      "className": "stiJsViewerDisabledPanel"
+    },
+    {
+      "className": "jss"
+    },
+    {
+      "className": "selected"
+    },
+    {
+      "className": "lm-lazy-items"
+    },
+    {
+      "className": "material-icons"
+    },
+    {
+      "className": "pi"
+    },
+    {
+      "className": "node"
+    },
+    {
+      "className": "title"
+    }
+  ]
+}
