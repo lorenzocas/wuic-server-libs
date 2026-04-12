@@ -1,0 +1,116 @@
+@if (loading()) {
+  <div class="docs-loading">
+    <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+    <p>Caricamento documentazione...</p>
+  </div>
+} @else if (!manifest()) {
+  <div class="docs-loading">
+    <i class="pi pi-exclamation-triangle" style="font-size: 2rem; color: #f59e0b"></i>
+    <p>Documentazione non disponibile.</p>
+  </div>
+} @else {
+  <div class="docs-layout">
+    <!-- Sidebar -->
+    <aside class="docs-sidebar">
+      <div class="sidebar-header">
+        <h2><i class="pi pi-book"></i> Docs</h2>
+        <p-select [options]="langs" [(ngModel)]="currentLang" optionLabel="label" optionValue="value" [style]="{'width': '100%', 'margin-bottom': '8px'}" />
+        <input pInputText type="text" [ngModel]="query()" (ngModelChange)="query.set($event || '')" placeholder="Cerca nelle docs..." class="search-input" />
+      </div>
+
+      <nav class="sidebar-nav">
+        @for (group of filteredGroups(); track group.id) {
+          <section class="nav-group">
+            <h3>{{ group.title }}</h3>
+            <ul>
+              @for (item of group.items; track item.slug) {
+                <li>
+                  <a [class.active]="item.slug === currentSlug()" (click)="openPage(item.slug)">
+                    <i class="pi" [ngClass]="item.icon || 'pi-file'"></i>
+                    <span>{{ item.title }}</span>
+                  </a>
+                </li>
+              }
+            </ul>
+          </section>
+        }
+      </nav>
+    </aside>
+
+    <!-- Content -->
+    <main class="docs-content" #contentScroller>
+      @if (currentPage(); as page) {
+        <nav class="breadcrumbs">
+          @for (bc of breadcrumbs(); track $index; let last = $last) {
+            <span>{{ bc }}</span>
+            @if (!last) { <i class="pi pi-chevron-right"></i> }
+          }
+        </nav>
+
+        <header class="page-header">
+          <h1>{{ page.title }}</h1>
+          <p class="page-desc">{{ page.description }}</p>
+          <div class="page-tags">
+            @for (tag of page.tags; track tag) {
+              <p-tag [value]="tag" />
+            }
+            <p-tag [value]="page.status" severity="info" />
+          </div>
+        </header>
+
+        <div class="body-grid">
+          <article class="page-body">
+            @for (section of page.sections; track section.id) {
+              <section [attr.id]="section.id" class="doc-section">
+                <h2>{{ section.title }}</h2>
+                @for (part of sectionParts(section); track $index) {
+                  @if (part.kind === 'html') {
+                    <div class="section-html" [innerHTML]="trustHtml(part.html!)"></div>
+                  } @else if (part.sample) {
+                    @let key = sampleKey(page.slug, section.id, part.sample.id);
+                    <div class="code-block">
+                      <div class="code-header">
+                        <span class="code-title">{{ part.sample.title }}</span>
+                        <span class="code-lang">{{ langLabel(part.sample.language) }}</span>
+                        <div class="code-actions">
+                          @if (isCollapsible(part.sample.code)) {
+                            <p-button
+                              size="small"
+                              severity="secondary"
+                              [text]="true"
+                              [icon]="isExpanded(key) ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"
+                              [label]="isExpanded(key) ? 'Collapse' : 'Expand (+' + hiddenLines(part.sample.code) + ')'"
+                              (click)="toggleExpanded(key)" />
+                          }
+                          <p-button size="small" severity="secondary" [text]="true" icon="pi pi-copy" label="Copy" (click)="copyCode(part.sample.code)" />
+                        </div>
+                      </div>
+                      <pre><code>{{ getVisibleCode(part.sample.code, key) }}</code></pre>
+                    </div>
+                  }
+                }
+              </section>
+            }
+          </article>
+
+          <!-- Table of Contents -->
+          @if (page.toc.length > 0) {
+            <aside class="toc">
+              <h4>In questa pagina</h4>
+              <ul>
+                @for (item of page.toc; track item.id) {
+                  <li><a href="" (click)="scrollToSection($event, item.id)">{{ item.title }}</a></li>
+                }
+              </ul>
+            </aside>
+          }
+        </div>
+      } @else {
+        <div class="no-page">
+          <i class="pi pi-book" style="font-size: 3rem; color: #cbd5e1"></i>
+          <h2>Seleziona una pagina dalla sidebar</h2>
+        </div>
+      }
+    </main>
+  </div>
+}

@@ -1,0 +1,27 @@
+<section class="section">
+  <div class="container">
+    <h1 class="section-title">Features</h1>
+    <p class="section-subtitle">
+      Tutto quello che serve per costruire applicazioni business enterprise, senza reinventare la ruota.
+    </p>
+
+    @for (cat of categories; track cat.title) {
+      <div class="feature-category">
+        <h2 class="category-title">{{ cat.title }}</h2>
+        <div class="category-grid">
+          @for (item of cat.items; track item.title) {
+            <p-card>
+              <div class="feature-detail">
+                <div class="feature-header">
+                  <i [class]="item.icon + ' feature-icon'"></i>
+                  <h3>{{ item.title }}</h3>
+                </div>
+                <p>{{ item.desc }}</p>
+              </div>
+            </p-card>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</section>

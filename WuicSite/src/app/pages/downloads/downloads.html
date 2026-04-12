@@ -1,0 +1,70 @@
+<section class="section">
+  <div class="container">
+    <h1 class="section-title">Download</h1>
+    <p class="section-subtitle">
+      Scegli il pacchetto adatto alle tue esigenze. Tutti includono backend .NET 10 + frontend Angular 21.
+    </p>
+
+    <div class="version-banner">
+      <span>Ultima versione:</span>
+      <p-tag value="Server {{ version.server }}" severity="info" />
+      <p-tag value="Client {{ version.client }}" severity="info" />
+    </div>
+
+    <p-table [value]="downloads" styleClass="p-datatable-striped" [tableStyle]="{'min-width': '50rem'}">
+      <ng-template #header>
+        <tr>
+          <th>Pacchetto</th>
+          <th>Tipo</th>
+          <th>RAG</th>
+          <th>Tutorial DB</th>
+          <th>Dim.</th>
+          <th></th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-entry>
+        <tr>
+          <td class="pkg-name">{{ entry.name }}</td>
+          <td>
+            <p-tag [value]="entry.audience === 'src' ? 'Sorgenti' : 'IIS Ready'" [severity]="entry.audience === 'src' ? 'success' : 'warn'" />
+          </td>
+          <td>
+            @if (entry.rag) {
+              <i class="pi pi-check" style="color: #22c55e"></i>
+            } @else {
+              <i class="pi pi-minus" style="color: #cbd5e1"></i>
+            }
+          </td>
+          <td>{{ entry.tutorial === 'no' ? '-' : entry.tutorial }}</td>
+          <td class="pkg-size">{{ entry.size }}</td>
+          <td>
+            <a [href]="getDownloadUrl(entry)">
+              <p-button label="Scarica" icon="pi pi-download" size="small" [outlined]="true" />
+            </a>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+
+    <div class="info-cards">
+      <p-card>
+        <div class="info-card">
+          <h3><i class="pi pi-code"></i> Pacchetti Source (src)</h3>
+          <p>Contengono i sorgenti C# + Angular. Ideali per lo sviluppo: puoi modificare, compilare e personalizzare il progetto. Usa <code>rename-project.ps1</code> per rinominare il progetto.</p>
+        </div>
+      </p-card>
+      <p-card>
+        <div class="info-card">
+          <h3><i class="pi pi-server"></i> Pacchetti IIS</h3>
+          <p>Output di <code>dotnet publish</code> pronto per IIS. Angular gia' compilato. Estrai nella physical path del sito, configura appsettings.json e avvia.</p>
+        </div>
+      </p-card>
+      <p-card>
+        <div class="info-card">
+          <h3><i class="pi pi-comments"></i> RAG Chatbot</h3>
+          <p>I pacchetti con RAG includono l'indice vettoriale e il server Python. Dopo l'estrazione lancia <code>pwsh rag-setup.ps1</code> per il setup automatico.</p>
+        </div>
+      </p-card>
+    </div>
+  </div>
+</section>

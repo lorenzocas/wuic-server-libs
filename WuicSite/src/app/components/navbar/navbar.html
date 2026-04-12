@@ -1,0 +1,24 @@
+<nav class="navbar">
+  <div class="container navbar-inner">
+    <a routerLink="/" class="navbar-brand">
+      <i class="pi pi-bolt"></i>
+      <span>WUIC</span>
+    </a>
+
+    <div class="navbar-links">
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Home</a>
+      <a routerLink="/features" routerLinkActive="active">Features</a>
+      <a routerLink="/docs" routerLinkActive="active">Docs</a>
+      <a routerLink="/downloads" routerLinkActive="active">Download</a>
+    </div>
+
+    <div class="navbar-actions">
+      <a href="https://demo.wuic-framework.com" target="_blank">
+        <p-button label="Demo Live" icon="pi pi-external-link" severity="secondary" [text]="true" size="small" />
+      </a>
+      <a routerLink="/downloads">
+        <p-button label="Scarica" icon="pi pi-download" size="small" />
+      </a>
+    </div>
+  </div>
+</nav>

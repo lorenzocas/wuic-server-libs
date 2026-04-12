@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "wuic-site",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["ng", "serve", "--port", "4300", "--host", "localhost"],
+      "port": 4300
+    }
+  ]
+}

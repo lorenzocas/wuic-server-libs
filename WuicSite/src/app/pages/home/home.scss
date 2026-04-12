@@ -1,0 +1,155 @@
+// Hero
+.hero {
+  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 50%, #c7d2fe 100%);
+  padding: 100px 0 80px;
+  text-align: center;
+}
+
+.hero-title {
+  font-size: 3rem;
+  font-weight: 800;
+  line-height: 1.15;
+  color: #0f172a;
+  margin-bottom: 24px;
+}
+
+.hero-accent {
+  color: #6366f1;
+}
+
+.hero-subtitle {
+  font-size: 1.2rem;
+  color: #475569;
+  max-width: 640px;
+  margin: 0 auto 40px;
+  line-height: 1.7;
+}
+
+.hero-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 48px;
+}
+
+.hero-tech {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  flex-wrap: wrap;
+
+  span {
+    background: rgba(99, 102, 241, 0.1);
+    color: #4f46e5;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+}
+
+// Features
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+.feature-card {
+  padding: 8px;
+
+  .feature-icon {
+    font-size: 2rem;
+    color: #6366f1;
+    margin-bottom: 16px;
+    display: block;
+  }
+
+  h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #0f172a;
+  }
+
+  p {
+    color: #64748b;
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+}
+
+// Quick start
+.quickstart-section {
+  background: #f8fafc;
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 32px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.step {
+  text-align: center;
+  padding: 32px 24px;
+
+  .step-number {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #6366f1;
+    color: white;
+    font-size: 1.25rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+  }
+
+  h3 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #0f172a;
+  }
+
+  code {
+    background: #e2e8f0;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: #334155;
+  }
+}
+
+// CTA
+.cta-section {
+  background: #0f172a;
+  color: white;
+}
+
+.cta-inner {
+  text-align: center;
+
+  h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+
+  p {
+    color: #94a3b8;
+    font-size: 1.1rem;
+    margin-bottom: 32px;
+  }
+}
+
+.cta-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}

@@ -1,0 +1,91 @@
+<!-- Hero -->
+<section class="hero">
+  <div class="container hero-inner">
+    <h1 class="hero-title">
+      Il framework <span class="hero-accent">metadata-driven</span><br>
+      per applicazioni business
+    </h1>
+    <p class="hero-subtitle">
+      WUIC trasforma metadata in interfacce complete: CRUD, dashboard, workflow, report e chatbot AI.
+      Meno codice, piu' funzionalita'.
+    </p>
+    <div class="hero-actions">
+      <a routerLink="/downloads">
+        <p-button label="Scarica gratis" icon="pi pi-download" size="large" />
+      </a>
+      <a href="https://demo.wuic-framework.com" target="_blank">
+        <p-button label="Prova la demo" icon="pi pi-play" severity="secondary" [outlined]="true" size="large" />
+      </a>
+    </div>
+    <div class="hero-tech">
+      <span>.NET 10</span>
+      <span>Angular 21</span>
+      <span>PrimeNG</span>
+      <span>SQL Server / MySQL</span>
+    </div>
+  </div>
+</section>
+
+<!-- Feature grid -->
+<section class="section features-section">
+  <div class="container">
+    <h2 class="section-title">Tutto incluso, zero boilerplate</h2>
+    <p class="section-subtitle">
+      Ogni funzionalita' e' gia' integrata nel framework. Configura i metadata, il runtime fa il resto.
+    </p>
+    <div class="features-grid">
+      @for (f of features; track f.title) {
+        <p-card>
+          <div class="feature-card">
+            <i [class]="f.icon + ' feature-icon'"></i>
+            <h3>{{ f.title }}</h3>
+            <p>{{ f.desc }}</p>
+          </div>
+        </p-card>
+      }
+    </div>
+  </div>
+</section>
+
+<!-- Quick start -->
+<section class="section quickstart-section">
+  <div class="container">
+    <h2 class="section-title">Operativo in 3 passi</h2>
+    <p class="section-subtitle">
+      Scarica lo ZIP, configura il database, avvia. Nessuna installazione complessa.
+    </p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-number">1</div>
+        <h3>Scarica e estrai</h3>
+        <code>Scarica lo ZIP da Downloads ed estrailo</code>
+      </div>
+      <div class="step">
+        <div class="step-number">2</div>
+        <h3>Avvia il backend</h3>
+        <code>dotnet run</code>
+      </div>
+      <div class="step">
+        <div class="step-number">3</div>
+        <h3>Avvia il frontend</h3>
+        <code>cd wwwroot && npm install && npm run serve:npm</code>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="section cta-section">
+  <div class="container cta-inner">
+    <h2>Pronto a costruire?</h2>
+    <p>Scarica il framework, prova la demo live o esplora le features in dettaglio.</p>
+    <div class="cta-actions">
+      <a routerLink="/downloads">
+        <p-button label="Vai ai download" icon="pi pi-download" size="large" />
+      </a>
+      <a routerLink="/features">
+        <p-button label="Esplora le features" icon="pi pi-arrow-right" severity="secondary" [outlined]="true" size="large" />
+      </a>
+    </div>
+  </div>
+</section>

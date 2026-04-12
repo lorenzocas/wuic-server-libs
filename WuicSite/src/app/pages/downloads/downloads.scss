@@ -1,0 +1,58 @@
+.version-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 32px;
+
+  span {
+    font-weight: 600;
+    color: #475569;
+  }
+}
+
+.pkg-name {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.pkg-size {
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.info-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin-top: 48px;
+}
+
+.info-card {
+  padding: 4px;
+
+  h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: #0f172a;
+
+    i { color: #6366f1; }
+  }
+
+  p {
+    color: #64748b;
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+
+  code {
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+  }
+}
