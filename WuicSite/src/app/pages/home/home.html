@@ -47,6 +47,28 @@
   </div>
 </section>
 
+<!-- Screenshot gallery -->
+<section class="section gallery-section">
+  <div class="container">
+    <h2 class="section-title">Guarda in azione</h2>
+    <p class="section-subtitle">
+      Interfacce reali generate dal framework. Ogni componente e' configurabile via metadata.
+    </p>
+    <div class="gallery-grid">
+      @for (shot of screenshots; track shot.thumb) {
+        <div class="gallery-item" (click)="openLightbox(shot)">
+          <img [src]="shot.thumb" [alt]="shot.caption" loading="lazy" />
+          <p class="gallery-caption">{{ shot.caption }}</p>
+        </div>
+      }
+    </div>
+
+    <p-dialog [(visible)]="lightboxVisible" [modal]="true" [dismissableMask]="true" [draggable]="false" [resizable]="false" [header]="lightboxCaption()" [style]="{width: '90vw', maxWidth: '1400px'}">
+      <img [src]="lightboxSrc()" [alt]="lightboxCaption()" style="width: 100%; border-radius: 8px;" />
+    </p-dialog>
+  </div>
+</section>
+
 <!-- Quick start -->
 <section class="section quickstart-section">
   <div class="container">
@@ -69,6 +91,36 @@
         <div class="step-number">3</div>
         <h3>Avvia il frontend</h3>
         <code>cd wwwroot && npm install && npm run serve:npm</code>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Community -->
+<section class="section community-section">
+  <div class="container community-inner">
+    <div class="community-text">
+      <h2>Community</h2>
+      <p>Entra nel forum WUIC: fai domande, condividi soluzioni, proponi feature e confrontati con altri sviluppatori.</p>
+      <a href="https://forum.wuic-framework.com" target="_blank">
+        <p-button label="Vai al Forum" icon="pi pi-users" size="large" />
+      </a>
+    </div>
+    <div class="community-stats">
+      <div class="stat">
+        <i class="pi pi-book"></i>
+        <span class="stat-value">60+</span>
+        <span class="stat-label">Pagine docs</span>
+      </div>
+      <div class="stat">
+        <i class="pi pi-th-large"></i>
+        <span class="stat-value">45</span>
+        <span class="stat-label">Componenti</span>
+      </div>
+      <div class="stat">
+        <i class="pi pi-globe"></i>
+        <span class="stat-value">5</span>
+        <span class="stat-label">Lingue</span>
       </div>
     </div>
   </div>

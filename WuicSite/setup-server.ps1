@@ -59,7 +59,8 @@ $features = @(
     'Web-Stat-Compression',
     'Web-Dyn-Compression',
     'Web-Filtering',
-    'Web-Mgmt-Console'
+    'Web-Mgmt-Console',
+    'Web-WebSockets'
 )
 
 foreach ($f in $features) {

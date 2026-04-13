@@ -67,36 +67,32 @@ app-root {
     --p-content-border-color: var(--hc-border);
 }
 
-:is(html, body).theme-high-contrast :is(
-        .p-inputtext,
-        .p-select,
-        .p-select-label,
-        .p-button,
-        .p-dialog,
-        .p-card,
-        .p-datatable,
-        .p-dropdown,
-        .p-multiselect,
-        .p-autocomplete-input,
-        .p-checkbox-box,
-        .p-radiobutton-box,
-        .p-inputnumber-input,
-        .p-paginator
-    ) {
+:is(html, body).theme-high-contrast :is(.p-inputtext,
+    .p-select,
+    .p-select-label,
+    .p-button,
+    .p-dialog,
+    .p-card,
+    .p-datatable,
+    .p-dropdown,
+    .p-multiselect,
+    .p-autocomplete-input,
+    .p-checkbox-box,
+    .p-radiobutton-box,
+    .p-inputnumber-input,
+    .p-paginator) {
     background: var(--hc-bg) !important;
     color: var(--hc-fg) !important;
     border-color: var(--hc-border) !important;
     border-width: 2px !important;
 }
 
-:is(html, body).theme-high-contrast :is(
-        a,
-        .p-button-label,
-        .p-menuitem-text,
-        .p-select-option,
-        .p-inputtext,
-        .pi
-    ) {
+:is(html, body).theme-high-contrast :is(a,
+    .p-button-label,
+    .p-menuitem-text,
+    .p-select-option,
+    .p-inputtext,
+    .pi) {
     color: var(--hc-fg) !important;
 }
 
@@ -105,64 +101,56 @@ app-root {
     text-decoration: underline;
 }
 
-:is(html, body).theme-high-contrast :is(
-        .p-button:hover,
-        .p-select:not(.p-disabled):hover,
-        .p-select-option:hover,
-        .p-menuitem-link:hover,
-        .p-datatable .p-datatable-tbody>tr:hover>td
-    ) {
+:is(html, body).theme-high-contrast :is(.p-button:hover,
+    .p-select:not(.p-disabled):hover,
+    .p-select-option:hover,
+    .p-menuitem-link:hover,
+    .p-datatable .p-datatable-tbody>tr:hover>td) {
     background: var(--hc-hover-bg) !important;
     color: var(--hc-fg) !important;
     border-color: var(--hc-border) !important;
 }
 
-:is(html, body).theme-high-contrast :is(
-        .p-disabled,
-        .p-inputtext:disabled,
-        .p-button:disabled,
-        .p-select.p-disabled,
-        .p-select-option.p-disabled,
-        [aria-disabled='true']
-    ) {
+:is(html, body).theme-high-contrast :is(.p-disabled,
+    .p-inputtext:disabled,
+    .p-button:disabled,
+    .p-select.p-disabled,
+    .p-select-option.p-disabled,
+    [aria-disabled='true']) {
     background: var(--hc-disabled-bg) !important;
     color: var(--hc-disabled-fg) !important;
     border-color: var(--hc-disabled-border) !important;
     opacity: 1 !important;
 }
 
-:is(html, body).theme-high-contrast :is(
-        a[href],
-        button,
-        input,
-        select,
-        textarea,
-        [tabindex]:not([tabindex='-1']),
-        [role='button'],
-        .p-button,
-        .p-select,
-        .p-inputtext,
-        .p-checkbox-box,
-        .p-radiobutton-box,
-        .p-focus
-    ):focus-visible {
+:is(html, body).theme-high-contrast :is(a[href],
+    button,
+    input,
+    select,
+    textarea,
+    [tabindex]:not([tabindex='-1']),
+    [role='button'],
+    .p-button,
+    .p-select,
+    .p-inputtext,
+    .p-checkbox-box,
+    .p-radiobutton-box,
+    .p-focus):focus-visible {
     outline: 4px solid var(--hc-focus) !important;
     outline-offset: 2px !important;
     box-shadow: 0 0 0 2px var(--hc-fg) !important;
 }
 
-:is(html, body).theme-high-contrast :is(
-        a[href],
-        button,
-        input,
-        select,
-        textarea,
-        [tabindex]:not([tabindex='-1']),
-        [role='button'],
-        .p-button,
-        .p-select,
-        .p-inputtext
-    ):focus:not(:focus-visible) {
+:is(html, body).theme-high-contrast :is(a[href],
+    button,
+    input,
+    select,
+    textarea,
+    [tabindex]:not([tabindex='-1']),
+    [role='button'],
+    .p-button,
+    .p-select,
+    .p-inputtext):focus:not(:focus-visible) {
     outline: none !important;
     box-shadow: none !important;
 }
@@ -172,27 +160,23 @@ app-root {
     color: var(--hc-fg) !important;
 }
 
-:is(html, body).theme-high-contrast :is(
-        .p-menubar,
-        .p-menubar-root-list,
-        .app-shell-theme-card,
-        .p-datatable-thead>tr>th,
-        .p-datatable-tbody>tr>td,
-        .p-dialog-header,
-        .p-dialog-content,
-        .p-dialog-footer
-    ) {
+:is(html, body).theme-high-contrast :is(.p-menubar,
+    .p-menubar-root-list,
+    .app-shell-theme-card,
+    .p-datatable-thead>tr>th,
+    .p-datatable-tbody>tr>td,
+    .p-dialog-header,
+    .p-dialog-content,
+    .p-dialog-footer) {
     background: var(--hc-bg) !important;
     color: var(--hc-fg) !important;
     border-color: var(--hc-border) !important;
 }
 
-:is(html, body).theme-high-contrast :is(
-        .p-button.p-button-icon-only,
-        .p-button .p-button-icon,
-        .p-button .pi,
-        .notification-bell-btn
-    ) {
+:is(html, body).theme-high-contrast :is(.p-button.p-button-icon-only,
+    .p-button .p-button-icon,
+    .p-button .pi,
+    .notification-bell-btn) {
     color: var(--hc-fg) !important;
     border-color: var(--hc-border) !important;
 }
@@ -202,10 +186,8 @@ app-root {
     min-height: 2.25rem;
 }
 
-:is(html, body).theme-high-contrast :is(
-        .p-inputtext::placeholder,
-        .p-inputnumber-input::placeholder
-    ) {
+:is(html, body).theme-high-contrast :is(.p-inputtext::placeholder,
+    .p-inputnumber-input::placeholder) {
     color: #1f2937 !important;
     opacity: 1 !important;
 }
@@ -390,6 +372,14 @@ p-inputnumber,
     .p-datatable-tbody>tr>td,
     .p-datatable-thead>tr>th {
         padding: 0.2rem 0.2rem;
+
+        .p-splitbutton.p-component {
+            height: 20px;
+
+            .p-splitbutton-button {
+                display: none;
+            }
+        }
     }
 
     .p-datatable-thead>tr>th .wuic-column-filter-wrap {
@@ -798,8 +788,6 @@ body.wuic-designer-edit-mode *:hover>.ng-resizable-handle {
 
 .wuic-progress-dialog .p-progressbar .p-progressbar-value,
 .wuic-progress-dialog .p-progressbar-value {
-  transition: none !important;
-  animation: none !important;
+    transition: none !important;
+    animation: none !important;
 }
-
-
