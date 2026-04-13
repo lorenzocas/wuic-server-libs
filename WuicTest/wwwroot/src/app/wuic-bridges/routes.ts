@@ -95,5 +95,19 @@ export const routes: Routes = [
     canMatch: [menuRouteAccessCanMatchGuard, roleRouteCanMatchGuard],
     canActivate: [menuRouteAccessCanActivateGuard, roleRouteCanActivateGuard],
     data: { breadcrumbs: 'workflow-designer', roleRuleKey: 'workflow-designer' }
+  },
+  {
+    path: 'appsettings-editor',
+    loadComponent: () => import('wuic-framework-lib-src/component/app-settings-editor/app-settings-editor.component').then((m) => m.AppSettingsEditorComponent),
+    canMatch: [menuRouteAccessCanMatchGuard, roleRouteCanMatchGuard],
+    canActivate: [menuRouteAccessCanActivateGuard, roleRouteCanActivateGuard],
+    data: { breadcrumbs: 'appsettings-editor' }
+  },
+  {
+    path: 'rag-chatbot',
+    loadComponent: () => import('wuic-framework-lib-src/component/rag-chatbot/rag-chatbot.component').then((m) => m.WuicRagChatbotComponent),
+    canMatch: [menuRouteAccessCanMatchGuard, roleRouteCanMatchGuard],
+    canActivate: [menuRouteAccessCanActivateGuard, roleRouteCanActivateGuard],
+    data: { breadcrumbs: 'rag-chatbot' }
   }
 ];

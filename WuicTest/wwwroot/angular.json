@@ -89,7 +89,11 @@
               }
             },
             "npm": {
-              "optimization": true,
+              "optimization": {
+                "scripts": false,
+                "styles": true,
+                "fonts": true
+              },
               "extractLicenses": true,
               "sourceMap": false,
               "outputHashing": "all",

@@ -33,6 +33,9 @@
     "target": "ES2022",
     "module": "ES2022"
   },
+  "exclude": [
+    "src/app/wuic-bridges-npm/**"
+  ],
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,
     "strictInjectionParameters": true,

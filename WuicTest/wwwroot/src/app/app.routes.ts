@@ -93,19 +93,5 @@ export const appRoutes: Routes = [
       breadcrumbs: 'unauthorized'
     }
   },
-  {
-    path: 'rag-chatbot-demo',
-    loadComponent: () => import('./component/rag-chatbot-demo-page/rag-chatbot-demo-page.component').then((m) => m.RagChatbotDemoPageComponent),
-    data: {
-      breadcrumbs: 'rag-chatbot-demo'
-    }
-  },
-  {
-    path: 'ngdeep-showcase',
-    loadComponent: () => import('./component/ngdeep-showcase-page/ngdeep-showcase-page.component').then((m) => m.NgdeepShowcasePageComponent),
-    data: {
-      breadcrumbs: 'ngdeep-showcase'
-    }
-  },
   ...wuicRoutes
 ];
