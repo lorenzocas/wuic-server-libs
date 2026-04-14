@@ -791,3 +791,28 @@ body.wuic-designer-edit-mode *:hover>.ng-resizable-handle {
     transition: none !important;
     animation: none !important;
 }
+
+.html-input-designer {
+    width: 110px;
+    height: 100px;
+    background-color: transparent;
+    color: inherit;
+    border-bottom-style: solid;
+    border-width: 1px;
+    border-bottom-color: inherit;
+    border-left-style: solid;
+    border-left-width: 1px;
+    border-left-color: inherit;
+    border-right-style: solid;
+    border-right-width: 1px;
+    border-right-color: inherit;
+    border-top-style: solid;
+    border-top-width: 1px;
+    border-top-color: inherit
+}
+
+.html-input-bindable-designer {
+    display: inline-block;
+    background-color: transparent;
+    color: inherit;
+}

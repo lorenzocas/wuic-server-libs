@@ -4,12 +4,12 @@
 // The list of which env maps to which file can be found in `.angular-cli.json`.
 
 export const environment = {
-  file_path: 'http://localhost:5000/',
-  api_url: 'http://localhost:5000/api/',
-  meta_url: 'http://localhost:5000/api/Meta/',
-  global_root_url: 'http://localhost:5000/api/Meta/AsmxProxy/',
-  upload_handler: 'http://localhost:5000/api/UploadImage',
-  upload_path: 'http://localhost:5000/upload/',
+  file_path: 'http://localhost/',
+  api_url: 'http://localhost/api/',
+  meta_url: 'http://localhost/api/Meta/',
+  global_root_url: 'http://localhost/api/Meta/AsmxProxy/',
+  upload_handler: 'http://localhost/api/UploadImage',
+  upload_path: 'http://localhost/upload/',
   oauth_enabled: false,
   cacheMetadataVersionExpirationMinutes: 0,
   preventNavigateOnFilterByDefault: true,
