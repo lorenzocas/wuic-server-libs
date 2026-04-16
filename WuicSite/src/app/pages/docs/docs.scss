@@ -272,6 +272,95 @@
   }
 }
 
+// Screenshot gallery (synced from KonvergenceCore docs:build → SyncDocs deploy step).
+// Mirrors WuicTest's `.screenshots` block so users see the same layout cross-site.
+//
+// IMPORTANT — PrimeNG p-image DOM contract:
+// <figure>
+//   <p-image class="p-component p-image p-image-preview">
+//     <img src="...">                      ← actual <img>
+//     <span class="p-image-preview-icon">  ← preview magnifier overlay
+//   </p-image>
+//   <figcaption>...</figcaption>
+// </figure>
+//
+// PrimeNG default styling makes the `<p-image>` host span inline-block sized to
+// the natural <img> dimensions, so a 1916x937 PNG would burst out of the figure
+// (the original "deformate e sovrapposte" symptom). We force the host to be a
+// full-width block, constrain the inner <img> to the container, and cap the
+// thumbnail height so all rows in the grid stay visually consistent regardless
+// of the source image aspect ratio.
+.screenshots {
+  margin-top: 32px;
+
+  h3 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #475569;
+    margin: 0 0 16px;
+  }
+
+  .shots-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 18px;
+    align-items: start;
+  }
+
+  figure {
+    margin: 0;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+  }
+
+  // PrimeNG host wrapper — make it behave as the figure's image slot
+  p-image {
+    display: block;
+    width: 100%;
+
+    // The PrimeNG element nests another span (.p-image) around the <img>;
+    // both must collapse to the available width so the layout doesn't blow up.
+    ::ng-deep .p-image,
+    ::ng-deep span {
+      display: block;
+      width: 100%;
+      line-height: 0; // remove inline-baseline gap below img
+    }
+  }
+
+  // Apply to ANY <img> inside the screenshots block (covers PrimeNG's nested img too)
+  ::ng-deep img {
+    display: block;
+    width: 100%;
+    height: 180px;          // uniform thumbnail height keeps rows aligned
+    object-fit: cover;       // crop instead of distort; full image is visible via lightbox
+    object-position: top;    // show top of UI screenshots (header/toolbar) by default
+    background: #f8fafc;
+    cursor: zoom-in;         // hint that click expands
+  }
+
+  .missing {
+    padding: 24px 12px;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 0.85rem;
+    background: #f1f5f9;
+  }
+
+  figcaption {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    color: #475569;
+    border-top: 1px solid #e2e8f0;
+  }
+}
+
 // TOC
 .toc {
   position: sticky;

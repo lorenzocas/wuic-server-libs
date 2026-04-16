@@ -91,6 +91,43 @@
                 }
               </section>
             }
+
+            <!--
+              Screenshot gallery. The framework's docs generator emits
+              `page.images[]` referencing PNGs at relative URLs like
+              `assets/wuic-framework-docs/screenshots/<file>.png`. The
+              corresponding files are uploaded to the WuicSite IIS root by
+              `deploy-release.ps1 -SyncDocs` (Sync docs screenshots step). Same
+              block exists in WuicTest's framework-docs.component.html — keeping
+              the two renderers symmetric so users see identical content.
+            -->
+            @if (page.images?.length) {
+              <section class="screenshots">
+                <h3>Screenshot</h3>
+                <div class="shots-grid">
+                  @for (img of page.images; track img.id) {
+                    <figure>
+                      @if (img.status === 'available' && img.path) {
+                        <!--
+                          PrimeNG p-image with [preview]=true: clicking the thumbnail
+                          opens a fullscreen lightbox with zoom/rotate/close controls,
+                          mirroring WuicTest's framework-docs.component.html behavior so
+                          the two renderers feel identical.
+                        -->
+                        <p-image
+                          [preview]="true"
+                          [src]="img.path"
+                          [previewImageSrc]="img.path"
+                          [alt]="img.caption" />
+                      } @else {
+                        <div class="missing">Screenshot non disponibile</div>
+                      }
+                      <figcaption>{{ formatScreenshotCaption(img.caption) }}</figcaption>
+                    </figure>
+                  }
+                </div>
+              </section>
+            }
           </article>
 
           <!-- Table of Contents -->

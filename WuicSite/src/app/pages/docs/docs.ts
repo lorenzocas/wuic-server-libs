@@ -7,6 +7,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
+import { ImageModule } from 'primeng/image';
 import { DocsContentManifest, DocsPage, DocsNavGroup, DocsSection, DocsCodeSample } from '../../models/docs.model';
 
 interface SectionPart {
@@ -17,7 +18,7 @@ interface SectionPart {
 
 @Component({
   selector: 'app-docs',
-  imports: [FormsModule, NgClass, InputTextModule, TagModule, ButtonModule, SelectModule, RouterLink],
+  imports: [FormsModule, NgClass, InputTextModule, TagModule, ButtonModule, SelectModule, ImageModule, RouterLink],
   templateUrl: './docs.html',
   styleUrl: './docs.scss'
 })
@@ -126,31 +127,50 @@ export class Docs implements OnInit {
   }
 
   sectionParts(section: DocsSection): SectionPart[] {
+    const samples = section.codeSamples || [];
+    if (!samples.length) {
+      return [{ kind: 'html', html: section.html }];
+    }
+
+    // The framework's docs generator (KonvergenceCore/scripts/docs/generate-docs-content.mjs)
+    // strips fenced code blocks from markdown and replaces each one with a textual marker
+    // `Snippet <N>:` (rendered as `<p>Snippet N:</p>` after markdown→HTML), while collecting
+    // the original code into `section.codeSamples`. So the parser MUST match that marker
+    // (NOT an HTML comment placeholder), in document order, and pair it with the next
+    // unconsumed sample. Same algorithm as WuicTest's framework-docs.component.ts to keep
+    // the two renderers in sync.
     const parts: SectionPart[] = [];
-    if (!section.codeSamples?.length) {
-      parts.push({ kind: 'html', html: section.html });
-      return parts;
-    }
-    // Interleave HTML with code samples at placeholder positions
-    let html = section.html;
-    for (const sample of section.codeSamples) {
-      const placeholder = `<!-- code-sample:${sample.id} -->`;
-      const idx = html.indexOf(placeholder);
-      if (idx >= 0) {
-        const before = html.substring(0, idx);
-        if (before.trim()) parts.push({ kind: 'html', html: before });
-        parts.push({ kind: 'code', sample });
-        html = html.substring(idx + placeholder.length);
+    const markerRegex = /<p>\s*Snippet[^<]*:<\/p>/gi;
+    const html = section.html || '';
+
+    let cursor = 0;
+    let sampleIndex = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = markerRegex.exec(html)) !== null) {
+      const before = html.slice(cursor, match.index);
+      if (before.trim()) {
+        parts.push({ kind: 'html', html: before });
       }
-    }
-    if (html.trim()) parts.push({ kind: 'html', html });
-    // If no placeholders matched, append samples at the end
-    if (parts.length === 0) {
-      parts.push({ kind: 'html', html: section.html });
-      for (const sample of section.codeSamples) {
-        parts.push({ kind: 'code', sample });
+      if (sampleIndex < samples.length) {
+        parts.push({ kind: 'code', sample: samples[sampleIndex] });
+        sampleIndex++;
       }
+      cursor = match.index + match[0].length;
     }
+
+    const remainingHtml = html.slice(cursor);
+    if (remainingHtml.trim()) {
+      parts.push({ kind: 'html', html: remainingHtml });
+    }
+
+    // Defensive: if any samples weren't matched by a marker (e.g. older content variants),
+    // append them at the end so the user still sees the snippet rather than losing it silently.
+    while (sampleIndex < samples.length) {
+      parts.push({ kind: 'code', sample: samples[sampleIndex] });
+      sampleIndex++;
+    }
+
     return parts;
   }
 
@@ -198,5 +218,14 @@ export class Docs implements OnInit {
       css: 'CSS', scss: 'SCSS', bash: 'Bash', xml: 'XML'
     };
     return labels[lang] || lang;
+  }
+
+  /**
+   * Strip the trailing viewport suffix (` / desktop`, ` / mobile`) that the
+   * docs generator adds to screenshot captions. Same shape as WuicTest so the
+   * two renderers display identical labels.
+   */
+  formatScreenshotCaption(value: string): string {
+    return String(value || '').replace(/\s*\/\s*(desktop|mobile)\s*$/i, '').trim();
   }
 }

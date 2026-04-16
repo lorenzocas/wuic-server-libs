@@ -51,3 +51,28 @@ a {
   margin-left: auto;
   margin-right: auto;
 }
+
+// PrimeNG p-image lightbox preview — globalmente, perche' il mask + immagine
+// vengono montati sotto <body> via PrimeNG OverlayService (fuori dallo scope
+// dei component, quindi gli stili dentro docs.scss non li raggiungono).
+//
+// Default PrimeNG: l'<img> nel preview e' renderizzata a dimensione naturale.
+// Per screenshot 1280x728 / 1916x937 questo significa o "troppo piccola" sul
+// monitor 4K o "tagliata" sul laptop. Sostituiamo con max-width/max-height
+// percentuale del viewport cosi' l'immagine occupa quasi tutta la schermata
+// senza eccedere e mantenendo l'aspect ratio.
+.p-image-mask {
+  // mask scuro a tutto schermo (gia' fixed)
+  background: rgba(0, 0, 0, 0.85);
+}
+
+.p-image-original,
+.p-image-preview-image {
+  max-width: 95vw !important;
+  max-height: 90vh !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain;
+  // smoothing per upscale leggero (alcune PNG sono shoot a 1280x; su 4K beneficiano)
+  image-rendering: -webkit-optimize-contrast;
+}
