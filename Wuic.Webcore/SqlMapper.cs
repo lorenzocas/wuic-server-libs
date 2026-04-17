@@ -901,9 +901,21 @@ this IDbConnection cnn, string sql, dynamic param = null, IDbTransaction transac
             var info = GetCacheInfo(identity);
             bool wasClosed = cnn.State == ConnectionState.Closed;
             int maxAttempts = IsRetryAllowed(transaction) ? Math.Max(1, Settings.RetryMaxAttempts) : 1;
+
+            // Materialize-then-yield so the retry loop can catch transient
+            // errors thrown during `reader.Read()` too (common for stored
+            // procedures whose body isn't evaluated until a row is requested
+            // — e.g. `SELECT ... FROM t WHERE id=1` under a held X-lock, which
+            // throws SQL 1222 `LOCK_TIMEOUT` inside `reader.Read()`, NOT in
+            // `ExecuteReader()`). Yield-return can't live inside a try that
+            // has a catch clause, so we collect results into a list first
+            // and yield afterward. This preserves the public streaming API
+            // shape while making retries cover the full result enumeration.
+            List<T> materialized = null;
+            Exception lastError = null;
             for (int attempt = 1; attempt <= maxAttempts; attempt++)
             {
-                bool yieldedRows = false;
+                materialized = new List<T>();
                 using (var cmd = SetupCommand(cnn, transaction, sql, info.ParamReader, param, commandTimeout, commandType))
                 {
                     IDataReader reader = null;
@@ -911,17 +923,7 @@ this IDbConnection cnn, string sql, dynamic param = null, IDbTransaction transac
                     {
                         if (wasClosed && cnn.State == ConnectionState.Closed) cnn.Open();
                         reader = cmd.ExecuteReader(wasClosed ? CommandBehavior.CloseConnection : CommandBehavior.Default);
-                    }
-                    catch (Exception ex) when (!yieldedRows && attempt < maxAttempts && IsTransientError(ex))
-                    {
-                        if (reader != null) reader.Dispose();
-                        if (wasClosed && cnn.State != ConnectionState.Closed) cnn.Close();
-                        Thread.Sleep(ComputeRetryDelayMs(attempt));
-                        continue;
-                    }
 
-                    using (reader)
-                    {
                         Func<Func<IDataReader, object>> cacheDeserializer = () =>
                         {
                             info.Deserializer = GetDeserializer(typeof(T), reader, 0, -1, false);
@@ -949,12 +951,37 @@ this IDbConnection cnn, string sql, dynamic param = null, IDbTransaction transac
                                 deserializer = cacheDeserializer();
                                 next = deserializer(reader);
                             }
-                            yieldedRows = true;
-                            yield return (T)next;
+                            materialized.Add((T)next);
+                        }
+                        lastError = null;
+                        break;
+                    }
+                    catch (Exception ex) when (attempt < maxAttempts && IsTransientError(ex))
+                    {
+                        lastError = ex;
+                        if (reader != null) reader.Dispose();
+                        if (wasClosed && cnn.State != ConnectionState.Closed) cnn.Close();
+                        Thread.Sleep(ComputeRetryDelayMs(attempt));
+                    }
+                    finally
+                    {
+                        if (reader != null)
+                        {
+                            try { reader.Dispose(); } catch { /* already disposed */ }
                         }
                     }
-                    break;
                 }
+            }
+
+            if (lastError != null)
+            {
+                // All attempts exhausted while still seeing transient errors.
+                throw lastError;
+            }
+
+            foreach (var item in materialized ?? new List<T>())
+            {
+                yield return item;
             }
         }
 
