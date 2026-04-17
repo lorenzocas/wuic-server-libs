@@ -73,6 +73,23 @@ a {
   width: auto !important;
   height: auto !important;
   object-fit: contain;
-  // smoothing per upscale leggero (alcune PNG sono shoot a 1280x; su 4K beneficiano)
-  image-rendering: -webkit-optimize-contrast;
+
+  // Flickering fix su GIF animate: forza il browser a promuovere l'elemento
+  // a GPU layer (translateZ) + backface-visibility evita i re-paint causati
+  // da ogni frame GIF che interagisce con transitions delle card sottostanti.
+  // Rimosso `image-rendering: -webkit-optimize-contrast` (equivalente a
+  // crisp-edges): su Chrome causa ricalcolo pixel per ogni frame di una GIF
+  // in loop, producendo flicker visibile quando il mouse muove sulla pagina.
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  transition: none !important;
+  will-change: auto;
+}
+
+// Quando il preview PrimeNG e' aperto, body riceve `.p-overflow-hidden`.
+// Blocca transizioni/hover sul contenuto sotto la maschera per evitare
+// re-paint concorrenti con la GIF in riproduzione nel lightbox.
+body.p-overflow-hidden .gallery-card {
+  transition: none !important;
+  transform: none !important;
 }

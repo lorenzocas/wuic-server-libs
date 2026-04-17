@@ -1,0 +1,61 @@
+<section class="gallery-hero">
+  <div class="container">
+    <h1>Live Demos</h1>
+    <p class="subtitle">
+      Animazioni reali delle principali feature WUIC. Click su qualsiasi demo per ingrandire;
+      torna alla documentazione della feature dal link sulla card.
+    </p>
+  </div>
+</section>
+
+<div class="container gallery-container">
+  @if (loading()) {
+    <div class="gallery-loading">
+      <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+      <p>Caricamento demo...</p>
+    </div>
+  } @else if (items().length === 0) {
+    <div class="gallery-empty">
+      <i class="pi pi-video" style="font-size: 3rem; color: #cbd5e1"></i>
+      <p>Nessuna demo disponibile.</p>
+    </div>
+  } @else {
+    @for (group of itemsByPage(); track group.slug) {
+      <section class="gallery-group">
+        <header class="group-header">
+          <h2>{{ group.title }}</h2>
+          <a [routerLink]="['/docs', group.slug]" class="docs-link">
+            <i class="pi pi-arrow-right"></i>
+            Apri documentazione
+          </a>
+        </header>
+        <div class="gallery-grid">
+          @for (item of group.items; track item.id) {
+            <figure class="gallery-card">
+              <!--
+                Lazy-load strategy: [src] punta al thumbnail JPG (~200 KB),
+                [previewImageSrc] punta alla GIF full (~5-40 MB) che p-image
+                scarica SOLO al click preview. Senza questo, la gallery con
+                12 GIF scaricava ~120 MB al caricamento pagina. Con thumbnail
+                si parte a 2-3 MB totali, la GIF arriva quando l'utente
+                clicca per espandere e inizia a riprodursi nel lightbox.
+              -->
+              <p-image
+                [preview]="true"
+                [src]="thumbPath(item.path)"
+                [previewImageSrc]="item.path"
+                [alt]="item.caption" />
+              <figcaption>
+                <span class="caption">
+                  {{ displayCaption(item.caption) }}
+                  <i class="pi pi-play-circle play-badge" aria-hidden="true"></i>
+                </span>
+                <span class="meta">{{ group.title }}</span>
+              </figcaption>
+            </figure>
+          }
+        </div>
+      </section>
+    }
+  }
+</div>

@@ -1,0 +1,157 @@
+// Gallery page — live demo GIF showcase. Layout spec:
+// - Hero band at top (consistent with Features/Home design tokens)
+// - Groups per doc page; inside each group a responsive grid of demo cards
+// - Cards with thumbnail + caption + page name; click for fullscreen preview
+.gallery-hero {
+  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+  padding: 64px 0 48px;
+  text-align: center;
+
+  h1 {
+    font-size: 2.4rem;
+    font-weight: 800;
+    margin: 0 0 12px;
+    color: #0f172a;
+  }
+
+  .subtitle {
+    max-width: 640px;
+    margin: 0 auto;
+    color: #475569;
+    font-size: 1.05rem;
+    line-height: 1.6;
+  }
+}
+
+.gallery-container {
+  padding: 48px 24px 96px;
+}
+
+.gallery-loading,
+.gallery-empty {
+  text-align: center;
+  padding: 80px 16px;
+  color: #64748b;
+
+  p {
+    margin-top: 16px;
+    font-size: 1rem;
+  }
+}
+
+.gallery-group {
+  margin-bottom: 56px;
+
+  .group-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e2e8f0;
+    flex-wrap: wrap;
+
+    h2 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0;
+    }
+
+    .docs-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #4f46e5;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: color 0.15s;
+
+      &:hover {
+        color: #4338ca;
+      }
+    }
+  }
+}
+
+.gallery-grid {
+  display: grid;
+  // Demos tend to be wider than PNG screenshots, favor larger tiles
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+
+.gallery-card {
+  margin: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px -8px rgba(15, 23, 42, 0.18);
+  }
+
+  // PrimeNG p-image host — stretch to card width
+  p-image {
+    display: block;
+    width: 100%;
+
+    ::ng-deep .p-image,
+    ::ng-deep span {
+      display: block;
+      width: 100%;
+      line-height: 0;
+    }
+  }
+
+  ::ng-deep img {
+    display: block;
+    width: 100%;
+    // Taller than docs page thumbnails because GIFs often have info at the bottom
+    height: 220px;
+    object-fit: cover;
+    object-position: top;
+    background: #f1f5f9;
+    cursor: zoom-in;
+  }
+
+  figcaption {
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border-top: 1px solid #e2e8f0;
+
+    .caption {
+      font-weight: 600;
+      color: #0f172a;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    // Play badge inside caption — hints that a static thumbnail expands to an animated demo
+    .play-badge {
+      color: #4f46e5;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    .meta {
+      font-size: 0.75rem;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+  }
+}
