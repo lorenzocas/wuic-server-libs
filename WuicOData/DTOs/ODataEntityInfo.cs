@@ -15,6 +15,15 @@ namespace WuicOData.DTOs
         /// <summary>C# class name derived from md_route_name</summary>
         public string ClassName { get; set; }
 
+        /// <summary>
+        /// Route metadata name (md_route_name), tipicamente lowercase. Usato
+        /// come chiave per risolvere i target delle colonne `lookupByID` verso
+        /// i nomi di classe generati (vedi `MetadataModelGenerator` — mappa
+        /// `LookupEntityRouteName` -> ClassName del target per emettere le
+        /// navigation properties).
+        /// </summary>
+        public string RouteName { get; set; }
+
         public List<ODataColumnInfo> Columns { get; set; } = new();
     }
 
@@ -37,5 +46,17 @@ namespace WuicOData.DTOs
 
         /// <summary>mc_max_length</summary>
         public int? MaxLength { get; set; }
+
+        /// <summary>
+        /// Route name della tabella lookup quando `mc_ui_column_type='lookupByID'`
+        /// (valorizzato da `mc_ui_lookup_entity_name`). Usato dal
+        /// `MetadataModelGenerator` per emettere la navigation property
+        /// sull'entita' generata (es. Cities.stateProvinceID ha
+        /// LookupEntityRouteName='stateprovinces' → viene generato
+        /// `public virtual Stateprovinces StateProvince { get; set; }` + il
+        /// fluent `HasOne().WithMany().HasForeignKey()` che abilita
+        /// `$expand=stateProvince` via OData).
+        /// </summary>
+        public string LookupEntityRouteName { get; set; }
     }
 }

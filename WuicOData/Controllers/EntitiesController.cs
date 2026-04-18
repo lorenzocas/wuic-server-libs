@@ -94,6 +94,60 @@ namespace WuicCore.Controllers
                     HandleNullPropagation = HandleNullPropagationOption.False
                 };
 
+                // $count=true opt-in OData v4 inline-count.
+                //
+                // Se il client passa `$count=true` ritorniamo il wrapper OData v4
+                // standard `{ "value": [...], "@odata.count": N }`, dove N e' il
+                // totale calcolato sull'IQueryable dopo `$filter`/`$orderby` ma
+                // PRIMA di `$skip`/`$top` (cosi' il pager UI ha il count reale
+                // del dataset filtrato, non solo della pagina corrente).
+                //
+                // Opt-in esplicito: tutte le request *senza* $count continuano a
+                // ricevere il plain array `[...]` (shape storica). Questo evita
+                // di rompere i consumer client legacy (DataProviderOdataService,
+                // data-provider-webservice, ecc.) che leggono `response as any[]`
+                // direttamente. Il nuovo wrapper viene usato solo dai consumer
+                // nuovi (es. Pattern 3c example) che esplicitamente richiedono
+                // $count=true e sanno de-wrappare.
+                var wantsCount = queryOptions.Count != null && queryOptions.Count.Value;
+
+                if (wantsCount)
+                {
+                    // 1) $filter + $orderby sulla query base (no paging ancora).
+                    var filtered = ApplyFilterAndOrderBy(queryable, queryOptions, settings);
+
+                    // 2) count sul filtrato (prima di skip/top).
+                    var totalCount = CountIQueryable(filtered, t);
+
+                    // 3) $skip + $top per ottenere la pagina richiesta.
+                    var paged = ApplySkipAndTop(filtered, queryOptions, settings);
+
+                    // 4) $expand -> `.Include(navProp)` EF Core. Lo facciamo
+                    //    DOPO skip/top per ridurre il numero di JOIN al solo
+                    //    sottoinsieme della pagina (EF traduce in LEFT JOIN
+                    //    sul subquery paginata).
+                    paged = ApplyOdataExpandAsEfInclude(paged, t, queryOptions);
+
+                    object valueArray;
+                    if (HasSelectWithoutExpand(queryOptions))
+                    {
+                        valueArray = ProjectQueryableToSelectedColumns(paged, t, queryOptions.SelectExpand.RawSelect);
+                    }
+                    else
+                    {
+                        // Materializza esplicitamente per evitare che il
+                        // serializer provi a valutare l'IQueryable dopo aver
+                        // emesso il wrapper (causerebbe doppie enumerazioni).
+                        valueArray = MaterializeIQueryable(paged, t);
+                    }
+
+                    return Ok(new Dictionary<string, object>
+                    {
+                        ["@odata.count"] = totalCount,
+                        ["value"] = valueArray
+                    });
+                }
+
                 // Apply non-projection options with OData query machinery.
                 var applied = ApplyNonSelectQueryOptions(queryable, queryOptions, settings);
 
@@ -104,6 +158,9 @@ namespace WuicCore.Controllers
                     var projected = ProjectQueryableToSelectedColumns(applied, t, queryOptions.SelectExpand.RawSelect);
                     return Ok(projected);
                 }
+
+                // $expand -> `.Include(navProp)` EF Core (caso non-wrapped).
+                applied = ApplyOdataExpandAsEfInclude(applied, t, queryOptions);
 
                 return Ok(applied);
             }
@@ -384,6 +441,158 @@ namespace WuicCore.Controllers
             return query;
         }
 
+        // Helpers per il supporto $count=true inline-count (OData v4 wrapper).
+        // Splittiamo le 4 query options in due fasi separate perche' il count
+        // deve essere calcolato DOPO filter+orderby ma PRIMA di skip+top.
+        //
+        // Nota: OrderBy non cambia il count, ma lo applichiamo comunque prima
+        // del count per coerenza con la shape dell'IQueryable (alcuni provider
+        // EF Core ottimizzano meglio quando orderby e' gia' presente).
+
+        /// <summary>
+        /// Traduce l'OData `$expand=navProp,...` in EF Core
+        /// `.Include(clrPropName)` ripetute. Necessario perche' il dynamic
+        /// context di WUIC restituisce `IQueryable` non-generic, e la
+        /// serializzazione downstream (`Ok(queryable)`) non usa l'OData
+        /// formatter che gestirebbe le select-expand wrapper — usa il
+        /// System.Text.Json default. Con `.Include()` EF genera LEFT JOIN
+        /// verso la tabella nav, EF materializza l'entita' popolata nella
+        /// nav property, e il serializer JSON emette il sub-oggetto in linea
+        /// (camelCase come le scalar grazie alla convenzione default del
+        /// formatter + `EnableLowerCamelCase()` nell'EDM per la validazione
+        /// del nome nav).
+        ///
+        /// Mapping name camelCase (EDM) -> PascalCase (CLR):
+        ///   `$expand=stateProvince` -> `.Include("StateProvince")`
+        ///
+        /// Limitazioni attuali:
+        ///   - solo top-level expand (niente nested `$expand=a($expand=b)`);
+        ///   - sub-options OData dopo la nav name (es. `stateProvince($select=..)`)
+        ///     vengono strippate — Include include l'intera entita'.
+        ///   - nav property non esistente sull'entita': skippata silenziosamente
+        ///     per evitare errori 500; l'OData layer l'avrebbe gia' validata
+        ///     ma meglio essere difensivi se il client passa un nome sbagliato.
+        /// </summary>
+        private static IQueryable ApplyOdataExpandAsEfInclude(IQueryable source, Type entityType, ODataQueryOptions options)
+        {
+            var rawExpand = options?.SelectExpand?.RawExpand;
+            if (string.IsNullOrWhiteSpace(rawExpand))
+                return source;
+
+            var navs = rawExpand
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(s => {
+                    var parenIdx = s.IndexOf('(');
+                    var name = parenIdx >= 0 ? s.Substring(0, parenIdx).Trim() : s.Trim();
+                    // Slash-separated nested expand in OData sintassi: lo passo
+                    // raw a Include (EF Core accetta path come "A.B" ma OData
+                    // usa "A/B"); riscriviamo il separator.
+                    return name.Replace('/', '.');
+                })
+                .Where(s => s.Length > 0)
+                .Select(CapitalizeFirstSegment)
+                .ToList();
+
+            if (navs.Count == 0)
+                return source;
+
+            var includeMethod = typeof(Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions)
+                .GetMethods()
+                .First(m => m.Name == nameof(Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.Include)
+                         && m.GetParameters().Length == 2
+                         && m.GetParameters()[1].ParameterType == typeof(string))
+                .MakeGenericMethod(entityType);
+
+            var current = source;
+            foreach (var nav in navs)
+            {
+                // Defensive: skip se la prima segment non corrisponde a una
+                // public instance property del tipo. EF throw-erebbe a
+                // enumeration-time con un messaggio poco chiaro altrimenti.
+                var firstSegment = nav.Split('.')[0];
+                var propInfo = entityType.GetProperty(firstSegment, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+                if (propInfo == null)
+                    continue;
+
+                current = (IQueryable)includeMethod.Invoke(null, new object[] { current, nav });
+            }
+            return current;
+        }
+
+        /// <summary>
+        /// Capitalizza la prima lettera di ogni segmento separato da `.` per
+        /// convertire l'OData EDM camelCase nei nomi CLR PascalCase.
+        /// Es: `stateProvince.country` -> `StateProvince.Country`.
+        /// </summary>
+        private static string CapitalizeFirstSegment(string dotted)
+        {
+            if (string.IsNullOrEmpty(dotted)) return dotted;
+            var segments = dotted.Split('.');
+            for (int i = 0; i < segments.Length; i++)
+            {
+                var s = segments[i];
+                if (!string.IsNullOrEmpty(s) && char.IsLower(s[0]))
+                    segments[i] = char.ToUpperInvariant(s[0]) + s.Substring(1);
+            }
+            return string.Join('.', segments);
+        }
+
+        private static IQueryable ApplyFilterAndOrderBy(IQueryable source, ODataQueryOptions options, ODataQuerySettings settings)
+        {
+            IQueryable query = source;
+
+            if (options.Filter != null)
+                query = options.Filter.ApplyTo(query, settings);
+
+            if (options.OrderBy != null)
+                query = options.OrderBy.ApplyTo(query, settings);
+
+            return query;
+        }
+
+        private static IQueryable ApplySkipAndTop(IQueryable source, ODataQueryOptions options, ODataQuerySettings settings)
+        {
+            IQueryable query = source;
+
+            if (options.Skip != null)
+                query = options.Skip.ApplyTo(query, settings);
+
+            if (options.Top != null)
+                query = options.Top.ApplyTo(query, settings);
+
+            return query;
+        }
+
+        private static long CountIQueryable(IQueryable source, Type entityType)
+        {
+            // Queryable.LongCount<T>(IQueryable<T>) via reflection: source e'
+            // non-generico ma l'IQueryable<T> sottostante matcha entityType.
+            // Usiamo LongCount invece di Count per supportare dataset >2B righe
+            // (edge case realistico su entity grandi es. audit log).
+            var longCountMethod = typeof(Queryable)
+                .GetMethods()
+                .First(m => m.Name == nameof(Queryable.LongCount) && m.GetParameters().Length == 1)
+                .MakeGenericMethod(entityType);
+
+            return (long)longCountMethod.Invoke(null, new object[] { source });
+        }
+
+        private static object MaterializeIQueryable(IQueryable source, Type entityType)
+        {
+            // Enumerable.ToList<T>(IEnumerable<T>) via reflection per forzare
+            // l'esecuzione SQL e restituire una List<T> serializzabile JSON.
+            // Senza questa materializzazione esplicita il wrapper
+            // { "@odata.count": N, "value": IQueryable } puo' comportarsi male
+            // col serializer OData (che prova a invocare di nuovo le query
+            // options sull'IQueryable value, generando SQL spurio o errori).
+            var toListMethod = typeof(Enumerable)
+                .GetMethods()
+                .First(m => m.Name == nameof(Enumerable.ToList) && m.GetParameters().Length == 1)
+                .MakeGenericMethod(entityType);
+
+            return toListMethod.Invoke(null, new object[] { source });
+        }
+
         private static bool HasSelectWithoutExpand(ODataQueryOptions options)
         {
             if (options?.SelectExpand == null)
@@ -496,10 +705,32 @@ namespace WuicCore.Controllers
                 if (!propMap.TryGetValue(item.Name, out var mapped))
                     continue;
 
-                if (keyProp != null && string.Equals(mapped.PropertyName, keyProp.Name, StringComparison.OrdinalIgnoreCase))
+                // PK handling: skippa la PK SOLO se e' server-generated (IDENTITY,
+                // temporal AS_ROW_START/END, computed). `blockedColumns` contiene
+                // gia' tutte queste casistiche via sys.columns flags
+                // (is_identity=1, generated_always_type<>0, is_computed=1), quindi
+                // non serve un check separato sulla PK.
+                //
+                // Prima c'era uno skip incondizionato della colonna PK, che
+                // assumeva implicitamente IDENTITY e rompeva INSERT su qualsiasi
+                // tabella con PK non-identity (es. `Application.Cities.CityID` in
+                // WideWorldImporters, dove la PK e' int NOT NULL ma non-identity
+                // ma ha un `DEFAULT NEXT VALUE FOR <sequence>`): se il client
+                // non fornisce la PK vogliamo che SQL usi la sequence, se la
+                // fornisce vogliamo rispettarla.
+                if (blockedColumns.Contains(mapped.ColumnName))
                     continue;
 
-                if (blockedColumns.Contains(mapped.ColumnName))
+                // Valori JSON null -> NON includere la colonna nella INSERT,
+                // cosi' SQL applica il `DEFAULT` lato DB (sequence, newid(),
+                // getutcdate(), costante, ecc.). Includere esplicitamente
+                // `@p = NULL` in VALUES bypassa il DEFAULT e fallisce per
+                // colonne NOT NULL con default (es. Cities.CityID dove la PK
+                // e' NOT NULL ma viene popolata dalla sequence via DEFAULT).
+                // Le colonne NOT NULL senza DEFAULT e senza valore nel payload
+                // faranno comunque fallire l'INSERT lato SQL (comportamento
+                // coerente — il caller avrebbe dovuto validarle lato UI).
+                if (item.Value.ValueKind == JsonValueKind.Null)
                     continue;
 
                 object parsed;
@@ -512,10 +743,17 @@ namespace WuicCore.Controllers
                     continue;
                 }
 
+                // Difensivo: se dopo la deserializzazione il valore e' ancora
+                // null (es. "0001-01-01T00:00:00" su DateTime? puo' deserializzare
+                // a null in alcuni edge case), skippiamo per lo stesso motivo
+                // della regola "JsonValueKind.Null" sopra.
+                if (parsed == null)
+                    continue;
+
                 var pn = $"@p{i++}";
                 columns.Add($"[{mapped.ColumnName}]");
                 paramNames.Add(pn);
-                values[pn] = parsed ?? DBNull.Value;
+                values[pn] = parsed;
             }
 
             if (columns.Count == 0)

@@ -27,10 +27,48 @@ namespace WuicOData.Services
         // ── Code generation ──────────────────────────────────────────────
 
         public static string GenerateEntitySource(ODataEntityInfo entity)
+            => GenerateEntitySource(entity, new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
+
+        /// <summary>
+        /// Variante con mappa `routeName -> className` usata per risolvere le
+        /// navigation properties delle colonne `lookupByID` in modo type-safe:
+        /// emettiamo una nav property SOLO se la route di destinazione e'
+        /// presente nella compilation corrente (altrimenti il source non
+        /// compilerebbe per type-not-found).
+        /// </summary>
+        public static string GenerateEntitySource(ODataEntityInfo entity, IReadOnlyDictionary<string, string> routeToClass)
         {
             var sb = new StringBuilder();
             var cls = entity.ClassName;
             var pkCols = entity.Columns.Where(c => c.IsPrimaryKey).ToList();
+
+            // Pre-calcola le nav properties da emettere: per ogni colonna
+            // lookupByID con target noto nella compilation corrente, produce
+            // una tupla (fkProp, navProp, targetClass). Nav prop name viene
+            // derivato strippando il suffisso "Id"/"ID" dalla colonna FK
+            // (standard WUIC/WWI: `stateProvinceID` -> nav `StateProvince`).
+            // Colonne FK senza suffisso ID vengono ignorate per evitare
+            // collisioni con la proprieta' scalare stessa.
+            var navProps = new List<(string FkProp, string NavProp, string TargetClass, bool Nullable)>();
+            foreach (var col in entity.Columns)
+            {
+                if (string.IsNullOrWhiteSpace(col.LookupEntityRouteName))
+                    continue;
+                if (!routeToClass.TryGetValue(col.LookupEntityRouteName, out var targetClass))
+                    continue; // Target not exposed in this compilation.
+                if (string.Equals(targetClass, cls, StringComparison.Ordinal))
+                    continue; // Self-reference: skip (complicate la fluent API senza valore)
+
+                var fkProp = ToPascalCase(col.ColumnName);
+                var navProp = DeriveNavigationPropertyName(fkProp);
+                if (navProp == null || string.Equals(navProp, fkProp, StringComparison.Ordinal))
+                    continue; // FK name non adatto: skippo per sicurezza.
+                // Evita collisioni con altre colonne scalari stessa classe.
+                if (entity.Columns.Any(c => string.Equals(ToPascalCase(c.ColumnName), navProp, StringComparison.Ordinal)))
+                    continue;
+
+                navProps.Add((fkProp, navProp, targetClass, col.IsNullable));
+            }
 
             sb.AppendLine("#nullable disable");
             sb.AppendLine("using System;");
@@ -61,6 +99,15 @@ namespace WuicOData.Services
                         sb.AppendLine("    [Key]");
                     sb.AppendLine($"    public {csType}{nullable} {ToPascalCase(col.ColumnName)} {{ get; set; }}");
                 }
+            }
+
+            // Navigation properties da colonne lookupByID.
+            // Emesse DOPO le scalar per leggibilita' del codice generato.
+            // `virtual` per supportare potenziale lazy-loading futuro; non
+            // e' attivo di default in DynamicContext ma non fa male averlo.
+            foreach (var (_, navProp, targetClass, _) in navProps)
+            {
+                sb.AppendLine($"    public virtual {targetClass} {navProp} {{ get; set; }}");
             }
 
             sb.AppendLine();
@@ -118,12 +165,47 @@ namespace WuicOData.Services
                 sb.AppendLine($"        entity.Property(e => e.{propName}){string.Join("", configs)};");
             }
 
+            // Fluent config delle navigation properties: `HasOne().WithMany()`
+            // con `HasForeignKey` sulla colonna scalare FK esistente. Questo
+            // dice a EF Core di fare JOIN sulla colonna FK quando il chiamante
+            // usa `.Include(navProp)` (cosa che EntitiesController.Get applica
+            // quando parsa `$expand=navProp` dalla query OData). ODataModelBuilder
+            // via convention rileva automaticamente la nav property e la
+            // espone nel $metadata come `<NavigationProperty>`, cosi'
+            // `$expand=<navProp>` passa la validazione lato OData.
+            // `.IsRequired(false)` quando la FK e' nullable, altrimenti true
+            // (match con le constraint EF della colonna scalare).
+            foreach (var (fkProp, navProp, targetClass, nullable) in navProps)
+            {
+                sb.AppendLine($"        entity.HasOne<{targetClass}>(e => e.{navProp}).WithMany().HasForeignKey(e => e.{fkProp}).IsRequired({(nullable ? "false" : "true")});");
+            }
+
             sb.AppendLine("    }");
             sb.AppendLine("}");
 
             string c = sb.ToString();
 
             return c;
+        }
+
+        /// <summary>
+        /// Dato un FK prop name (es. `StateProvinceID`, `CountryId`, `UserID`),
+        /// deriva il nome della navigation property strippando il suffisso
+        /// `Id` / `ID`. Ritorna null se lo strip risulterebbe vuoto o se
+        /// il name non ha il suffisso FK riconosciuto.
+        /// </summary>
+        public static string DeriveNavigationPropertyName(string fkPropName)
+        {
+            if (string.IsNullOrWhiteSpace(fkPropName))
+                return null;
+            string stripped = null;
+            if (fkPropName.EndsWith("ID", StringComparison.Ordinal))
+                stripped = fkPropName.Substring(0, fkPropName.Length - 2);
+            else if (fkPropName.EndsWith("Id", StringComparison.Ordinal))
+                stripped = fkPropName.Substring(0, fkPropName.Length - 2);
+            if (string.IsNullOrWhiteSpace(stripped))
+                return null;
+            return stripped;
         }
 
         // ── Roslyn compilation ───────────────────────────────────────────
@@ -134,8 +216,10 @@ namespace WuicOData.Services
         /// </summary>
         public static (byte[] Bytes, Assembly Assembly) CompileModels(IEnumerable<ODataEntityInfo> entities)
         {
-            var syntaxTrees = entities
-                .Select(e => CSharpSyntaxTree.ParseText(GenerateEntitySource(e)))
+            var entityList = entities.ToList();
+            var routeToClass = BuildRouteToClassMap(entityList);
+            var syntaxTrees = entityList
+                .Select(e => CSharpSyntaxTree.ParseText(GenerateEntitySource(e, routeToClass)))
                 .ToList();
 
             var compilation = CSharpCompilation.Create(
@@ -175,13 +259,38 @@ namespace WuicOData.Services
             foreach (var f in Directory.GetFiles(outputDirectory, "*.Generated.cs"))
                 File.Delete(f);
 
-            foreach (var entity in entities)
+            var entityList = entities.ToList();
+            var routeToClass = BuildRouteToClassMap(entityList);
+
+            foreach (var entity in entityList)
             {
-                var src = GenerateEntitySource(entity);
+                var src = GenerateEntitySource(entity, routeToClass);
                 File.WriteAllText(
                     Path.Combine(outputDirectory, $"{entity.ClassName}.Generated.cs"),
                     src);
             }
+        }
+
+        /// <summary>
+        /// Costruisce la mappa `routeName (lowercase) -> ClassName` usata
+        /// dal generator per risolvere i target delle colonne lookupByID
+        /// in navigation properties valide (solo verso entita' incluse nel
+        /// set corrente — quelle con `mc_expose_in_webapi=1`).
+        /// </summary>
+        private static IReadOnlyDictionary<string, string> BuildRouteToClassMap(IEnumerable<ODataEntityInfo> entities)
+        {
+            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var e in entities)
+            {
+                var key = e?.RouteName;
+                var cls = e?.ClassName;
+                if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(cls))
+                    continue;
+                // Ultimo vince in caso di route duplicate nel source; tipicamente
+                // routename e' unique nel metadata, non serve merge logic.
+                map[key] = cls;
+            }
+            return map;
         }
 
         // ── Type mapping ─────────────────────────────────────────────────
