@@ -1,0 +1,42 @@
+<div class="example-shell">
+  <header>
+    <h1>Pattern 2a — Cities cards</h1>
+    <p class="subtitle">Pattern: <strong>Framework data + Custom component</strong></p>
+    <p class="hint">DataSource WUIC su route <code>cities</code>, rendering custom in p-card.</p>
+  </header>
+
+  <wuic-data-source #ds [hardcodedRoute]="'cities'" [autoload]="true"></wuic-data-source>
+
+  <div class="toolbar">
+    <input
+      pInputText
+      type="text"
+      [ngModel]="search()"
+      (ngModelChange)="search.set($event)"
+      placeholder="Filtra per nome o stato..." />
+    <p-button label="Ricarica" icon="pi pi-refresh" [text]="true" (onClick)="refresh()"></p-button>
+  </div>
+
+  @if (loading()) {
+    <div class="status">Caricamento...</div>
+  } @else if (filteredRows().length === 0) {
+    <div class="status">Nessun risultato.</div>
+  } @else {
+    <div class="cards-grid">
+      @for (city of filteredRows(); track city.cityid || city.CityID) {
+        <p-card>
+          <ng-template pTemplate="title">
+            {{ city.cityname || city.CityName }}
+          </ng-template>
+          <ng-template pTemplate="subtitle">
+            {{ city.stateprovincename || city.StateProvinceName }}
+          </ng-template>
+          <p>
+            <strong>Popolazione:</strong>
+            {{ (city.latestrecordedpopulation || city.LatestRecordedPopulation) | number }}
+          </p>
+        </p-card>
+      }
+    </div>
+  }
+</div>

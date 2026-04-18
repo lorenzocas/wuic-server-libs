@@ -6,21 +6,22 @@
     </a>
 
     <div class="navbar-links">
-      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Home</a>
-      <a routerLink="/features" routerLinkActive="active">Features</a>
-      <a routerLink="/pricing" routerLinkActive="active">Pricing</a>
-      <a routerLink="/gallery" routerLinkActive="active">Gallery</a>
-      <a routerLink="/docs" routerLinkActive="active">Docs</a>
-      <a routerLink="/downloads" routerLinkActive="active">Download</a>
-      <a href="https://forum.wuic-framework.com" target="_blank">Community</a>
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">{{ 'navbar.home' | translate }}</a>
+      <a routerLink="/features" routerLinkActive="active">{{ 'navbar.features' | translate }}</a>
+      <a routerLink="/pricing" routerLinkActive="active">{{ 'navbar.pricing' | translate }}</a>
+      <a routerLink="/gallery" routerLinkActive="active">{{ 'navbar.gallery' | translate }}</a>
+      <a routerLink="/docs" routerLinkActive="active">{{ 'navbar.docs' | translate }}</a>
+      <a routerLink="/downloads" routerLinkActive="active">{{ 'navbar.downloads' | translate }}</a>
+      <a href="https://forum.wuic-framework.com" target="_blank">{{ 'navbar.community' | translate }}</a>
     </div>
 
     <div class="navbar-actions">
+      <app-language-selector></app-language-selector>
       <a href="https://demo.wuic-framework.com" target="_blank">
-        <p-button label="Demo Live" icon="pi pi-external-link" severity="secondary" [text]="true" size="small" />
+        <p-button [label]="'navbar.demoLive' | translate" icon="pi pi-external-link" severity="secondary" [text]="true" size="small" />
       </a>
       <a routerLink="/downloads">
-        <p-button label="Scarica" icon="pi pi-download" size="small" />
+        <p-button [label]="'navbar.download' | translate" icon="pi pi-download" size="small" />
       </a>
     </div>
   </div>

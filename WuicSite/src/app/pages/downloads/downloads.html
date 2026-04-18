@@ -1,12 +1,10 @@
 <section class="section">
   <div class="container">
-    <h1 class="section-title">Download</h1>
-    <p class="section-subtitle">
-      Scegli il pacchetto adatto alle tue esigenze. Tutti includono backend .NET 10 + frontend Angular 21.
-    </p>
+    <h1 class="section-title">{{ 'downloads.pageTitle' | translate }}</h1>
+    <p class="section-subtitle">{{ 'downloads.pageSubtitle' | translate }}</p>
 
     <div class="version-banner">
-      <span>Ultima versione:</span>
+      <span>{{ 'downloads.lastVersion' | translate }}</span>
       <p-tag value="Server {{ version.server }}" severity="info" />
       <p-tag value="Client {{ version.client }}" severity="info" />
     </div>
@@ -14,11 +12,11 @@
     <p-table [value]="downloads" styleClass="p-datatable-striped" [tableStyle]="{'min-width': '50rem'}">
       <ng-template #header>
         <tr>
-          <th>Pacchetto</th>
-          <th>Tipo</th>
-          <th>RAG</th>
-          <th>Tutorial DB</th>
-          <th>Dim.</th>
+          <th>{{ 'downloads.table.package' | translate }}</th>
+          <th>{{ 'downloads.table.type' | translate }}</th>
+          <th>{{ 'downloads.table.rag' | translate }}</th>
+          <th>{{ 'downloads.table.tutorial' | translate }}</th>
+          <th>{{ 'downloads.table.size' | translate }}</th>
           <th></th>
         </tr>
       </ng-template>
@@ -26,7 +24,7 @@
         <tr>
           <td class="pkg-name">{{ entry.name }}</td>
           <td>
-            <p-tag [value]="entry.audience === 'src' ? 'Sorgenti' : 'IIS Ready'" [severity]="entry.audience === 'src' ? 'success' : 'warn'" />
+            <p-tag [value]="entry.audience === 'src' ? ('downloads.table.srcBadge' | translate) : ('downloads.table.iisBadge' | translate)" [severity]="entry.audience === 'src' ? 'success' : 'warn'" />
           </td>
           <td>
             @if (entry.rag) {
@@ -39,7 +37,7 @@
           <td class="pkg-size">{{ entry.size }}</td>
           <td>
             <a [href]="getDownloadUrl(entry)">
-              <p-button label="Scarica" icon="pi pi-download" size="small" [outlined]="true" />
+              <p-button [label]="'downloads.table.download' | translate" icon="pi pi-download" size="small" [outlined]="true" />
             </a>
           </td>
         </tr>
@@ -49,20 +47,20 @@
     <div class="info-cards">
       <p-card>
         <div class="info-card">
-          <h3><i class="pi pi-code"></i> Pacchetti Source (src)</h3>
-          <p>Contengono i sorgenti C# + Angular. Ideali per lo sviluppo: puoi modificare, compilare e personalizzare il progetto. Usa <code>rename-project.ps1</code> per rinominare il progetto.</p>
+          <h3><i class="pi pi-code"></i> {{ 'downloads.cards.srcTitle' | translate }}</h3>
+          <p [innerHTML]="'downloads.cards.srcText' | translate"></p>
         </div>
       </p-card>
       <p-card>
         <div class="info-card">
-          <h3><i class="pi pi-server"></i> Pacchetti IIS</h3>
-          <p>Output di <code>dotnet publish</code> pronto per IIS. Angular gia' compilato. Estrai nella physical path del sito, configura appsettings.json e avvia.</p>
+          <h3><i class="pi pi-server"></i> {{ 'downloads.cards.iisTitle' | translate }}</h3>
+          <p [innerHTML]="'downloads.cards.iisText' | translate"></p>
         </div>
       </p-card>
       <p-card>
         <div class="info-card">
-          <h3><i class="pi pi-comments"></i> RAG Chatbot</h3>
-          <p>I pacchetti con RAG includono l'indice vettoriale e il server Python. Dopo l'estrazione lancia <code>pwsh rag-setup.ps1</code> per il setup automatico.</p>
+          <h3><i class="pi pi-comments"></i> {{ 'downloads.cards.ragTitle' | translate }}</h3>
+          <p [innerHTML]="'downloads.cards.ragText' | translate"></p>
         </div>
       </p-card>
     </div>

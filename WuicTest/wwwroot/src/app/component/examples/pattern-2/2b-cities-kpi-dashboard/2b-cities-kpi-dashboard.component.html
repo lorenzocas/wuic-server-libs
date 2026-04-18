@@ -1,0 +1,61 @@
+<div class="example-shell">
+  <header>
+    <h1>Pattern 2b — Cities KPI dashboard</h1>
+    <p class="subtitle">Pattern: <strong>Framework data + Custom component</strong></p>
+    <p class="hint">Stesso DataSource WUIC (<code>cities</code>), aggregazioni client-side rese in p-card.</p>
+  </header>
+
+  <wuic-data-source #ds [hardcodedRoute]="'cities'" [autoload]="true"></wuic-data-source>
+
+  @if (loading()) {
+    <div class="status">Caricamento KPI...</div>
+  } @else {
+    @let k = kpi();
+    <section class="kpi-row">
+      <p-card>
+        <ng-template pTemplate="title">Citta' totali</ng-template>
+        <div class="metric">{{ k.totalCities | number }}</div>
+      </p-card>
+
+      <p-card>
+        <ng-template pTemplate="title">Popolazione totale</ng-template>
+        <div class="metric">{{ k.totalPopulation | number }}</div>
+      </p-card>
+
+      <p-card>
+        <ng-template pTemplate="title">Popolazione media</ng-template>
+        <div class="metric">{{ k.avgPopulation | number }}</div>
+      </p-card>
+    </section>
+
+    <section class="two-col">
+      <p-card>
+        <ng-template pTemplate="title">Top 5 per popolazione</ng-template>
+        <table class="kpi-table">
+          @for (row of k.topByPopulation; track row.name; let i = $index) {
+            <tr>
+              <td class="rank">{{ i + 1 }}</td>
+              <td>
+                <strong>{{ row.name }}</strong>
+                <span class="muted"> &mdash; {{ row.state }}</span>
+              </td>
+              <td class="num">{{ row.population | number }}</td>
+            </tr>
+          }
+        </table>
+      </p-card>
+
+      <p-card>
+        <ng-template pTemplate="title">Top 8 stati per numero citta'</ng-template>
+        <div class="state-list">
+          @for (row of k.byState; track row.state) {
+            <div class="state-row">
+              <span>{{ row.state }}</span>
+              <p-tag [value]="row.count.toString()" severity="info"></p-tag>
+            </div>
+          }
+        </div>
+      </p-card>
+    </section>
+  }
+</div>

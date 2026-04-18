@@ -1,0 +1,21 @@
+<div class="example-shell">
+  <header>
+    <h1>Pattern 3c — OData Cities grid</h1>
+    <p class="subtitle">Pattern: <strong>Framework component + Custom data</strong></p>
+    <p class="hint">Backend: endpoint OData generico del framework &rarr; <code>GET /odata/Cities</code> con <code>$top/$skip/$filter/$orderby</code>.</p>
+  </header>
+
+  <wuic-data-source #ds></wuic-data-source>
+
+  <div class="grid-shell">
+    <!-- Wiring server-side: traduciamo gli eventi UI in query string OData
+         e ricarichiamo dal backend (vedi reloadFromServer nel componente). -->
+    <wuic-list-grid
+      [hardcodedDatasource]="ds"
+      [hideToolbar]="false"
+      (onPaging)="reloadFromServer()"
+      (onSorting)="reloadFromServer()"
+      (onFiltering)="reloadFromServer()"
+      (onRefresh)="reloadFromServer()"></wuic-list-grid>
+  </div>
+</div>

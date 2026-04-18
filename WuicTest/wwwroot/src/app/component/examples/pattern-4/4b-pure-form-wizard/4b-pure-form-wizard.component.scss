@@ -1,0 +1,55 @@
+@forward '../../pattern-1/1a-cities-autogen/1a-cities-autogen.component.scss';
+
+// Scroll fix (vedi 1a-cities-autogen).
+.example-shell {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 32px 16px 48px;
+  box-sizing: border-box;
+}
+
+header {
+  margin-bottom: 24px;
+  h1 { font-size: 1.6rem; margin: 0 0 4px; }
+  .subtitle { color: #64748b; margin: 0; font-size: 0.95rem; }
+}
+.hint { color: #475569; font-size: 0.9rem; margin: 4px 0 0; }
+
+.step-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px 0;
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #334155;
+
+    input[pInputText] {
+      width: 100%;
+    }
+  }
+
+  .check-row {
+    flex-direction: row;
+    align-items: center;
+    font-weight: 500;
+    input[type='checkbox'] { margin-right: 8px; }
+  }
+}
+
+.step-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #f1f5f9;
+}

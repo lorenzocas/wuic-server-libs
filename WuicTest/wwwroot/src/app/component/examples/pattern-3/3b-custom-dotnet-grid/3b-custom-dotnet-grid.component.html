@@ -1,0 +1,23 @@
+<div class="example-shell">
+  <header>
+    <h1>Pattern 3b — Custom .NET grid</h1>
+    <p class="subtitle">Pattern: <strong>Framework component + Custom data</strong></p>
+    <p class="hint">Backend: <code>SamplesController.GetInventory()</code> &rarr; <code>/api/samples/inventory</code>.</p>
+  </header>
+
+  <wuic-data-source #ds></wuic-data-source>
+
+  <div class="grid-shell">
+    <!-- @Output (onPaging)/(onSorting)/(onFiltering): la list-grid li emette
+         dopo aver gia' aggiornato ds.currentPage/pageSize/sortInfo/filterInfo.
+         Nel handler reloadFromServer() leggiamo lo stato corrente del ds e
+         re-fetchiamo dal nostro endpoint /api/samples/inventory. -->
+    <wuic-list-grid
+      [hardcodedDatasource]="ds"
+      [hideToolbar]="false"
+      (onPaging)="reloadFromServer()"
+      (onSorting)="reloadFromServer()"
+      (onFiltering)="reloadFromServer()"
+      (onRefresh)="reloadFromServer()"></wuic-list-grid>
+  </div>
+</div>

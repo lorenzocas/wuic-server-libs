@@ -1,0 +1,141 @@
+{
+  // ────────────────────────────────────────────────────────────────────
+  // WuicTest — VS Code workspace per developer-facing src package
+  //
+  // Doppio-click su questo file (o `code WuicTest.code-workspace`) apre
+  // VS Code con la configurazione consigliata per lavorare sul progetto:
+  //   - TypeScript del workspace (wwwroot/node_modules/typescript) gia'
+  //     selezionato per evitare il fallback al TS bundled di VS Code;
+  //   - estensioni consigliate (Angular Language Service, ESLint, C#)
+  //     proposte automaticamente al primo open;
+  //   - task ng serve + dotnet run + npm install accessibili via
+  //     "Run Task" della command palette.
+  //
+  // Pre-requisito: aver eseguito `npm install` in `wwwroot/` almeno una
+  // volta (per popolare wwwroot/node_modules/, di cui anche typescript).
+  //
+  // Se preferisci aprire la cartella senza il workspace file: anche
+  // `code .` dentro WuicTest funziona, perche' .vscode/settings.json e'
+  // gia' configurato. Il workspace file aggiunge solo extensions, tasks
+  // e debug configs.
+  // ────────────────────────────────────────────────────────────────────
+  "folders": [
+    {
+      "name": "WuicTest",
+      "path": "."
+    }
+  ],
+
+  "settings": {
+    // ── TypeScript ───────────────────────────────────────────────────
+    // Path relativo al folder root del workspace (qui: WuicTest/).
+    // Dopo `cd wwwroot && npm install`, questo path esiste e VS Code
+    // usa la versione TS del progetto invece del TS bundled (che NON
+    // sempre risolve correttamente i path aliases custom).
+    "typescript.tsdk": "wwwroot/node_modules/typescript/lib",
+    "typescript.enablePromptUseWorkspaceTsdk": true,
+    "typescript.tsserver.maxTsServerMemory": 2048,
+
+    // ── Editor / search exclusions ───────────────────────────────────
+    "search.exclude": {
+      "**/bin/**": true,
+      "**/obj/**": true,
+      "**/wwwroot/node_modules/**": true,
+      "**/wwwroot/dist/**": true,
+      "**/.angular/**": true,
+      "**/*.js.map": true,
+      "**/*.d.ts": true
+    },
+    "files.watcherExclude": {
+      "**/wwwroot/node_modules/**": true,
+      "**/wwwroot/dist/**": true,
+      "**/.angular/**": true,
+      "**/bin/**": true,
+      "**/obj/**": true
+    },
+
+    // ── ESLint: solo on-save per non rallentare digitazione ──────────
+    "eslint.run": "onSave"
+  },
+
+  "extensions": {
+    // Estensioni proposte al primo open del workspace.
+    "recommendations": [
+      "angular.ng-template",
+      "dbaeumer.vscode-eslint",
+      "ms-dotnettools.csharp",
+      "esbenp.prettier-vscode",
+      "ms-vscode.vscode-typescript-next"
+    ]
+  },
+
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "WuicTest: npm install (Angular deps)",
+        "type": "shell",
+        "command": "npm install",
+        "options": {
+          "cwd": "${workspaceFolder}/wwwroot"
+        },
+        "problemMatcher": []
+      },
+      {
+        "label": "WuicTest: ng serve (frontend, http://localhost:4200)",
+        "type": "shell",
+        "command": "npm run serve:dev",
+        "options": {
+          "cwd": "${workspaceFolder}/wwwroot"
+        },
+        "isBackground": true,
+        "problemMatcher": []
+      },
+      {
+        "label": "WuicTest: dotnet run (backend, http://localhost:5000)",
+        "type": "shell",
+        "command": "dotnet run",
+        "options": {
+          "cwd": "${workspaceFolder}"
+        },
+        "problemMatcher": []
+      },
+      {
+        "label": "WuicTest: build:npm (production-like build with npm bridges)",
+        "type": "shell",
+        "command": "npm run build:npm",
+        "options": {
+          "cwd": "${workspaceFolder}/wwwroot"
+        },
+        "problemMatcher": []
+      }
+    ]
+  },
+
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "WuicTest: Attach Chrome to ng serve",
+        "type": "chrome",
+        "request": "launch",
+        "url": "http://localhost:4200",
+        "webRoot": "${workspaceFolder}/wwwroot/src"
+      },
+      {
+        "name": "WuicTest: .NET backend (debug)",
+        "type": "coreclr",
+        "request": "launch",
+        "preLaunchTask": "build",
+        "program": "${workspaceFolder}/bin/Debug/net10.0/WuicTest.dll",
+        "args": [],
+        "cwd": "${workspaceFolder}",
+        "stopAtEntry": false,
+        "serverReadyAction": {
+          "action": "openExternally",
+          "pattern": "Now listening on:\\s+(https?://\\S+)"
+        }
+      }
+    ]
+  }
+}

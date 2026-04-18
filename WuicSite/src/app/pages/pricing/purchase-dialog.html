@@ -1,5 +1,5 @@
 <p-dialog
-  [header]="product?.label || 'Acquista licenza'"
+  [header]="product?.label || ('purchaseDialog.title' | translate)"
   [modal]="true"
   [(visible)]="visible"
   (visibleChange)="visibleChange.emit($event)"
@@ -17,29 +17,24 @@
           <p class="purchase-product-desc">{{ product.description }}</p>
           <div class="purchase-price-row">
             <span class="purchase-price-amount">{{ product.priceEur | number:'1.0-0' }} €</span>
-            <span class="purchase-price-tax">IVA esclusa</span>
+            <span class="purchase-price-tax">{{ 'purchaseDialog.taxNote' | translate }}</span>
           </div>
         </div>
 
         <div class="purchase-fields">
           <label class="purchase-field">
-            <span class="purchase-field-label">Email per la licenza <span class="req">*</span></span>
+            <span class="purchase-field-label">{{ 'purchaseDialog.emailLabel' | translate }} <span class="req">*</span></span>
             <input type="email" pInputText [(ngModel)]="email" name="email"
-                   placeholder="tu@azienda.it" autocomplete="email" required />
-            <small class="purchase-field-hint">
-              Su questa email riceverai il file licenza dopo il pagamento.
-            </small>
+                   [placeholder]="'purchaseDialog.emailPlaceholder' | translate" autocomplete="email" required />
+            <small class="purchase-field-hint">{{ 'purchaseDialog.emailHint' | translate }}</small>
           </label>
 
           @if (product.issueType !== 'initial') {
             <label class="purchase-field">
-              <span class="purchase-field-label">Machine fingerprint del server</span>
+              <span class="purchase-field-label">{{ 'purchaseDialog.fingerprintLabel' | translate }}</span>
               <input type="text" pInputText [(ngModel)]="machineFingerprint" name="fingerprint"
-                     placeholder="es. ce9b1e8a577..." autocomplete="off" />
-              <small class="purchase-field-hint">
-                Ottienilo da <code>GET /api/Meta/LicenseStatus</code> sul server di destinazione.
-                Opzionale: lo puoi inviare dopo aver installato WUIC.
-              </small>
+                     [placeholder]="'purchaseDialog.fingerprintPlaceholder' | translate" autocomplete="off" />
+              <small class="purchase-field-hint" [innerHTML]="'purchaseDialog.fingerprintHint' | translate"></small>
             </label>
           }
         </div>
@@ -48,34 +43,31 @@
       @switch (state) {
         @case ('not-configured') {
           <p-message severity="warn" styleClass="purchase-msg">
-            PayPal non è ancora configurato su questo sito. Contattaci direttamente
-            all'indirizzo <strong>licenses&#64;wuic-framework.com</strong> per completare l'acquisto.
+            <span [innerHTML]="'purchaseDialog.notConfigured' | translate"></span>
           </p-message>
         }
 
         @case ('loading-sdk') {
           <div class="purchase-loading">
             <i class="pi pi-spin pi-spinner"></i>
-            <span>Caricamento pulsante pagamento…</span>
+            <span>{{ 'purchaseDialog.loadingSdk' | translate }}</span>
           </div>
         }
 
         @case ('processing') {
           <div class="purchase-loading">
             <i class="pi pi-spin pi-spinner"></i>
-            <span>Conferma pagamento in corso…</span>
+            <span>{{ 'purchaseDialog.processing' | translate }}</span>
           </div>
         }
 
         @case ('error') {
           <p-message severity="error" styleClass="purchase-msg">
-            <strong>Pagamento non riuscito.</strong><br />
-            {{ errorMessage || 'Riprova oppure contatta licenses@wuic-framework.com.' }}
+            <span [innerHTML]="'purchaseDialog.error' | translate: { message: errorMessage || '' }"></span>
           </p-message>
         }
       }
 
-      <!-- PayPal button container: kept in DOM so ViewChild can reference it -->
       <div class="paypal-container" [class.hidden]="state !== 'sdk-ready' && state !== 'error'" #paypalContainer></div>
 
       @if (state === 'success' && successInfo) {
@@ -83,41 +75,38 @@
           <div class="success-check">
             <i class="pi pi-check-circle"></i>
           </div>
-          <h3>Pagamento ricevuto!</h3>
-          <p>
-            Grazie, il pagamento di <strong>{{ successInfo.amount }} {{ successInfo.currency }}</strong>
-            per <strong>{{ successInfo.productLabel }}</strong> è stato registrato.
-          </p>
+          <h3>{{ 'purchaseDialog.success.title' | translate }}</h3>
+          <p [innerHTML]="'purchaseDialog.success.text' | translate: {
+                          amount: successInfo.amount,
+                          currency: successInfo.currency,
+                          product: successInfo.productLabel
+                        }"></p>
 
           <div class="success-details">
-            <div><strong>PayPal Order ID:</strong> <code>{{ successInfo.orderId }}</code></div>
-            <div><strong>Email PayPal:</strong> {{ successInfo.payerEmail }}</div>
+            <div><strong>{{ 'purchaseDialog.success.orderId' | translate }}</strong> <code>{{ successInfo.orderId }}</code></div>
+            <div><strong>{{ 'purchaseDialog.success.payerEmail' | translate }}</strong> {{ successInfo.payerEmail }}</div>
           </div>
 
           <div class="success-next-steps">
-            <h4>Prossimi passi</h4>
+            <h4>{{ 'purchaseDialog.success.nextStepsTitle' | translate }}</h4>
             <ol>
-              <li>Se non hai già WUIC installato, <a routerLink="/downloads">scaricalo</a> e avvialo in modalità trial</li>
-              <li>Recupera il <code>machineFingerprint</code> del server chiamando
-                <code>GET /api/Meta/LicenseStatus</code></li>
-              <li>Inviaci email con fingerprint + questo Order ID — emettiamo la licenza entro 24h lavorative</li>
+              <li [innerHTML]="'purchaseDialog.success.step1' | translate"></li>
+              <li [innerHTML]="'purchaseDialog.success.step2' | translate"></li>
+              <li [innerHTML]="'purchaseDialog.success.step3' | translate"></li>
             </ol>
           </div>
 
           <div class="success-cta">
             <a [href]="mailtoHref">
-              <p-button label="Invia fingerprint via email" icon="pi pi-envelope" size="large"></p-button>
+              <p-button [label]="'purchaseDialog.success.sendFingerprint' | translate" icon="pi pi-envelope" size="large"></p-button>
             </a>
-            <p-button label="Chiudi" icon="pi pi-times" severity="secondary" [outlined]="true" (onClick)="onClose()"></p-button>
+            <p-button [label]="'purchaseDialog.success.close' | translate" icon="pi pi-times" severity="secondary" [outlined]="true" (onClick)="onClose()"></p-button>
           </div>
         </div>
       }
 
       @if (state !== 'success' && state !== 'not-configured') {
-        <p class="purchase-footer-note">
-          Pagamento sicuro gestito da PayPal. Puoi pagare con conto PayPal o carta di credito
-          (non serve un account PayPal).
-        </p>
+        <p class="purchase-footer-note">{{ 'purchaseDialog.footerNote' | translate }}</p>
       }
     </div>
   }

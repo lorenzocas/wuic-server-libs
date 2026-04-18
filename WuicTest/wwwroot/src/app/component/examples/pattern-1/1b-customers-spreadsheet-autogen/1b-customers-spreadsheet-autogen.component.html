@@ -1,0 +1,19 @@
+<div class="example-shell">
+  <header>
+    <h1>Pattern 1b — Customers spreadsheet autogen</h1>
+    <p class="subtitle">Pattern: <strong>Full autogeneration</strong></p>
+  </header>
+
+  <section class="explain">
+    <p>Confronto con 1a: stessa logica, ma cambiamo <strong>2 dimensioni</strong> in modo dichiarativo:</p>
+    <ul>
+      <li>Slug route: da <code>cities</code> a <code>customers</code> &rarr; entity diversa.</li>
+      <li>Action: da <code>list</code> a <code>spreadsheet</code> &rarr; UX a celle editabili invece di tabella tradizionale.</li>
+    </ul>
+    <p>Niente codice nuovo, solo navigazione. Tutto risolto dal framework via metadata.</p>
+  </section>
+
+  <a class="open-route" routerLink="/customers/spreadsheet">
+    Apri /customers/spreadsheet
+  </a>
+</div>

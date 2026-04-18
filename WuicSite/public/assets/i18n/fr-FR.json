@@ -1,0 +1,282 @@
+{
+  "navbar": {
+    "home": "Accueil",
+    "features": "Fonctionnalités",
+    "pricing": "Tarifs",
+    "gallery": "Galerie",
+    "docs": "Docs",
+    "downloads": "Téléchargement",
+    "community": "Communauté",
+    "demoLive": "Démo en direct",
+    "download": "Télécharger"
+  },
+  "home": {
+    "hero": {
+      "title1": "Le framework",
+      "accent": "métadonnées-driven",
+      "title2": "pour applications business",
+      "subtitle": "WUIC transforme les métadonnées en interfaces complètes : CRUD, tableaux de bord, workflows, rapports et chatbots IA. Moins de code, plus de fonctionnalités.",
+      "ctaDownload": "Télécharger gratuit",
+      "ctaDemo": "Essayer la démo"
+    },
+    "features": {
+      "sectionTitle": "Tout inclus, zéro boilerplate",
+      "sectionSubtitle": "Chaque fonctionnalité est déjà intégrée au framework. Configurez les métadonnées, le runtime fait le reste.",
+      "metadataDriven": {
+        "title": "Piloté par métadonnées",
+        "desc": "Définissez les tables et colonnes comme métadonnées : le framework génère CRUD, filtres, pagination et validation automatiquement."
+      },
+      "visualDesigner": {
+        "title": "Designer visuel",
+        "desc": "Tableaux de bord drag-and-drop avec datasource, repeater, graphiques, cartes, planificateur et modèles dynamiques."
+      },
+      "workflowEngine": {
+        "title": "Moteur de workflow",
+        "desc": "Designer et runner pour processus opérationnels : graphes conditionnels, étapes, actions personnalisées et déclencheurs automatiques."
+      },
+      "reportBuilder": {
+        "title": "Générateur de rapports",
+        "desc": "Création de rapports avec designer intégré et viewer runtime, export PDF/Excel."
+      },
+      "ragChatbot": {
+        "title": "Chatbot RAG",
+        "desc": "Assistant IA intégré qui interroge le code source en langage naturel avec retrieval hybride + LLM."
+      },
+      "multiDbms": {
+        "title": "Multi-SGBD",
+        "desc": "SQL Server, MySQL, PostgreSQL et Oracle supportés via providers drop-in. Changez de base sans réécrire le code."
+      }
+    },
+    "gallery": {
+      "sectionTitle": "Voir en action",
+      "sectionSubtitle": "Interfaces réelles générées par le framework. Chaque composant est configurable via métadonnées."
+    },
+    "quickstart": {
+      "sectionTitle": "Opérationnel en 3 étapes",
+      "sectionSubtitle": "Téléchargez le ZIP, configurez la base, démarrez. Aucune installation complexe.",
+      "step1Title": "Télécharger et extraire",
+      "step1Code": "Téléchargez le ZIP depuis Téléchargements et extrayez-le",
+      "step2Title": "Démarrer le backend",
+      "step3Title": "Démarrer le frontend"
+    },
+    "community": {
+      "title": "Communauté",
+      "text": "Rejoignez le forum WUIC : posez des questions, partagez des solutions, proposez des fonctionnalités et échangez avec d'autres développeurs.",
+      "cta": "Aller au forum",
+      "stats": {
+        "docs": "Pages docs",
+        "components": "Composants",
+        "languages": "Langues"
+      }
+    },
+    "cta": {
+      "title": "Prêt à construire ?",
+      "text": "Téléchargez le framework, essayez la démo en direct ou explorez les fonctionnalités en détail.",
+      "ctaDownloads": "Voir les téléchargements",
+      "ctaFeatures": "Explorer les fonctionnalités"
+    }
+  },
+  "features": {
+    "pageTitle": "Fonctionnalités",
+    "pageSubtitle": "Tout ce qu'il faut pour construire des applications business entreprise, sans réinventer la roue.",
+    "categories": {
+      "dataLayer": {
+        "title": "Couche de données",
+        "dataSource": { "title": "DataSource", "desc": "Orchestrer la lecture des données, filtres, pagination et tri. Se connecte à une route métadonnée et alimente les repeaters." },
+        "dataRepeater": { "title": "DataRepeater", "desc": "Rend les données en archétypes visuels : liste, grille, tableur, kanban, arbre, carrousel, carte, calendrier, graphique." },
+        "crud": { "title": "CRUD automatique", "desc": "Insert, update, delete générés depuis les métadonnées. Validation, champs obligatoires, lookup et suggest configurables sans code." },
+        "filterBar": { "title": "Barre de filtres", "desc": "Barre de filtres dynamique avec opérateurs par type de colonne, filtre avancé, tri, regroupement et taille de page." }
+      },
+      "uiComponents": {
+        "title": "Composants UI",
+        "designer": { "title": "Designer", "desc": "Tableau de bord runtime drag-and-drop : datasource, repeater, graphiques, templates HTML, CSS personnalisé. Sauvegarde en DB métadonnées." },
+        "fieldWidgets": { "title": "Widgets de champ", "desc": "Bibliothèque de widgets pour formulaires : text, number, date, lookup, upload, code editor, zone HTML, dictionnaire, many-to-many." },
+        "parametricDialog": { "title": "Dialog paramétrique", "desc": "Dialogue paramétrique pour formulaires d'édition, assistants multi-étapes, détails d'enregistrement. Onglets, validation, actions personnalisées." },
+        "themes": { "title": "Thèmes et styles", "desc": "Thème clair/sombre, styles conditionnels par ligne/cellule basés sur callbacks JS, CSS personnalisé par board." }
+      },
+      "businessLogic": {
+        "title": "Logique métier",
+        "workflowDesigner": { "title": "Workflow Designer", "desc": "Éditeur visuel de graphes : nœuds, conditions, actions, déclencheurs. Runner runtime pour exécution step-by-step." },
+        "reportDesigner": { "title": "Report Designer", "desc": "Designer Stimulsoft intégré pour mises en page de rapports. Viewer runtime avec export PDF, Excel, Word." },
+        "scheduler": { "title": "Planificateur", "desc": "Planification de tâches récurrentes avec expressions cron, retry, timeout, logging. Service .NET hosted intégré." },
+        "notifications": { "title": "Notifications temps réel", "desc": "Push WebSocket pour notifications utilisateur. SqlDependency ou polling, icône cloche avec badge, mark as read." }
+      },
+      "infrastructure": {
+        "title": "Infrastructure",
+        "multiDbms": { "title": "Multi-SGBD", "desc": "SQL Server, MySQL, PostgreSQL, Oracle via providers drop-in. Changez de base avec une ligne dans appsettings.json." },
+        "auth": { "title": "Auth & Sessions", "desc": "Login par cookies (client ou server-managed), OAuth/OIDC, rôles, permissions par route, single-session enforcement." },
+        "rag": { "title": "Chatbot RAG", "desc": "Assistant IA qui interroge le code via index hybride BM25 + vector + LoRA cross-encoder. Retrieval + Claude LLM." },
+        "i18n": { "title": "Traductions", "desc": "Interface multilingue (i18n) + traduction des données par enregistrement/champ. 5 langues prises en charge d'emblée." }
+      }
+    }
+  },
+  "pricing": {
+    "pageTitle": "Tarifs",
+    "pageSubtitle": "Deux niveaux, aucune surprise. Choisissez celui adapté à votre projet.",
+    "perYear": "/ an",
+    "ribbonRecommended": "Recommandé",
+    "fingerprintsIncluded": "fingerprint inclus",
+    "fingerprintsIncludedMulti": "fingerprints inclus (1 dev + 4 déploiement)",
+    "dev": {
+      "label": "Developer",
+      "desc": "Pour développeur individuel ou projets personnels / internes. Tout le cœur du framework, sans les fonctionnalités premium.",
+      "highlights": {
+        "ui": "Tous les composants UI de base (List, Form, Kanban, Chart, …)",
+        "security": "Autorisation, audit, suppression logique",
+        "custom": "CRUD personnalisé, concurrence, planificateur",
+        "i18n": "i18n, thèmes, notifications temps réel",
+        "noDesigner": "Designers visuels (tableau de bord / workflow / rapport)",
+        "noPremium": "Tableur, Pivot Grid, Chatbot RAG"
+      },
+      "buy": "Acheter — 600 €"
+    },
+    "pro": {
+      "label": "Professional",
+      "desc": "Framework complet avec designers visuels, IA et offline-first. Adapté aux éditeurs distribuant des projets clients.",
+      "highlights": {
+        "all": "Tout ce qui est inclus dans Developer",
+        "spreadsheet": "Tableur + Pivot Grid + Pivot Builder auto-matérialisé",
+        "dashboard": "Dashboard Designer WYSIWYG",
+        "workflow": "Workflow Designer + Runner",
+        "report": "Report Designer (Stimulsoft)",
+        "rag": "Chatbot RAG (IA)",
+        "offline": "CRUD en mémoire (IndexedDB hors ligne)"
+      },
+      "buy": "Acheter — 1 200 €"
+    },
+    "tryFree": "Télécharger et essayer gratuitement",
+    "maintenance": {
+      "title": "Fenêtre de maintenance : 12 mois de mises à jour",
+      "p1": "La licence permet d'utiliser <strong>toutes les versions publiées jusqu'à 1 an après la date de début de licence</strong>. Après cette année, la version installée continue de fonctionner indéfiniment ; pour passer à une version plus récente, il suffit d'acheter une <strong>licence d'extension à moitié prix</strong> :",
+      "bulletDev": "<strong>Developer</strong> : 300 € / année supplémentaire",
+      "bulletPro": "<strong>Professional</strong> : 600 € / année supplémentaire",
+      "note": "La licence d'extension ouvre une nouvelle fenêtre de 12 mois sur les mises à jour futures. Aucune obligation de renouvellement : vous payez uniquement quand vous voulez mettre à jour.",
+      "buyDev": "Extension Dev — 300 €",
+      "buyPro": "Extension Pro — 600 €"
+    },
+    "fingerprints": {
+      "title": "Installations multiples ? Fingerprints supplémentaires à 200 € / an",
+      "p1": "Chaque licence inclut un nombre prédéfini de <strong>machine fingerprints</strong> (1 pour Developer, 5 pour Professional). Si vous devez déployer sur plus de serveurs, chaque fingerprint supplémentaire coûte <strong>200 € / an</strong> et est géré via un patch sur la licence existante (même titulaire, même expiration).",
+      "example": "<strong>Exemple éditeur :</strong> vous achetez Pro (1 200 €) + 3 fingerprints supplémentaires (600 €) = <strong>1 800 € / an</strong> pour couvrir 1 environnement de dev + 7 serveurs clients finaux. Aucune limite technique au nombre de fingerprints autorisables par une licence.",
+      "buy": "Ajouter un fingerprint — 200 €"
+    },
+    "comparisonTitle": "Comparaison complète des fonctionnalités",
+    "comparison": {
+      "feature": "Fonctionnalité",
+      "dev": "Developer",
+      "pro": "Professional",
+      "groups": {
+        "core": "Données & UI de base",
+        "business": "Logique métier & sécurité",
+        "premium": "Fonctionnalités premium"
+      },
+      "rows": {
+        "listForm": "List / Grid, Form / Dialog, Datasource, DataRepeater",
+        "archetypes": "Kanban, Scheduler, Map, Tree, Carousel, Chart",
+        "filters": "Filtres, pagination, tri, export / import Excel",
+        "widgets": "Widgets de champ (lookup, upload, HTML editor, code editor, …)",
+        "themes": "Thèmes PrimeNG, mode sombre, internationalisation multilingue",
+        "authz": "Autorisations (route / table / colonne), audit trail, suppression logique",
+        "realtime": "Notifications temps réel (WebSocket)",
+        "scheduler": "Scheduler / moteur de jobs",
+        "customCrud": "Override CRUD personnalisé",
+        "concurrency": "Contrôle de concurrence",
+        "spreadsheet": "Tableur, Pivot Grid",
+        "dashboardDesigner": "Dashboard Designer WYSIWYG",
+        "workflow": "Workflow Designer + Runner",
+        "reportDesigner": "Report Designer (Stimulsoft) + Report Viewer",
+        "pivotBuilder": "Pivot Builder avec auto-matérialisation",
+        "rag": "Chatbot RAG (IA)",
+        "offline": "CRUD en mémoire (IndexedDB offline-first)"
+      }
+    },
+    "trial": {
+      "title": "Mode Trial gratuit",
+      "text": "Sans licence, le framework tourne en mode <strong>Trial</strong> avec une limite de 20 enregistrements par requête : suffisant pour évaluer l'UI, les designers et les flux applicatifs. Non adapté à la production."
+    },
+    "faq": {
+      "title": "Questions fréquentes",
+      "q1": "Le prix inclut-il le support ?",
+      "a1": "Les licences Developer et Professional incluent l'accès à la documentation, aux mises à jour dans la fenêtre de maintenance et au bug tracker public. Le support dédié (SLA email/téléphone, onboarding, conseil) est vendu séparément.",
+      "q2": "Puis-je vendre des projets basés sur WUIC à mes clients ?",
+      "a2": "Oui, et c'est exactement le scénario pour lequel Pro est conçu. La licence Professional inclut <strong>5 fingerprints</strong> (typiquement 1 environnement de dev + 4 serveurs clients finaux) : vous livrez le projet, l'installez sur le serveur client, ajoutez le fingerprint du serveur à votre licence. Si les déploiements dépassent 4, vous achetez des fingerprints supplémentaires à 200 € / an chacun. Le client final n'a pas besoin de sa propre licence WUIC — votre licence autorise son serveur.",
+      "q3": "La licence est-elle par développeur ou par machine ?",
+      "a3": "Par machine (<code>machineFingerprint</code>), calculé comme hash SHA256 de nom-machine + domaine + OS + Machine GUID. Une seule licence peut autoriser N machines en incluant N fingerprints dans le payload signé. Le nombre de fingerprints inclus par tier est fixe (1 Dev, 5 Pro) ; au-delà, on achète des extras à 200 € / an chacun.",
+      "q4": "Comment ajouter un nouveau fingerprint à ma licence ?",
+      "a4": "Récupérez le <code>machineFingerprint</code> du serveur client en appelant <code>GET /api/Meta/LicenseStatus</code> sur cet hôte. Envoyez-le nous et nous émettons une licence mise à jour avec le nouveau fingerprint ajouté (les autres restent valides). Remplacez <code>license-payload</code> et <code>license-signature</code> dans <code>appsettings.json</code>, redémarrez le backend, terminé.",
+      "q5": "Que se passe-t-il si je change de serveur ? (remplacement, pas ajout)",
+      "a5": "Nous émettons une licence mise à jour avec le nouveau <code>machineFingerprint</code> à la place de l'ancien. Aucun coût supplémentaire pour le remplacement de serveur dans la même fenêtre de maintenance.",
+      "q6": "Comment passer de Developer à Professional ?",
+      "a6": "À tout moment, en payant la différence au prorata selon les mois restants de la licence actuelle. Redémarrage du backend et les fonctionnalités premium sont immédiatement actives."
+    },
+    "contact": {
+      "title": "Prêt à commencer ?",
+      "text": "Téléchargez WUIC gratuitement en mode Trial, ou contactez-nous pour une licence.",
+      "ctaDownload": "Télécharger gratuit",
+      "ctaContact": "Contacter l'éditeur"
+    }
+  },
+  "purchaseDialog": {
+    "title": "Acheter une licence",
+    "taxNote": "HT",
+    "emailLabel": "Email pour la licence",
+    "emailPlaceholder": "vous@entreprise.fr",
+    "emailHint": "Vous recevrez le fichier licence à cette adresse après paiement.",
+    "fingerprintLabel": "Machine fingerprint du serveur",
+    "fingerprintPlaceholder": "ex. ce9b1e8a577...",
+    "fingerprintHint": "Obtenez-le depuis <code>GET /api/Meta/LicenseStatus</code> sur le serveur cible. Optionnel : vous pouvez l'envoyer après avoir installé WUIC.",
+    "notConfigured": "PayPal n'est pas encore configuré sur ce site. Contactez-nous directement à <strong>licenses&#64;wuic-framework.com</strong> pour finaliser l'achat.",
+    "loadingSdk": "Chargement du bouton de paiement…",
+    "processing": "Confirmation du paiement en cours…",
+    "error": "<strong>Paiement échoué.</strong><br />{{ message }}",
+    "success": {
+      "title": "Paiement reçu !",
+      "text": "Merci, le paiement de <strong>{{ amount }} {{ currency }}</strong> pour <strong>{{ product }}</strong> a été enregistré.",
+      "orderId": "PayPal Order ID :",
+      "payerEmail": "Email PayPal :",
+      "nextStepsTitle": "Prochaines étapes",
+      "step1": "Si WUIC n'est pas encore installé, <a routerLink=\"/downloads\">téléchargez-le</a> et démarrez-le en mode trial",
+      "step2": "Récupérez le <code>machineFingerprint</code> du serveur en appelant <code>GET /api/Meta/LicenseStatus</code>",
+      "step3": "Envoyez-nous par email le fingerprint + cet Order ID — nous émettons la licence sous 24h ouvrées",
+      "sendFingerprint": "Envoyer le fingerprint par email",
+      "close": "Fermer"
+    },
+    "footerNote": "Paiement sécurisé géré par PayPal. Payez avec compte PayPal ou carte de crédit (aucun compte PayPal requis)."
+  },
+  "downloads": {
+    "pageTitle": "Téléchargement",
+    "pageSubtitle": "Choisissez le package adapté à vos besoins. Tous incluent le backend .NET 10 + le frontend Angular 21.",
+    "lastVersion": "Dernière version :",
+    "table": {
+      "package": "Package",
+      "type": "Type",
+      "rag": "RAG",
+      "tutorial": "Tutoriel DB",
+      "size": "Taille",
+      "srcBadge": "Sources",
+      "iisBadge": "IIS Ready",
+      "download": "Télécharger"
+    },
+    "cards": {
+      "srcTitle": "Packages sources (src)",
+      "srcText": "Contiennent les sources C# + Angular. Idéal pour le développement : vous pouvez modifier, compiler et personnaliser le projet. Utilisez <code>rename-project.ps1</code> pour renommer le projet.",
+      "iisTitle": "Packages IIS",
+      "iisText": "Sortie de <code>dotnet publish</code> prête pour IIS. Angular déjà compilé. Extrayez dans le chemin physique du site, configurez appsettings.json, démarrez.",
+      "ragTitle": "Chatbot RAG",
+      "ragText": "Les packages avec RAG incluent l'index vectoriel et le serveur Python. Après extraction, lancez <code>pwsh rag-setup.ps1</code> pour la configuration automatique."
+    }
+  },
+  "gallery": {
+    "pageTitle": "Démos en direct",
+    "pageSubtitle": "Animations réelles des principales fonctionnalités WUIC. Cliquez sur n'importe quelle démo pour agrandir ; accédez à la documentation de la fonctionnalité via le lien sur la carte.",
+    "loading": "Chargement des démos...",
+    "empty": "Aucune démo disponible.",
+    "openDocs": "Ouvrir la documentation"
+  },
+  "docs": {
+    "loading": "Chargement de la documentation...",
+    "unavailable": "Documentation non disponible.",
+    "searchPlaceholder": "Rechercher dans la doc...",
+    "onThisPage": "Sur cette page"
+  }
+}

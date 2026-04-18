@@ -1,4 +1,10 @@
 @use 'primeicons/primeicons.css';
+// Country flag CSS sprites — used by the language selector.
+// We import it globally because Windows 10 does not render flag emojis
+// natively (falls back to 2-letter region indicators like "IT", "GB"),
+// while flag-icons provides actual coloured SVG flags that work on every
+// OS/browser.
+@use 'flag-icons/css/flag-icons.css';
 
 *,
 *::before,

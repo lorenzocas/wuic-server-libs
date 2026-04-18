@@ -1,0 +1,13 @@
+<div class="example-shell">
+  <header>
+    <h1>Pattern 3a — External REST grid</h1>
+    <p class="subtitle">Pattern: <strong>Framework component + Custom data</strong></p>
+    <p class="hint">Dati da <code>jsonplaceholder.typicode.com/posts</code>, render in <code>&lt;wuic-list-grid&gt;</code>.</p>
+  </header>
+
+  <wuic-data-source #ds></wuic-data-source>
+
+  <div class="grid-shell">
+    <wuic-list-grid [hardcodedDatasource]="ds" [hideToolbar]="false"></wuic-list-grid>
+  </div>
+</div>

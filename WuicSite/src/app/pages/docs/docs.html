@@ -1,21 +1,20 @@
 @if (loading()) {
   <div class="docs-loading">
     <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
-    <p>Caricamento documentazione...</p>
+    <p>{{ 'docs.loading' | translate }}</p>
   </div>
 } @else if (!manifest()) {
   <div class="docs-loading">
     <i class="pi pi-exclamation-triangle" style="font-size: 2rem; color: #f59e0b"></i>
-    <p>Documentazione non disponibile.</p>
+    <p>{{ 'docs.unavailable' | translate }}</p>
   </div>
 } @else {
   <div class="docs-layout">
     <!-- Sidebar -->
     <aside class="docs-sidebar">
       <div class="sidebar-header">
-        <h2><i class="pi pi-book"></i> Docs</h2>
-        <p-select [options]="langs" [(ngModel)]="currentLang" optionLabel="label" optionValue="value" [style]="{'width': '100%', 'margin-bottom': '8px'}" />
-        <input pInputText type="text" [ngModel]="query()" (ngModelChange)="query.set($event || '')" placeholder="Cerca nelle docs..." class="search-input" />
+        <h2><i class="pi pi-book"></i> {{ 'navbar.docs' | translate }}</h2>
+        <input pInputText type="text" [ngModel]="query()" (ngModelChange)="query.set($event || '')" [placeholder]="'docs.searchPlaceholder' | translate" class="search-input" />
       </div>
 
       <nav class="sidebar-nav">
@@ -133,7 +132,7 @@
           <!-- Table of Contents -->
           @if (page.toc.length > 0) {
             <aside class="toc">
-              <h4>In questa pagina</h4>
+              <h4>{{ 'docs.onThisPage' | translate }}</h4>
               <ul>
                 @for (item of page.toc; track item.id) {
                   <li><a href="" (click)="scrollToSection($event, item.id)">{{ item.title }}</a></li>

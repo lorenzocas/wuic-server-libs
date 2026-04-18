@@ -1,22 +1,20 @@
 <section class="section">
   <div class="container">
-    <h1 class="section-title">Features</h1>
-    <p class="section-subtitle">
-      Tutto quello che serve per costruire applicazioni business enterprise, senza reinventare la ruota.
-    </p>
+    <h1 class="section-title">{{ 'features.pageTitle' | translate }}</h1>
+    <p class="section-subtitle">{{ 'features.pageSubtitle' | translate }}</p>
 
-    @for (cat of categories; track cat.title) {
+    @for (cat of categories; track cat.catKey) {
       <div class="feature-category">
-        <h2 class="category-title">{{ cat.title }}</h2>
+        <h2 class="category-title">{{ 'features.categories.' + cat.catKey + '.title' | translate }}</h2>
         <div class="category-grid">
-          @for (item of cat.items; track item.title) {
+          @for (item of cat.items; track item.key) {
             <p-card>
               <div class="feature-detail">
                 <div class="feature-header">
                   <i [class]="item.icon + ' feature-icon'"></i>
-                  <h3>{{ item.title }}</h3>
+                  <h3>{{ 'features.categories.' + cat.catKey + '.' + item.key + '.title' | translate }}</h3>
                 </div>
-                <p>{{ item.desc }}</p>
+                <p>{{ 'features.categories.' + cat.catKey + '.' + item.key + '.desc' | translate }}</p>
               </div>
             </p-card>
           }

@@ -1,0 +1,85 @@
+<div class="example-shell">
+  <header>
+    <h1>Pattern 4b — Pure form wizard</h1>
+    <p class="subtitle">Pattern: <strong>Full custom</strong></p>
+    <p class="hint">Reactive forms multi-step + PrimeNG p-stepper, POST a <code>/api/samples/registrations</code>.</p>
+  </header>
+
+  @if (result(); as r) {
+    <p-card>
+      <ng-template pTemplate="title">Registrazione completata</ng-template>
+      <p>ID assegnato dal backend: <strong>{{ r.id }}</strong></p>
+      <p-button label="Nuova registrazione" icon="pi pi-refresh" (onClick)="reset()"></p-button>
+    </p-card>
+  } @else {
+    @if (errorMsg()) {
+      <p-message severity="error" [text]="errorMsg()"></p-message>
+    }
+
+    <p-stepper [linear]="true" [value]="1">
+      <p-step-list>
+        <p-step [value]="1">Dati personali</p-step>
+        <p-step [value]="2">Azienda</p-step>
+        <p-step [value]="3">Preferenze</p-step>
+      </p-step-list>
+
+      <p-step-panels>
+        <p-step-panel [value]="1">
+          <ng-template #content let-activateCallback="activateCallback">
+            <form [formGroup]="personalForm" class="step-form">
+              <label>Nome completo
+                <input pInputText formControlName="fullName" />
+              </label>
+              <label>Email
+                <input pInputText type="email" formControlName="email" />
+              </label>
+            </form>
+            <div class="step-actions">
+              <p-button label="Avanti" icon="pi pi-arrow-right" iconPos="right"
+                        [disabled]="personalForm.invalid"
+                        (onClick)="activateCallback(2)"></p-button>
+            </div>
+          </ng-template>
+        </p-step-panel>
+
+        <p-step-panel [value]="2">
+          <ng-template #content let-activateCallback="activateCallback">
+            <form [formGroup]="companyForm" class="step-form">
+              <label>Azienda
+                <input pInputText formControlName="company" />
+              </label>
+              <label>Ruolo
+                <input pInputText formControlName="role" />
+              </label>
+            </form>
+            <div class="step-actions">
+              <p-button label="Indietro" icon="pi pi-arrow-left" severity="secondary"
+                        (onClick)="activateCallback(1)"></p-button>
+              <p-button label="Avanti" icon="pi pi-arrow-right" iconPos="right"
+                        [disabled]="companyForm.invalid"
+                        (onClick)="activateCallback(3)"></p-button>
+            </div>
+          </ng-template>
+        </p-step-panel>
+
+        <p-step-panel [value]="3">
+          <ng-template #content let-activateCallback="activateCallback">
+            <form [formGroup]="preferencesForm" class="step-form">
+              <label class="check-row">
+                <input type="checkbox" formControlName="newsletter" />
+                Iscrivimi alla newsletter
+              </label>
+            </form>
+            <div class="step-actions">
+              <p-button label="Indietro" icon="pi pi-arrow-left" severity="secondary"
+                        (onClick)="activateCallback(2)"></p-button>
+              <p-button label="Invia" icon="pi pi-check"
+                        [loading]="submitting()"
+                        (onClick)="submit()"></p-button>
+            </div>
+          </ng-template>
+        </p-step-panel>
+      </p-step-panels>
+    </p-stepper>
+  }
+</div>

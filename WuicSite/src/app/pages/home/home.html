@@ -2,19 +2,16 @@
 <section class="hero">
   <div class="container hero-inner">
     <h1 class="hero-title">
-      Il framework <span class="hero-accent">metadata-driven</span><br>
-      per applicazioni business
+      {{ 'home.hero.title1' | translate }} <span class="hero-accent">{{ 'home.hero.accent' | translate }}</span><br>
+      {{ 'home.hero.title2' | translate }}
     </h1>
-    <p class="hero-subtitle">
-      WUIC trasforma metadata in interfacce complete: CRUD, dashboard, workflow, report e chatbot AI.
-      Meno codice, piu' funzionalita'.
-    </p>
+    <p class="hero-subtitle">{{ 'home.hero.subtitle' | translate }}</p>
     <div class="hero-actions">
       <a routerLink="/downloads">
-        <p-button label="Scarica gratis" icon="pi pi-download" size="large" />
+        <p-button [label]="'home.hero.ctaDownload' | translate" icon="pi pi-download" size="large" />
       </a>
       <a href="https://demo.wuic-framework.com" target="_blank">
-        <p-button label="Prova la demo" icon="pi pi-play" severity="secondary" [outlined]="true" size="large" />
+        <p-button [label]="'home.hero.ctaDemo' | translate" icon="pi pi-play" severity="secondary" [outlined]="true" size="large" />
       </a>
     </div>
     <div class="hero-tech">
@@ -29,17 +26,15 @@
 <!-- Feature grid -->
 <section class="section features-section">
   <div class="container">
-    <h2 class="section-title">Tutto incluso, zero boilerplate</h2>
-    <p class="section-subtitle">
-      Ogni funzionalita' e' gia' integrata nel framework. Configura i metadata, il runtime fa il resto.
-    </p>
+    <h2 class="section-title">{{ 'home.features.sectionTitle' | translate }}</h2>
+    <p class="section-subtitle">{{ 'home.features.sectionSubtitle' | translate }}</p>
     <div class="features-grid">
-      @for (f of features; track f.title) {
+      @for (f of features; track f.key) {
         <p-card>
           <div class="feature-card">
             <i [class]="f.icon + ' feature-icon'"></i>
-            <h3>{{ f.title }}</h3>
-            <p>{{ f.desc }}</p>
+            <h3>{{ 'home.features.' + f.key + '.title' | translate }}</h3>
+            <p>{{ 'home.features.' + f.key + '.desc' | translate }}</p>
           </div>
         </p-card>
       }
@@ -50,10 +45,8 @@
 <!-- Screenshot gallery -->
 <section class="section gallery-section">
   <div class="container">
-    <h2 class="section-title">Guarda in azione</h2>
-    <p class="section-subtitle">
-      Interfacce reali generate dal framework. Ogni componente e' configurabile via metadata.
-    </p>
+    <h2 class="section-title">{{ 'home.gallery.sectionTitle' | translate }}</h2>
+    <p class="section-subtitle">{{ 'home.gallery.sectionSubtitle' | translate }}</p>
     <div class="gallery-grid">
       @for (shot of screenshots; track shot.thumb) {
         <div class="gallery-item" (click)="openLightbox(shot)">
@@ -72,24 +65,22 @@
 <!-- Quick start -->
 <section class="section quickstart-section">
   <div class="container">
-    <h2 class="section-title">Operativo in 3 passi</h2>
-    <p class="section-subtitle">
-      Scarica lo ZIP, configura il database, avvia. Nessuna installazione complessa.
-    </p>
+    <h2 class="section-title">{{ 'home.quickstart.sectionTitle' | translate }}</h2>
+    <p class="section-subtitle">{{ 'home.quickstart.sectionSubtitle' | translate }}</p>
     <div class="steps">
       <div class="step">
         <div class="step-number">1</div>
-        <h3>Scarica e estrai</h3>
-        <code>Scarica lo ZIP da Downloads ed estrailo</code>
+        <h3>{{ 'home.quickstart.step1Title' | translate }}</h3>
+        <code>{{ 'home.quickstart.step1Code' | translate }}</code>
       </div>
       <div class="step">
         <div class="step-number">2</div>
-        <h3>Avvia il backend</h3>
+        <h3>{{ 'home.quickstart.step2Title' | translate }}</h3>
         <code>dotnet run</code>
       </div>
       <div class="step">
         <div class="step-number">3</div>
-        <h3>Avvia il frontend</h3>
+        <h3>{{ 'home.quickstart.step3Title' | translate }}</h3>
         <code>cd wwwroot && npm install && npm run serve:npm</code>
       </div>
     </div>
@@ -100,27 +91,27 @@
 <section class="section community-section">
   <div class="container community-inner">
     <div class="community-text">
-      <h2>Community</h2>
-      <p>Entra nel forum WUIC: fai domande, condividi soluzioni, proponi feature e confrontati con altri sviluppatori.</p>
+      <h2>{{ 'home.community.title' | translate }}</h2>
+      <p>{{ 'home.community.text' | translate }}</p>
       <a href="https://forum.wuic-framework.com" target="_blank">
-        <p-button label="Vai al Forum" icon="pi pi-users" size="large" />
+        <p-button [label]="'home.community.cta' | translate" icon="pi pi-users" size="large" />
       </a>
     </div>
     <div class="community-stats">
       <div class="stat">
         <i class="pi pi-book"></i>
         <span class="stat-value">60+</span>
-        <span class="stat-label">Pagine docs</span>
+        <span class="stat-label">{{ 'home.community.stats.docs' | translate }}</span>
       </div>
       <div class="stat">
         <i class="pi pi-th-large"></i>
         <span class="stat-value">45</span>
-        <span class="stat-label">Componenti</span>
+        <span class="stat-label">{{ 'home.community.stats.components' | translate }}</span>
       </div>
       <div class="stat">
         <i class="pi pi-globe"></i>
         <span class="stat-value">5</span>
-        <span class="stat-label">Lingue</span>
+        <span class="stat-label">{{ 'home.community.stats.languages' | translate }}</span>
       </div>
     </div>
   </div>
@@ -129,14 +120,14 @@
 <!-- CTA -->
 <section class="section cta-section">
   <div class="container cta-inner">
-    <h2>Pronto a costruire?</h2>
-    <p>Scarica il framework, prova la demo live o esplora le features in dettaglio.</p>
+    <h2>{{ 'home.cta.title' | translate }}</h2>
+    <p>{{ 'home.cta.text' | translate }}</p>
     <div class="cta-actions">
       <a routerLink="/downloads">
-        <p-button label="Vai ai download" icon="pi pi-download" size="large" />
+        <p-button [label]="'home.cta.ctaDownloads' | translate" icon="pi pi-download" size="large" />
       </a>
       <a routerLink="/features">
-        <p-button label="Esplora le features" icon="pi pi-arrow-right" severity="secondary" [outlined]="true" size="large" />
+        <p-button [label]="'home.cta.ctaFeatures' | translate" icon="pi pi-arrow-right" severity="secondary" [outlined]="true" size="large" />
       </a>
     </div>
   </div>

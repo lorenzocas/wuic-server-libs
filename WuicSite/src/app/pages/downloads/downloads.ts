@@ -3,6 +3,7 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
+import { TranslatePipe } from '@ngx-translate/core';
 
 interface DownloadEntry {
   name: string;
@@ -15,7 +16,7 @@ interface DownloadEntry {
 
 @Component({
   selector: 'app-downloads',
-  imports: [TableModule, TagModule, ButtonModule, CardModule],
+  imports: [TableModule, TagModule, ButtonModule, CardModule, TranslatePipe],
   templateUrl: './downloads.html',
   styleUrl: './downloads.scss'
 })

@@ -1,0 +1,148 @@
+.lang-selector {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.lang-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  user-select: none;
+
+  &:hover {
+    background: #f1f5f9;
+    border-color: #e2e8f0;
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+  }
+
+  .lang-flag {
+    /* flag-icons renders each flag as a CSS background-image on a span.
+       We size it explicitly so it stays consistent across OS/browsers
+       (emoji flags would silently render as 2-letter letters on Windows 10). */
+    width: 22px;
+    height: 16px;
+    border-radius: 2px;
+    display: inline-block;
+    box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.08);
+    flex-shrink: 0;
+  }
+
+  .lang-short {
+    letter-spacing: 0.04em;
+    color: #475569;
+  }
+
+  .lang-caret {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 1px;
+    color: #94a3b8;
+    transition: transform 0.18s ease;
+  }
+}
+
+.lang-selector.open .lang-trigger {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #4338ca;
+
+  .lang-short { color: inherit; }
+  .lang-caret { transform: rotate(180deg); color: #6366f1; }
+}
+
+.lang-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 170px;
+  padding: 6px;
+  margin: 0;
+  list-style: none;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 12px 24px -12px rgba(15, 23, 42, 0.18),
+              0 4px 12px -4px rgba(15, 23, 42, 0.08);
+  z-index: 200;
+  animation: langMenuFadeIn 0.12s ease-out;
+
+  li { margin: 0; }
+}
+
+@keyframes langMenuFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.lang-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 8px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  color: #334155;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.12s ease;
+
+  &:hover { background: #f1f5f9; }
+
+  &:focus-visible {
+    outline: none;
+    background: #eef2ff;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3);
+  }
+
+  &.active {
+    background: #eef2ff;
+    color: #4338ca;
+    font-weight: 600;
+  }
+
+  .lang-flag {
+    width: 24px;
+    height: 18px;
+    border-radius: 2px;
+    display: inline-block;
+    box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.08);
+    flex-shrink: 0;
+    margin-right: 10px;
+  }
+
+  .lang-label { flex: 1; }
+
+  .lang-check {
+    display: inline-flex;
+    color: #6366f1;
+    margin-left: 8px;
+  }
+}
+
+/* Mobile: shrink a bit to avoid wrap with existing action buttons */
+@media (max-width: 640px) {
+  .lang-trigger {
+    padding: 5px 8px;
+    font-size: 0.78rem;
+
+    .lang-short { display: none; }
+  }
+  .lang-menu { right: -4px; }
+}

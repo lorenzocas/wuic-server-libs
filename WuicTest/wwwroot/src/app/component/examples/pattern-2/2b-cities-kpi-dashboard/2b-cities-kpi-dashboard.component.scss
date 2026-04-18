@@ -1,0 +1,68 @@
+@forward '../../pattern-1/1a-cities-autogen/1a-cities-autogen.component.scss';
+
+// Scroll fix (vedi 1a-cities-autogen).
+.example-shell {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 16px 48px;
+  box-sizing: border-box;
+}
+
+header {
+  margin-bottom: 24px;
+  h1 { font-size: 1.6rem; margin: 0 0 4px; }
+  .subtitle { color: #64748b; margin: 0; font-size: 0.95rem; }
+}
+.hint { color: #475569; font-size: 0.9rem; margin: 4px 0 0; }
+.status { text-align: center; padding: 32px; color: #94a3b8; }
+
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.metric {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #0f172a;
+  text-align: center;
+  padding: 8px 0;
+}
+
+.two-col {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 16px;
+}
+
+.kpi-table {
+  width: 100%;
+  border-collapse: collapse;
+  td {
+    padding: 8px 4px;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+  }
+  td.rank { width: 32px; color: #94a3b8; font-weight: 600; }
+  td.num  { text-align: right; font-variant-numeric: tabular-nums; }
+  .muted  { color: #64748b; }
+}
+
+.state-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  .state-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 4px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+}

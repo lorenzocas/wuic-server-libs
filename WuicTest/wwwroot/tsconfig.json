@@ -29,7 +29,7 @@
         "./node_modules/jspreadsheet/*"
       ],
       "wuic-framework-lib-dev": [
-        "./src/app/wuic-bridges/public.ts"
+        "./src/app/wuic-bridges/public"
       ]
     },
     "esModuleInterop": true,
@@ -48,7 +48,9 @@
     "strictTemplates": true
   },
   "include": [
-    "assets/**/*"
+    "assets/**/*",
+    "src/**/*.ts",
+    "src/**/*.d.ts"
   ],
   "exclude": [
     "src/test.ts",

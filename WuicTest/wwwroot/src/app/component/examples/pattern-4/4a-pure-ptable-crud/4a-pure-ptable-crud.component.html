@@ -1,0 +1,56 @@
+<div class="example-shell">
+  <header>
+    <h1>Pattern 4a — Pure p-table CRUD</h1>
+    <p class="subtitle">Pattern: <strong>Full custom</strong></p>
+    <p class="hint">Pure Angular + PrimeNG &lt;p-table&gt;, CRUD su <code>/api/samples/tasks</code>.</p>
+  </header>
+
+  <div class="toolbar">
+    <p-button label="Aggiungi task" icon="pi pi-plus" (onClick)="openAdd()"></p-button>
+    <p-button label="Refresh" icon="pi pi-refresh" [text]="true" (onClick)="reload()" [loading]="loading()"></p-button>
+  </div>
+
+  <p-table [value]="tasks()" dataKey="id" [tableStyle]="{ 'min-width': '40rem' }">
+    <ng-template pTemplate="header">
+      <tr>
+        <th style="width:80px">ID</th>
+        <th>Title</th>
+        <th style="width:100px">Done</th>
+        <th style="width:80px"></th>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-row>
+      <tr>
+        <td>{{ row.id }}</td>
+        <td>{{ row.title }}</td>
+        <td>
+          <p-checkbox [(ngModel)]="row.done" [binary]="true" (onChange)="toggleDone(row)"></p-checkbox>
+        </td>
+        <td>
+          <p-button icon="pi pi-trash" severity="danger" [text]="true" (onClick)="remove(row)"></p-button>
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="emptymessage">
+      <tr><td colspan="4" class="empty">Nessun task. Aggiungine uno.</td></tr>
+    </ng-template>
+  </p-table>
+
+  <p-dialog
+    header="Nuovo task"
+    [(visible)]="showDialog"
+    [modal]="true"
+    [style]="{ width: '420px' }">
+    <div class="dialog-body">
+      <label for="newTitle">Titolo</label>
+      <input pInputText id="newTitle"
+             [ngModel]="newTitle()"
+             (ngModelChange)="newTitle.set($event)"
+             (keyup.enter)="confirmAdd()" />
+    </div>
+    <ng-template pTemplate="footer">
+      <p-button label="Annulla" severity="secondary" [text]="true" (onClick)="showDialog.set(false)"></p-button>
+      <p-button label="Crea" icon="pi pi-check" (onClick)="confirmAdd()"></p-button>
+    </ng-template>
+  </p-dialog>
+</div>

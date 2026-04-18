@@ -1,10 +1,7 @@
 <section class="gallery-hero">
   <div class="container">
-    <h1>Live Demos</h1>
-    <p class="subtitle">
-      Animazioni reali delle principali feature WUIC. Click su qualsiasi demo per ingrandire;
-      torna alla documentazione della feature dal link sulla card.
-    </p>
+    <h1>{{ 'gallery.pageTitle' | translate }}</h1>
+    <p class="subtitle">{{ 'gallery.pageSubtitle' | translate }}</p>
   </div>
 </section>
 
@@ -12,12 +9,12 @@
   @if (loading()) {
     <div class="gallery-loading">
       <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
-      <p>Caricamento demo...</p>
+      <p>{{ 'gallery.loading' | translate }}</p>
     </div>
   } @else if (items().length === 0) {
     <div class="gallery-empty">
       <i class="pi pi-video" style="font-size: 3rem; color: #cbd5e1"></i>
-      <p>Nessuna demo disponibile.</p>
+      <p>{{ 'gallery.empty' | translate }}</p>
     </div>
   } @else {
     @for (group of itemsByPage(); track group.slug) {
@@ -26,20 +23,12 @@
           <h2>{{ group.title }}</h2>
           <a [routerLink]="['/docs', group.slug]" class="docs-link">
             <i class="pi pi-arrow-right"></i>
-            Apri documentazione
+            {{ 'gallery.openDocs' | translate }}
           </a>
         </header>
         <div class="gallery-grid">
           @for (item of group.items; track item.id) {
             <figure class="gallery-card">
-              <!--
-                Lazy-load strategy: [src] punta al thumbnail JPG (~200 KB),
-                [previewImageSrc] punta alla GIF full (~5-40 MB) che p-image
-                scarica SOLO al click preview. Senza questo, la gallery con
-                12 GIF scaricava ~120 MB al caricamento pagina. Con thumbnail
-                si parte a 2-3 MB totali, la GIF arriva quando l'utente
-                clicca per espandere e inizia a riprodursi nel lightbox.
-              -->
               <p-image
                 [preview]="true"
                 [src]="thumbPath(item.path)"

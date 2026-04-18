@@ -2,23 +2,24 @@ import { Component } from '@angular/core';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { RouterLink } from '@angular/router';
+import { TranslatePipe } from '@ngx-translate/core';
 import { PurchaseDialog } from './purchase-dialog';
 import { PRODUCTS, PurchaseProduct } from './paypal.config';
 
 interface FeatureRow {
-  feature: string;
+  key: string;   // i18n subkey under pricing.comparison.rows
   dev: boolean;
   pro: boolean;
 }
 
 interface FeatureGroup {
-  title: string;
+  titleKey: string;  // i18n subkey under pricing.comparison.groups
   rows: FeatureRow[];
 }
 
 @Component({
   selector: 'app-pricing',
-  imports: [CardModule, ButtonModule, RouterLink, PurchaseDialog],
+  imports: [CardModule, ButtonModule, RouterLink, PurchaseDialog, TranslatePipe],
   templateUrl: './pricing.html',
   styleUrl: './pricing.scss'
 })
@@ -34,37 +35,43 @@ export class Pricing {
     this.purchaseDialogVisible = true;
   }
 
+  /**
+   * Feature comparison rows — only ✓/✗ state + i18n keys live here.
+   * Group title and row labels are resolved at render time from the loaded
+   * translation JSON under `pricing.comparison.groups.{titleKey}` and
+   * `pricing.comparison.rows.{rowKey}`.
+   */
   featureGroups: FeatureGroup[] = [
     {
-      title: 'Data & UI core',
+      titleKey: 'core',
       rows: [
-        { feature: 'List / Grid, Form / Dialog, Datasource, DataRepeater', dev: true, pro: true },
-        { feature: 'Kanban, Scheduler, Map, Tree, Carousel, Chart', dev: true, pro: true },
-        { feature: 'Filtri, paging, sorting, export / import Excel', dev: true, pro: true },
-        { feature: 'Field widget (lookup, upload, HTML editor, code editor, …)', dev: true, pro: true },
-        { feature: 'Temi PrimeNG, dark mode, internazionalizzazione multilingua', dev: true, pro: true },
+        { key: 'listForm',   dev: true, pro: true },
+        { key: 'archetypes', dev: true, pro: true },
+        { key: 'filters',    dev: true, pro: true },
+        { key: 'widgets',    dev: true, pro: true },
+        { key: 'themes',     dev: true, pro: true },
       ]
     },
     {
-      title: 'Business logic & sicurezza',
+      titleKey: 'business',
       rows: [
-        { feature: 'Autorizzazioni (route / tabella / colonna), audit trail, logic delete', dev: true, pro: true },
-        { feature: 'Notifiche real-time (WebSocket)', dev: true, pro: true },
-        { feature: 'Scheduler / Job engine', dev: true, pro: true },
-        { feature: 'Custom CRUD override', dev: true, pro: true },
-        { feature: 'Concurrency control', dev: true, pro: true },
+        { key: 'authz',       dev: true, pro: true },
+        { key: 'realtime',    dev: true, pro: true },
+        { key: 'scheduler',   dev: true, pro: true },
+        { key: 'customCrud',  dev: true, pro: true },
+        { key: 'concurrency', dev: true, pro: true },
       ]
     },
     {
-      title: 'Feature premium',
+      titleKey: 'premium',
       rows: [
-        { feature: 'Spreadsheet, Pivot Grid', dev: false, pro: true },
-        { feature: 'Dashboard Designer WYSIWYG', dev: false, pro: true },
-        { feature: 'Workflow Designer + Runner', dev: false, pro: true },
-        { feature: 'Report Designer (Stimulsoft) + Report Viewer', dev: false, pro: true },
-        { feature: 'Pivot Builder con auto-materializzazione', dev: false, pro: true },
-        { feature: 'RAG Chatbot (AI)', dev: false, pro: true },
-        { feature: 'In-Memory CRUD (IndexedDB offline-first)', dev: false, pro: true },
+        { key: 'spreadsheet',       dev: false, pro: true },
+        { key: 'dashboardDesigner', dev: false, pro: true },
+        { key: 'workflow',          dev: false, pro: true },
+        { key: 'reportDesigner',    dev: false, pro: true },
+        { key: 'pivotBuilder',      dev: false, pro: true },
+        { key: 'rag',               dev: false, pro: true },
+        { key: 'offline',           dev: false, pro: true },
       ]
     }
   ];

@@ -4,6 +4,7 @@ import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { ImageModule } from 'primeng/image';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
+import { TranslatePipe } from '@ngx-translate/core';
 import { DocsContentManifest, DocsImage, DocsPage } from '../../models/docs.model';
 
 /**
@@ -24,7 +25,7 @@ interface GalleryItem {
 @Component({
   selector: 'app-gallery',
   standalone: true,
-  imports: [RouterLink, ImageModule, ButtonModule, TagModule],
+  imports: [RouterLink, ImageModule, ButtonModule, TagModule, TranslatePipe],
   templateUrl: './gallery.html',
   styleUrl: './gallery.scss'
 })

@@ -8,7 +8,9 @@ import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { ImageModule } from 'primeng/image';
+import { TranslatePipe } from '@ngx-translate/core';
 import { DocsContentManifest, DocsPage, DocsNavGroup, DocsSection, DocsCodeSample } from '../../models/docs.model';
+import { LanguageService } from '../../services/language.service';
 
 interface SectionPart {
   kind: 'html' | 'code';
@@ -18,7 +20,7 @@ interface SectionPart {
 
 @Component({
   selector: 'app-docs',
-  imports: [FormsModule, NgClass, InputTextModule, TagModule, ButtonModule, SelectModule, ImageModule, RouterLink],
+  imports: [FormsModule, NgClass, InputTextModule, TagModule, ButtonModule, SelectModule, ImageModule, RouterLink, TranslatePipe],
   templateUrl: './docs.html',
   styleUrl: './docs.scss'
 })
@@ -26,21 +28,20 @@ export class Docs implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private sanitizer = inject(DomSanitizer);
+  private languageService = inject(LanguageService);
 
   manifest = signal<DocsContentManifest | null>(null);
   loading = signal(true);
   query = signal('');
   currentSlug = signal('getting-started');
-  currentLang = signal('it-IT');
+  /**
+   * Reads the globally-selected language from LanguageService (driven by the
+   * navbar flag picker). Falls back to `it-IT` if the service isn't ready.
+   * This replaces the previous local signal so that changing language in the
+   * navbar updates the docs body reactively.
+   */
+  currentLang = this.languageService.current;
   expandedSamples = new Set<string>();
-
-  langs = [
-    { label: 'Italiano', value: 'it-IT' },
-    { label: 'English', value: 'en-US' },
-    { label: 'Deutsch', value: 'de-DE' },
-    { label: 'Espanol', value: 'es-ES' },
-    { label: 'Francais', value: 'fr-FR' }
-  ];
 
   @ViewChild('contentScroller') contentScroller!: ElementRef;
 

@@ -1,0 +1,27 @@
+@forward '../3a-external-rest-grid/3a-external-rest-grid.component.scss';
+
+// Scroll fix (vedi 1a-cities-autogen).
+.example-shell {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 32px 16px 48px;
+  box-sizing: border-box;
+}
+
+header {
+  margin-bottom: 24px;
+  h1 { font-size: 1.6rem; margin: 0 0 4px; }
+  .subtitle { color: #64748b; margin: 0; font-size: 0.95rem; }
+}
+
+.grid-shell {
+  min-height: 480px;
+  margin-top: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+}

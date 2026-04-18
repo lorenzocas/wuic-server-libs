@@ -1,0 +1,47 @@
+@forward '../../pattern-1/1a-cities-autogen/1a-cities-autogen.component.scss';
+
+// Scroll fix (vedi 1a-cities-autogen).
+.example-shell {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 16px 48px;
+  box-sizing: border-box;
+}
+
+header {
+  margin-bottom: 24px;
+  h1 { font-size: 1.6rem; margin: 0 0 4px; }
+  .subtitle { color: #64748b; margin: 0; font-size: 0.95rem; }
+}
+
+.hint {
+  color: #475569;
+  font-size: 0.9rem;
+  margin: 4px 0 0;
+}
+
+.toolbar {
+  display: flex;
+  gap: 12px;
+  margin: 16px 0 24px;
+  align-items: center;
+  input { flex: 1; }
+}
+
+.status {
+  text-align: center;
+  padding: 32px;
+  color: #94a3b8;
+  font-size: 1rem;
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  // p-card brings own borders/shadows, no extra wrapper styles needed.
+}

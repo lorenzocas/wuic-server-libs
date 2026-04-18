@@ -6,13 +6,14 @@ import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
+import { TranslatePipe } from '@ngx-translate/core';
 import { PurchaseProduct, PAYPAL_CONFIG } from './paypal.config';
 import { isPaypalConfigured, loadPaypalSdk } from './paypal-loader';
 
 @Component({
   selector: 'app-purchase-dialog',
   standalone: true,
-  imports: [FormsModule, DialogModule, ButtonModule, InputTextModule, MessageModule, DecimalPipe, RouterLink],
+  imports: [FormsModule, DialogModule, ButtonModule, InputTextModule, MessageModule, DecimalPipe, RouterLink, TranslatePipe],
   templateUrl: './purchase-dialog.html',
   styleUrl: './purchase-dialog.scss',
 })
