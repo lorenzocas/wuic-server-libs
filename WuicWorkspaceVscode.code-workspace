@@ -53,7 +53,6 @@
       "**/App_Data/**": true,
       "**/wwwroot_js/**": true
     },
-
     // ── Extension Host isolation (anti-crash) ───────────────────
     // Distribute heavy extensions across separate Extension Host processes.
     // If one crashes, the others survive.
@@ -65,17 +64,17 @@
       "dbaeumer.vscode-eslint": 3,
       "eamodio.gitlens": 4
     },
-
     // ── Git / GitLens: reduce background work ───────────────────
     "git.autorefresh": false,
     "git.decorations.enabled": false,
-    "git.scanRepositories": [".."],
+    "git.scanRepositories": [
+      ".."
+    ],
     "git.openRepositoryInParentFolders": "always",
     "gitlens.codeLens.enabled": false,
     "gitlens.currentLine.enabled": false,
     "gitlens.hovers.enabled": false,
     "gitlens.statusBar.enabled": false,
-
     // ── Editor performance ──────────────────────────────────────
     "editor.minimap.enabled": false,
     "editor.bracketPairColorization.independentColorPoolPerBracketType": false,
@@ -85,29 +84,34 @@
       "comments": "off",
       "strings": "off"
     },
-
     // ── ESLint: only on save (not on every keystroke) ───────────
     "eslint.run": "onSave",
-
     // ── TypeScript ──────────────────────────────────────────────
-    "typescript.tsdk": "WuicTest/wwwroot/node_modules/typescript/lib",
+    // IMPORTANTE: VS Code risolve `typescript.tsdk` nei workspace settings
+    // RELATIVO AL PRIMO FOLDER del workspace (qui: KonvergenceCore in
+    // `C:/src/Wuic/KonvergenceCore/`), NON relativo al file `.code-workspace`.
+    // TypeScript e' installato solo a livello monorepo in
+    // `C:/src/Wuic/node_modules/typescript/lib`, quindi serve uscire da
+    // KonvergenceCore con `../`.
+    //
+    // Sintomo se il path e' sbagliato: popup VS Code "doesn't point to a
+    // valid tsserver install, falling back to bundled TypeScript version" +
+    // alias paths del tsconfig (es. `wuic-framework-lib-dev`) NON risolti
+    // dal TS bundled -> "Cannot find module" su tutti i file che li importano.
+    "typescript.tsdk": "c:/src/Wuic/node_modules/typescript/lib",
     "typescript.enablePromptUseWorkspaceTsdk": true,
-    "js/ts.tsdk.path": "WuicTest/wwwroot/node_modules/typescript/lib",
+    "js/ts.tsdk.path": "c:/src/Wuic/node_modules/typescript/lib",
     "typescript.tsserver.maxTsServerMemory": 2048,
-
     // ── Python: minimal footprint ───────────────────────────────
     "python.languageServer": "None",
     "python.analysis.indexing": false,
     "python.analysis.diagnosticMode": "openFilesOnly",
-
     // ── PowerShell ──────────────────────────────────────────────
     "powershell.cwd": "KonvergenceCore",
-
     // ── Misc ────────────────────────────────────────────────────
     "sarif-viewer.connectToGithubCodeScanning": "off",
     "chat.imageCarousel.enabled": true
   },
-
   // ── Disable extensions not needed in this workspace ───────────
   // These extensions stay installed globally but won't activate here,
   // saving ~2-3 GB RAM and reducing Extension Host crash risk.
