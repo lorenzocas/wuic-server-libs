@@ -30,6 +30,7 @@ import Nora from '@primeuix/themes/nora';
 import Material from '@primeuix/themes/material';
 import { updatePrimaryPalette, usePreset } from '@primeuix/styled';
 import { WtoolboxService, MetadataProviderService, GlobalHandler, CustomException, TranslationManagerService, AuthSessionService, getThemeOptions, PRIMARY_PALETTES, ThemeOption } from './wuic-bridges/core';
+import { LicenseFeatureService } from 'wuic-framework-lib-src/service/license-feature.service';
 import { ImageWrapperComponent } from './wuic-bridges/ui';
 import { CustomListComponent } from './component/custom-list/custom-list.component';
 
@@ -368,6 +369,14 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     this.busySub = this.isBusy.subscribe((v) => {
       queueMicrotask(() => { this.busyVisible = !!v; });
     });
+
+    // Pre-load license status so *wuicFeature directives and FeatureRouteGuard
+    // have an up-to-date snapshot as soon as possible after the first render.
+    // Moved from app.config.ts provideAppInitializer because that caused NG0200
+    // circular DI (HTTP call inside APP_INITIALIZER triggers authExpiredInterceptor
+    // → inject(AuthSessionService) before the root injector is fully built).
+    void this.injector.get(LicenseFeatureService).refresh();
+
     void this.loadShellWidgets();
     const savedTheme = localStorage.getItem(AppComponent.ThemeStorageKey);
     if (savedTheme && this.availableThemes.some(t => t.value === savedTheme)) {

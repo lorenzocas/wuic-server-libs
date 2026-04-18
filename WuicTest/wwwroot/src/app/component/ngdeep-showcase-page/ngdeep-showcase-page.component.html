@@ -61,10 +61,22 @@
     <wuic-pager [hardcodedDatasource]="citiesDs" [pageSize]="1"></wuic-pager>
   </div>
 
-  <!-- CodeEditor -->
+  <!-- CodeEditor (defer so Monaco ~3.4 MB loads only when section enters viewport) -->
   <div class="showcase-section code-editor-section">
     <h4>CodeEditor</h4>
-    <wuic-code-editor></wuic-code-editor>
+    @defer (on viewport) {
+      <wuic-code-editor></wuic-code-editor>
+    } @placeholder {
+      <div class="code-editor-placeholder">
+        <i class="pi pi-code"></i>
+        <span>Scorri per caricare Monaco (~3.4 MB)</span>
+      </div>
+    } @loading (minimum 300ms) {
+      <div class="code-editor-placeholder">
+        <i class="pi pi-spin pi-spinner"></i>
+        <span>Caricamento editor…</span>
+      </div>
+    }
   </div>
 
   <!-- Misc: ImageWrapper, ImportExportButton, NotificationBell -->

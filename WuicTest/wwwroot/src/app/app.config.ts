@@ -28,6 +28,9 @@ export const appConfig: ApplicationConfig = {
     // importProvidersFrom(ResizableModule),
     // importProvidersFrom(ConfirmDialogModule),
     { provide: ErrorHandler, useClass: GlobalHandler },
+    // Note: LicenseFeatureService.refresh() moved to AppComponent.ngOnInit
+    // to avoid NG0200 circular DI during bootstrap (HTTP call → authExpiredInterceptor
+    // → inject(AuthSessionService) before the root injector is fully built).
     provideRouter(appRoutes, withHashLocation()),
     providePrimeNG({
       theme: {

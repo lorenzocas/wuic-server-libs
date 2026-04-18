@@ -1,0 +1,124 @@
+<p-dialog
+  [header]="product?.label || 'Acquista licenza'"
+  [modal]="true"
+  [(visible)]="visible"
+  (visibleChange)="visibleChange.emit($event)"
+  [style]="{ width: '520px', maxWidth: '95vw' }"
+  [draggable]="false"
+  [resizable]="false"
+  [closable]="true"
+  (onHide)="onClose()">
+
+  @if (product) {
+    <div class="purchase-dialog-body">
+
+      @if (state !== 'success') {
+        <div class="purchase-product-summary">
+          <p class="purchase-product-desc">{{ product.description }}</p>
+          <div class="purchase-price-row">
+            <span class="purchase-price-amount">{{ product.priceEur | number:'1.0-0' }} €</span>
+            <span class="purchase-price-tax">IVA esclusa</span>
+          </div>
+        </div>
+
+        <div class="purchase-fields">
+          <label class="purchase-field">
+            <span class="purchase-field-label">Email per la licenza <span class="req">*</span></span>
+            <input type="email" pInputText [(ngModel)]="email" name="email"
+                   placeholder="tu@azienda.it" autocomplete="email" required />
+            <small class="purchase-field-hint">
+              Su questa email riceverai il file licenza dopo il pagamento.
+            </small>
+          </label>
+
+          @if (product.issueType !== 'initial') {
+            <label class="purchase-field">
+              <span class="purchase-field-label">Machine fingerprint del server</span>
+              <input type="text" pInputText [(ngModel)]="machineFingerprint" name="fingerprint"
+                     placeholder="es. ce9b1e8a577..." autocomplete="off" />
+              <small class="purchase-field-hint">
+                Ottienilo da <code>GET /api/Meta/LicenseStatus</code> sul server di destinazione.
+                Opzionale: lo puoi inviare dopo aver installato WUIC.
+              </small>
+            </label>
+          }
+        </div>
+      }
+
+      @switch (state) {
+        @case ('not-configured') {
+          <p-message severity="warn" styleClass="purchase-msg">
+            PayPal non è ancora configurato su questo sito. Contattaci direttamente
+            all'indirizzo <strong>licenses&#64;wuic-framework.com</strong> per completare l'acquisto.
+          </p-message>
+        }
+
+        @case ('loading-sdk') {
+          <div class="purchase-loading">
+            <i class="pi pi-spin pi-spinner"></i>
+            <span>Caricamento pulsante pagamento…</span>
+          </div>
+        }
+
+        @case ('processing') {
+          <div class="purchase-loading">
+            <i class="pi pi-spin pi-spinner"></i>
+            <span>Conferma pagamento in corso…</span>
+          </div>
+        }
+
+        @case ('error') {
+          <p-message severity="error" styleClass="purchase-msg">
+            <strong>Pagamento non riuscito.</strong><br />
+            {{ errorMessage || 'Riprova oppure contatta licenses@wuic-framework.com.' }}
+          </p-message>
+        }
+      }
+
+      <!-- PayPal button container: kept in DOM so ViewChild can reference it -->
+      <div class="paypal-container" [class.hidden]="state !== 'sdk-ready' && state !== 'error'" #paypalContainer></div>
+
+      @if (state === 'success' && successInfo) {
+        <div class="purchase-success">
+          <div class="success-check">
+            <i class="pi pi-check-circle"></i>
+          </div>
+          <h3>Pagamento ricevuto!</h3>
+          <p>
+            Grazie, il pagamento di <strong>{{ successInfo.amount }} {{ successInfo.currency }}</strong>
+            per <strong>{{ successInfo.productLabel }}</strong> è stato registrato.
+          </p>
+
+          <div class="success-details">
+            <div><strong>PayPal Order ID:</strong> <code>{{ successInfo.orderId }}</code></div>
+            <div><strong>Email PayPal:</strong> {{ successInfo.payerEmail }}</div>
+          </div>
+
+          <div class="success-next-steps">
+            <h4>Prossimi passi</h4>
+            <ol>
+              <li>Se non hai già WUIC installato, <a routerLink="/downloads">scaricalo</a> e avvialo in modalità trial</li>
+              <li>Recupera il <code>machineFingerprint</code> del server chiamando
+                <code>GET /api/Meta/LicenseStatus</code></li>
+              <li>Inviaci email con fingerprint + questo Order ID — emettiamo la licenza entro 24h lavorative</li>
+            </ol>
+          </div>
+
+          <div class="success-cta">
+            <a [href]="mailtoHref">
+              <p-button label="Invia fingerprint via email" icon="pi pi-envelope" size="large"></p-button>
+            </a>
+            <p-button label="Chiudi" icon="pi pi-times" severity="secondary" [outlined]="true" (onClick)="onClose()"></p-button>
+          </div>
+        </div>
+      }
+
+      @if (state !== 'success' && state !== 'not-configured') {
+        <p class="purchase-footer-note">
+          Pagamento sicuro gestito da PayPal. Puoi pagare con conto PayPal o carta di credito
+          (non serve un account PayPal).
+        </p>
+      }
+    </div>
+  }
+</p-dialog>

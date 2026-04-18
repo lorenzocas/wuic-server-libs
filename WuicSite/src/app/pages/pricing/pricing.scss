@@ -1,0 +1,512 @@
+.tier-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 32px;
+  max-width: 900px;
+  margin: 0 auto 56px;
+}
+
+::ng-deep .tier-card {
+  position: relative;
+  overflow: visible;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+  }
+
+  .p-card-body {
+    padding: 28px 28px 24px;
+  }
+
+  .p-card-content {
+    padding: 0;
+  }
+}
+
+::ng-deep .tier-card-pro {
+  border: 2px solid #6366f1;
+}
+
+.tier-ribbon {
+  position: absolute;
+  top: -14px;
+  right: 24px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+}
+
+.tier-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.tier-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+}
+
+.tier-badge-dev {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.tier-badge-pro {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.tier-price {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.price-amount {
+  font-size: 3rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1;
+}
+
+.price-period {
+  font-size: 1rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.tier-desc {
+  color: #475569;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0 0 16px;
+}
+
+.tier-fingerprints {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 0.88rem;
+
+  i {
+    color: #64748b;
+    font-size: 0.95rem;
+  }
+
+  strong {
+    color: #0f172a;
+  }
+}
+
+.tier-highlights {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px;
+
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 0;
+    color: #334155;
+    font-size: 0.93rem;
+    line-height: 1.45;
+
+    i {
+      flex-shrink: 0;
+      margin-top: 3px;
+      color: #10b981;
+      font-size: 0.9rem;
+    }
+
+    &.excluded {
+      color: #94a3b8;
+
+      i {
+        color: #cbd5e1;
+      }
+    }
+  }
+}
+
+.tier-cta {
+  display: flex;
+  justify-content: center;
+
+  a {
+    width: 100%;
+
+    ::ng-deep .p-button {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+}
+
+.tier-cta-stack {
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
+
+  ::ng-deep > p-button > .p-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.tier-cta-secondary {
+  display: flex;
+  justify-content: center;
+  margin-top: 2px;
+}
+
+.maintenance-actions,
+.fingerprints-action {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+/* Inline loader shown while the PurchaseDialog chunk is downloading after user
+   clicks "Acquista ora". The dialog itself is lazy via `@defer (when ...)` so
+   the pricing page bundle stays lean for first-time visitors. */
+.purchase-dialog-loading {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  background: #0f172a;
+  color: #fff;
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.25);
+  font-size: 0.9rem;
+  z-index: 9999;
+
+  .pi-spinner {
+    font-size: 1rem;
+    color: #a5b4fc;
+  }
+}
+
+.maintenance-box {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  background: linear-gradient(135deg, #eef2ff, #f5f3ff);
+  border: 1px solid #c7d2fe;
+  border-radius: 16px;
+  padding: 28px;
+  margin-bottom: 64px;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.maintenance-icon {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  background: #6366f1;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  i {
+    color: #fff;
+    font-size: 1.8rem;
+  }
+}
+
+.maintenance-text {
+  flex: 1;
+
+  h3 {
+    margin: 0 0 12px;
+    font-size: 1.25rem;
+    color: #0f172a;
+  }
+
+  p {
+    margin: 0 0 12px;
+    color: #334155;
+    line-height: 1.6;
+  }
+
+  ul {
+    margin: 12px 0;
+    padding-left: 24px;
+    color: #334155;
+
+    li {
+      margin-bottom: 4px;
+    }
+  }
+
+  .maintenance-note {
+    font-size: 0.9rem;
+    color: #64748b;
+    font-style: italic;
+  }
+}
+
+.fingerprints-box {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+  border: 1px solid #bbf7d0;
+  border-radius: 16px;
+  padding: 28px;
+  margin-bottom: 64px;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.fingerprints-icon {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  background: #10b981;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  i {
+    color: #fff;
+    font-size: 1.8rem;
+  }
+}
+
+.fingerprints-text {
+  flex: 1;
+
+  h3 {
+    margin: 0 0 12px;
+    font-size: 1.25rem;
+    color: #0f172a;
+  }
+
+  p {
+    margin: 0 0 12px;
+    color: #334155;
+    line-height: 1.6;
+  }
+
+  .fingerprints-example {
+    background: rgba(16, 185, 129, 0.08);
+    border-left: 3px solid #10b981;
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-size: 0.92rem;
+    margin-bottom: 0;
+  }
+}
+
+.comparison-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #0f172a;
+  text-align: center;
+  margin: 0 0 32px;
+}
+
+.comparison-group {
+  max-width: 900px;
+  margin: 0 auto 32px;
+}
+
+.comparison-group-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.comparison-table {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.comparison-row {
+  display: grid;
+  grid-template-columns: 1fr 140px 140px;
+  align-items: center;
+
+  &:not(:last-child) {
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  &.comparison-header {
+    background: #f8fafc;
+    font-weight: 700;
+    color: #0f172a;
+  }
+}
+
+.comparison-cell {
+  padding: 14px 20px;
+
+  &.comparison-feature {
+    color: #334155;
+    font-size: 0.93rem;
+  }
+
+  &.comparison-tier {
+    text-align: center;
+    font-size: 0.9rem;
+    color: #64748b;
+  }
+}
+
+.check-yes {
+  color: #10b981;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.check-no {
+  color: #cbd5e1;
+  font-size: 1rem;
+}
+
+.trial-box {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 12px;
+  padding: 20px 24px;
+  max-width: 900px;
+  margin: 48px auto 56px;
+
+  h3 {
+    margin: 0 0 8px;
+    color: #92400e;
+    font-size: 1.05rem;
+
+    i {
+      margin-right: 8px;
+    }
+  }
+
+  p {
+    margin: 0;
+    color: #78350f;
+    line-height: 1.5;
+  }
+}
+
+.faq {
+  max-width: 900px;
+  margin: 0 auto 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.faq-item {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px 24px;
+
+  h4 {
+    margin: 0 0 8px;
+    color: #0f172a;
+    font-size: 1rem;
+  }
+
+  p {
+    margin: 0;
+    color: #475569;
+    line-height: 1.5;
+    font-size: 0.95rem;
+  }
+
+  code {
+    background: #f1f5f9;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85em;
+  }
+}
+
+.contact-cta {
+  text-align: center;
+  padding: 48px 24px;
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  border-radius: 16px;
+  margin-top: 48px;
+
+  h2 {
+    color: #fff;
+    margin: 0 0 12px;
+    font-size: 1.75rem;
+  }
+
+  p {
+    color: #cbd5e1;
+    margin: 0 0 28px;
+  }
+
+  .contact-actions {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 640px) {
+  .comparison-row {
+    grid-template-columns: 1fr 80px 80px;
+  }
+
+  .comparison-cell {
+    padding: 12px;
+
+    &.comparison-feature {
+      font-size: 0.85rem;
+    }
+  }
+
+  .maintenance-box,
+  .fingerprints-box {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .price-amount {
+    font-size: 2.5rem;
+  }
+}

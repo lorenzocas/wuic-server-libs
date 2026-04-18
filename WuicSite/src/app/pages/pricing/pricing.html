@@ -1,0 +1,271 @@
+<section class="section">
+  <div class="container">
+    <h1 class="section-title">Prezzi</h1>
+    <p class="section-subtitle">
+      Due tier, nessuna sorpresa. Scegli quello giusto per il tuo progetto.
+    </p>
+
+    <div class="tier-grid">
+      <p-card styleClass="tier-card tier-card-dev">
+        <div class="tier-header">
+          <div class="tier-badge tier-badge-dev">
+            <i class="pi pi-wrench"></i>
+            <span>Developer</span>
+          </div>
+          <div class="tier-price">
+            <span class="price-amount">600 €</span>
+            <span class="price-period">/ anno</span>
+          </div>
+          <p class="tier-desc">
+            Per singolo sviluppatore o progetti personali / interni. Tutto il core del framework,
+            senza feature premium.
+          </p>
+          <div class="tier-fingerprints">
+            <i class="pi pi-desktop"></i>
+            <span><strong>1 fingerprint</strong> incluso</span>
+          </div>
+        </div>
+
+        <ul class="tier-highlights">
+          <li><i class="pi pi-check"></i> Tutte le componenti UI base (List, Form, Kanban, Chart, …)</li>
+          <li><i class="pi pi-check"></i> Authorization, audit, logic delete</li>
+          <li><i class="pi pi-check"></i> Custom CRUD, concurrency, scheduler</li>
+          <li><i class="pi pi-check"></i> i18n, temi, notifiche real-time</li>
+          <li class="excluded"><i class="pi pi-times"></i> Designer visuali (dashboard / workflow / report)</li>
+          <li class="excluded"><i class="pi pi-times"></i> Spreadsheet, Pivot Grid, RAG Chatbot</li>
+        </ul>
+
+        <div class="tier-cta tier-cta-stack">
+          <p-button label="Acquista ora — 600 €" icon="pi pi-shopping-cart" severity="secondary"
+                    (onClick)="openPurchase('DEV')"></p-button>
+          <a routerLink="/downloads" class="tier-cta-secondary">
+            <p-button label="Scarica e prova gratis" icon="pi pi-download" severity="secondary" [text]="true" size="small"></p-button>
+          </a>
+        </div>
+      </p-card>
+
+      <p-card styleClass="tier-card tier-card-pro">
+        <div class="tier-ribbon">Consigliato</div>
+        <div class="tier-header">
+          <div class="tier-badge tier-badge-pro">
+            <i class="pi pi-star-fill"></i>
+            <span>Professional</span>
+          </div>
+          <div class="tier-price">
+            <span class="price-amount">1.200 €</span>
+            <span class="price-period">/ anno</span>
+          </div>
+          <p class="tier-desc">
+            Framework completo con designer visuali, AI e offline-first. Adatto a software house
+            che distribuiscono progetti cliente.
+          </p>
+          <div class="tier-fingerprints">
+            <i class="pi pi-desktop"></i>
+            <span><strong>5 fingerprint</strong> inclusi (1 dev + 4 deployment)</span>
+          </div>
+        </div>
+
+        <ul class="tier-highlights">
+          <li><i class="pi pi-check"></i> Tutto quello incluso nel Developer</li>
+          <li><i class="pi pi-check"></i> Spreadsheet + Pivot Grid + Pivot Builder auto-materializzato</li>
+          <li><i class="pi pi-check"></i> Dashboard Designer WYSIWYG</li>
+          <li><i class="pi pi-check"></i> Workflow Designer + Runner</li>
+          <li><i class="pi pi-check"></i> Report Designer (Stimulsoft)</li>
+          <li><i class="pi pi-check"></i> RAG Chatbot (AI)</li>
+          <li><i class="pi pi-check"></i> In-Memory CRUD (IndexedDB offline)</li>
+        </ul>
+
+        <div class="tier-cta tier-cta-stack">
+          <p-button label="Acquista ora — 1.200 €" icon="pi pi-shopping-cart"
+                    (onClick)="openPurchase('PRO')"></p-button>
+          <a routerLink="/downloads" class="tier-cta-secondary">
+            <p-button label="Scarica e prova gratis" icon="pi pi-download" severity="secondary" [text]="true" size="small"></p-button>
+          </a>
+        </div>
+      </p-card>
+    </div>
+
+    <div class="maintenance-box">
+      <div class="maintenance-icon">
+        <i class="pi pi-refresh"></i>
+      </div>
+      <div class="maintenance-text">
+        <h3>Finestra di manutenzione: 12 mesi di aggiornamenti</h3>
+        <p>
+          La licenza consente di utilizzare <strong>tutte le versioni rilasciate fino a 1 anno
+          dalla data di inizio licenza</strong>. Superato l'anno, la versione installata continua
+          a funzionare indefinitamente; per passare a una versione più recente basta acquistare
+          una <strong>licenza di estensione al costo dimezzato</strong>:
+        </p>
+        <ul>
+          <li><strong>Developer</strong>: 300 € / anno aggiuntivo</li>
+          <li><strong>Professional</strong>: 600 € / anno aggiuntivo</li>
+        </ul>
+        <p class="maintenance-note">
+          La licenza di estensione apre una nuova finestra di 12 mesi sugli aggiornamenti futuri.
+          Nessun obbligo di rinnovo: si paga solo quando si vuole aggiornare.
+        </p>
+        <div class="maintenance-actions">
+          <p-button label="Estensione Dev — 300 €" icon="pi pi-shopping-cart" severity="secondary" size="small"
+                    (onClick)="openPurchase('DEV_EXTENSION')"></p-button>
+          <p-button label="Estensione Pro — 600 €" icon="pi pi-shopping-cart" size="small"
+                    (onClick)="openPurchase('PRO_EXTENSION')"></p-button>
+        </div>
+      </div>
+    </div>
+
+    <div class="fingerprints-box">
+      <div class="fingerprints-icon">
+        <i class="pi pi-desktop"></i>
+      </div>
+      <div class="fingerprints-text">
+        <h3>Installazioni multiple? Fingerprint extra a 200 € / anno</h3>
+        <p>
+          Ogni licenza include un numero di <strong>machine fingerprint</strong> predefinito (1 per Developer,
+          5 per Professional). Se hai bisogno di deployare su più server, ogni fingerprint aggiuntivo costa
+          <strong>200 € / anno</strong> ed è gestito con una patch alla licenza esistente (stesso
+          intestatario, stessa scadenza).
+        </p>
+        <p class="fingerprints-example">
+          <strong>Esempio software house:</strong> acquisti Pro (1.200 €) + 3 fingerprint extra (600 €) =
+          <strong>1.800 € / anno</strong> per coprire 1 ambiente di sviluppo + 7 server cliente finali.
+          Nessun limite tecnico al numero di fingerprint che una licenza può autorizzare.
+        </p>
+        <div class="fingerprints-action">
+          <p-button label="Aggiungi fingerprint — 200 €" icon="pi pi-plus" size="small"
+                    (onClick)="openPurchase('EXTRA_FINGERPRINT')"></p-button>
+        </div>
+      </div>
+    </div>
+
+    <h2 class="comparison-title">Confronto completo feature</h2>
+
+    @for (group of featureGroups; track group.title) {
+      <div class="comparison-group">
+        <h3 class="comparison-group-title">{{ group.title }}</h3>
+        <div class="comparison-table">
+          <div class="comparison-row comparison-header">
+            <div class="comparison-cell comparison-feature">Feature</div>
+            <div class="comparison-cell comparison-tier">Developer</div>
+            <div class="comparison-cell comparison-tier">Professional</div>
+          </div>
+          @for (row of group.rows; track row.feature) {
+            <div class="comparison-row">
+              <div class="comparison-cell comparison-feature">{{ row.feature }}</div>
+              <div class="comparison-cell comparison-tier">
+                @if (row.dev) {
+                  <i class="pi pi-check check-yes"></i>
+                } @else {
+                  <i class="pi pi-times check-no"></i>
+                }
+              </div>
+              <div class="comparison-cell comparison-tier">
+                @if (row.pro) {
+                  <i class="pi pi-check check-yes"></i>
+                } @else {
+                  <i class="pi pi-times check-no"></i>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <div class="trial-box">
+      <h3><i class="pi pi-info-circle"></i> Modalità Trial gratuita</h3>
+      <p>
+        Senza licenza il framework gira in modalità <strong>Trial</strong> con limite a 20 record per query:
+        sufficiente per valutare UI, designer e flussi applicativi. Non adatto a produzione.
+      </p>
+    </div>
+
+    <h2 class="comparison-title">Domande frequenti</h2>
+
+    <div class="faq">
+      <div class="faq-item">
+        <h4>Il prezzo include il supporto?</h4>
+        <p>
+          Licenze Developer e Professional includono accesso alla documentazione,
+          agli aggiornamenti entro la finestra di manutenzione e al bug tracker pubblico.
+          Il supporto dedicato (SLA email/telefono, onboarding, consulenza) è venduto separatamente.
+        </p>
+      </div>
+
+      <div class="faq-item">
+        <h4>Posso vendere progetti basati su WUIC ai miei clienti?</h4>
+        <p>
+          Sì, ed è esattamente lo scenario per cui la Pro è pensata. La licenza Professional
+          include <strong>5 fingerprint</strong> (tipicamente 1 ambiente di sviluppo + 4 server di
+          clienti finali): consegni il progetto, lo installi sul server del cliente, aggiungi il
+          fingerprint del server alla tua licenza. Se i deployment superano i 4, acquisti
+          fingerprint aggiuntivi a 200 € / anno cadauno. Il cliente finale non ha bisogno di
+          una propria licenza WUIC — la tua licenza autorizza il suo server.
+        </p>
+      </div>
+
+      <div class="faq-item">
+        <h4>La licenza è per sviluppatore o per macchina?</h4>
+        <p>
+          Per macchina (<code>machineFingerprint</code>), calcolato come hash SHA256 di
+          nome-macchina + dominio + OS + Machine GUID. Una singola licenza può autorizzare N
+          macchine includendo N fingerprint nel payload firmato. Il numero di fingerprint inclusi
+          per tier è fisso (1 Dev, 5 Pro); oltre si acquistano extra a 200 € / anno cadauno.
+        </p>
+      </div>
+
+      <div class="faq-item">
+        <h4>Come aggiungo un nuovo fingerprint alla mia licenza?</h4>
+        <p>
+          Recuperi il <code>machineFingerprint</code> del server cliente chiamando
+          <code>GET /api/Meta/LicenseStatus</code> sul suo host. Ce lo invii e ti emettiamo una
+          licenza aggiornata con il nuovo fingerprint aggiunto (gli altri restano validi).
+          Sostituisci <code>license-payload</code> e <code>license-signature</code> in
+          <code>appsettings.json</code>, riavvii il backend, pronto.
+        </p>
+      </div>
+
+      <div class="faq-item">
+        <h4>Cosa succede se cambio server? (sostituzione, non aggiunta)</h4>
+        <p>
+          Emettiamo una licenza aggiornata con il nuovo <code>machineFingerprint</code> al posto
+          del vecchio. Nessun costo aggiuntivo per sostituzione server all'interno della stessa
+          finestra di manutenzione.
+        </p>
+      </div>
+
+      <div class="faq-item">
+        <h4>Come si passa da Developer a Professional?</h4>
+        <p>
+          In qualunque momento, pagando la differenza pro-rata in base ai mesi residui della licenza
+          corrente. Riavvio del backend e le feature premium sono immediatamente attive.
+        </p>
+      </div>
+    </div>
+
+    <div class="contact-cta">
+      <h2>Pronto a iniziare?</h2>
+      <p>Scarica WUIC gratis in modalità Trial, oppure contattaci per la licenza.</p>
+      <div class="contact-actions">
+        <a routerLink="/downloads">
+          <p-button label="Scarica gratis" icon="pi pi-download" size="large"></p-button>
+        </a>
+        <a href="mailto:info@wuic-framework.com?subject=Richiesta%20licenza%20WUIC">
+          <p-button label="Contatta il vendor" icon="pi pi-envelope" severity="secondary" [outlined]="true" size="large"></p-button>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+@defer (when purchaseDialogVisible) {
+  <app-purchase-dialog
+    [(visible)]="purchaseDialogVisible"
+    [product]="selectedProduct">
+  </app-purchase-dialog>
+} @loading (minimum 150ms) {
+  <div class="purchase-dialog-loading">
+    <i class="pi pi-spin pi-spinner"></i>
+    <span>Apertura checkout…</span>
+  </div>
+}
