@@ -32,6 +32,9 @@
     },
     {
       "path": "WuicTest"
+    },
+    {
+      "path": "WuicSite"
     }
   ],
   "settings": {
