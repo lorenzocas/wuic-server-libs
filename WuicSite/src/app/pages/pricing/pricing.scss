@@ -6,6 +6,55 @@
   margin: 0 auto 56px;
 }
 
+:host ::ng-deep .paypal-unavailable-banner {
+  display: block;
+  max-width: 900px;
+  margin: 0 auto 32px;
+
+  .p-message-wrapper {
+    padding: 16px 20px;
+  }
+
+  .paypal-unavailable-content {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+
+    > i {
+      font-size: 20px;
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+
+    strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 15px;
+    }
+
+    p {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: underline;
+      font-weight: 600;
+    }
+  }
+}
+
+.tier-cta-fallback {
+  display: block;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: none;
+  }
+}
+
 ::ng-deep .tier-card {
   position: relative;
   overflow: visible;

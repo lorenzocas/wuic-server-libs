@@ -82,31 +82,79 @@
     "categories": {
       "dataLayer": {
         "title": "Data Layer",
-        "dataSource": { "title": "DataSource", "desc": "Orchestrates data reading, filtering, paging and sorting. Connects to a metadata route and feeds data to repeaters." },
-        "dataRepeater": { "title": "DataRepeater", "desc": "Renders data into visual archetypes: list, grid, spreadsheet, kanban, tree, carousel, map, calendar, chart." },
-        "crud": { "title": "Automatic CRUD", "desc": "Insert, update, delete generated from metadata. Validation, required fields, lookup and suggest configurable without code." },
-        "filterBar": { "title": "FilterBar", "desc": "Dynamic filter bar with column-type operators, advanced filter, sorting, grouping and page size." }
+        "dataSource": {
+          "title": "DataSource",
+          "desc": "Orchestrates data reading, filtering, paging and sorting. Connects to a metadata route and feeds data to repeaters."
+        },
+        "dataRepeater": {
+          "title": "DataRepeater",
+          "desc": "Renders data into visual archetypes: list, grid, spreadsheet, kanban, tree, carousel, map, calendar, chart."
+        },
+        "crud": {
+          "title": "Automatic CRUD",
+          "desc": "Insert, update, delete generated from metadata. Validation, required fields, lookup and suggest configurable without code."
+        },
+        "filterBar": {
+          "title": "FilterBar",
+          "desc": "Dynamic filter bar with column-type operators, advanced filter, sorting, grouping and page size."
+        }
       },
       "uiComponents": {
         "title": "UI Components",
-        "designer": { "title": "Designer", "desc": "Runtime drag-and-drop dashboard: datasource, repeater, chart, HTML templates, custom CSS. Saved to metadata DB." },
-        "fieldWidgets": { "title": "Field Widgets", "desc": "Edit-form widget library: text, number, date, lookup, upload, code editor, HTML area, dictionary, many-to-many." },
-        "parametricDialog": { "title": "Parametric Dialog", "desc": "Parametric dialog for edit forms, multi-step wizards, record details. Tabs, validation, custom actions." },
-        "themes": { "title": "Themes and Styles", "desc": "Light/dark theme, conditional row/cell styles driven by JS callbacks, custom CSS per board." }
+        "designer": {
+          "title": "Designer",
+          "desc": "Runtime drag-and-drop dashboard: datasource, repeater, chart, HTML templates, custom CSS. Saved to metadata DB."
+        },
+        "fieldWidgets": {
+          "title": "Field Widgets",
+          "desc": "Edit-form widget library: text, number, date, lookup, upload, code editor, HTML area, dictionary, many-to-many."
+        },
+        "parametricDialog": {
+          "title": "Parametric Dialog",
+          "desc": "Parametric dialog for edit forms, multi-step wizards, record details. Tabs, validation, custom actions."
+        },
+        "themes": {
+          "title": "Themes and Styles",
+          "desc": "Light/dark theme, conditional row/cell styles driven by JS callbacks, custom CSS per board."
+        }
       },
       "businessLogic": {
         "title": "Business Logic",
-        "workflowDesigner": { "title": "Workflow Designer", "desc": "Visual graph editor: nodes, conditions, actions, triggers. Runtime runner for step-by-step execution." },
-        "reportDesigner": { "title": "Report Designer", "desc": "Embedded Stimulsoft designer for report layouts. Runtime viewer with PDF, Excel, Word export." },
-        "scheduler": { "title": "Scheduler", "desc": "Recurring task scheduling with cron expressions, retry, timeout, logging. Integrated .NET hosted service." },
-        "notifications": { "title": "Realtime Notifications", "desc": "WebSocket push for user notifications. SqlDependency or polling, bell icon with badge, mark as read." }
+        "workflowDesigner": {
+          "title": "Workflow Designer",
+          "desc": "Visual graph editor: nodes, conditions, actions, triggers. Runtime runner for step-by-step execution."
+        },
+        "reportDesigner": {
+          "title": "Report Designer",
+          "desc": "Embedded Stimulsoft designer for report layouts. Runtime viewer with PDF, Excel, Word export."
+        },
+        "scheduler": {
+          "title": "Scheduler",
+          "desc": "Recurring task scheduling with cron expressions, retry, timeout, logging. Integrated .NET hosted service."
+        },
+        "notifications": {
+          "title": "Realtime Notifications",
+          "desc": "WebSocket push for user notifications. SqlDependency or polling, bell icon with badge, mark as read."
+        }
       },
       "infrastructure": {
         "title": "Infrastructure",
-        "multiDbms": { "title": "Multi-DBMS", "desc": "SQL Server, MySQL, PostgreSQL, Oracle via drop-in providers. Switch database with one line in appsettings.json." },
-        "auth": { "title": "Auth & Sessions", "desc": "Cookie-based login (client or server-managed), OAuth/OIDC, roles, per-route permissions, single-session enforcement." },
-        "rag": { "title": "RAG Chatbot", "desc": "AI assistant that queries the codebase via hybrid BM25 + vector + LoRA cross-encoder index. Retrieval + Claude LLM." },
-        "i18n": { "title": "Translations", "desc": "Multi-language UI (i18n) + per-record/per-field data translation. 5 languages supported out of the box." }
+        "multiDbms": {
+          "title": "Multi-DBMS",
+          "desc": "SQL Server, MySQL, PostgreSQL, Oracle via drop-in providers. Switch database with one line in appsettings.json."
+        },
+        "auth": {
+          "title": "Auth & Sessions",
+          "desc": "Cookie-based login (client or server-managed), OAuth/OIDC, roles, per-route permissions, single-session enforcement."
+        },
+        "rag": {
+          "title": "RAG Chatbot",
+          "desc": "AI assistant that queries the codebase via hybrid BM25 + vector + LoRA cross-encoder index. Retrieval + Claude LLM."
+        },
+        "i18n": {
+          "title": "Translations",
+          "desc": "Multi-language UI (i18n) + per-record/per-field data translation. 5 languages supported out of the box."
+        }
       }
     }
   },
@@ -116,7 +164,12 @@
     "perYear": "/ year",
     "ribbonRecommended": "Recommended",
     "fingerprintsIncluded": "fingerprint included",
-    "fingerprintsIncludedMulti": "fingerprints included (1 dev + 4 deployment)",
+    "fingerprintsIncludedMulti": "fingerprints included (dev + deployment)",
+    "contactForPurchase": "Contact us to purchase",
+    "comingSoon": {
+      "title": "Online payments coming soon",
+      "body": "Card / PayPal payments will be activated shortly. In the meantime, email us at <a href=\"mailto:{{email}}\">{{email}}</a> to purchase a license: we'll reply within 24 business hours with payment instructions."
+    },
     "dev": {
       "label": "Developer",
       "desc": "For individual developers or personal/internal projects. All the framework core, without premium features.",

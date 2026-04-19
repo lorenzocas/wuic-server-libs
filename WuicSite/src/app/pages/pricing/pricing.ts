@@ -1,10 +1,12 @@
 import { Component } from '@angular/core';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
+import { MessageModule } from 'primeng/message';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { PurchaseDialog } from './purchase-dialog';
-import { PRODUCTS, PurchaseProduct } from './paypal.config';
+import { PRODUCTS, PAYPAL_CONFIG, PurchaseProduct } from './paypal.config';
+import { isPaypalConfigured } from './paypal-loader';
 
 interface FeatureRow {
   key: string;   // i18n subkey under pricing.comparison.rows
@@ -19,7 +21,7 @@ interface FeatureGroup {
 
 @Component({
   selector: 'app-pricing',
-  imports: [CardModule, ButtonModule, RouterLink, PurchaseDialog, TranslatePipe],
+  imports: [CardModule, ButtonModule, MessageModule, RouterLink, PurchaseDialog, TranslatePipe],
   templateUrl: './pricing.html',
   styleUrl: './pricing.scss'
 })
@@ -29,7 +31,35 @@ export class Pricing {
   selectedProduct: PurchaseProduct | null = null;
   purchaseDialogVisible = false;
 
-  /** Triggered by "Acquista ora" buttons. */
+  /**
+   * True when a real PayPal Client ID is wired in the active environment.
+   * When false, the /pricing page hides the "Acquista ora" buttons and shows
+   * a "contact us by email" fallback instead — so we can deploy the site even
+   * before the live PayPal credentials are ready.
+   */
+  readonly paypalAvailable: boolean = isPaypalConfigured();
+
+  /** Contact email shown in the fallback banner when PayPal is not wired. */
+  readonly contactEmail: string = PAYPAL_CONFIG.LICENSE_EMAIL;
+
+  /** `mailto:` href used by the fallback CTA — prefilled with product context. */
+  buildContactMailto(productKey: keyof typeof PRODUCTS): string {
+    const product = PRODUCTS[productKey];
+    const subject = `WUIC licenza — interesse ${product?.sku ?? productKey}`;
+    const body = [
+      `Ciao,`,
+      ``,
+      `sono interessato a: ${product?.label ?? productKey}`,
+      `Importo indicativo: ${product ? product.priceEur.toFixed(2) : '?'} EUR`,
+      ``,
+      `Vi prego di inviarmi le istruzioni per finalizzare l'acquisto.`,
+      ``,
+      `Grazie.`,
+    ].join('\n');
+    return `mailto:${this.contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  }
+
+  /** Triggered by "Acquista ora" buttons (only rendered when paypalAvailable). */
   openPurchase(productKey: keyof typeof PRODUCTS): void {
     this.selectedProduct = PRODUCTS[productKey];
     this.purchaseDialogVisible = true;

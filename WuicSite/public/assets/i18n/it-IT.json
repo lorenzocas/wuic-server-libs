@@ -82,31 +82,79 @@
     "categories": {
       "dataLayer": {
         "title": "Data Layer",
-        "dataSource": { "title": "DataSource", "desc": "Componente che orchestra lettura dati, filtri, paginazione e ordinamento. Si collega a una route metadata e fornisce i dati ai repeater." },
-        "dataRepeater": { "title": "DataRepeater", "desc": "Renderizza i dati in archetype visuali: lista, griglia, spreadsheet, kanban, tree, carousel, mappa, calendario, chart." },
-        "crud": { "title": "CRUD automatico", "desc": "Insert, update, delete generati dai metadata. Validazione, campi required, lookup e suggest configurabili senza codice." },
-        "filterBar": { "title": "FilterBar", "desc": "Barra filtri dinamica con operatori per tipo colonna, filtro avanzato, ordinamento, raggruppamento e page size." }
+        "dataSource": {
+          "title": "DataSource",
+          "desc": "Componente che orchestra lettura dati, filtri, paginazione e ordinamento. Si collega a una route metadata e fornisce i dati ai repeater."
+        },
+        "dataRepeater": {
+          "title": "DataRepeater",
+          "desc": "Renderizza i dati in archetype visuali: lista, griglia, spreadsheet, kanban, tree, carousel, mappa, calendario, chart."
+        },
+        "crud": {
+          "title": "CRUD automatico",
+          "desc": "Insert, update, delete generati dai metadata. Validazione, campi required, lookup e suggest configurabili senza codice."
+        },
+        "filterBar": {
+          "title": "FilterBar",
+          "desc": "Barra filtri dinamica con operatori per tipo colonna, filtro avanzato, ordinamento, raggruppamento e page size."
+        }
       },
       "uiComponents": {
         "title": "UI Components",
-        "designer": { "title": "Designer", "desc": "Dashboard drag-and-drop runtime: datasource, repeater, chart, template HTML, CSS custom. Salvataggio su DB metadata." },
-        "fieldWidgets": { "title": "Field Widgets", "desc": "Libreria di widget per edit form: text, number, date, lookup, upload, code editor, HTML area, dictionary, many-to-many." },
-        "parametricDialog": { "title": "Parametric Dialog", "desc": "Dialog parametrica per edit form, wizard multi-step, dettagli record. Tabs, validazione, azioni custom." },
-        "themes": { "title": "Temi e Stili", "desc": "Tema chiaro/scuro, stili condizionali per riga/cella basati su callback JS, CSS custom per board." }
+        "designer": {
+          "title": "Designer",
+          "desc": "Dashboard drag-and-drop runtime: datasource, repeater, chart, template HTML, CSS custom. Salvataggio su DB metadata."
+        },
+        "fieldWidgets": {
+          "title": "Field Widgets",
+          "desc": "Libreria di widget per edit form: text, number, date, lookup, upload, code editor, HTML area, dictionary, many-to-many."
+        },
+        "parametricDialog": {
+          "title": "Parametric Dialog",
+          "desc": "Dialog parametrica per edit form, wizard multi-step, dettagli record. Tabs, validazione, azioni custom."
+        },
+        "themes": {
+          "title": "Temi e Stili",
+          "desc": "Tema chiaro/scuro, stili condizionali per riga/cella basati su callback JS, CSS custom per board."
+        }
       },
       "businessLogic": {
         "title": "Business Logic",
-        "workflowDesigner": { "title": "Workflow Designer", "desc": "Editor visuale di grafi: nodi, condizioni, azioni, trigger. Runner runtime per esecuzione step-by-step." },
-        "reportDesigner": { "title": "Report Designer", "desc": "Designer integrato Stimulsoft per layout report. Viewer runtime con esportazione PDF, Excel, Word." },
-        "scheduler": { "title": "Scheduler", "desc": "Pianificazione task ricorrenti con cron expression, retry, timeout, logging. Hosted service .NET integrato." },
-        "notifications": { "title": "Notifiche Realtime", "desc": "WebSocket push per notifiche utente. SqlDependency o polling, bell icon con badge, mark as read." }
+        "workflowDesigner": {
+          "title": "Workflow Designer",
+          "desc": "Editor visuale di grafi: nodi, condizioni, azioni, trigger. Runner runtime per esecuzione step-by-step."
+        },
+        "reportDesigner": {
+          "title": "Report Designer",
+          "desc": "Designer integrato Stimulsoft per layout report. Viewer runtime con esportazione PDF, Excel, Word."
+        },
+        "scheduler": {
+          "title": "Scheduler",
+          "desc": "Pianificazione task ricorrenti con cron expression, retry, timeout, logging. Hosted service .NET integrato."
+        },
+        "notifications": {
+          "title": "Notifiche Realtime",
+          "desc": "WebSocket push per notifiche utente. SqlDependency o polling, bell icon con badge, mark as read."
+        }
       },
       "infrastructure": {
         "title": "Infrastruttura",
-        "multiDbms": { "title": "Multi-DBMS", "desc": "SQL Server, MySQL, PostgreSQL, Oracle con provider drop-in. Cambia database con una riga in appsettings.json." },
-        "auth": { "title": "Auth & Sessioni", "desc": "Login cookie-based (client o server-managed), OAuth/OIDC, ruoli, permessi per route, single-session enforcement." },
-        "rag": { "title": "RAG Chatbot", "desc": "Assistente AI che interroga il codebase con indice ibrido BM25 + vector + LoRA cross-encoder. Retrieval + Claude LLM." },
-        "i18n": { "title": "Traduzioni", "desc": "Interfaccia multilingua (i18n) + traduzione dati per record/campo. Supporto 5 lingue out-of-the-box." }
+        "multiDbms": {
+          "title": "Multi-DBMS",
+          "desc": "SQL Server, MySQL, PostgreSQL, Oracle con provider drop-in. Cambia database con una riga in appsettings.json."
+        },
+        "auth": {
+          "title": "Auth & Sessioni",
+          "desc": "Login cookie-based (client o server-managed), OAuth/OIDC, ruoli, permessi per route, single-session enforcement."
+        },
+        "rag": {
+          "title": "RAG Chatbot",
+          "desc": "Assistente AI che interroga il codebase con indice ibrido BM25 + vector + LoRA cross-encoder. Retrieval + Claude LLM."
+        },
+        "i18n": {
+          "title": "Traduzioni",
+          "desc": "Interfaccia multilingua (i18n) + traduzione dati per record/campo. Supporto 5 lingue out-of-the-box."
+        }
       }
     }
   },
@@ -116,7 +164,12 @@
     "perYear": "/ anno",
     "ribbonRecommended": "Consigliato",
     "fingerprintsIncluded": "fingerprint incluso",
-    "fingerprintsIncludedMulti": "fingerprint inclusi (1 dev + 4 deployment)",
+    "fingerprintsIncludedMulti": "fingerprint inclusi (dev + deployment)",
+    "contactForPurchase": "Contattaci per acquistare",
+    "comingSoon": {
+      "title": "Pagamenti online in attivazione",
+      "body": "I pagamenti con carta/PayPal saranno attivi a breve. Nel frattempo puoi scriverci a <a href=\"mailto:{{email}}\">{{email}}</a> per acquistare la licenza: ti rispondiamo entro 24h lavorative con le istruzioni di pagamento."
+    },
     "dev": {
       "label": "Developer",
       "desc": "Per singolo sviluppatore o progetti personali / interni. Tutto il core del framework, senza feature premium.",

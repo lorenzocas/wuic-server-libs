@@ -82,31 +82,79 @@
     "categories": {
       "dataLayer": {
         "title": "Daten-Schicht",
-        "dataSource": { "title": "DataSource", "desc": "Orchestriert Datenabruf, Filter, Paging und Sortierung. Verbindet sich mit einer Metadaten-Route und versorgt die Repeater." },
-        "dataRepeater": { "title": "DataRepeater", "desc": "Rendert Daten in visuellen Archetypen: Liste, Tabelle, Spreadsheet, Kanban, Baum, Carousel, Karte, Kalender, Diagramm." },
-        "crud": { "title": "Automatisches CRUD", "desc": "Insert, Update, Delete aus Metadaten generiert. Validierung, Pflichtfelder, Lookup und Suggest konfigurierbar ohne Code." },
-        "filterBar": { "title": "FilterBar", "desc": "Dynamische Filterleiste mit Operatoren pro Spaltentyp, erweiterter Filter, Sortierung, Gruppierung und Seitengröße." }
+        "dataSource": {
+          "title": "DataSource",
+          "desc": "Orchestriert Datenabruf, Filter, Paging und Sortierung. Verbindet sich mit einer Metadaten-Route und versorgt die Repeater."
+        },
+        "dataRepeater": {
+          "title": "DataRepeater",
+          "desc": "Rendert Daten in visuellen Archetypen: Liste, Tabelle, Spreadsheet, Kanban, Baum, Carousel, Karte, Kalender, Diagramm."
+        },
+        "crud": {
+          "title": "Automatisches CRUD",
+          "desc": "Insert, Update, Delete aus Metadaten generiert. Validierung, Pflichtfelder, Lookup und Suggest konfigurierbar ohne Code."
+        },
+        "filterBar": {
+          "title": "FilterBar",
+          "desc": "Dynamische Filterleiste mit Operatoren pro Spaltentyp, erweiterter Filter, Sortierung, Gruppierung und Seitengröße."
+        }
       },
       "uiComponents": {
         "title": "UI-Komponenten",
-        "designer": { "title": "Designer", "desc": "Runtime-Drag-and-drop-Dashboard: Datasource, Repeater, Diagramm, HTML-Templates, eigenes CSS. Speicherung in Metadaten-DB." },
-        "fieldWidgets": { "title": "Feld-Widgets", "desc": "Widget-Bibliothek für Bearbeitungsformulare: text, number, date, lookup, upload, code editor, HTML area, dictionary, many-to-many." },
-        "parametricDialog": { "title": "Parametrischer Dialog", "desc": "Parametrischer Dialog für Bearbeitungsformulare, mehrstufige Wizards, Datensatzdetails. Tabs, Validierung, eigene Aktionen." },
-        "themes": { "title": "Themes und Styles", "desc": "Hell/Dunkel-Theme, bedingte Zeilen-/Zellen-Stile basierend auf JS-Callbacks, eigenes CSS pro Board." }
+        "designer": {
+          "title": "Designer",
+          "desc": "Runtime-Drag-and-drop-Dashboard: Datasource, Repeater, Diagramm, HTML-Templates, eigenes CSS. Speicherung in Metadaten-DB."
+        },
+        "fieldWidgets": {
+          "title": "Feld-Widgets",
+          "desc": "Widget-Bibliothek für Bearbeitungsformulare: text, number, date, lookup, upload, code editor, HTML area, dictionary, many-to-many."
+        },
+        "parametricDialog": {
+          "title": "Parametrischer Dialog",
+          "desc": "Parametrischer Dialog für Bearbeitungsformulare, mehrstufige Wizards, Datensatzdetails. Tabs, Validierung, eigene Aktionen."
+        },
+        "themes": {
+          "title": "Themes und Styles",
+          "desc": "Hell/Dunkel-Theme, bedingte Zeilen-/Zellen-Stile basierend auf JS-Callbacks, eigenes CSS pro Board."
+        }
       },
       "businessLogic": {
         "title": "Business-Logik",
-        "workflowDesigner": { "title": "Workflow-Designer", "desc": "Visueller Grapheneditor: Knoten, Bedingungen, Aktionen, Trigger. Runtime-Runner für schrittweise Ausführung." },
-        "reportDesigner": { "title": "Report-Designer", "desc": "Integrierter Stimulsoft-Designer für Berichts-Layouts. Runtime-Viewer mit Export als PDF, Excel, Word." },
-        "scheduler": { "title": "Scheduler", "desc": "Planung wiederkehrender Tasks mit Cron-Ausdrücken, Retry, Timeout, Logging. Integrierter .NET Hosted Service." },
-        "notifications": { "title": "Echtzeit-Benachrichtigungen", "desc": "WebSocket-Push für Benutzerbenachrichtigungen. SqlDependency oder Polling, Glocken-Icon mit Badge, Mark as Read." }
+        "workflowDesigner": {
+          "title": "Workflow-Designer",
+          "desc": "Visueller Grapheneditor: Knoten, Bedingungen, Aktionen, Trigger. Runtime-Runner für schrittweise Ausführung."
+        },
+        "reportDesigner": {
+          "title": "Report-Designer",
+          "desc": "Integrierter Stimulsoft-Designer für Berichts-Layouts. Runtime-Viewer mit Export als PDF, Excel, Word."
+        },
+        "scheduler": {
+          "title": "Scheduler",
+          "desc": "Planung wiederkehrender Tasks mit Cron-Ausdrücken, Retry, Timeout, Logging. Integrierter .NET Hosted Service."
+        },
+        "notifications": {
+          "title": "Echtzeit-Benachrichtigungen",
+          "desc": "WebSocket-Push für Benutzerbenachrichtigungen. SqlDependency oder Polling, Glocken-Icon mit Badge, Mark as Read."
+        }
       },
       "infrastructure": {
         "title": "Infrastruktur",
-        "multiDbms": { "title": "Multi-DBMS", "desc": "SQL Server, MySQL, PostgreSQL, Oracle per Drop-in-Provider. Datenbankwechsel mit einer Zeile in appsettings.json." },
-        "auth": { "title": "Auth & Sessions", "desc": "Cookie-basiertes Login (client- oder server-managed), OAuth/OIDC, Rollen, Route-Berechtigungen, Single-Session-Enforcement." },
-        "rag": { "title": "RAG-Chatbot", "desc": "KI-Assistent, der Code über hybriden BM25 + Vektor + LoRA-Cross-Encoder-Index abfragt. Retrieval + Claude LLM." },
-        "i18n": { "title": "Übersetzungen", "desc": "Mehrsprachige Oberfläche (i18n) + Datenübersetzung pro Datensatz/Feld. 5 Sprachen out-of-the-box." }
+        "multiDbms": {
+          "title": "Multi-DBMS",
+          "desc": "SQL Server, MySQL, PostgreSQL, Oracle per Drop-in-Provider. Datenbankwechsel mit einer Zeile in appsettings.json."
+        },
+        "auth": {
+          "title": "Auth & Sessions",
+          "desc": "Cookie-basiertes Login (client- oder server-managed), OAuth/OIDC, Rollen, Route-Berechtigungen, Single-Session-Enforcement."
+        },
+        "rag": {
+          "title": "RAG-Chatbot",
+          "desc": "KI-Assistent, der Code über hybriden BM25 + Vektor + LoRA-Cross-Encoder-Index abfragt. Retrieval + Claude LLM."
+        },
+        "i18n": {
+          "title": "Übersetzungen",
+          "desc": "Mehrsprachige Oberfläche (i18n) + Datenübersetzung pro Datensatz/Feld. 5 Sprachen out-of-the-box."
+        }
       }
     }
   },
@@ -116,7 +164,12 @@
     "perYear": "/ Jahr",
     "ribbonRecommended": "Empfohlen",
     "fingerprintsIncluded": "Fingerprint enthalten",
-    "fingerprintsIncludedMulti": "Fingerprints enthalten (1 Dev + 4 Deployment)",
+    "fingerprintsIncludedMulti": "Fingerprints enthalten (Dev + Deployment)",
+    "contactForPurchase": "Kontaktieren Sie uns zum Kauf",
+    "comingSoon": {
+      "title": "Online-Zahlungen in Kürze verfügbar",
+      "body": "Karten- / PayPal-Zahlungen werden in Kürze aktiviert. Schreiben Sie uns in der Zwischenzeit an <a href=\"mailto:{{email}}\">{{email}}</a>, um eine Lizenz zu erwerben: Wir antworten innerhalb von 24 Geschäftsstunden mit den Zahlungsanweisungen."
+    },
     "dev": {
       "label": "Developer",
       "desc": "Für Einzelentwickler oder persönliche/interne Projekte. Der gesamte Framework-Kern ohne Premium-Funktionen.",

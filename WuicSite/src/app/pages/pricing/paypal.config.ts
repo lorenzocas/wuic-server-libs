@@ -1,9 +1,12 @@
+import { environment } from '../../../environments/environment';
+
 /**
  * PayPal integration config.
  *
- * Replace `CLIENT_ID` with the production Client ID from your PayPal Business
- * Developer Dashboard (https://developer.paypal.com/dashboard/applications/live).
- * For testing, set it to a Sandbox Client ID and switch `MODE` to `'sandbox'`.
+ * Values are pulled from `environment.ts` (dev/sandbox) or
+ * `environment.prod.ts` (production, swapped in by angular.json
+ * `fileReplacements` when building with --configuration production, which is
+ * the default for `ng build`).
  *
  * The Client ID is a PUBLIC identifier — safe to expose in the frontend bundle.
  * The Client SECRET must NEVER be placed here (server-only).
@@ -14,17 +17,17 @@
  * fraud-proofing switch to server-side order creation via PayPal Orders v2 API.
  */
 export const PAYPAL_CONFIG = {
-  /** Set to 'sandbox' for testing, 'production' for live */
-  MODE: 'sandbox' as 'sandbox' | 'production',
+  /** 'sandbox' during dev/testing, 'production' in the deployed build */
+  MODE: environment.paypal.mode,
 
-  /** PayPal Business Client ID — replace with your real one */
-  CLIENT_ID: 'REPLACE_WITH_PAYPAL_CLIENT_ID',
+  /** PayPal Business Client ID (sandbox or live, depending on build target) */
+  CLIENT_ID: environment.paypal.clientId,
 
   /** ISO currency code */
-  CURRENCY: 'EUR' as const,
+  CURRENCY: environment.paypal.currency,
 
   /** Email where license requests are sent after successful payment */
-  LICENSE_EMAIL: 'licenses@wuic-framework.com' as const,
+  LICENSE_EMAIL: environment.licenseEmail,
 };
 
 /** Product catalog — prices match /pricing page and license-issue.ps1 pricing rules. */

@@ -3,6 +3,18 @@
     <h1 class="section-title">{{ 'pricing.pageTitle' | translate }}</h1>
     <p class="section-subtitle">{{ 'pricing.pageSubtitle' | translate }}</p>
 
+    @if (!paypalAvailable) {
+      <p-message severity="info" styleClass="paypal-unavailable-banner">
+        <div class="paypal-unavailable-content">
+          <i class="pi pi-info-circle"></i>
+          <div>
+            <strong>{{ 'pricing.comingSoon.title' | translate }}</strong>
+            <p [innerHTML]="'pricing.comingSoon.body' | translate:{ email: contactEmail }"></p>
+          </div>
+        </div>
+      </p-message>
+    }
+
     <div class="tier-grid">
       <p-card styleClass="tier-card tier-card-dev">
         <div class="tier-header">
@@ -31,8 +43,14 @@
         </ul>
 
         <div class="tier-cta tier-cta-stack">
-          <p-button [label]="'pricing.dev.buy' | translate" icon="pi pi-shopping-cart" severity="secondary"
-                    (onClick)="openPurchase('DEV')"></p-button>
+          @if (paypalAvailable) {
+            <p-button [label]="'pricing.dev.buy' | translate" icon="pi pi-shopping-cart" severity="secondary"
+                      (onClick)="openPurchase('DEV')"></p-button>
+          } @else {
+            <a [href]="buildContactMailto('DEV')" class="tier-cta-fallback">
+              <p-button [label]="'pricing.contactForPurchase' | translate" icon="pi pi-envelope" severity="secondary"></p-button>
+            </a>
+          }
           <a routerLink="/downloads" class="tier-cta-secondary">
             <p-button [label]="'pricing.tryFree' | translate" icon="pi pi-download" severity="secondary" [text]="true" size="small"></p-button>
           </a>
@@ -68,8 +86,14 @@
         </ul>
 
         <div class="tier-cta tier-cta-stack">
-          <p-button [label]="'pricing.pro.buy' | translate" icon="pi pi-shopping-cart"
-                    (onClick)="openPurchase('PRO')"></p-button>
+          @if (paypalAvailable) {
+            <p-button [label]="'pricing.pro.buy' | translate" icon="pi pi-shopping-cart"
+                      (onClick)="openPurchase('PRO')"></p-button>
+          } @else {
+            <a [href]="buildContactMailto('PRO')" class="tier-cta-fallback">
+              <p-button [label]="'pricing.contactForPurchase' | translate" icon="pi pi-envelope"></p-button>
+            </a>
+          }
           <a routerLink="/downloads" class="tier-cta-secondary">
             <p-button [label]="'pricing.tryFree' | translate" icon="pi pi-download" severity="secondary" [text]="true" size="small"></p-button>
           </a>
@@ -90,10 +114,16 @@
         </ul>
         <p class="maintenance-note">{{ 'pricing.maintenance.note' | translate }}</p>
         <div class="maintenance-actions">
-          <p-button [label]="'pricing.maintenance.buyDev' | translate" icon="pi pi-shopping-cart" severity="secondary" size="small"
-                    (onClick)="openPurchase('DEV_EXTENSION')"></p-button>
-          <p-button [label]="'pricing.maintenance.buyPro' | translate" icon="pi pi-shopping-cart" size="small"
-                    (onClick)="openPurchase('PRO_EXTENSION')"></p-button>
+          @if (paypalAvailable) {
+            <p-button [label]="'pricing.maintenance.buyDev' | translate" icon="pi pi-shopping-cart" severity="secondary" size="small"
+                      (onClick)="openPurchase('DEV_EXTENSION')"></p-button>
+            <p-button [label]="'pricing.maintenance.buyPro' | translate" icon="pi pi-shopping-cart" size="small"
+                      (onClick)="openPurchase('PRO_EXTENSION')"></p-button>
+          } @else {
+            <a [href]="buildContactMailto('DEV_EXTENSION')" class="tier-cta-fallback">
+              <p-button [label]="'pricing.contactForPurchase' | translate" icon="pi pi-envelope" severity="secondary" size="small"></p-button>
+            </a>
+          }
         </div>
       </div>
     </div>
@@ -107,8 +137,14 @@
         <p [innerHTML]="'pricing.fingerprints.p1' | translate"></p>
         <p class="fingerprints-example" [innerHTML]="'pricing.fingerprints.example' | translate"></p>
         <div class="fingerprints-action">
-          <p-button [label]="'pricing.fingerprints.buy' | translate" icon="pi pi-plus" size="small"
-                    (onClick)="openPurchase('EXTRA_FINGERPRINT')"></p-button>
+          @if (paypalAvailable) {
+            <p-button [label]="'pricing.fingerprints.buy' | translate" icon="pi pi-plus" size="small"
+                      (onClick)="openPurchase('EXTRA_FINGERPRINT')"></p-button>
+          } @else {
+            <a [href]="buildContactMailto('EXTRA_FINGERPRINT')" class="tier-cta-fallback">
+              <p-button [label]="'pricing.contactForPurchase' | translate" icon="pi pi-envelope" size="small"></p-button>
+            </a>
+          }
         </div>
       </div>
     </div>

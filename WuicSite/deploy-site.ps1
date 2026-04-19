@@ -31,8 +31,10 @@ param(
     [string]$User = 'Administrator',
     [string]$SitePath = 'C:\inetpub\wwwroot\WuicSite',
     [string]$ZipSourceDir = '',
+    [string]$AppPoolName = 'WuicSitePool',
     [switch]$SkipBuild,
-    [switch]$SkipZip
+    [switch]$SkipZip,
+    [switch]$SkipAppPoolCycle
 )
 
 $ErrorActionPreference = 'Stop'
@@ -46,6 +48,42 @@ if (-not $ZipSourceDir) {
 $distDir = Join-Path $scriptDir 'dist\WuicSite\browser'
 
 function Write-Step($msg) { Write-Host "`n--- $msg" -ForegroundColor Cyan }
+
+function Invoke-RemotePwsh {
+    <#
+    .SYNOPSIS
+        Run a PowerShell snippet on the remote IIS server over SSH.
+        Encodes the snippet as Base64 (UTF-16LE) so quoting/escaping is neutralised.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$RemoteUserHost,
+        [Parameter(Mandatory = $true)][string]$Script
+    )
+    $bytes = [System.Text.Encoding]::Unicode.GetBytes($Script)
+    $encoded = [Convert]::ToBase64String($bytes)
+    # Pipe ssh stdout straight to Out-Host so it doesn't contaminate the
+    # function's return value — otherwise $code would capture remote output + exit code together.
+    & ssh $RemoteUserHost "powershell -NoProfile -NonInteractive -EncodedCommand $encoded" | Out-Host
+    return $LASTEXITCODE
+}
+
+function Get-HealthCheckUrl {
+    <#
+    .SYNOPSIS
+        Pick a URL that actually matches an IIS host-header binding.
+        Passing a bare IP when IIS uses host headers returns the wrong site (or 404).
+    #>
+    param([string]$Target)
+    # If the caller passed a hostname (not a dotted IPv4) use it as-is.
+    if ($Target -match '^\d+\.\d+\.\d+\.\d+$') {
+        # IP → map the two known production deployments by IP.
+        switch ($Target) {
+            '194.163.167.71' { return 'https://wuic-framework.com/' }
+            default { return "https://$Target/" }
+        }
+    }
+    return "https://$Target/"
+}
 
 # ── step 1: build ────────────────────────────────────────────────────
 
@@ -68,8 +106,32 @@ if (-not (Test-Path $distDir)) {
 
 Write-Step "2/3 Upload sito promozionale -> $Server"
 
-$remoteSite = "${User}@${Server}:${SitePath}"
+$remoteUserHost = "${User}@${Server}"
+$remoteSite = "${remoteUserHost}:${SitePath}"
 Write-Host "  scp $distDir/* -> $remoteSite"
+
+# Stop IIS app pool BEFORE the upload so files aren't locked by the worker process
+# and no partial requests can trigger rapid-fail protection while files are in flux.
+if (-not $SkipAppPoolCycle) {
+    Write-Host "  Stop-WebAppPool $AppPoolName (pre-upload)" -ForegroundColor DarkGray
+    $stopScript = @"
+Import-Module WebAdministration
+`$pool = Get-Item "IIS:\AppPools\$AppPoolName" -ErrorAction SilentlyContinue
+if (`$null -eq `$pool) { Write-Host "[warn] App pool $AppPoolName non trovato, skip stop" ; exit 0 }
+if (`$pool.State -ne 'Stopped') {
+    Stop-WebAppPool -Name '$AppPoolName'
+    # wait up to 10s for worker to exit
+    for (`$i = 0; `$i -lt 20; `$i++) {
+        Start-Sleep -Milliseconds 500
+        `$s = (Get-Item "IIS:\AppPools\$AppPoolName").State
+        if (`$s -eq 'Stopped') { break }
+    }
+}
+Write-Host "    pool state: `$((Get-Item 'IIS:\AppPools\$AppPoolName').State)"
+"@
+    $code = Invoke-RemotePwsh -RemoteUserHost $remoteUserHost -Script $stopScript
+    if ($code -ne 0) { Write-Host "  [warn] stop app pool exit=$code (continuo)" -ForegroundColor Yellow }
+}
 
 # Use robocopy over UNC if on same Windows network, else scp
 $uncPath = "\\${Server}\$($SitePath -replace ':', '$')"
@@ -80,9 +142,52 @@ if (Test-Path $uncPath -ErrorAction SilentlyContinue) {
 } else {
     Write-Host "  Modalita' SCP" -ForegroundColor DarkGray
     scp -r "${distDir}/*" "${remoteSite}/"
-    if ($LASTEXITCODE -ne 0) { throw "scp sito fallito" }
+    if ($LASTEXITCODE -ne 0) {
+        # try to restart pool even on failure so we don't leave the site down
+        if (-not $SkipAppPoolCycle) {
+            Write-Host "  [warn] scp fallito, tento comunque restart pool" -ForegroundColor Yellow
+            Invoke-RemotePwsh -RemoteUserHost $remoteUserHost -Script "Import-Module WebAdministration; Start-WebAppPool -Name '$AppPoolName'" | Out-Null
+        }
+        throw "scp sito fallito"
+    }
 }
 Write-Host "  [ok] Sito caricato" -ForegroundColor Green
+
+# Restart app pool AFTER the upload and verify the site responds.
+if (-not $SkipAppPoolCycle) {
+    Write-Host "  Start-WebAppPool $AppPoolName (post-upload)" -ForegroundColor DarkGray
+    $startScript = @"
+Import-Module WebAdministration
+Start-WebAppPool -Name '$AppPoolName'
+for (`$i = 0; `$i -lt 20; `$i++) {
+    Start-Sleep -Milliseconds 500
+    `$s = (Get-Item "IIS:\AppPools\$AppPoolName").State
+    if (`$s -eq 'Started') { break }
+}
+Write-Host "    pool state: `$((Get-Item 'IIS:\AppPools\$AppPoolName').State)"
+"@
+    $code = Invoke-RemotePwsh -RemoteUserHost $remoteUserHost -Script $startScript
+    if ($code -ne 0) { Write-Host "  [warn] start app pool exit=$code" -ForegroundColor Yellow }
+
+    # Health check: hit the site via its real public hostname (IIS uses host-header bindings,
+    # so hitting the bare IP can return the wrong site or a 404).
+    $healthUrl = Get-HealthCheckUrl -Target $Server
+    Write-Host "  Health check $healthUrl" -ForegroundColor DarkGray
+    $ok = $false
+    for ($i = 0; $i -lt 10; $i++) {
+        try {
+            $resp = Invoke-WebRequest -Uri $healthUrl -Method Head -SkipCertificateCheck -TimeoutSec 10 -ErrorAction Stop
+            if ($resp.StatusCode -eq 200) { $ok = $true ; break }
+        } catch {
+            Start-Sleep -Milliseconds 750
+        }
+    }
+    if ($ok) {
+        Write-Host "  [ok] Health check HTTP 200 ($healthUrl)" -ForegroundColor Green
+    } else {
+        Write-Host "  [warn] Health check fallito dopo retry su $healthUrl - controlla IIS manualmente" -ForegroundColor Yellow
+    }
+}
 
 # ── step 3: upload ZIP artifacts ─────────────────────────────────────
 

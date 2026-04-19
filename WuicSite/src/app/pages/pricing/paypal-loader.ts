@@ -52,5 +52,6 @@ export function loadPaypalSdk(): Promise<any> {
 }
 
 export function isPaypalConfigured(): boolean {
-  return !!PAYPAL_CONFIG.CLIENT_ID && !PAYPAL_CONFIG.CLIENT_ID.startsWith('REPLACE_');
+  const id = PAYPAL_CONFIG.CLIENT_ID ?? '';
+  return !!id && !id.startsWith('REPLACE_') && id.trim().length > 10;
 }
