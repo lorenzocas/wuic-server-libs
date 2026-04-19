@@ -123,6 +123,14 @@
     background: linear-gradient(135deg, rgba(8, 18, 33, 0.85), rgba(22, 41, 74, 0.8));
 }
 
+// Variante "wide" della first-run-card per il layout a 2 colonne. Aggiunta
+// quando il form ha abbastanza campi da beneficiare dell'espansione oriz.
+// (es. RAG opzioni + admin + DB connection). Su viewport strette collassa
+// a 1 colonna via media query in `.first-run-grid`.
+.first-run-card-wide {
+    width: min(1180px, 100%) !important;
+}
+
 .first-run-card {
     width: min(860px, 100%);
     // Cap the card to the viewport (minus the overlay's 24px top/bottom padding) and make
@@ -185,6 +193,57 @@
     font-size: 0.95rem;
     background: var(--p-surface-0);
     color: var(--p-text-color);
+}
+
+// La textarea condivide lo stile input ma rimuove l'altezza fissa e usa
+// min-height per crescere col contenuto; utile per AnthropicApiKey che
+// puo' essere incollata su piu' righe.
+.first-run-textarea {
+    height: auto;
+    min-height: 56px;
+    resize: vertical;
+    font-family: var(--p-font-family);
+    line-height: 1.4;
+}
+
+// Grid 2 colonne per il form. Si auto-adatta: su viewport < 860px collassa
+// a 1 colonna (coprendo tablet/mobile) mantenendo leggibilita'.
+.first-run-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 28px;
+    row-gap: 0;
+
+    @media (max-width: 860px) {
+        grid-template-columns: 1fr;
+    }
+}
+
+.first-run-col {
+    display: flex;
+    flex-direction: column;
+    min-width: 0; // evita overflow dei child piu' larghi del container
+}
+
+// Header visivo tra sezioni nella colonna dx (admin vs RAG). Sul mobile la
+// prima colonna termina "naturalmente" e questa diventa il separatore
+// logico del block successivo.
+.first-run-section-title {
+    margin-top: 4px;
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.8;
+    border-bottom: 1px solid var(--p-content-border-color);
+}
+
+// Il titolo della sezione RAG serve anche da separatore rispetto al blocco
+// admin sopra — gli diamo un po' piu' di respiro in alto.
+.first-run-section-title-rag {
+    margin-top: 18px;
 }
 
 .first-run-input:focus {

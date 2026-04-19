@@ -100,7 +100,23 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     metadataDbName: 'metadataDB',
     adminUsername: 'admin',
     adminPassword: '',
-    scaffoldExistingDatabase: false
+    scaffoldExistingDatabase: false,
+    // ── RAG Chatbot (opzionale) ──────────────────────────────────────
+    // Se `installRag = true` il backend configure_wuic invoca
+    // `scripts/rag-setup.ps1` al termine dell'install DB/metadata.
+    // Lo script fa winget install Python 3.12 (se manca), crea .venv,
+    // installa torch + dipendenze + server deps, e avvia il server
+    // FastAPI su :8765. Ogni fase viene riflessa nel
+    // FirstRunProgressTracker (quindi la progress bar mostra i 4 step
+    // extra oltre a quelli dell'install base).
+    installRag: false,
+    // Se `useCuda = true` il ps1 riceve `-CudaVersion 12.1` (default
+    // stabile per torch). Installa torch GPU (~2.5 GB) invece della
+    // versione CPU (~200 MB). Valido solo con GPU NVIDIA + driver CUDA.
+    useCuda: false,
+    // API key Anthropic passata al server RAG come env var. Senza, il
+    // server usa solo modalita' "retrieval" (ricerca snippet, no LLM).
+    anthropicApiKey: ''
   };
   firstRunDataDbOptions: { label: string; value: string }[] = [];
   private firstRunRealPath = '';
@@ -535,7 +551,14 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
         // tutorial bootstrap script already ships fully populated metadata tables).
         scaffoldExistingDatabase: (!isTutorialMode && this.firstRunForm.scaffoldExistingDatabase) ? 'true' : 'false',
         adminUsername,
-        adminPassword
+        adminPassword,
+        // Opzione RAG: il backend, se `installRag === 'true'`, esegue
+        // scripts/rag-setup.ps1 (winget Python + venv + deps + avvio server)
+        // dopo l'install DB/metadata, riflettendo le 4 fasi nel progress
+        // tracker. `useCuda` e `anthropicApiKey` passati come flag al ps1.
+        installRag: this.firstRunForm.installRag ? 'true' : 'false',
+        useCuda: this.firstRunForm.useCuda ? 'true' : 'false',
+        anthropicApiKey: (this.firstRunForm.anthropicApiKey || '').trim()
       }));
 
       this.showFirstRunInstall = false;

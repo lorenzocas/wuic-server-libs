@@ -6,114 +6,175 @@
 
 @if (showFirstRunInstall) {
 <div class="first-run-overlay">
-    <div class="first-run-card">
+    <div class="first-run-card first-run-card-wide">
         <div class="first-run-title">Configurazione iniziale progetto</div>
         <div class="first-run-subtitle">Seleziona DBMS, connessione dati e nome database metadati.</div>
 
-        @if (firstRunSetupModeOptions.length > 1) {
-        <div class="first-run-field">
-            <label for="first-run-mode">Modalità setup</label>
-            <p-select [options]="firstRunSetupModeOptions" optionLabel="label" optionValue="value"
-                [ngModel]="firstRunForm.setupMode" (ngModelChange)="onFirstRunSetupModeChanged($event)"
-                [disabled]="firstRunInstalling" [style]="{ width: '100%' }" inputId="first-run-mode"></p-select>
-        </div>
-        }
+        <!-- Grid 2 colonne: sx = connessione + scaffold / dx = admin + RAG.
+             Su viewport stretti (< 720px) il grid collassa a 1 colonna
+             via media query in app.component.scss -> .first-run-grid. -->
+        <div class="first-run-grid">
 
-        <div class="first-run-field">
-            <label for="first-run-dbms">DBMS</label>
-            <p-select [options]="firstRunDbmsOptions" optionLabel="label" optionValue="value"
-                [ngModel]="firstRunForm.dbms" (ngModelChange)="onFirstRunDbmsChanged($event)"
-                [disabled]="firstRunInstalling" [style]="{ width: '100%' }" inputId="first-run-dbms"></p-select>
-        </div>
+            <!-- ── COLONNA SINISTRA: Database + Setup ──────────────────── -->
+            <div class="first-run-col">
 
-        @if (firstRunForm.setupMode === 'tutorial') {
-        <div class="first-run-field first-run-checkbox-row">
-            <label>
-                <input type="checkbox" [ngModel]="firstRunForm.createTutorialIfMissing"
-                    (ngModelChange)="firstRunForm.createTutorialIfMissing = !!$event" [disabled]="firstRunInstalling" />
-                Crea tutorial se manca
-            </label>
-        </div>
-        }
+                @if (firstRunSetupModeOptions.length > 1) {
+                <div class="first-run-field">
+                    <label for="first-run-mode">Modalità setup</label>
+                    <p-select [options]="firstRunSetupModeOptions" optionLabel="label" optionValue="value"
+                        [ngModel]="firstRunForm.setupMode" (ngModelChange)="onFirstRunSetupModeChanged($event)"
+                        [disabled]="firstRunInstalling" [style]="{ width: '100%' }" inputId="first-run-mode"></p-select>
+                </div>
+                }
 
-        <div class="first-run-field">
-            <label for="first-run-datasql">DataSQLConnection</label>
-            <input id="first-run-datasql" class="first-run-input" type="text"
-                [ngModel]="firstRunForm.dataConnectionString" (ngModelChange)="onFirstRunConnectionChanged($event)"
-                [disabled]="firstRunInstalling"
-                placeholder="es. data source=localhost\sqlexpress;User ID=sa;Password=...;initial catalog=WideWorldImporters" />
-        </div>
+                <div class="first-run-field">
+                    <label for="first-run-dbms">DBMS</label>
+                    <p-select [options]="firstRunDbmsOptions" optionLabel="label" optionValue="value"
+                        [ngModel]="firstRunForm.dbms" (ngModelChange)="onFirstRunDbmsChanged($event)"
+                        [disabled]="firstRunInstalling" [style]="{ width: '100%' }" inputId="first-run-dbms"></p-select>
+                </div>
 
-        <div class="first-run-field">
-            <p-button label="Test connessione e carica DB" severity="secondary" [outlined]="true"
-                [loading]="firstRunConnectionTesting"
-                [disabled]="firstRunInstalling || firstRunLoading || !firstRunForm.dataConnectionString"
-                (onClick)="testFirstRunConnectionAndLoadDatabases()"></p-button>
-        </div>
+                @if (firstRunForm.setupMode === 'tutorial') {
+                <div class="first-run-field first-run-checkbox-row">
+                    <label>
+                        <input type="checkbox" [ngModel]="firstRunForm.createTutorialIfMissing"
+                            (ngModelChange)="firstRunForm.createTutorialIfMissing = !!$event" [disabled]="firstRunInstalling" />
+                        Crea tutorial se manca
+                    </label>
+                </div>
+                }
 
-        @if (firstRunForm.setupMode === 'tutorial') {
-        <div class="first-run-field">
-            <label for="first-run-datadb">Database dati tutorial</label>
-            <input id="first-run-datadb" class="first-run-input" type="text"
-                [ngModel]="firstRunForm.tutorialDataDbName"
-                (ngModelChange)="firstRunForm.tutorialDataDbName = $event; firstRunForm.dataDbName = $event"
-                [disabled]="firstRunInstalling || !firstRunConnectionValid"
-                placeholder="WideWorldImporters" />
-        </div>
-        } @else {
-        <div class="first-run-field">
-            <label for="first-run-datadb">Database dati</label>
-            <p-select [options]="firstRunDataDbOptions" optionLabel="label" optionValue="value"
-                [ngModel]="firstRunForm.dataDbName" (ngModelChange)="firstRunForm.dataDbName = $event"
-                [disabled]="firstRunInstalling || firstRunDbLoading || !firstRunConnectionValid" [filter]="true"
-                [editable]="true" [style]="{ width: '100%' }" inputId="first-run-datadb"
-                placeholder="Seleziona o digita database"></p-select>
-            <div style="margin-top: 0.5rem;">
-                <p-button label="Aggiorna elenco DB" severity="secondary" [outlined]="true" size="small"
-                    [loading]="firstRunDbLoading" [disabled]="firstRunInstalling || !firstRunConnectionValid"
-                    (onClick)="testFirstRunConnectionAndLoadDatabases()"></p-button>
+                <div class="first-run-field">
+                    <label for="first-run-datasql">DataSQLConnection</label>
+                    <input id="first-run-datasql" class="first-run-input" type="text"
+                        [ngModel]="firstRunForm.dataConnectionString" (ngModelChange)="onFirstRunConnectionChanged($event)"
+                        [disabled]="firstRunInstalling"
+                        placeholder="es. data source=localhost\sqlexpress;User ID=sa;Password=...;initial catalog=WideWorldImporters" />
+                </div>
+
+                <div class="first-run-field">
+                    <p-button label="Test connessione e carica DB" severity="secondary" [outlined]="true"
+                        [loading]="firstRunConnectionTesting"
+                        [disabled]="firstRunInstalling || firstRunLoading || !firstRunForm.dataConnectionString"
+                        (onClick)="testFirstRunConnectionAndLoadDatabases()"></p-button>
+                </div>
+
+                @if (firstRunForm.setupMode === 'tutorial') {
+                <div class="first-run-field">
+                    <label for="first-run-datadb">Database dati tutorial</label>
+                    <input id="first-run-datadb" class="first-run-input" type="text"
+                        [ngModel]="firstRunForm.tutorialDataDbName"
+                        (ngModelChange)="firstRunForm.tutorialDataDbName = $event; firstRunForm.dataDbName = $event"
+                        [disabled]="firstRunInstalling || !firstRunConnectionValid"
+                        placeholder="WideWorldImporters" />
+                </div>
+                } @else {
+                <div class="first-run-field">
+                    <label for="first-run-datadb">Database dati</label>
+                    <p-select [options]="firstRunDataDbOptions" optionLabel="label" optionValue="value"
+                        [ngModel]="firstRunForm.dataDbName" (ngModelChange)="firstRunForm.dataDbName = $event"
+                        [disabled]="firstRunInstalling || firstRunDbLoading || !firstRunConnectionValid" [filter]="true"
+                        [editable]="true" [style]="{ width: '100%' }" inputId="first-run-datadb"
+                        placeholder="Seleziona o digita database"></p-select>
+                    <div style="margin-top: 0.5rem;">
+                        <p-button label="Aggiorna elenco DB" severity="secondary" [outlined]="true" size="small"
+                            [loading]="firstRunDbLoading" [disabled]="firstRunInstalling || !firstRunConnectionValid"
+                            (onClick)="testFirstRunConnectionAndLoadDatabases()"></p-button>
+                    </div>
+                </div>
+                }
+
+                <div class="first-run-field">
+                    <label for="first-run-metadb">@if (firstRunForm.setupMode === 'tutorial') {Nome DB metadati tutorial} @else {Nome DB metadati}</label>
+                    <input id="first-run-metadb" class="first-run-input" type="text" [ngModel]="firstRunForm.metadataDbName"
+                        (ngModelChange)="firstRunForm.metadataDbName = $event" [disabled]="firstRunInstalling"
+                        placeholder="metadataDB" />
+                </div>
+
+                @if (firstRunForm.setupMode !== 'tutorial') {
+                <div class="first-run-field first-run-checkbox-row">
+                    <label>
+                        <input type="checkbox" [ngModel]="firstRunForm.scaffoldExistingDatabase"
+                            (ngModelChange)="firstRunForm.scaffoldExistingDatabase = !!$event"
+                            [disabled]="firstRunInstalling" />
+                        Esegui scaffold automatico delle tabelle del DB selezionato
+                    </label>
+                    <small style="display:block; margin-top:4px; opacity:0.75; font-size:0.8rem; line-height:1.35;">
+                        Popola <code>_metadati__tabelle</code> / <code>_metadati__colonne</code> al termine dell'installazione.
+                        Operazione potenzialmente lunga su DB con molte tabelle.
+                    </small>
+                </div>
+                }
             </div>
-        </div>
-        }
 
-        <div class="first-run-field">
-            <label for="first-run-metadb">@if (firstRunForm.setupMode === 'tutorial') {Nome DB metadati tutorial} @else {Nome DB metadati}</label>
-            <input id="first-run-metadb" class="first-run-input" type="text" [ngModel]="firstRunForm.metadataDbName"
-                (ngModelChange)="firstRunForm.metadataDbName = $event" [disabled]="firstRunInstalling"
-                placeholder="metadataDB" />
-        </div>
+            <!-- ── COLONNA DESTRA: Admin + RAG ─────────────────────────── -->
+            <div class="first-run-col">
 
-        @if (firstRunForm.setupMode !== 'tutorial') {
-        <div class="first-run-field first-run-checkbox-row">
-            <label>
-                <input type="checkbox" [ngModel]="firstRunForm.scaffoldExistingDatabase"
-                    (ngModelChange)="firstRunForm.scaffoldExistingDatabase = !!$event"
-                    [disabled]="firstRunInstalling" />
-                Esegui scaffold automatico delle tabelle del DB selezionato
-            </label>
-            <small style="display:block; margin-top:4px; opacity:0.75; font-size:0.8rem; line-height:1.35;">
-                Popola <code>_metadati__tabelle</code> / <code>_metadati__colonne</code> al termine dell'installazione.
-                Operazione potenzialmente lunga su DB con molte tabelle.
-            </small>
-        </div>
-        }
+                <div class="first-run-section-title">Utente admin iniziale</div>
 
-        <div class="first-run-field">
-            <label for="first-run-admin-username">Username admin iniziale</label>
-            <input id="first-run-admin-username" class="first-run-input" type="text"
-                [ngModel]="firstRunForm.adminUsername"
-                (ngModelChange)="firstRunForm.adminUsername = $event"
-                [disabled]="firstRunInstalling" autocomplete="off"
-                placeholder="admin" />
-        </div>
+                <div class="first-run-field">
+                    <label for="first-run-admin-username">Username admin iniziale</label>
+                    <input id="first-run-admin-username" class="first-run-input" type="text"
+                        [ngModel]="firstRunForm.adminUsername"
+                        (ngModelChange)="firstRunForm.adminUsername = $event"
+                        [disabled]="firstRunInstalling" autocomplete="off"
+                        placeholder="admin" />
+                </div>
 
-        <div class="first-run-field">
-            <label for="first-run-admin-password">Password admin iniziale</label>
-            <input id="first-run-admin-password" class="first-run-input" type="password"
-                [ngModel]="firstRunForm.adminPassword"
-                (ngModelChange)="firstRunForm.adminPassword = $event"
-                [disabled]="firstRunInstalling" autocomplete="new-password"
-                placeholder="(min 4 caratteri)" />
+                <div class="first-run-field">
+                    <label for="first-run-admin-password">Password admin iniziale</label>
+                    <input id="first-run-admin-password" class="first-run-input" type="password"
+                        [ngModel]="firstRunForm.adminPassword"
+                        (ngModelChange)="firstRunForm.adminPassword = $event"
+                        [disabled]="firstRunInstalling" autocomplete="new-password"
+                        placeholder="(min 4 caratteri)" />
+                </div>
+
+                <div class="first-run-section-title first-run-section-title-rag">RAG Chatbot (opzionale)</div>
+
+                <div class="first-run-field first-run-checkbox-row">
+                    <label>
+                        <input type="checkbox" [ngModel]="firstRunForm.installRag"
+                            (ngModelChange)="firstRunForm.installRag = !!$event"
+                            [disabled]="firstRunInstalling" />
+                        Installa e avvia il server RAG
+                    </label>
+                    <small style="display:block; margin-top:4px; opacity:0.75; font-size:0.8rem; line-height:1.35;">
+                        Esegue al termine dell'install: <code>winget install Python.Python.3.12</code> (se manca),
+                        crea <code>.venv</code>, installa torch + transformers + FastAPI,
+                        avvia il server su <code>:8765</code>. Richiede ~5-10 min + ~2 GB di download.
+                    </small>
+                </div>
+
+                @if (firstRunForm.installRag) {
+                <div class="first-run-field first-run-checkbox-row">
+                    <label>
+                        <input type="checkbox" [ngModel]="firstRunForm.useCuda"
+                            (ngModelChange)="firstRunForm.useCuda = !!$event"
+                            [disabled]="firstRunInstalling" />
+                        Usa CUDA (GPU NVIDIA)
+                    </label>
+                    <small style="display:block; margin-top:4px; opacity:0.75; font-size:0.8rem; line-height:1.35;">
+                        Attiva torch GPU (CUDA 12.1, ~2.5 GB download) invece di CPU (~200 MB).
+                        Richiede una GPU NVIDIA + driver CUDA installati lato sistema.
+                    </small>
+                </div>
+
+                <div class="first-run-field">
+                    <label for="first-run-anthropic-key">Anthropic API Key (opzionale)</label>
+                    <textarea id="first-run-anthropic-key" class="first-run-input first-run-textarea"
+                        [ngModel]="firstRunForm.anthropicApiKey"
+                        (ngModelChange)="firstRunForm.anthropicApiKey = $event"
+                        [disabled]="firstRunInstalling"
+                        rows="2" autocomplete="off"
+                        placeholder="sk-ant-..."></textarea>
+                    <small style="display:block; margin-top:4px; opacity:0.75; font-size:0.8rem; line-height:1.35;">
+                        Senza chiave il server RAG funziona solo in modalità retrieval (ricerca snippet).
+                        Con chiave abilita la chat LLM via Claude.
+                    </small>
+                </div>
+                }
+            </div>
         </div>
 
         @if (firstRunError) {
