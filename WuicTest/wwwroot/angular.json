@@ -45,7 +45,19 @@
               "../../node_modules/primeflex/primeflex.css",
               "assets/styles.scss",
               "../../node_modules/jsuites/dist/jsuites.css",
-              "../../node_modules/jspreadsheet/dist/jspreadsheet.css"
+              "../../node_modules/jspreadsheet/dist/jspreadsheet.css",
+              "../../node_modules/@syncfusion/ej2-base/styles/material.css",
+              "../../node_modules/@syncfusion/ej2-buttons/styles/material.css",
+              "../../node_modules/@syncfusion/ej2-inputs/styles/material.css",
+              "../../node_modules/@syncfusion/ej2-popups/styles/material.css",
+              "../../node_modules/@syncfusion/ej2-lists/styles/material.css",
+              "../../node_modules/@syncfusion/ej2-navigations/styles/material.css",
+              "../../node_modules/@syncfusion/ej2-splitbuttons/styles/material.css",
+              "../../node_modules/@syncfusion/ej2-notifications/styles/material.css",
+              "../../node_modules/@syncfusion/ej2-dropdowns/styles/material.css",
+              "../../node_modules/@syncfusion/ej2-calendars/styles/material.css",
+              "../../node_modules/@syncfusion/ej2-grids/styles/material.css",
+              "../../node_modules/@syncfusion/ej2-spreadsheet/styles/material.css"
             ],
             "scripts": [],
             "stylePreprocessorOptions": {
