@@ -3,13 +3,14 @@ import { Router, RouterOutlet } from '@angular/router';
 import { utility } from './classes/utility';
 import { CommonModule, NgClass, NgComponentOutlet, NgFor, NgIf, NgStyle } from '@angular/common';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
+import { TooltipModule } from 'primeng/tooltip';
 import { SelectModule } from 'primeng/select';
 import { CheckboxModule } from 'primeng/checkbox';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { FormsModule } from '@angular/forms';
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 import { ToastModule } from 'primeng/toast';
 import { ConfirmationService, MessageService } from 'primeng/api';
@@ -29,8 +30,7 @@ import Lara from '@primeuix/themes/lara';
 import Nora from '@primeuix/themes/nora';
 import Material from '@primeuix/themes/material';
 import { updatePrimaryPalette, usePreset } from '@primeuix/styled';
-import { WtoolboxService, MetadataProviderService, GlobalHandler, CustomException, TranslationManagerService, AuthSessionService, getThemeOptions, PRIMARY_PALETTES, ThemeOption } from './wuic-bridges/core';
-import { LicenseFeatureService } from 'wuic-framework-lib-src/service/license-feature.service';
+import { WtoolboxService, MetadataProviderService, GlobalHandler, CustomException, TranslationManagerService, AuthSessionService, getThemeOptions, PRIMARY_PALETTES, ThemeOption, LicenseFeatureService } from './wuic-bridges/core';
 import { ImageWrapperComponent } from './wuic-bridges/ui';
 import { CustomListComponent } from './component/custom-list/custom-list.component';
 
@@ -39,7 +39,7 @@ import { CustomListComponent } from './component/custom-list/custom-list.compone
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, RouterOutlet, NgComponentOutlet, ToggleSwitchModule, SelectModule, CheckboxModule, ProgressBarModule, FormsModule, DialogModule, ButtonModule, TranslateModule, ToastModule, ConfirmDialogModule],
+  imports: [CommonModule, RouterOutlet, NgComponentOutlet, ToggleSwitchModule, SelectModule, CheckboxModule, ProgressBarModule, FormsModule, DialogModule, ButtonModule, TranslateModule, TooltipModule, ToastModule, ConfirmDialogModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
   providers: [MessageService, ConfirmationService, DialogService, GlobalHandler]
@@ -167,8 +167,9 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
   // @ViewChild('spreadsheet') spreadsheet: any;
 
   constructor(public messageService: MessageService, public confirmationService: ConfirmationService, private http: HttpClient, private dialogSrv: DialogService, private translationService: TranslationManagerService, public globalHandler: GlobalHandler, private primeng: PrimeNG,
-    // private notificationRealtime: CrmNotificationRealtimeService, private router: Router, 
-    private injector: Injector
+    // private notificationRealtime: CrmNotificationRealtimeService, private router: Router,
+    private injector: Injector,
+    private translate: TranslateService
   ) {
 
     WtoolboxService.messageNotificationService = messageService;
@@ -381,6 +382,19 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    // First-run translations (bundled, NO backend call) — registrate prima che il
+    // wizard di installazione si mostri. Motivazione: il first-run gira con DB non
+    // ancora inizializzato, quindi TranslationManagerService.loadTranslations()
+    // (che POST-a su MetaService.GetTranslation) fallisce o ritorna vuoto. Per i
+    // testi critici del wizard — tooltip con tempi di setup RAG — bundlamo qui le
+    // traduzioni delle 5 lingue gestite cosi' il pipe `| translate` risolve
+    // comunque, a prescindere dalla disponibilita' del backend.
+    //
+    // `merge=true` (3o argomento di setTranslation) preserva eventuali chiavi gia'
+    // caricate dal backend senza sovrascriverle: se in futuro `firstrun.rag.*` sara'
+    // in DB, quel valore viene mantenuto e prevale su questo bundle.
+    this.registerFirstRunTranslations();
+
     this.busySub?.unsubscribe();
     this.busySub = this.isBusy.subscribe((v) => {
       queueMicrotask(() => { this.busyVisible = !!v; });
@@ -451,6 +465,169 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     queueMicrotask(apply);
     setTimeout(apply, 250);
     setTimeout(apply, 1200);
+  }
+
+  /**
+   * Registra le traduzioni bundle-side per i testi del first-run wizard (e in
+   * particolare i tooltip con i tempi stimati di setup RAG). Si chiama in
+   * ngOnInit, prima che il template risolva i `| translate` pipe.
+   *
+   * Deve contenere le stesse lingue gestite dal framework lato docs/menu: it-IT,
+   * en-US, fr-FR, es-ES, de-DE. Lingue non gestite ricadono sul fallback
+   * `defaultLang` di ngx-translate (impostato da TranslationManagerService).
+   */
+  private registerFirstRunTranslations(): void {
+    const bundles: Record<string, any> = {
+      'it-IT': {
+        firstrun: {
+          rag: {
+            installTooltip:
+              'L\'installazione del RAG parte in BACKGROUND appena finita la creazione DB: puoi loggarti subito e usare il resto dell\'app, ' +
+              'riceverai una notifica nel bell in alto quando il server RAG è pronto (link cliccabile per aprirlo).\n\n' +
+              'Tempi tipici (Python 3.12 già installato, rete ~50-100 Mbps):\n' +
+              '• First run CPU: 4-8 minuti (download torch ~200 MB)\n' +
+              '• First run GPU CUDA: 18-32 minuti (download torch ~2.5 GB)\n' +
+              '• Senza Python sul sistema: +1-3 min per winget install\n' +
+              '• Rerun con venv già presente: <20 sec\n\n' +
+              'Cold start del server dopo setup: ~13 sec.\n' +
+              'Durante il setup ricevi 4 notifiche di progresso + 1 finale (successo o errore).',
+            cudaTooltip:
+              'Download: ~2.5 GB (vs ~200 MB versione CPU)\n' +
+              'Tempo aggiuntivo: +15-25 min su rete standard\n' +
+              'Performance runtime: ~10-20× più veloce su embedding search + rerank.\n\n' +
+              'Richiede: GPU NVIDIA + driver CUDA 12.x installati lato sistema.',
+            apiKeyTooltip:
+              'Senza chiave: modalità retrieval-only (ricerca snippet dal codebase).\n' +
+              'Con chiave: chat LLM con sintesi via Claude.\n\n' +
+              'La chiave viene salvata come env var del processo server (non nel DB).\n' +
+              'Puoi impostarla anche post-install rilanciando: pwsh rag-setup.ps1 -Start -AnthropicApiKey "sk-ant-...".'
+          }
+        }
+      },
+      'en-US': {
+        firstrun: {
+          rag: {
+            installTooltip:
+              'RAG install runs in the BACKGROUND as soon as DB setup completes: you can log in right away and use the rest of the app. ' +
+              'You will receive a notification in the top bell when the RAG server is ready (clickable link to open it).\n\n' +
+              'Typical timings (Python 3.12 already installed, network ~50-100 Mbps):\n' +
+              '• First run CPU: 4-8 minutes (torch download ~200 MB)\n' +
+              '• First run GPU CUDA: 18-32 minutes (torch download ~2.5 GB)\n' +
+              '• Without Python on the system: +1-3 min for winget install\n' +
+              '• Rerun with existing venv: <20 sec\n\n' +
+              'Server cold start after setup: ~13 sec.\n' +
+              'During setup you receive 4 progress notifications + 1 final (success or error).',
+            cudaTooltip:
+              'Download: ~2.5 GB (vs ~200 MB CPU version)\n' +
+              'Extra time: +15-25 min on standard network\n' +
+              'Runtime performance: ~10-20× faster on embedding search + rerank.\n\n' +
+              'Requires: NVIDIA GPU + CUDA 12.x drivers installed system-wide.',
+            apiKeyTooltip:
+              'Without key: retrieval-only mode (codebase snippet search).\n' +
+              'With key: LLM chat with synthesis via Claude.\n\n' +
+              'The key is stored as a server process env var (not in DB).\n' +
+              'Can also be set post-install by re-running: pwsh rag-setup.ps1 -Start -AnthropicApiKey "sk-ant-...".'
+          }
+        }
+      },
+      'fr-FR': {
+        firstrun: {
+          rag: {
+            installTooltip:
+              'L\'installation RAG tourne en ARRIÈRE-PLAN dès la fin du setup BDD : vous pouvez vous connecter immédiatement ' +
+              'et utiliser le reste de l\'app. Vous recevrez une notification dans la cloche en haut lorsque le serveur RAG est prêt ' +
+              '(lien cliquable pour l\'ouvrir).\n\n' +
+              'Temps typiques (Python 3.12 déjà installé, réseau ~50-100 Mbps) :\n' +
+              '• Premier run CPU : 4-8 minutes (téléchargement torch ~200 Mo)\n' +
+              '• Premier run GPU CUDA : 18-32 minutes (téléchargement torch ~2,5 Go)\n' +
+              '• Sans Python sur le système : +1-3 min pour winget install\n' +
+              '• Rerun avec venv existant : <20 sec\n\n' +
+              'Cold start du serveur après setup : ~13 sec.\n' +
+              'Pendant le setup vous recevez 4 notifications de progression + 1 finale (succès ou erreur).',
+            cudaTooltip:
+              'Téléchargement : ~2,5 Go (vs ~200 Mo version CPU)\n' +
+              'Temps supplémentaire : +15-25 min sur réseau standard\n' +
+              'Performance runtime : ~10-20× plus rapide en recherche embedding + rerank.\n\n' +
+              'Requiert : GPU NVIDIA + pilotes CUDA 12.x installés au niveau système.',
+            apiKeyTooltip:
+              'Sans clé : mode retrieval-only (recherche de snippets dans le codebase).\n' +
+              'Avec clé : chat LLM avec synthèse via Claude.\n\n' +
+              'La clé est stockée comme variable env du processus serveur (pas dans la BDD).\n' +
+              'Peut aussi être définie post-install en relançant : pwsh rag-setup.ps1 -Start -AnthropicApiKey "sk-ant-...".'
+          }
+        }
+      },
+      'es-ES': {
+        firstrun: {
+          rag: {
+            installTooltip:
+              'La instalación RAG corre en SEGUNDO PLANO apenas termina el setup BD: puedes iniciar sesión de inmediato ' +
+              'y usar el resto de la app. Recibirás una notificación en la campana superior cuando el servidor RAG esté listo ' +
+              '(enlace cliqueable para abrirlo).\n\n' +
+              'Tiempos típicos (Python 3.12 ya instalado, red ~50-100 Mbps):\n' +
+              '• First run CPU: 4-8 minutos (descarga torch ~200 MB)\n' +
+              '• First run GPU CUDA: 18-32 minutos (descarga torch ~2,5 GB)\n' +
+              '• Sin Python en el sistema: +1-3 min por winget install\n' +
+              '• Rerun con venv ya presente: <20 seg\n\n' +
+              'Cold start del servidor tras setup: ~13 seg.\n' +
+              'Durante el setup recibes 4 notificaciones de progreso + 1 final (éxito o error).',
+            cudaTooltip:
+              'Descarga: ~2,5 GB (vs ~200 MB versión CPU)\n' +
+              'Tiempo adicional: +15-25 min en red estándar\n' +
+              'Rendimiento runtime: ~10-20× más rápido en embedding search + rerank.\n\n' +
+              'Requiere: GPU NVIDIA + drivers CUDA 12.x instalados a nivel sistema.',
+            apiKeyTooltip:
+              'Sin clave: modo retrieval-only (búsqueda de snippets del codebase).\n' +
+              'Con clave: chat LLM con síntesis vía Claude.\n\n' +
+              'La clave se guarda como env var del proceso servidor (no en BD).\n' +
+              'Puede establecerse también post-install relanzando: pwsh rag-setup.ps1 -Start -AnthropicApiKey "sk-ant-...".'
+          }
+        }
+      },
+      'de-DE': {
+        firstrun: {
+          rag: {
+            installTooltip:
+              'Die RAG-Installation läuft im HINTERGRUND, sobald das DB-Setup fertig ist: Sie können sich sofort anmelden ' +
+              'und den Rest der App verwenden. Sie erhalten eine Benachrichtigung in der oberen Glocke, wenn der RAG-Server ' +
+              'bereit ist (klickbarer Link zum Öffnen).\n\n' +
+              'Typische Dauer (Python 3.12 bereits installiert, Netz ~50-100 Mbps):\n' +
+              '• First Run CPU: 4-8 Minuten (Torch-Download ~200 MB)\n' +
+              '• First Run GPU CUDA: 18-32 Minuten (Torch-Download ~2,5 GB)\n' +
+              '• Ohne Python im System: +1-3 Min für winget install\n' +
+              '• Rerun mit bestehendem venv: <20 Sek\n\n' +
+              'Server-Cold-Start nach Setup: ~13 Sek.\n' +
+              'Während des Setups erhalten Sie 4 Fortschrittsbenachrichtigungen + 1 Abschluss (Erfolg oder Fehler).',
+            cudaTooltip:
+              'Download: ~2,5 GB (vs ~200 MB CPU-Version)\n' +
+              'Zusätzliche Zeit: +15-25 Min in Standard-Netz\n' +
+              'Runtime-Performance: ~10-20× schneller bei Embedding-Search + Rerank.\n\n' +
+              'Erfordert: NVIDIA-GPU + systemweit installierte CUDA-12.x-Treiber.',
+            apiKeyTooltip:
+              'Ohne Schlüssel: Retrieval-only-Modus (Snippet-Suche im Codebase).\n' +
+              'Mit Schlüssel: LLM-Chat mit Synthese via Claude.\n\n' +
+              'Der Schlüssel wird als Env-Var des Server-Prozesses gespeichert (nicht in DB).\n' +
+              'Kann auch nach der Installation gesetzt werden via: pwsh rag-setup.ps1 -Start -AnthropicApiKey "sk-ant-...".'
+          }
+        }
+      }
+    };
+
+    for (const [lang, strings] of Object.entries(bundles)) {
+      // merge=true: preserva eventuali chiavi gia' caricate dal backend
+      this.translate.setTranslation(lang, strings, true);
+    }
+
+    // Sanity: se ngx-translate non ha default lang impostato (DB offline al
+    // first-run), puntiamo a una lingua derivata dal browser, cadendo su it-IT.
+    if (!this.translate.getDefaultLang()) {
+      const browserLang = (navigator.language || 'it-IT');
+      const resolvedLang = Object.keys(bundles).find(l => l.toLowerCase() === browserLang.toLowerCase())
+        || Object.keys(bundles).find(l => l.startsWith(browserLang.substring(0, 2)))
+        || 'it-IT';
+      this.translate.setDefaultLang(resolvedLang);
+      void this.translate.use(resolvedLang);
+    }
   }
 
   async submitFirstRunInstall(): Promise<void> {

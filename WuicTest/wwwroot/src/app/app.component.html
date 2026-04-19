@@ -10,6 +10,11 @@
         <div class="first-run-title">Configurazione iniziale progetto</div>
         <div class="first-run-subtitle">Seleziona DBMS, connessione dati e nome database metadati.</div>
 
+        <!-- BODY scrollabile: header (title/subtitle) e footer (progress + CTA)
+             restano sempre visibili, solo questo blocco scrolla quando il form
+             e' piu' alto della viewport. -->
+        <div class="first-run-body">
+
         <!-- Grid 2 colonne: sx = connessione + scaffold / dx = admin + RAG.
              Su viewport stretti (< 720px) il grid collassa a 1 colonna
              via media query in app.component.scss -> .first-run-grid. -->
@@ -138,6 +143,11 @@
                             (ngModelChange)="firstRunForm.installRag = !!$event"
                             [disabled]="firstRunInstalling" />
                         Installa e avvia il server RAG
+                        <i class="pi pi-info-circle first-run-info-icon"
+                           [pTooltip]="'firstrun.rag.installTooltip' | translate"
+                           tooltipPosition="right"
+                           [tooltipStyleClass]="'first-run-tooltip'"
+                           [escape]="false"></i>
                     </label>
                     <small style="display:block; margin-top:4px; opacity:0.75; font-size:0.8rem; line-height:1.35;">
                         Esegue al termine dell'install: <code>winget install Python.Python.3.12</code> (se manca),
@@ -153,6 +163,11 @@
                             (ngModelChange)="firstRunForm.useCuda = !!$event"
                             [disabled]="firstRunInstalling" />
                         Usa CUDA (GPU NVIDIA)
+                        <i class="pi pi-info-circle first-run-info-icon"
+                           [pTooltip]="'firstrun.rag.cudaTooltip' | translate"
+                           tooltipPosition="right"
+                           [tooltipStyleClass]="'first-run-tooltip'"
+                           [escape]="false"></i>
                     </label>
                     <small style="display:block; margin-top:4px; opacity:0.75; font-size:0.8rem; line-height:1.35;">
                         Attiva torch GPU (CUDA 12.1, ~2.5 GB download) invece di CPU (~200 MB).
@@ -161,7 +176,14 @@
                 </div>
 
                 <div class="first-run-field">
-                    <label for="first-run-anthropic-key">Anthropic API Key (opzionale)</label>
+                    <label for="first-run-anthropic-key">
+                        Anthropic API Key (opzionale)
+                        <i class="pi pi-info-circle first-run-info-icon"
+                           [pTooltip]="'firstrun.rag.apiKeyTooltip' | translate"
+                           tooltipPosition="right"
+                           [tooltipStyleClass]="'first-run-tooltip'"
+                           [escape]="false"></i>
+                    </label>
                     <textarea id="first-run-anthropic-key" class="first-run-input first-run-textarea"
                         [ngModel]="firstRunForm.anthropicApiKey"
                         (ngModelChange)="firstRunForm.anthropicApiKey = $event"
@@ -177,39 +199,51 @@
             </div>
         </div>
 
-        @if (firstRunError) {
-        <div class="first-run-error">{{ firstRunError }}</div>
-        }
+        </div><!-- /.first-run-body (fine zona scrollabile) -->
 
-        @if (firstRunInstalling && firstRunProgress.active) {
-        <div class="first-run-progress">
-            <div class="first-run-progress-label">
-                <strong>{{ firstRunProgress.phase }}</strong>
-                @if (firstRunProgress.total > 0 && !firstRunProgress.phase.includes('.restore')) {
-                <span class="first-run-progress-count">
-                    — batch {{ firstRunProgress.current }} / {{ firstRunProgress.total }}
-                </span>
+        <!-- FOOTER sticky: error (se presente) + riga progress|CTA sempre visibile. -->
+        <div class="first-run-footer">
+            @if (firstRunError) {
+            <div class="first-run-error">{{ firstRunError }}</div>
+            }
+
+            <div class="first-run-footer-row">
+                @if (firstRunInstalling && firstRunProgress.active) {
+                <div class="first-run-progress">
+                    <div class="first-run-progress-label">
+                        <strong>{{ firstRunProgress.phase }}</strong>
+                        @if (firstRunProgress.total > 0 && !firstRunProgress.phase.includes('.restore')) {
+                        <span class="first-run-progress-count">
+                            — batch {{ firstRunProgress.current }} / {{ firstRunProgress.total }}
+                        </span>
+                        }
+                        @if (firstRunProgress.elapsedMs > 0) {
+                        <span class="first-run-progress-count">
+                            · {{ (firstRunProgress.elapsedMs / 1000) | number:'1.0-0' }}s
+                        </span>
+                        }
+                    </div>
+                    @if (firstRunProgress.phase.includes('.restore') && firstRunProgress.percent < 5) {
+                    <p-progressBar mode="indeterminate" [style]="{'height': '1rem'}"></p-progressBar>
+                    } @else {
+                    <p-progressBar [value]="firstRunProgress.percent" [showValue]="true" [style]="{'height': '1rem'}"></p-progressBar>
+                    }
+                    @if (firstRunProgress.message) {
+                    <div class="first-run-progress-message">{{ firstRunProgress.message }}</div>
+                    }
+                </div>
+                } @else {
+                <!-- Placeholder vuoto che mantiene l'altezza del footer costante
+                     quando il progress non e' attivo, evitando "salti" di layout
+                     alla prima apparizione della barra. -->
+                <div class="first-run-progress-placeholder"></div>
                 }
-            </div>
-            @if (firstRunProgress.phase.includes('.restore') && firstRunProgress.percent < 5) {
-            <p-progressBar mode="indeterminate" [style]="{'height': '1.5rem'}"></p-progressBar>
-            } @else {
-            <p-progressBar [value]="firstRunProgress.percent" [showValue]="true"></p-progressBar>
-            }
-            @if (firstRunProgress.message) {
-            <div class="first-run-progress-message">{{ firstRunProgress.message }}</div>
-            }
-            @if (firstRunProgress.elapsedMs > 0) {
-            <div class="first-run-progress-elapsed">
-                Elapsed: {{ (firstRunProgress.elapsedMs / 1000) | number:'1.0-0' }}s
-            </div>
-            }
-        </div>
-        }
 
-        <div class="first-run-actions">
-            <p-button label="Conferma e genera metadataDB" [loading]="firstRunInstalling"
-                [disabled]="firstRunInstalling || firstRunLoading" (onClick)="submitFirstRunInstall()"></p-button>
+                <div class="first-run-actions">
+                    <p-button label="Conferma e genera metadataDB" [loading]="firstRunInstalling"
+                        [disabled]="firstRunInstalling || firstRunLoading" (onClick)="submitFirstRunInstall()"></p-button>
+                </div>
+            </div>
         </div>
     </div>
 </div>

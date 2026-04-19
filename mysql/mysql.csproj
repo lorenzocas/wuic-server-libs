@@ -24,7 +24,7 @@
   <ItemGroup>
     <PackageReference Include="MySql.Data" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="8.0.1" />
-    <PackageReference Include="System.Security.Cryptography.Xml" Version="8.0.2" />
+    <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.6" />
   </ItemGroup>
 
   <Target Name="ObfuscateBeforePack" BeforeTargets="Pack" Condition="'$(EnableObfuscationOnPack)' == 'true' and '$(Configuration)' == 'Release'">

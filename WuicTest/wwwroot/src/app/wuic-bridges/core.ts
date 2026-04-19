@@ -10,3 +10,4 @@ export type { ThemeOption } from 'wuic-framework-lib-src/config/theme-catalog';
 export { GlobalHandler } from 'wuic-framework-lib-src/handler/GlobalHandler';
 export { CustomException } from 'wuic-framework-lib-src/class/customException';
 export { MetadatiColonna } from 'wuic-framework-lib-src/class/metadati_colonna';
+export { LicenseFeatureService } from 'wuic-framework-lib-src/service/license-feature.service';
