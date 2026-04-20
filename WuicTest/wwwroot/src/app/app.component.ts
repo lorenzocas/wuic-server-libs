@@ -32,6 +32,7 @@ import Material from '@primeuix/themes/material';
 import { updatePrimaryPalette, usePreset } from '@primeuix/styled';
 import { WtoolboxService, MetadataProviderService, GlobalHandler, CustomException, TranslationManagerService, AuthSessionService, UserInfoService, getThemeOptions, PRIMARY_PALETTES, ThemeOption, LicenseFeatureService } from './wuic-bridges/core';
 import { ImageWrapperComponent } from './wuic-bridges/ui';
+import { WuicRagChatbotFabComponent } from './wuic-bridges/public';
 import { CustomListComponent } from './component/custom-list/custom-list.component';
 
 // import { CustomTextFieldComponent } from './component/field/custom-text-field/custom-text-field.component';
@@ -39,7 +40,7 @@ import { CustomListComponent } from './component/custom-list/custom-list.compone
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, RouterOutlet, NgComponentOutlet, ToggleSwitchModule, SelectModule, CheckboxModule, ProgressBarModule, FormsModule, DialogModule, ButtonModule, TranslateModule, TooltipModule, ToastModule, ConfirmDialogModule],
+  imports: [CommonModule, RouterOutlet, NgComponentOutlet, ToggleSwitchModule, SelectModule, CheckboxModule, ProgressBarModule, FormsModule, DialogModule, ButtonModule, TranslateModule, TooltipModule, ToastModule, ConfirmDialogModule, WuicRagChatbotFabComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
   providers: [MessageService, ConfirmationService, DialogService, GlobalHandler]

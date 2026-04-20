@@ -370,4 +370,11 @@
 <p-confirmDialog [header]="'conferma'" [closeAriaLabel]="'chiudi'" [acceptAriaLabel]="'conferma'"
     [rejectAriaLabel]="'annulla'" />
 
+<!-- Floating chatbot RAG (visibile solo se licenza pro abilita la feature `rag-chatbot`).
+     Il componente ha posizionamento `position:fixed` interno - sta in basso a destra
+     senza richiedere wrapper layout dall'host. Cliccato apre p-dialog non-modale con
+     il chatbot collegato alla cronologia chat dell'utente (persistita in DB via
+     `_rag_chat_sessions/_rag_chat_messages`). -->
+<wuic-rag-chatbot-fab></wuic-rag-chatbot-fab>
+
 

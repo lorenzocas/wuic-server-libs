@@ -18,6 +18,10 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/downloads/downloads').then(m => m.Downloads)
   },
   {
+    path: 'downloads/older',
+    loadComponent: () => import('./pages/downloads/older-downloads').then(m => m.OlderDownloads)
+  },
+  {
     path: 'gallery',
     loadComponent: () => import('./pages/gallery/gallery').then(m => m.Gallery)
   },

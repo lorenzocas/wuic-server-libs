@@ -300,6 +300,9 @@
     "pageTitle": "Download",
     "pageSubtitle": "Scegli il pacchetto adatto alle tue esigenze. Tutti includono backend .NET 10 + frontend Angular 21.",
     "lastVersion": "Ultima versione:",
+    "loading": "Caricamento pacchetti...",
+    "noRelease": "Nessun pacchetto pubblicato. Torna piu' tardi.",
+    "olderVersions": "Versioni precedenti",
     "table": {
       "package": "Pacchetto",
       "type": "Tipo",
@@ -318,6 +321,12 @@
       "ragTitle": "RAG Chatbot",
       "ragText": "I pacchetti con RAG includono l'indice vettoriale e il server Python. Dopo l'estrazione lancia <code>pwsh rag-setup.ps1</code> per il setup automatico."
     }
+  },
+  "olderDownloads": {
+    "pageTitle": "Versioni precedenti",
+    "pageSubtitle": "Le ultime 5 versioni pubblicate. Le release piu' vecchie vengono rimosse automaticamente ad ogni nuovo push.",
+    "backToLatest": "Torna alla versione corrente",
+    "noOlder": "Nessuna versione precedente disponibile."
   },
   "gallery": {
     "pageTitle": "Live Demos",

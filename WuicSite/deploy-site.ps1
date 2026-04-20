@@ -192,7 +192,7 @@ Write-Host "    pool state: `$((Get-Item 'IIS:\AppPools\$AppPoolName').State)"
 # ── step 3: upload ZIP artifacts ─────────────────────────────────────
 
 if (-not $SkipZip) {
-    Write-Step "3/3 Upload pacchetti ZIP"
+    Write-Step "3/3 Upload pacchetti ZIP (con rotation 5 release)"
 
     $zipFiles = Get-ChildItem -Path $ZipSourceDir -Filter '*.zip' -ErrorAction SilentlyContinue
     if (-not $zipFiles -or $zipFiles.Count -eq 0) {
@@ -201,54 +201,181 @@ if (-not $SkipZip) {
         $remoteDownloads = Join-Path $SitePath 'downloads'
         $uncDownloads = "\\${Server}\$($remoteDownloads -replace ':', '$')"
 
+        # Estrai versione corrente dai nomi file (server+client sono nel filename).
+        # Tutti gli ZIP del batch hanno la stessa versione (li produce la stessa pipeline).
+        $serverVersion = ''
+        $clientVersion = ''
+        foreach ($z in $zipFiles) {
+            if ($z.Name -match 'server-([^-]+(?:-rag)?)-client-(.+)\.zip$') {
+                $serverVersion = ($Matches[1] -replace '-rag$', '')
+                $clientVersion = $Matches[2]
+                break
+            }
+        }
+        $releaseKey = "v${serverVersion}_${clientVersion}"
+        Write-Host "  release key: $releaseKey" -ForegroundColor DarkGray
         Write-Host "  $($zipFiles.Count) ZIP da caricare:" -ForegroundColor DarkGray
         foreach ($z in $zipFiles) {
             Write-Host "    $($z.Name) ($([math]::Round($z.Length / 1MB, 1)) MB)" -ForegroundColor DarkGray
         }
 
-        if (Test-Path $uncDownloads -ErrorAction SilentlyContinue) {
+        # Assicura che la cartella remota esista (incluso archive/)
+        $useUnc = [bool](Test-Path $uncDownloads -ErrorAction SilentlyContinue)
+        $remoteDownloadsPath = "${User}@${Server}:${remoteDownloads}"
+        $remoteArchiveSubdir = "archive/$releaseKey"
+        if (-not $useUnc) {
+            ssh "${User}@${Server}" "if not exist `"$remoteDownloads`" mkdir `"$remoteDownloads`" && if not exist `"$remoteDownloads\archive`" mkdir `"$remoteDownloads\archive`" && if not exist `"$remoteDownloads\archive\$releaseKey`" mkdir `"$remoteDownloads\archive\$releaseKey`"" | Out-Null
+        } else {
+            foreach ($dir in @($uncDownloads, (Join-Path $uncDownloads 'archive'), (Join-Path $uncDownloads "archive\$releaseKey"))) {
+                if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+            }
+        }
+
+        # Upload degli zip in 2 location:
+        #  1) /downloads/<filename>.zip   (legacy, la pagina principale punta qui)
+        #  2) /downloads/archive/<releaseKey>/<filename>.zip (archivio immutabile per older-versions)
+        if ($useUnc) {
             foreach ($z in $zipFiles) {
                 Copy-Item $z.FullName (Join-Path $uncDownloads $z.Name) -Force
+                Copy-Item $z.FullName (Join-Path $uncDownloads "archive\$releaseKey\$($z.Name)") -Force
             }
         } else {
-            $remoteDownloadsPath = "${User}@${Server}:${remoteDownloads}"
-            ssh "${User}@${Server}" "if not exist `"$remoteDownloads`" mkdir `"$remoteDownloads`""
             foreach ($z in $zipFiles) {
                 scp $z.FullName "${remoteDownloadsPath}/$($z.Name)"
+                scp $z.FullName "${remoteDownloadsPath}/archive/$releaseKey/$($z.Name)"
             }
         }
 
-        # Write latest.json for the download page
-        $latest = @{
-            server = ''
-            client = ''
-            date   = (Get-Date -Format 'yyyy-MM-dd')
-            files  = @()
-        }
+        # Costruisci la release entry per releases.json
+        $filesMeta = @()
         foreach ($z in $zipFiles) {
-            if ($z.Name -match 'server-([^-]+(?:-rag)?)-client-(.+)\.zip$') {
-                $latest.server = ($Matches[1] -replace '-rag$', '')
-                $latest.client = $Matches[2]
+            $sizeMb = [math]::Round($z.Length / 1MB, 1)
+            # Parse filename: WuicTest-<audience>-[tutorial-][bak-]server-<serverVer>[-rag]-client-<clientVer>.zip
+            # audience: src | iis
+            # tutorial: tutorial | tutorial-bak | (assente)
+            # rag: "-rag" infix prima di "client-"
+            $audience = 'src'
+            $tutorial = 'no'
+            $rag = $false
+            if ($z.Name -match 'WuicTest-(iis|src)(?:-(tutorial(?:-bak)?))?-server-[^-]+(-rag)?-client-') {
+                $audience = $Matches[1]
+                if ($Matches[2]) {
+                    $tutorial = switch ($Matches[2]) { 'tutorial' { 'SQL' } 'tutorial-bak' { 'BAK' } default { $Matches[2] } }
+                }
+                $rag = [bool]$Matches[3]
             }
-            $latest.files += @{
-                name = $z.Name
-                size = "$([math]::Round($z.Length / 1MB, 1)) MB"
-                url  = "/downloads/$($z.Name)"
+            $filesMeta += @{
+                name     = $z.Name
+                audience = $audience
+                rag      = $rag
+                tutorial = $tutorial
+                size     = "$sizeMb MB"
+                sizeMb   = $sizeMb
+                url      = "/downloads/$($z.Name)"
+                archiveUrl = "/downloads/archive/$releaseKey/$($z.Name)"
             }
         }
-        $latestJson = $latest | ConvertTo-Json -Depth 3
-        $latestPath = Join-Path $distDir 'downloads'
-        if (-not (Test-Path $latestPath)) { New-Item -ItemType Directory -Path $latestPath -Force | Out-Null }
-        Set-Content -Path (Join-Path $latestPath 'latest.json') -Value $latestJson -Encoding UTF8
 
-        # Upload latest.json too
-        if (Test-Path $uncDownloads -ErrorAction SilentlyContinue) {
-            Copy-Item (Join-Path $latestPath 'latest.json') (Join-Path $uncDownloads 'latest.json') -Force
+        $newRelease = [ordered]@{
+            key            = $releaseKey
+            server         = $serverVersion
+            client         = $clientVersion
+            date           = (Get-Date -Format 'yyyy-MM-dd')
+            timestampUtc   = (Get-Date).ToUniversalTime().ToString('o')
+            files          = $filesMeta
+        }
+
+        # Merge con releases.json remoto esistente (se c'e'). Facciamo mirror
+        # locale via scp in una cartella temporanea prima di modificare.
+        $tmpDir = Join-Path $env:TEMP "wuicsite-releases-$([guid]::NewGuid().ToString('N').Substring(0,8))"
+        New-Item -ItemType Directory -Path $tmpDir -Force | Out-Null
+        $remoteReleasesJson = Join-Path $remoteDownloads 'releases.json'
+        $localReleasesJson = Join-Path $tmpDir 'releases.json'
+
+        $existingReleases = @()
+        if ($useUnc) {
+            $uncReleasesJson = Join-Path $uncDownloads 'releases.json'
+            if (Test-Path $uncReleasesJson) {
+                try {
+                    $existingReleases = (Get-Content $uncReleasesJson -Raw | ConvertFrom-Json).releases
+                    if ($null -eq $existingReleases) { $existingReleases = @() }
+                } catch { Write-Host "  [warn] releases.json remoto malformato, ricostruisco da zero" -ForegroundColor Yellow }
+            }
         } else {
-            scp (Join-Path $latestPath 'latest.json') "${remoteDownloadsPath}/latest.json"
+            # Tentativo non-bloccante di scaricare il releases.json corrente
+            & scp "${User}@${Server}:${remoteReleasesJson}" $localReleasesJson 2>$null | Out-Null
+            if (Test-Path $localReleasesJson) {
+                try {
+                    $existingReleases = (Get-Content $localReleasesJson -Raw | ConvertFrom-Json).releases
+                    if ($null -eq $existingReleases) { $existingReleases = @() }
+                } catch { Write-Host "  [warn] releases.json remoto malformato, ricostruisco da zero" -ForegroundColor Yellow }
+            }
         }
 
-        Write-Host "  [ok] $($zipFiles.Count) ZIP + latest.json caricati" -ForegroundColor Green
+        # Cast a lista (PowerShell ConvertFrom-Json ritorna PSCustomObject[] o singolo obj)
+        if ($existingReleases -and $existingReleases -isnot [array]) { $existingReleases = @($existingReleases) }
+
+        # Rimuovi eventuale duplicato della stessa release-key (ri-deploy della stessa versione)
+        $existingReleases = @($existingReleases | Where-Object { $_.key -ne $releaseKey })
+
+        # Inserisci nuova release in testa, taglia a max 5
+        $all = @($newRelease) + @($existingReleases)
+        $keep = @($all | Select-Object -First 5)
+        $drop = @($all | Select-Object -Skip 5)
+
+        # Cleanup archivio: cancella le release "drop" dal server
+        if ($drop.Count -gt 0) {
+            Write-Host "  rotation: elimino $($drop.Count) release obsolete:" -ForegroundColor DarkGray
+            foreach ($old in $drop) {
+                $oldKey = if ($old.key) { $old.key } else { "v$($old.server)_$($old.client)" }
+                Write-Host "    - $oldKey" -ForegroundColor DarkGray
+                if ($useUnc) {
+                    $dir = Join-Path $uncDownloads "archive\$oldKey"
+                    if (Test-Path $dir) { Remove-Item -Path $dir -Recurse -Force -ErrorAction SilentlyContinue }
+                } else {
+                    # Rimuovi la sottocartella dell'archivio con rmdir /s /q
+                    ssh "${User}@${Server}" "if exist `"$remoteDownloads\archive\$oldKey`" rmdir /s /q `"$remoteDownloads\archive\$oldKey`"" 2>$null | Out-Null
+                }
+            }
+        }
+
+        # Serializza releases.json (massimo 5)
+        $manifest = @{
+            latest   = $keep[0].key
+            updated  = (Get-Date).ToUniversalTime().ToString('o')
+            releases = $keep
+        }
+        $manifestJson = $manifest | ConvertTo-Json -Depth 6
+        Set-Content -Path $localReleasesJson -Value $manifestJson -Encoding UTF8
+
+        # Upload releases.json
+        if ($useUnc) {
+            Copy-Item $localReleasesJson (Join-Path $uncDownloads 'releases.json') -Force
+        } else {
+            scp $localReleasesJson "${remoteDownloadsPath}/releases.json"
+        }
+
+        # Backward-compat: scrivi anche latest.json (vecchio formato, pagina
+        # attuale puo' fallback a questo se releases.json non esiste)
+        $legacy = @{
+            server = $serverVersion
+            client = $clientVersion
+            date   = $newRelease.date
+            files  = $filesMeta
+        }
+        $legacyJson = $legacy | ConvertTo-Json -Depth 3
+        $localLatestJson = Join-Path $tmpDir 'latest.json'
+        Set-Content -Path $localLatestJson -Value $legacyJson -Encoding UTF8
+        if ($useUnc) {
+            Copy-Item $localLatestJson (Join-Path $uncDownloads 'latest.json') -Force
+        } else {
+            scp $localLatestJson "${remoteDownloadsPath}/latest.json"
+        }
+
+        # Cleanup temp
+        Remove-Item -Path $tmpDir -Recurse -Force -ErrorAction SilentlyContinue
+
+        Write-Host "  [ok] release $releaseKey pubblicata ($($keep.Count) release totali in archivio)" -ForegroundColor Green
     }
 } else {
     Write-Step "3/3 Upload pacchetti ZIP [SKIP]"

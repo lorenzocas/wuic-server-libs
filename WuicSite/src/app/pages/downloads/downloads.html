@@ -3,46 +3,70 @@
     <h1 class="section-title">{{ 'downloads.pageTitle' | translate }}</h1>
     <p class="section-subtitle">{{ 'downloads.pageSubtitle' | translate }}</p>
 
-    <div class="version-banner">
-      <span>{{ 'downloads.lastVersion' | translate }}</span>
-      <p-tag value="Server {{ version.server }}" severity="info" />
-      <p-tag value="Client {{ version.client }}" severity="info" />
-    </div>
+    @if (loading) {
+      <p-message severity="info" [text]="'downloads.loading' | translate"></p-message>
+    } @else if (!latest) {
+      <p-message severity="warn" [text]="'downloads.noRelease' | translate"></p-message>
+      @if (loadError) {
+        <small style="display:block;margin-top:0.5rem;color:#9ca3af;">{{ loadError }}</small>
+      }
+    } @else {
+      <div class="version-banner">
+        <span>{{ 'downloads.lastVersion' | translate }}</span>
+        <p-tag value="Server {{ latest.server }}" severity="info" />
+        <p-tag value="Client {{ latest.client }}" severity="info" />
+        <span class="release-date">{{ latest.date }}</span>
+      </div>
 
-    <p-table [value]="downloads" styleClass="p-datatable-striped" [tableStyle]="{'min-width': '50rem'}">
-      <ng-template #header>
-        <tr>
-          <th>{{ 'downloads.table.package' | translate }}</th>
-          <th>{{ 'downloads.table.type' | translate }}</th>
-          <th>{{ 'downloads.table.rag' | translate }}</th>
-          <th>{{ 'downloads.table.tutorial' | translate }}</th>
-          <th>{{ 'downloads.table.size' | translate }}</th>
-          <th></th>
-        </tr>
-      </ng-template>
-      <ng-template #body let-entry>
-        <tr>
-          <td class="pkg-name">{{ entry.name }}</td>
-          <td>
-            <p-tag [value]="entry.audience === 'src' ? ('downloads.table.srcBadge' | translate) : ('downloads.table.iisBadge' | translate)" [severity]="entry.audience === 'src' ? 'success' : 'warn'" />
-          </td>
-          <td>
-            @if (entry.rag) {
-              <i class="pi pi-check" style="color: #22c55e"></i>
-            } @else {
-              <i class="pi pi-minus" style="color: #cbd5e1"></i>
-            }
-          </td>
-          <td>{{ entry.tutorial === 'no' ? '-' : entry.tutorial }}</td>
-          <td class="pkg-size">{{ entry.size }}</td>
-          <td>
-            <a [href]="getDownloadUrl(entry)">
-              <p-button [label]="'downloads.table.download' | translate" icon="pi pi-download" size="small" [outlined]="true" />
-            </a>
-          </td>
-        </tr>
-      </ng-template>
-    </p-table>
+      <p-table [value]="latest.files" styleClass="p-datatable-striped" [tableStyle]="{'min-width': '50rem'}">
+        <ng-template #header>
+          <tr>
+            <th>{{ 'downloads.table.package' | translate }}</th>
+            <th>{{ 'downloads.table.type' | translate }}</th>
+            <th>{{ 'downloads.table.rag' | translate }}</th>
+            <th>{{ 'downloads.table.tutorial' | translate }}</th>
+            <th>{{ 'downloads.table.size' | translate }}</th>
+            <th></th>
+          </tr>
+        </ng-template>
+        <ng-template #body let-entry>
+          <tr>
+            <td class="pkg-name">{{ entry.name }}</td>
+            <td>
+              <p-tag [value]="entry.audience === 'src' ? ('downloads.table.srcBadge' | translate) : ('downloads.table.iisBadge' | translate)" [severity]="entry.audience === 'src' ? 'success' : 'warn'" />
+            </td>
+            <td>
+              @if (entry.rag) {
+                <i class="pi pi-check" style="color: #22c55e"></i>
+              } @else {
+                <i class="pi pi-minus" style="color: #cbd5e1"></i>
+              }
+            </td>
+            <td>{{ entry.tutorial === 'no' ? '-' : entry.tutorial }}</td>
+            <td class="pkg-size">{{ entry.size }}</td>
+            <td>
+              <a [href]="getDownloadUrl(entry)">
+                <p-button [label]="'downloads.table.download' | translate" icon="pi pi-download" size="small" [outlined]="true" />
+              </a>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+
+      @if (hasOlder) {
+        <div class="older-versions-link">
+          <a routerLink="/downloads/older">
+            <p-button
+              [label]="'downloads.olderVersions' | translate"
+              icon="pi pi-history"
+              severity="secondary"
+              [text]="true"
+              size="small">
+            </p-button>
+          </a>
+        </div>
+      }
+    }
 
     <div class="info-cards">
       <p-card>

@@ -13,6 +13,7 @@ export { CarouselListComponent } from 'wuic-framework-lib-src/component/carousel
 export { SchedulerListComponent } from 'wuic-framework-lib-src/component/scheduler-list/scheduler-list.component';
 export { KanbanListComponent } from 'wuic-framework-lib-src/component/kanban-list/kanban-list.component';
 export { WuicRagChatbotComponent } from 'wuic-framework-lib-src/component/rag-chatbot/rag-chatbot.component';
+export { WuicRagChatbotFabComponent } from 'wuic-framework-lib-src/component/rag-chatbot-fab/rag-chatbot-fab.component';
 export type { RagSource } from 'wuic-framework-lib-src/service/wuic-rag.service';
 export type { IDataBoundHostComponent } from 'wuic-framework-lib-src/class/IDataBoundHostComponent';
 export { MetaInfo } from 'wuic-framework-lib-src/class/metaInfo';

@@ -647,6 +647,11 @@ def search_loaded(
             light_score = 1.0 - (rank_idx / n)
             intent_bonus = intent_norm[rank_idx] * cross_encoder_intent_weight
             score = cross_encoder_blend * float(ce_s) + (1.0 - cross_encoder_blend) * light_score + intent_bonus
+            # Source priority boost (Tier 1: docs+skill * 1.40, Tier 2: WuicTest * 1.30,
+            # Tier 3: baseline * 1.00). Applicato DOPO il blend CE+light+intent in modo
+            # che sia un moltiplicatore del ranking finale, non un bias pre-CE.
+            rpath = docs[doc_id].get("rel_path") or ""
+            score *= compute_source_priority_boost(rpath)
             blended_ce.append((doc_id, score))
         blended_ce.sort(key=lambda x: x[1], reverse=True)
         reranked = [d for d, _ in blended_ce] + reranked[cross_encoder_top_n:]
@@ -841,6 +846,39 @@ def compute_intent_path_boost(q_tokens_raw: set, rpath_lower: str, intent_weight
                     boost += intent_weight
                     break
     return boost
+
+
+# Source priority tier. Applied as a multiplicative boost to the final CE-blended
+# score: docs/skill chunks ARE user-facing ground truth (spiegazioni + snippet
+# mirati ai consumatori del framework), WuicTest/ sono esempi curati dei pattern
+# architetturali, il codice core del framework e' Tier-3 (baseline). Questo
+# fa emergere le pagine di docs e le skill quando matchano semanticamente, anche
+# se il CE da' score leggermente piu' alto a un chunk di codice core.
+#
+# Valori tunati empiricamente 2026-04-20 sul set v4 doclabels relabel holdout.
+SOURCE_TIER_DOCS = 1.40         # docs/pages/*.md + skills/**/*.md
+SOURCE_TIER_WUICTEST = 1.30     # WuicTest/* (esempi ready-to-read)
+SOURCE_TIER_CORE = 1.00         # tutto il resto (baseline)
+
+
+def compute_source_priority_boost(rpath: str) -> float:
+    """
+    Ritorna un moltiplicatore su score finale in base al tier del source file.
+    Il matching e' case-insensitive su rel_path normalizzato a forward slash.
+    """
+    if not rpath:
+        return SOURCE_TIER_CORE
+    norm = rpath.replace("\\", "/").lower()
+    # Tier 1: documentazione + skill guides
+    if "/docs/pages/" in norm and norm.endswith(".md"):
+        return SOURCE_TIER_DOCS
+    if "/skills/" in norm and norm.endswith(".md"):
+        return SOURCE_TIER_DOCS
+    # Tier 2: esempi WuicTest
+    if norm.startswith("wuictest/") or "/wuictest/" in norm:
+        return SOURCE_TIER_WUICTEST
+    # Tier 3: baseline
+    return SOURCE_TIER_CORE
 
 
 def rerank_light_weighted(

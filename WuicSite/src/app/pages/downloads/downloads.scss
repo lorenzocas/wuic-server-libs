@@ -2,6 +2,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 32px;
 
@@ -9,6 +10,21 @@
     font-weight: 600;
     color: #475569;
   }
+
+  .release-date {
+    font-weight: 400;
+    color: #94a3b8;
+    font-size: 0.85rem;
+  }
+}
+
+.older-versions-link {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+  margin-bottom: 24px;
+
+  a { text-decoration: none; }
 }
 
 .pkg-name {

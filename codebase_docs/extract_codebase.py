@@ -16,6 +16,12 @@ EXCLUDE_DIRS = {"bin", "obj", "node_modules", "wwwroot_js", ".angular", ".git"}
 EXCLUDE_FILE_NAME_PATTERNS = (
     "package-lock.json",
     "screenshots.manifest.json",
+    # External deps type declarations (NON API WUIC): monaco-editor e' il typing
+    # di Monaco, vitest-compat e' shim di test runner, monaco-shim e' wrapper
+    # interno per Monaco. Nessuno di questi e' superficie pubblica del framework.
+    "monaco-editor.d.ts",
+    "monaco-shim.d.ts",
+    "vitest-compat.d.ts",
 )
 EXCLUDE_FILE_NAME_SUFFIXES = (
     ".generated.cs",
@@ -23,6 +29,18 @@ EXCLUDE_FILE_NAME_SUFFIXES = (
     ".spec.ts",
     ".spec.cs",
     ".e2e.spec.ts",
+    # NB: i `.d.ts` NON sono esclusi - sono l'API pubblica consumabile da
+    # end-dev che usano wuic-framework-lib via npm. Contengono @Input/@Output,
+    # signature metodi, interfaces esposte - ground truth per query tipo
+    # "che input accetta <wuic-list-grid>". Le copie dump in /assets/declarations/
+    # sono ridondanti ma non rumore: forniscono pattern "tutti i tipi in un file".
+    # Barrel re-export: solo "export * from './foo'", niente semantica.
+    "public-api.ts",
+    "public_api.ts",
+    # Environment config Angular (api_url + version hardcoded), non pattern framework.
+    "environment.ts",
+    "environment.prod.ts",
+    "environment.test.ts",
 )
 # Path fragments (case-insensitive substring match on rel_path)
 EXCLUDE_PATH_FRAGMENTS = (
@@ -30,6 +48,16 @@ EXCLUDE_PATH_FRAGMENTS = (
     "/test-results/",
     "/dist/",
     "/.angular/",
+    "/artifacts/",   # build output (release zip staging, lib-dist, ecc.) - rumore puro
+    "/_deprecated/", # archivio dismesso (es. scripts/docs/_deprecated/) - difensivo per futuri rebuild
+    # NB: /assets/ NON e' escluso. /assets/declarations/*.d.ts contiene l'API
+    # pubblica del framework bundled in single-file per IDE autocompletion,
+    # utile per query di end-dev consumatori. I file non-.d.ts sotto /assets/
+    # (immagini, i18n json, screenshots) vengono filtrati via FILE_EXTENSIONS
+    # (solo .cs/.ts/.md sono indicizzati).
+    # Altri path specifici da evitare sono presi via EXCLUDE_FILE_NAME_PATTERNS.
+    "/assets/wuic-framework-docs/",  # screenshots gallery JSON - non codice
+    "/assets/i18n/",                 # translation JSON - non codice
 )
 INCLUDE_DIRS = [
     "KonvergenceCore/Controllers",
@@ -41,6 +69,16 @@ INCLUDE_DIRS = [
     "KonvergenceCore/dbms/scripts",
     "KonvergenceCore/scripts",
     "KonvergenceCore/wwwroot/my-workspace/projects/wuic-framework-lib",
+    # skills/ contiene le SKILL.md (guide operative canoniche: "come fare X").
+    # Sono ground truth per pattern API/architetturali. Es. skills/wuic-crud-api/SKILL.md
+    # dice esplicitamente "NON usare AsmxCrudUpdate, usare AsmxProxy". Assenza
+    # nell'index RAG -> il chatbot suggerisce endpoint deprecati.
+    "KonvergenceCore/skills",
+    # WuicTest = progetto showcase con esempi curati dei pattern architetturali
+    # (5 pattern in examples/pattern-{1..5}/ + cities-*-page che usano widget WUIC).
+    # Tier-2 di priorita' nel re-ranking: esempi pratici copy-paste-friendly per
+    # dev consumatori del framework.
+    "WuicTest",
     "CrmApp",
 ]
 DB_FOCUS_TABLES = {

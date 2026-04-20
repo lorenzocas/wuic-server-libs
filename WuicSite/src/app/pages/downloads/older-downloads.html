@@ -1,0 +1,79 @@
+<section class="section">
+  <div class="container">
+    <h1 class="section-title">{{ 'olderDownloads.pageTitle' | translate }}</h1>
+    <p class="section-subtitle">{{ 'olderDownloads.pageSubtitle' | translate }}</p>
+
+    <div class="back-link">
+      <a routerLink="/downloads">
+        <p-button
+          [label]="'olderDownloads.backToLatest' | translate"
+          icon="pi pi-arrow-left"
+          severity="secondary"
+          [text]="true"
+          size="small">
+        </p-button>
+      </a>
+    </div>
+
+    @if (loading) {
+      <p-message severity="info" [text]="'downloads.loading' | translate"></p-message>
+    } @else if (older.length === 0) {
+      <p-message severity="info" [text]="'olderDownloads.noOlder' | translate"></p-message>
+      @if (loadError) {
+        <small style="display:block;margin-top:0.5rem;color:#9ca3af;">{{ loadError }}</small>
+      }
+    } @else {
+      <p-accordion [value]="'0'">
+        @for (rel of older; track rel.key; let i = $index) {
+          <p-accordion-panel [value]="i.toString()">
+            <p-accordion-header>
+              <div class="release-header">
+                <div class="release-title">
+                  <p-tag [value]="'Server ' + rel.server" severity="info" />
+                  <p-tag [value]="'Client ' + rel.client" severity="info" />
+                </div>
+                <span class="release-date">{{ rel.date }}</span>
+              </div>
+            </p-accordion-header>
+            <p-accordion-content>
+              <p-table [value]="rel.files" styleClass="p-datatable-sm" [tableStyle]="{'min-width': '50rem'}">
+                <ng-template #header>
+                  <tr>
+                    <th>{{ 'downloads.table.package' | translate }}</th>
+                    <th>{{ 'downloads.table.type' | translate }}</th>
+                    <th>{{ 'downloads.table.rag' | translate }}</th>
+                    <th>{{ 'downloads.table.tutorial' | translate }}</th>
+                    <th>{{ 'downloads.table.size' | translate }}</th>
+                    <th></th>
+                  </tr>
+                </ng-template>
+                <ng-template #body let-entry>
+                  <tr>
+                    <td class="pkg-name">{{ entry.name }}</td>
+                    <td>
+                      <p-tag [value]="entry.audience === 'src' ? ('downloads.table.srcBadge' | translate) : ('downloads.table.iisBadge' | translate)" [severity]="entry.audience === 'src' ? 'success' : 'warn'" />
+                    </td>
+                    <td>
+                      @if (entry.rag) {
+                        <i class="pi pi-check" style="color: #22c55e"></i>
+                      } @else {
+                        <i class="pi pi-minus" style="color: #cbd5e1"></i>
+                      }
+                    </td>
+                    <td>{{ entry.tutorial === 'no' ? '-' : entry.tutorial }}</td>
+                    <td class="pkg-size">{{ entry.size }}</td>
+                    <td>
+                      <a [href]="getDownloadUrl(entry)">
+                        <p-button [label]="'downloads.table.download' | translate" icon="pi pi-download" size="small" [outlined]="true" />
+                      </a>
+                    </td>
+                  </tr>
+                </ng-template>
+              </p-table>
+            </p-accordion-content>
+          </p-accordion-panel>
+        }
+      </p-accordion>
+    }
+  </div>
+</section>

@@ -1,0 +1,35 @@
+.back-link {
+  margin-bottom: 24px;
+
+  a { text-decoration: none; }
+}
+
+.release-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 12px;
+}
+
+.release-title {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.release-date {
+  color: #94a3b8;
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+
+.pkg-name {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.pkg-size {
+  color: #64748b;
+  font-size: 0.9rem;
+}

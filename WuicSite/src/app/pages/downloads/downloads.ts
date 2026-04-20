@@ -1,38 +1,110 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
+import { RouterLink } from '@angular/router';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
+import { MessageModule } from 'primeng/message';
 import { TranslatePipe } from '@ngx-translate/core';
 
-interface DownloadEntry {
+/**
+ * Singolo file (ZIP) di una release. Shape allineata a deploy-site.ps1 che
+ * genera /downloads/releases.json al push degli artifact.
+ */
+export interface DownloadFile {
   name: string;
-  audience: string;
+  audience: 'src' | 'iis' | string;
   rag: boolean;
-  tutorial: string;
-  size: string;
-  filename: string;
+  tutorial: string;            // "no" | "SQL" | "BAK"
+  size: string;                // es. "120.5 MB"
+  sizeMb?: number;
+  url: string;                 // /downloads/<filename>.zip
+  archiveUrl?: string;         // /downloads/archive/<releaseKey>/<filename>.zip
+}
+
+/**
+ * Una release = uno snapshot di ZIP per una coppia (server, client).
+ */
+export interface ReleaseEntry {
+  key: string;                 // es. "v0.3.5_11.11.0"
+  server: string;              // es. "0.3.5"
+  client: string;              // es. "11.11.0"
+  date: string;                // "YYYY-MM-DD"
+  timestampUtc?: string;
+  files: DownloadFile[];
+}
+
+/** Manifest /downloads/releases.json */
+export interface ReleasesManifest {
+  latest: string;              // key della release piu' recente
+  updated?: string;            // ISO timestamp dell'ultimo push
+  releases: ReleaseEntry[];    // ordinato DESC, max 5
 }
 
 @Component({
   selector: 'app-downloads',
-  imports: [TableModule, TagModule, ButtonModule, CardModule, TranslatePipe],
+  imports: [
+    CommonModule,
+    RouterLink,
+    TableModule,
+    TagModule,
+    ButtonModule,
+    CardModule,
+    MessageModule,
+    TranslatePipe
+  ],
   templateUrl: './downloads.html',
   styleUrl: './downloads.scss'
 })
-export class Downloads {
-  version = { server: '0.3.3', client: '11.9.0' };
+export class Downloads implements OnInit {
+  private readonly http = inject(HttpClient);
 
-  downloads: DownloadEntry[] = [
-    { name: 'WuicTest Source (leggero)', audience: 'src', rag: false, tutorial: 'no', size: '~15 MB', filename: `WuicTest-src-server-${this.version.server}-client-${this.version.client}.zip` },
-    { name: 'WuicTest Source + RAG', audience: 'src', rag: true, tutorial: 'no', size: '~80 MB', filename: `WuicTest-src-server-${this.version.server}-rag-client-${this.version.client}.zip` },
-    { name: 'WuicTest Source + Tutorial', audience: 'src', rag: true, tutorial: 'SQL', size: '~900 MB', filename: `WuicTest-src-tutorial-server-${this.version.server}-rag-client-${this.version.client}.zip` },
-    { name: 'WuicTest IIS', audience: 'iis', rag: true, tutorial: 'no', size: '~120 MB', filename: `WuicTest-iis-server-${this.version.server}-rag-client-${this.version.client}.zip` },
-    { name: 'WuicTest IIS + Tutorial', audience: 'iis', rag: true, tutorial: 'SQL', size: '~1 GB', filename: `WuicTest-iis-tutorial-server-${this.version.server}-rag-client-${this.version.client}.zip` },
-    { name: 'WuicTest IIS + Tutorial (BAK)', audience: 'iis', rag: true, tutorial: 'BAK', size: '~1.2 GB', filename: `WuicTest-iis-tutorial-bak-server-${this.version.server}-rag-client-${this.version.client}.zip` }
-  ];
+  /** Release attualmente visualizzata (la piu' recente). */
+  latest: ReleaseEntry | null = null;
 
-  getDownloadUrl(entry: DownloadEntry): string {
-    return `/downloads/${entry.filename}`;
+  /** true se esistono >1 release storiche (mostra il link "older versions"). */
+  hasOlder = false;
+
+  /** Stato loading iniziale. */
+  loading = true;
+
+  /** Messaggio di errore se la fetch fallisce (mostra fallback vuoto). */
+  loadError: string | null = null;
+
+  ngOnInit(): void {
+    // Fetch con cache-busting leggero (query param timestamp) per evitare che
+    // il browser serva una versione stale subito dopo un deploy.
+    const url = `/downloads/releases.json?t=${Date.now()}`;
+    this.http.get<ReleasesManifest>(url).subscribe({
+      next: (manifest) => {
+        const list = Array.isArray(manifest?.releases) ? manifest.releases : [];
+        this.latest = list.length > 0 ? list[0] : null;
+        this.hasOlder = list.length > 1;
+        this.loading = false;
+      },
+      error: (err) => {
+        this.loading = false;
+        this.loadError = this.extractErrorMessage(err);
+      }
+    });
+  }
+
+  /**
+   * Forza il download del file anche se il browser tenterebbe di aprirlo inline.
+   * Gli ZIP dovrebbero partire come download grazie al Content-Type, ma su alcuni
+   * IIS senza il mime type custom possono essere trattati come octet-stream inline.
+   */
+  getDownloadUrl(entry: DownloadFile): string {
+    return entry.url;
+  }
+
+  private extractErrorMessage(err: unknown): string {
+    const anyErr = err as { status?: number; statusText?: string; message?: string };
+    if (anyErr?.status === 404) return 'releases.json non ancora pubblicato';
+    if (anyErr?.message) return anyErr.message;
+    if (anyErr?.statusText) return `${anyErr.status} ${anyErr.statusText}`;
+    return 'errore sconosciuto';
   }
 }
