@@ -53,7 +53,7 @@ export const PRODUCTS: Record<string, PurchaseProduct> = {
     sku: 'wuic-pro-12m',
     label: 'WUIC Professional — Licenza annuale',
     priceEur: 1200,
-    description: 'Framework completo con designer, AI e offline-first. 5 fingerprint inclusi.',
+    description: 'Framework completo con designer, AI e offline-first. 3 fingerprint inclusi.',
     tier: 'professional',
     issueType: 'initial',
   },

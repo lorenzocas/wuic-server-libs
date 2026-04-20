@@ -209,8 +209,8 @@
     },
     "fingerprints": {
       "title": "Installazioni multiple? Fingerprint extra a 200 € / anno",
-      "p1": "Ogni licenza include un numero di <strong>machine fingerprint</strong> predefinito (1 per Developer, 5 per Professional). Se hai bisogno di deployare su più server, ogni fingerprint aggiuntivo costa <strong>200 € / anno</strong> ed è gestito con una patch alla licenza esistente (stesso intestatario, stessa scadenza).",
-      "example": "<strong>Esempio software house:</strong> acquisti Pro (1.200 €) + 3 fingerprint extra (600 €) = <strong>1.800 € / anno</strong> per coprire 1 ambiente di sviluppo + 7 server cliente finali. Nessun limite tecnico al numero di fingerprint che una licenza può autorizzare.",
+      "p1": "Ogni licenza include un numero di <strong>machine fingerprint</strong> predefinito (1 per Developer, 3 per Professional). Se hai bisogno di deployare su più server, ogni fingerprint aggiuntivo costa <strong>200 € / anno</strong> ed è gestito con una patch alla licenza esistente (stesso intestatario, stessa scadenza).",
+      "example": "<strong>Esempio software house:</strong> acquisti Pro (1.200 €) + 3 fingerprint extra (600 €) = <strong>1.800 € / anno</strong> per coprire 1 ambiente di sviluppo + 5 server cliente finali. Nessun limite tecnico al numero di fingerprint che una licenza può autorizzare.",
       "buy": "Aggiungi fingerprint — 200 €"
     },
     "comparisonTitle": "Confronto completo feature",
@@ -252,9 +252,9 @@
       "q1": "Il prezzo include il supporto?",
       "a1": "Licenze Developer e Professional includono accesso alla documentazione, agli aggiornamenti entro la finestra di manutenzione e al bug tracker pubblico. Il supporto dedicato (SLA email/telefono, onboarding, consulenza) è venduto separatamente.",
       "q2": "Posso vendere progetti basati su WUIC ai miei clienti?",
-      "a2": "Sì, ed è esattamente lo scenario per cui la Pro è pensata. La licenza Professional include <strong>5 fingerprint</strong> (tipicamente 1 ambiente di sviluppo + 4 server di clienti finali): consegni il progetto, lo installi sul server del cliente, aggiungi il fingerprint del server alla tua licenza. Se i deployment superano i 4, acquisti fingerprint aggiuntivi a 200 € / anno cadauno. Il cliente finale non ha bisogno di una propria licenza WUIC — la tua licenza autorizza il suo server.",
+      "a2": "Sì, ed è esattamente lo scenario per cui la Pro è pensata. La licenza Professional include <strong>3 fingerprint</strong> (tipicamente 1 ambiente di sviluppo + 2 server di clienti finali): consegni il progetto, lo installi sul server del cliente, aggiungi il fingerprint del server alla tua licenza. Se i deployment superano i 2, acquisti fingerprint aggiuntivi a 200 € / anno cadauno. Il cliente finale non ha bisogno di una propria licenza WUIC — la tua licenza autorizza il suo server.",
       "q3": "La licenza è per sviluppatore o per macchina?",
-      "a3": "Per macchina (<code>machineFingerprint</code>), calcolato come hash SHA256 di nome-macchina + dominio + OS + Machine GUID. Una singola licenza può autorizzare N macchine includendo N fingerprint nel payload firmato. Il numero di fingerprint inclusi per tier è fisso (1 Dev, 5 Pro); oltre si acquistano extra a 200 € / anno cadauno.",
+      "a3": "Per macchina (<code>machineFingerprint</code>), calcolato come hash SHA256 di nome-macchina + dominio + OS + Machine GUID. Una singola licenza può autorizzare N macchine includendo N fingerprint nel payload firmato. Il numero di fingerprint inclusi per tier è fisso (1 Dev, 3 Pro); oltre si acquistano extra a 200 € / anno cadauno.",
       "q4": "Come aggiungo un nuovo fingerprint alla mia licenza?",
       "a4": "Recuperi il <code>machineFingerprint</code> del server cliente chiamando <code>GET /api/Meta/LicenseStatus</code> sul suo host. Ce lo invii e ti emettiamo una licenza aggiornata con il nuovo fingerprint aggiunto (gli altri restano validi). Sostituisci <code>license-payload</code> e <code>license-signature</code> in <code>appsettings.json</code>, riavvii il backend, pronto.",
       "q5": "Cosa succede se cambio server? (sostituzione, non aggiunta)",

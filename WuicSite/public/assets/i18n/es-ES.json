@@ -209,8 +209,8 @@
     },
     "fingerprints": {
       "title": "¿Instalaciones múltiples? Fingerprints extra a 200 € / año",
-      "p1": "Cada licencia incluye un número predefinido de <strong>machine fingerprints</strong> (1 para Developer, 5 para Professional). Si necesitas desplegar en más servidores, cada fingerprint adicional cuesta <strong>200 € / año</strong> y se gestiona con un parche a la licencia existente (mismo titular, misma caducidad).",
-      "example": "<strong>Ejemplo software house:</strong> compras Pro (1.200 €) + 3 fingerprints extra (600 €) = <strong>1.800 € / año</strong> para cubrir 1 entorno de desarrollo + 7 servidores cliente finales. Sin límite técnico en el número de fingerprints autorizables por una licencia.",
+      "p1": "Cada licencia incluye un número predefinido de <strong>machine fingerprints</strong> (1 para Developer, 3 para Professional). Si necesitas desplegar en más servidores, cada fingerprint adicional cuesta <strong>200 € / año</strong> y se gestiona con un parche a la licencia existente (mismo titular, misma caducidad).",
+      "example": "<strong>Ejemplo software house:</strong> compras Pro (1.200 €) + 3 fingerprints extra (600 €) = <strong>1.800 € / año</strong> para cubrir 1 entorno de desarrollo + 5 servidores cliente finales. Sin límite técnico en el número de fingerprints autorizables por una licencia.",
       "buy": "Añadir fingerprint — 200 €"
     },
     "comparisonTitle": "Comparativa completa de características",
@@ -252,9 +252,9 @@
       "q1": "¿El precio incluye soporte?",
       "a1": "Las licencias Developer y Professional incluyen acceso a la documentación, a las actualizaciones dentro de la ventana de mantenimiento y al bug tracker público. El soporte dedicado (SLA email/teléfono, onboarding, consultoría) se vende por separado.",
       "q2": "¿Puedo vender proyectos basados en WUIC a mis clientes?",
-      "a2": "Sí, y es exactamente el escenario para el que está pensada Pro. La licencia Professional incluye <strong>5 fingerprints</strong> (típicamente 1 entorno de desarrollo + 4 servidores de clientes finales): entregas el proyecto, lo instalas en el servidor del cliente, añades el fingerprint del servidor a tu licencia. Si los despliegues superan 4, compras fingerprints adicionales a 200 € / año cada uno. El cliente final no necesita su propia licencia WUIC — tu licencia autoriza su servidor.",
+      "a2": "Sí, y es exactamente el escenario para el que está pensada Pro. La licencia Professional incluye <strong>3 fingerprints</strong> (típicamente 1 entorno de desarrollo + 2 servidores de clientes finales): entregas el proyecto, lo instalas en el servidor del cliente, añades el fingerprint del servidor a tu licencia. Si los despliegues superan 2, compras fingerprints adicionales a 200 € / año cada uno. El cliente final no necesita su propia licencia WUIC — tu licencia autoriza su servidor.",
       "q3": "¿La licencia es por desarrollador o por máquina?",
-      "a3": "Por máquina (<code>machineFingerprint</code>), calculado como hash SHA256 de nombre-máquina + dominio + SO + Machine GUID. Una sola licencia puede autorizar N máquinas incluyendo N fingerprints en el payload firmado. El número de fingerprints incluidos por tier es fijo (1 Dev, 5 Pro); más allá se compran extras a 200 € / año cada uno.",
+      "a3": "Por máquina (<code>machineFingerprint</code>), calculado como hash SHA256 de nombre-máquina + dominio + SO + Machine GUID. Una sola licencia puede autorizar N máquinas incluyendo N fingerprints en el payload firmado. El número de fingerprints incluidos por tier es fijo (1 Dev, 3 Pro); más allá se compran extras a 200 € / año cada uno.",
       "q4": "¿Cómo añado un nuevo fingerprint a mi licencia?",
       "a4": "Recuperas el <code>machineFingerprint</code> del servidor cliente llamando <code>GET /api/Meta/LicenseStatus</code> en ese host. Nos lo envías y emitimos una licencia actualizada con el nuevo fingerprint añadido (los demás siguen válidos). Sustituyes <code>license-payload</code> y <code>license-signature</code> en <code>appsettings.json</code>, reinicias el backend, listo.",
       "q5": "¿Qué ocurre si cambio de servidor? (sustitución, no adición)",

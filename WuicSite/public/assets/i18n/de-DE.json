@@ -209,8 +209,8 @@
     },
     "fingerprints": {
       "title": "Mehrere Installationen? Zusatz-Fingerprints à 200 € / Jahr",
-      "p1": "Jede Lizenz enthält eine feste Anzahl <strong>Machine-Fingerprints</strong> (1 bei Developer, 5 bei Professional). Bei Bedarf für mehr Server kostet jeder zusätzliche Fingerprint <strong>200 € / Jahr</strong> und wird als Patch auf der bestehenden Lizenz verwaltet (gleicher Inhaber, gleiches Ablaufdatum).",
-      "example": "<strong>Beispiel Software-Haus:</strong> Pro (1.200 €) + 3 Zusatz-Fingerprints (600 €) = <strong>1.800 € / Jahr</strong> für 1 Entwicklungsumgebung + 7 Endkunden-Server. Kein technisches Limit für die Anzahl von Fingerprints pro Lizenz.",
+      "p1": "Jede Lizenz enthält eine feste Anzahl <strong>Machine-Fingerprints</strong> (1 bei Developer, 3 bei Professional). Bei Bedarf für mehr Server kostet jeder zusätzliche Fingerprint <strong>200 € / Jahr</strong> und wird als Patch auf der bestehenden Lizenz verwaltet (gleicher Inhaber, gleiches Ablaufdatum).",
+      "example": "<strong>Beispiel Software-Haus:</strong> Pro (1.200 €) + 3 Zusatz-Fingerprints (600 €) = <strong>1.800 € / Jahr</strong> für 1 Entwicklungsumgebung + 5 Endkunden-Server. Kein technisches Limit für die Anzahl von Fingerprints pro Lizenz.",
       "buy": "Fingerprint hinzufügen — 200 €"
     },
     "comparisonTitle": "Vollständiger Funktionsvergleich",
@@ -252,9 +252,9 @@
       "q1": "Ist der Support im Preis enthalten?",
       "a1": "Developer- und Professional-Lizenzen enthalten Zugang zur Dokumentation, Updates innerhalb des Wartungsfensters und dem öffentlichen Bug-Tracker. Dedizierter Support (E-Mail/Telefon SLA, Onboarding, Beratung) wird separat verkauft.",
       "q2": "Darf ich WUIC-basierte Projekte an meine Kunden verkaufen?",
-      "a2": "Ja, genau dafür ist Pro gedacht. Die Professional-Lizenz enthält <strong>5 Fingerprints</strong> (typischerweise 1 Entwicklungsumgebung + 4 Endkunden-Server): Projekt ausliefern, auf dem Kundenserver installieren, Fingerprint des Servers zur Lizenz hinzufügen. Bei mehr als 4 Deployments kaufst du zusätzliche Fingerprints zu 200 € / Jahr. Der Endkunde braucht keine eigene WUIC-Lizenz — deine Lizenz autorisiert seinen Server.",
+      "a2": "Ja, genau dafür ist Pro gedacht. Die Professional-Lizenz enthält <strong>3 Fingerprints</strong> (typischerweise 1 Entwicklungsumgebung + 2 Endkunden-Server): Projekt ausliefern, auf dem Kundenserver installieren, Fingerprint des Servers zur Lizenz hinzufügen. Bei mehr als 2 Deployments kaufst du zusätzliche Fingerprints zu 200 € / Jahr. Der Endkunde braucht keine eigene WUIC-Lizenz — deine Lizenz autorisiert seinen Server.",
       "q3": "Ist die Lizenz pro Entwickler oder pro Maschine?",
-      "a3": "Pro Maschine (<code>machineFingerprint</code>), berechnet als SHA256-Hash von Maschinenname + Domain + OS + Machine GUID. Eine Lizenz kann N Maschinen autorisieren, indem N Fingerprints im signierten Payload enthalten sind. Die Anzahl der enthaltenen Fingerprints pro Tier ist fest (1 Dev, 5 Pro); darüber hinaus kauft man Extras à 200 € / Jahr.",
+      "a3": "Pro Maschine (<code>machineFingerprint</code>), berechnet als SHA256-Hash von Maschinenname + Domain + OS + Machine GUID. Eine Lizenz kann N Maschinen autorisieren, indem N Fingerprints im signierten Payload enthalten sind. Die Anzahl der enthaltenen Fingerprints pro Tier ist fest (1 Dev, 3 Pro); darüber hinaus kauft man Extras à 200 € / Jahr.",
       "q4": "Wie füge ich einen neuen Fingerprint zur Lizenz hinzu?",
       "a4": "Hole den <code>machineFingerprint</code> vom Kundenserver über den Aufruf <code>GET /api/Meta/LicenseStatus</code> auf diesem Host. Schicke ihn uns, wir stellen eine aktualisierte Lizenz mit dem neuen Fingerprint aus (alte bleiben gültig). <code>license-payload</code> und <code>license-signature</code> in <code>appsettings.json</code> ersetzen, Backend neu starten, fertig.",
       "q5": "Was passiert bei einem Server-Wechsel? (Ersatz, keine Ergänzung)",
