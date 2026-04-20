@@ -281,6 +281,80 @@
     margin-top: 18px;
 }
 
+// Banner giallo mostrato sotto la checkbox "Installa RAG" quando il backend
+// FirstRunStatus ritorna pythonInstalled=false. La checkbox e' disabilitata
+// (via [disabled] nel template) e questo banner spiega all'operatore cosa
+// fare per sbloccarla. Stile warning soft (non un error block: la DB install
+// puo' procedere comunque, il RAG e' opzionale).
+.first-run-python-warning {
+    margin-top: 8px;
+    padding: 10px 12px;
+    background: #fef3c7; // tailwind amber-100
+    border: 1px solid #fcd34d; // amber-300
+    border-radius: 6px;
+    color: #78350f; // amber-900
+    font-size: 0.85rem;
+    line-height: 1.4;
+
+    strong {
+        color: #78350f;
+    }
+
+    code {
+        background: rgba(0, 0, 0, 0.08);
+        padding: 1px 4px;
+        border-radius: 3px;
+        font-family: ui-monospace, "Cascadia Code", "Consolas", monospace;
+        font-size: 0.82rem;
+    }
+
+    ol li + li {
+        margin-top: 4px;
+    }
+}
+
+// Link al download Python dentro il banner warning. Color piu' scuro per
+// contrasto sufficiente su amber-100 + underline on hover.
+.first-run-python-warning-link {
+    color: #92400e; // amber-800
+    text-decoration: underline;
+    font-weight: 600;
+
+    &:hover {
+        color: #78350f; // amber-900
+    }
+
+    &:visited {
+        color: #92400e;
+    }
+}
+
+// Variante "note" (info) per versione Python >= 3.12 ma non 3.12.x strict.
+// Meno aggressiva del warning (ambra): palette blu/info. La checkbox RAG
+// resta ABILITATA (installed=true), l'operatore puo' procedere a rischio.
+.first-run-python-note {
+    margin-top: 8px;
+    padding: 10px 12px;
+    background: #dbeafe; // tailwind blue-100
+    border: 1px solid #93c5fd; // blue-300
+    border-radius: 6px;
+    color: #1e3a8a; // blue-900
+    font-size: 0.85rem;
+    line-height: 1.4;
+
+    strong {
+        color: #1e3a8a;
+    }
+
+    code {
+        background: rgba(0, 0, 0, 0.08);
+        padding: 1px 4px;
+        border-radius: 3px;
+        font-family: ui-monospace, "Cascadia Code", "Consolas", monospace;
+        font-size: 0.82rem;
+    }
+}
+
 // Icona info "i" accanto alle label dei 3 campi RAG: apre un tooltip con
 // i tempi stimati di setup (CPU vs GPU, venv presente vs assente, ecc.).
 // Palette coerente con il link primario del tema + cursore help per

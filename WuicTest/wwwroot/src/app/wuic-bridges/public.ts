@@ -6,6 +6,7 @@ export { DataRepeaterComponent } from 'wuic-framework-lib-src/component/data-rep
 export { ChartListComponent } from 'wuic-framework-lib-src/component/chart-list/chart-list.component';
 export { TreeListComponent } from 'wuic-framework-lib-src/component/tree-list/tree-list.component';
 export { SpreadsheetListComponent } from 'wuic-framework-lib-src/component/spreadsheet-list/spreadsheet-list.component';
+export { SpreadsheetListSfComponent } from 'wuic-framework-lib-src/component/spreadsheet-list-sf/spreadsheet-list-sf.component';
 export { FilterBarComponent } from 'wuic-framework-lib-src/component/filter-bar/filter-bar.component';
 export { MapListComponent } from 'wuic-framework-lib-src/component/map-list/map-list.component';
 export { CarouselListComponent } from 'wuic-framework-lib-src/component/carousel-list/carousel-list.component';

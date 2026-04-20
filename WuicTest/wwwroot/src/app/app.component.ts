@@ -30,7 +30,7 @@ import Lara from '@primeuix/themes/lara';
 import Nora from '@primeuix/themes/nora';
 import Material from '@primeuix/themes/material';
 import { updatePrimaryPalette, usePreset } from '@primeuix/styled';
-import { WtoolboxService, MetadataProviderService, GlobalHandler, CustomException, TranslationManagerService, AuthSessionService, getThemeOptions, PRIMARY_PALETTES, ThemeOption, LicenseFeatureService } from './wuic-bridges/core';
+import { WtoolboxService, MetadataProviderService, GlobalHandler, CustomException, TranslationManagerService, AuthSessionService, UserInfoService, getThemeOptions, PRIMARY_PALETTES, ThemeOption, LicenseFeatureService } from './wuic-bridges/core';
 import { ImageWrapperComponent } from './wuic-bridges/ui';
 import { CustomListComponent } from './component/custom-list/custom-list.component';
 
@@ -89,6 +89,21 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
   // value is forced to 'existing' when this is false so submit can never accidentally
   // hit a tutorial code path with no scripts on disk.
   firstRunTutorialAvailable = true;
+
+  // Mirrors backend FirstRunStatus python pre-flight (tri-state):
+  //   - firstRunPythonInstalled: true se Python >= 3.12 e' sul PATH del worker IIS
+  //   - firstRunPythonSupported: true SOLO se Python 3.12.x (versione testata; 3.13+
+  //                              ha pythonInstalled=true ma pythonSupported=false)
+  //   - firstRunPythonVersion:   "3.12.10" / "3.13.1" / ecc
+  //
+  // UI logic sulla checkbox "Installa RAG":
+  //   installed=false  -> disabled + banner ambra (download link py 3.12)
+  //   installed+supported -> enabled + small verde "Python 3.12.x rilevato"
+  //   installed ma non supported -> enabled + banner giallo leggero
+  //     "rilevato X.Y non testato, wheel torch potrebbero richiedere 3.12"
+  firstRunPythonInstalled = true;
+  firstRunPythonSupported = true;
+  firstRunPythonVersion = '';
   firstRunForm = {
     setupMode: 'existing',
     createTutorialIfMissing: true,
@@ -187,10 +202,84 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
 
     this.authSession = this.injector.get(AuthSessionService);
 
+    // Hook post-login per il resume del RAG setup pending.
+    //
+    // Storia (2026-04-19 v2): il first-run wizard non lancia piu' il ps1
+    // rag-setup direttamente (la vecchia v1 con Task.Run in configure_wuic
+    // moriva per il recycle IIS post-wizard, vedi MetaService.configure_wuic
+    // region "RAG Chatbot (DEFERRED al primo login post-wizard)"). Adesso
+    // configure_wuic scrive solo un flag JSON (`logs/rag-setup-pending.json`).
+    // Quando l'admin si logga per la prima volta POST-RECYCLE, qui rileviamo
+    // `authenticated=true` e chiamiamo `MetaService.resumeRagSetupIfPending`
+    // che consuma il flag + lancia il Task.Run sul worker fresco (stabile per
+    // l'intero idleTimeout del pool).
+    //
+    // Idempotenza: il flag viene rinominato a `.consumed` dentro il backend
+    // prima di lanciare il Task.Run, quindi login successivi (o parallel tab)
+    // trovano `no-pending` o `already-consumed` e sono no-op.
+    //
+    // Una sola chiamata per sessione frontend: `ragResumeChecked` flag interno.
+    // Controlliamo ENTRAMBI i flag di autenticazione: `authenticated` (cookie-auth
+    // moderna, `enableCookieAuthentication=true`) E `legacyAuthenticated` (flusso
+    // legacy `MetaService.login` con cookie k-user). WuicTest gira in legacy mode
+    // di default, quindi senza questo OR la subscription non scatterebbe mai.
+    this.authSession.state$.subscribe((state) => {
+      const isAuth = state?.authenticated === true || state?.legacyAuthenticated === true;
+      if (!this.ragResumeChecked && isAuth) {
+        this.ragResumeChecked = true;
+        this.triggerRagSetupResumeIfPending();
+      }
+    });
+
     //custom functions
     WtoolboxService.myFunctions['utility'] = new utility();
     void this.configureWidgetRuntimeMetadata();
 
+  }
+
+  /**
+   * Flag di idempotenza: al primo evento `authenticated=true` chiamiamo
+   * `MetaService.resumeRagSetupIfPending` una volta sola per lifetime della
+   * SPA. Evita N chiamate ridondanti su page reload o state$ re-emit.
+   */
+  private ragResumeChecked = false;
+
+  /**
+   * POST non-bloccante a `MetaService.resumeRagSetupIfPending` con l'id_utente
+   * dell'utente appena autenticato. Se non c'e' un flag RAG pending (caso
+   * normale, post first-run senza checkbox RAG o su qualsiasi login successivo),
+   * il backend risponde `{status:"no-pending"}` e non fa nulla. Se c'e', parte
+   * il Task.Run del ps1 e arrivano le notifiche di progresso nel bell.
+   *
+   * Errori silenziati: questo e' un trigger opportunistico, non deve impattare
+   * il flusso di login. Al massimo l'admin dovra' fare il RAG setup manualmente.
+   */
+  private triggerRagSetupResumeIfPending(): void {
+    try {
+      const userId = Number(this.injector.get(UserInfoService)?.getuserInfo()?.user_id ?? 0);
+      if (!userId || userId <= 0) {
+        return;
+      }
+      const url = `${appSettings.global_root_url}MetaService.resumeRagSetupIfPending`;
+      // Body: oggetto con property `userId` che matcha il nome del parametro
+      // C# del metodo sul backend. AsmxProxy lega le property del body JSON per
+      // nome al signature dei parametri — passare un intero bare (post(url, 42))
+      // non lega nulla e l'endpoint fallirebbe silenziosamente.
+      this.http.post<any>(url, { userId }).subscribe({
+        next: (res) => {
+          // Log minimo per diagnosi — il frontend non agisce sul risultato (le
+          // notifiche RAG arrivano via il bell, non da qui).
+          // eslint-disable-next-line no-console
+          console.log('[rag-resume]', res);
+        },
+        error: (err) => {
+          // eslint-disable-next-line no-console
+          console.warn('[rag-resume] skipped:', err?.message ?? err);
+        }
+      });
+    } catch {
+      /* best effort — nessun throw sui trigger post-login */
+    }
   }
 
   private async configureWidgetRuntimeMetadata(): Promise<void> {
@@ -482,15 +571,21 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
         firstrun: {
           rag: {
             installTooltip:
-              'L\'installazione del RAG parte in BACKGROUND appena finita la creazione DB: puoi loggarti subito e usare il resto dell\'app, ' +
-              'riceverai una notifica nel bell in alto quando il server RAG è pronto (link cliccabile per aprirlo).\n\n' +
-              'Tempi tipici (Python 3.12 già installato, rete ~50-100 Mbps):\n' +
+              'PREREQUISITO: Python 3.12 installato e sul PATH del worker IIS.\n\n' +
+              'Se la checkbox è disabilitata: Python non è stato rilevato.\n' +
+              'Per installarlo (ONE-CLICK):\n' +
+              '• Vai nella cartella del deploy (dove c\'è WuicCore.dll)\n' +
+              '• Right-click su rag-setup.ps1 → "Esegui come amministratore"\n' +
+              '• Lo script si auto-eleva via UAC, estrae Python 3.12 embeddable (niente MSI, bypass GPO DisableMSI), installa pip, aggiorna PATH, fa iisreset\n' +
+              '• Ricarica il form (Ctrl+F5) → la checkbox si abilita\n\n' +
+              'Python >= 3.13 accettato ma non testato (wheels torch più stabili su 3.12).\n\n' +
+              'Quando Python è presente, l\'install RAG parte in BACKGROUND appena finita la creazione DB. ' +
+              'Puoi loggarti subito e usare il resto dell\'app; riceverai notifiche nel bell in alto ai 4 step + 1 finale (cliccabile per aprire il chatbot).\n\n' +
+              'Tempi tipici (rete ~50-100 Mbps):\n' +
               '• First run CPU: 4-8 minuti (download torch ~200 MB)\n' +
               '• First run GPU CUDA: 18-32 minuti (download torch ~2.5 GB)\n' +
-              '• Senza Python sul sistema: +1-3 min per winget install\n' +
               '• Rerun con venv già presente: <20 sec\n\n' +
-              'Cold start del server dopo setup: ~13 sec.\n' +
-              'Durante il setup ricevi 4 notifiche di progresso + 1 finale (successo o errore).',
+              'Cold start del server dopo setup: ~13 sec.',
             cudaTooltip:
               'Download: ~2.5 GB (vs ~200 MB versione CPU)\n' +
               'Tempo aggiuntivo: +15-25 min su rete standard\n' +
@@ -508,15 +603,22 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
         firstrun: {
           rag: {
             installTooltip:
-              'RAG install runs in the BACKGROUND as soon as DB setup completes: you can log in right away and use the rest of the app. ' +
-              'You will receive a notification in the top bell when the RAG server is ready (clickable link to open it).\n\n' +
-              'Typical timings (Python 3.12 already installed, network ~50-100 Mbps):\n' +
+              'PREREQUISITE: Python 3.12 installed and on the IIS worker PATH.\n\n' +
+              'If this checkbox is disabled: Python was not detected.\n' +
+              'To install (ONE-CLICK):\n' +
+              '• Go to the deploy folder (where WuicCore.dll is)\n' +
+              '• Right-click on rag-setup.ps1 → "Run as administrator"\n' +
+              '• The script self-elevates via UAC, extracts Python 3.12 embeddable (no MSI, bypasses GPO DisableMSI), installs pip, updates PATH, runs iisreset\n' +
+              '• Reload the form (Ctrl+F5) → the checkbox enables automatically\n\n' +
+              'Python >= 3.13 is accepted but not tested (torch wheels are most stable on 3.12).\n\n' +
+              'When Python is present, RAG install runs in BACKGROUND as soon as DB setup completes. ' +
+              'You can log in right away and use the rest of the app; you will receive notifications in the top bell ' +
+              'for 4 steps + 1 final (clickable to open the chatbot).\n\n' +
+              'Typical timings (network ~50-100 Mbps):\n' +
               '• First run CPU: 4-8 minutes (torch download ~200 MB)\n' +
               '• First run GPU CUDA: 18-32 minutes (torch download ~2.5 GB)\n' +
-              '• Without Python on the system: +1-3 min for winget install\n' +
               '• Rerun with existing venv: <20 sec\n\n' +
-              'Server cold start after setup: ~13 sec.\n' +
-              'During setup you receive 4 progress notifications + 1 final (success or error).',
+              'Server cold start after setup: ~13 sec.',
             cudaTooltip:
               'Download: ~2.5 GB (vs ~200 MB CPU version)\n' +
               'Extra time: +15-25 min on standard network\n' +
@@ -534,16 +636,22 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
         firstrun: {
           rag: {
             installTooltip:
-              'L\'installation RAG tourne en ARRIÈRE-PLAN dès la fin du setup BDD : vous pouvez vous connecter immédiatement ' +
-              'et utiliser le reste de l\'app. Vous recevrez une notification dans la cloche en haut lorsque le serveur RAG est prêt ' +
-              '(lien cliquable pour l\'ouvrir).\n\n' +
-              'Temps typiques (Python 3.12 déjà installé, réseau ~50-100 Mbps) :\n' +
+              'PRÉREQUIS : Python 3.12 installé et sur le PATH du worker IIS.\n\n' +
+              'Si la case est désactivée : Python n\'a pas été détecté.\n' +
+              'Pour l\'installer (ONE-CLICK) :\n' +
+              '• Allez dans le dossier du deploy (où se trouve WuicCore.dll)\n' +
+              '• Right-click sur rag-setup.ps1 → "Exécuter en tant qu\'administrateur"\n' +
+              '• Le script s\'auto-élève via UAC, extrait Python 3.12 embeddable (sans MSI, contourne la GPO DisableMSI), installe pip, met à jour PATH, lance iisreset\n' +
+              '• Rechargez le formulaire (Ctrl+F5) → la case s\'active automatiquement\n\n' +
+              'Python >= 3.13 accepté mais non testé (wheels torch plus stables sur 3.12).\n\n' +
+              'Quand Python est présent, l\'install RAG tourne en ARRIÈRE-PLAN dès la fin du setup BDD. ' +
+              'Vous pouvez vous connecter immédiatement ; vous recevrez des notifications ' +
+              'dans la cloche en haut pour 4 étapes + 1 finale (cliquable pour ouvrir le chatbot).\n\n' +
+              'Temps typiques (réseau ~50-100 Mbps) :\n' +
               '• Premier run CPU : 4-8 minutes (téléchargement torch ~200 Mo)\n' +
               '• Premier run GPU CUDA : 18-32 minutes (téléchargement torch ~2,5 Go)\n' +
-              '• Sans Python sur le système : +1-3 min pour winget install\n' +
               '• Rerun avec venv existant : <20 sec\n\n' +
-              'Cold start du serveur après setup : ~13 sec.\n' +
-              'Pendant le setup vous recevez 4 notifications de progression + 1 finale (succès ou erreur).',
+              'Cold start du serveur après setup : ~13 sec.',
             cudaTooltip:
               'Téléchargement : ~2,5 Go (vs ~200 Mo version CPU)\n' +
               'Temps supplémentaire : +15-25 min sur réseau standard\n' +
@@ -561,16 +669,22 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
         firstrun: {
           rag: {
             installTooltip:
-              'La instalación RAG corre en SEGUNDO PLANO apenas termina el setup BD: puedes iniciar sesión de inmediato ' +
-              'y usar el resto de la app. Recibirás una notificación en la campana superior cuando el servidor RAG esté listo ' +
-              '(enlace cliqueable para abrirlo).\n\n' +
-              'Tiempos típicos (Python 3.12 ya instalado, red ~50-100 Mbps):\n' +
+              'PRERREQUISITO: Python 3.12 instalado y en el PATH del worker IIS.\n\n' +
+              'Si la casilla está deshabilitada: Python no fue detectado.\n' +
+              'Para instalarlo (ONE-CLICK):\n' +
+              '• Ve a la carpeta del deploy (donde está WuicCore.dll)\n' +
+              '• Click derecho en rag-setup.ps1 → "Ejecutar como administrador"\n' +
+              '• El script se auto-eleva vía UAC, extrae Python 3.12 embeddable (sin MSI, evita la GPO DisableMSI), instala pip, actualiza PATH, ejecuta iisreset\n' +
+              '• Recarga el formulario (Ctrl+F5) → la casilla se habilita automáticamente\n\n' +
+              'Python >= 3.13 aceptado pero no testado (wheels torch más estables en 3.12).\n\n' +
+              'Con Python presente, la instalación RAG corre en SEGUNDO PLANO apenas termina el setup BD. ' +
+              'Puedes iniciar sesión inmediatamente; recibirás notificaciones ' +
+              'en la campana superior para 4 pasos + 1 final (cliqueable para abrir el chatbot).\n\n' +
+              'Tiempos típicos (red ~50-100 Mbps):\n' +
               '• First run CPU: 4-8 minutos (descarga torch ~200 MB)\n' +
               '• First run GPU CUDA: 18-32 minutos (descarga torch ~2,5 GB)\n' +
-              '• Sin Python en el sistema: +1-3 min por winget install\n' +
               '• Rerun con venv ya presente: <20 seg\n\n' +
-              'Cold start del servidor tras setup: ~13 seg.\n' +
-              'Durante el setup recibes 4 notificaciones de progreso + 1 final (éxito o error).',
+              'Cold start del servidor tras setup: ~13 seg.',
             cudaTooltip:
               'Descarga: ~2,5 GB (vs ~200 MB versión CPU)\n' +
               'Tiempo adicional: +15-25 min en red estándar\n' +
@@ -588,16 +702,22 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
         firstrun: {
           rag: {
             installTooltip:
-              'Die RAG-Installation läuft im HINTERGRUND, sobald das DB-Setup fertig ist: Sie können sich sofort anmelden ' +
-              'und den Rest der App verwenden. Sie erhalten eine Benachrichtigung in der oberen Glocke, wenn der RAG-Server ' +
-              'bereit ist (klickbarer Link zum Öffnen).\n\n' +
-              'Typische Dauer (Python 3.12 bereits installiert, Netz ~50-100 Mbps):\n' +
+              'VORAUSSETZUNG: Python 3.12 installiert und im PATH des IIS-Workers.\n\n' +
+              'Falls die Checkbox deaktiviert ist: Python wurde nicht erkannt.\n' +
+              'Zum Installieren (ONE-CLICK):\n' +
+              '• Gehen Sie in den Deploy-Ordner (wo WuicCore.dll liegt)\n' +
+              '• Rechtsklick auf rag-setup.ps1 → "Als Administrator ausführen"\n' +
+              '• Das Skript hebt sich via UAC selbst an, extrahiert Python 3.12 embeddable (kein MSI, umgeht die GPO DisableMSI), installiert pip, aktualisiert PATH, führt iisreset aus\n' +
+              '• Laden Sie das Formular neu (Strg+F5) → die Checkbox wird automatisch aktiviert\n\n' +
+              'Python >= 3.13 akzeptiert, aber nicht getestet (Torch-Wheels am stabilsten auf 3.12).\n\n' +
+              'Wenn Python vorhanden ist, läuft die RAG-Installation im HINTERGRUND, sobald das DB-Setup fertig ist. ' +
+              'Sie können sich sofort anmelden; Sie erhalten Benachrichtigungen ' +
+              'in der oberen Glocke für 4 Schritte + 1 Abschluss (klickbar zum Öffnen des Chatbots).\n\n' +
+              'Typische Dauer (Netz ~50-100 Mbps):\n' +
               '• First Run CPU: 4-8 Minuten (Torch-Download ~200 MB)\n' +
               '• First Run GPU CUDA: 18-32 Minuten (Torch-Download ~2,5 GB)\n' +
-              '• Ohne Python im System: +1-3 Min für winget install\n' +
               '• Rerun mit bestehendem venv: <20 Sek\n\n' +
-              'Server-Cold-Start nach Setup: ~13 Sek.\n' +
-              'Während des Setups erhalten Sie 4 Fortschrittsbenachrichtigungen + 1 Abschluss (Erfolg oder Fehler).',
+              'Server-Cold-Start nach Setup: ~13 Sek.',
             cudaTooltip:
               'Download: ~2,5 GB (vs ~200 MB CPU-Version)\n' +
               'Zusätzliche Zeit: +15-25 Min in Standard-Netz\n' +
@@ -982,6 +1102,26 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
       if (!this.firstRunTutorialAvailable) {
         this.firstRunSetupModeOptions = [{ label: 'DB esistente', value: 'existing' }];
         this.firstRunForm.setupMode = 'existing';
+      }
+
+      // Pre-flight Python check. Il backend prova `python --version` sul PATH del
+      // worker IIS e ritorna pythonInstalled=true se la 3.12.x e' presente.
+      // In quel caso il RAG setup salta lo step 1/4 (install) e va diretto al
+      // venv; in caso contrario dobbiamo obbligare l'operatore a preinstallare
+      // Python (l'auto-install fallisce su Windows Server non-admin).
+      // Se il backend e' vecchio e non ritorna il flag, fallback permissivo (true)
+      // per mantenere backward-compat.
+      const pythonFlag = settings['pythonInstalled'] ?? settings['pythoninstalled'];
+      this.firstRunPythonInstalled = pythonFlag === undefined ? true : this.toBoolean(pythonFlag);
+      const pythonSupportedFlag = settings['pythonSupported'] ?? settings['pythonsupported'];
+      this.firstRunPythonSupported = pythonSupportedFlag === undefined
+        ? this.firstRunPythonInstalled // backend vecchio: se installato, lo trattiamo come supported
+        : this.toBoolean(pythonSupportedFlag);
+      this.firstRunPythonVersion = String(settings['pythonVersion'] || settings['pythonversion'] || '').trim();
+      if (!this.firstRunPythonInstalled) {
+        // Forza off la checkbox: se l'operatore aveva spuntato e poi reload dello
+        // status lo vede mancante, non vogliamo lasciare uno stato inconsistente.
+        this.firstRunForm.installRag = false;
       }
 
       if (!isFirstRun) {

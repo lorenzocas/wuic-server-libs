@@ -1,6 +1,6 @@
 import { AfterViewInit, Component, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { DataSourceAfterSyncEvent, DataSourceBeforeSyncEvent, DataSourceComponent, SpreadsheetListComponent } from 'wuic-framework-lib-dev';
+import { DataSourceAfterSyncEvent, DataSourceBeforeSyncEvent, DataSourceComponent, SpreadsheetListComponent, SpreadsheetListSfComponent } from 'wuic-framework-lib-dev';
 import { Subscription } from 'rxjs';
 
 /**
@@ -13,7 +13,7 @@ import { Subscription } from 'rxjs';
  */
 @Component({
   selector: 'app-5d-cities-spreadsheet',
-  imports: [CommonModule, DataSourceComponent, SpreadsheetListComponent],
+  imports: [CommonModule, DataSourceComponent, SpreadsheetListSfComponent],
   templateUrl: './5d-cities-spreadsheet.component.html',
   styleUrls: ['./5d-cities-spreadsheet.component.css']
 })

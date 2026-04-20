@@ -100,6 +100,33 @@ def _load_state() -> None:
         loaded_at=time.time(),
     )
 
+    # Warm-up esplicito del cross-encoder (lazy-loaded in get_cross_encoder()
+    # cache la prima volta che search_loaded() viene chiamato con
+    # use_cross_encoder=True). Senza warm-up, la PRIMA query reale del client
+    # paga il cold start ~30-60s di bge-reranker-v2-m3 (~600 MB) + LoRA v2
+    # adapter, scatenando rag-server-timeout sul backend C# (timeout HttpClient
+    # default 300s coprirebbe ma e' UX scadente: l'utente aspetta minuti per
+    # la prima domanda). Spostando il cold start qui, lo paghiamo durante il
+    # boot del server (rag-setup.ps1 ha timeout bind 600s) e tutte le query
+    # reali partono ~1-3s.
+    LOG.info("warming up cross-encoder (pre-loading bge-reranker-v2-m3 + LoRA v2)...")
+    t1 = time.time()
+    try:
+        from generate_embeddings import search_loaded  # noqa: WPS433
+        _ = search_loaded(
+            model=model, vectors=vectors, docs=docs, bm25=bm25,
+            query="warmup",
+            top_k=1,
+            use_cross_encoder=True,
+            cross_encoder_top_n=2,
+            cross_encoder_blend=0.85,
+            cross_encoder_intent_weight=0.0,
+            use_hyde=False,
+        )
+        LOG.info("cross-encoder warmed up in %.1fs (first real query sara' veloce)", time.time() - t1)
+    except Exception as exc:  # noqa: BLE001
+        LOG.warning("cross-encoder warm-up fallito: %s (la prima query paghera' il cold start)", exc)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

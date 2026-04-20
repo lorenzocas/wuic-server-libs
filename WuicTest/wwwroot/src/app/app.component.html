@@ -141,7 +141,7 @@
                     <label>
                         <input type="checkbox" [ngModel]="firstRunForm.installRag"
                             (ngModelChange)="firstRunForm.installRag = !!$event"
-                            [disabled]="firstRunInstalling" />
+                            [disabled]="firstRunInstalling || !firstRunPythonInstalled" />
                         Installa e avvia il server RAG
                         <i class="pi pi-info-circle first-run-info-icon"
                            [pTooltip]="'firstrun.rag.installTooltip' | translate"
@@ -149,11 +149,58 @@
                            [tooltipStyleClass]="'first-run-tooltip'"
                            [escape]="false"></i>
                     </label>
+                    @if (firstRunPythonInstalled && firstRunPythonSupported) {
                     <small style="display:block; margin-top:4px; opacity:0.75; font-size:0.8rem; line-height:1.35;">
-                        Esegue al termine dell'install: <code>winget install Python.Python.3.12</code> (se manca),
-                        crea <code>.venv</code>, installa torch + transformers + FastAPI,
-                        avvia il server su <code>:8765</code>. Richiede ~5-10 min + ~2 GB di download.
+                        Python {{ firstRunPythonVersion || '3.12' }} rilevato ✓. Al primo login post-wizard, crea <code>.venv</code>,
+                        installa torch + transformers + FastAPI, avvia il server su <code>:8765</code>.
+                        Richiede ~5-10 min + ~200 MB di download (CPU).
                     </small>
+                    } @else if (firstRunPythonInstalled && !firstRunPythonSupported) {
+                    <div class="first-run-python-note">
+                        <strong>ⓘ Python {{ firstRunPythonVersion }} rilevato — versione non testata</strong>
+                        <div style="margin-top:4px;">
+                            WUIC è pinnato a <strong>Python 3.12.x</strong> (wheels torch / transformers / LoRA più stabili).
+                            Procedere con <code>{{ firstRunPythonVersion }}</code> può funzionare ma non è testato:
+                            se <code>pip install torch</code> fallisce con "no matching distribution", installa
+                            <a href="https://www.python.org/downloads/release/python-3120/" target="_blank" rel="noopener noreferrer" class="first-run-python-warning-link">Python 3.12</a>
+                            a fianco e metti la sua cartella prima di quella di {{ firstRunPythonVersion }} nel PATH.
+                        </div>
+                    </div>
+                    } @else {
+                    <div class="first-run-python-warning">
+                        <strong>⚠ Python 3.12 non rilevato sul sistema</strong>
+                        <div style="margin-top:6px;">
+                            Il setup RAG richiede Python 3.12. Lo zip di deploy include l'installer embeddable + uno script
+                            che fa tutto: estrae Python in <code>C:\Python312</code>, installa pip, aggiorna PATH, riavvia IIS.
+                        </div>
+                        <ol style="margin:8px 0 4px 20px; padding:0;">
+                            <li>
+                                Vai nella cartella dove hai estratto il deploy zip (dove c'è <code>WuicCore.dll</code>).
+                            </li>
+                            <li>
+                                <strong>Right-click su <code>rag-setup.ps1</code> → "Esegui come amministratore"</strong>,
+                                oppure da pwsh-admin: <code>pwsh -ExecutionPolicy Bypass -File .\rag-setup.ps1</code>.
+                                Lo script si auto-eleva via UAC se non già elevato.
+                            </li>
+                            <li>
+                                Ricarica questa pagina (Ctrl+F5) — la checkbox si abilita automaticamente.
+                            </li>
+                        </ol>
+                        <div style="margin-top:4px; opacity:0.8;">
+                            Lo script gestisce anche l'edge case GPO <code>DisableMSI</code> su Windows Server (usa il bundle
+                            embeddable zip, non MSI). Per il download manuale di Python da python.org:
+                            <a href="https://www.python.org/downloads/release/python-3120/"
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               class="first-run-python-warning-link">
+                                python.org/downloads/release/python-3120/
+                                <i class="pi pi-external-link" style="font-size:0.75rem; margin-left:3px;"></i>
+                            </a>.
+                            Dettagli in <code>FIRST_STEPS.md</code> accanto al deploy. Il resto del setup (DB, admin user)
+                            può procedere senza Python — installa il RAG dopo.
+                        </div>
+                    </div>
+                    }
                 </div>
 
                 @if (firstRunForm.installRag) {
