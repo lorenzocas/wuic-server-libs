@@ -494,15 +494,15 @@ def search_loaded(
     rerank_text_overlap_weight: float = 0.60,
     use_cross_encoder: bool = False,
     cross_encoder_model: str = DEFAULT_RERANKER_MODEL,
-    # Re-tuned on eval_queries.v4_doclabels_relabel.jsonl (Apr 2026, Phase C):
-    # top_n=40, blend=0.85, intent=0.00 with the LoRA v2 cross-encoder
-    # (lora_ce_v4 / r=16, alpha=32, 4 epochs on v2 hard negatives) gives
-    # hit@8(603 excl ui-themes) = 0.8690 / MRR = 0.7555 — best MRR cell of
+    # Re-tuned on eval_queries.v4_doclabels_relabel.jsonl (Apr 2026, Phase C,
+    # index tightened post-remove-lib-src-symlink = 8081 chunks):
+    # top_n=40, blend=0.65, intent=0.00 with the LoRA v2 cross-encoder retrained
+    # on 8k-mined negatives (lora_ce_v4 / r=16, alpha=32, bs=1, 4 epochs) gives
+    # hit@8(603 excl ui-themes) = 0.8126 / MRR = 0.6574 — best hit@8 cell of
     # the (blend in {0.65,0.85,1.00}, top_n in {20,30,40}) grid sweep.
-    # blend=1.00 has marginally higher hit@8 (0.8723) but worse MRR (0.7505).
-    # Light-rerank-only baseline on the same eval is 0.7396 / 0.5798.
+    # Light-rerank-only baseline on the same eval is 0.6965 / 0.3283.
     cross_encoder_top_n: int = 40,
-    cross_encoder_blend: float = 0.85,
+    cross_encoder_blend: float = 0.65,
     cross_encoder_device: str = "auto",
     cross_encoder_batch_size: int = 32,
     cross_encoder_fp16: bool = True,
@@ -965,7 +965,7 @@ def search(
     use_cross_encoder: bool = False,
     # See search() for the rationale; defaults match the Phase C grid winner.
     cross_encoder_top_n: int = 40,
-    cross_encoder_blend: float = 0.85,
+    cross_encoder_blend: float = 0.65,
     cross_encoder_device: str = "auto",
     cross_encoder_batch_size: int = 32,
     cross_encoder_fp16: bool = True,
@@ -1083,7 +1083,7 @@ def _run_search_with_args(args, query_text: str):
         hf_token_env=args.hf_token_env,
         use_cross_encoder=getattr(args, "use_cross_encoder", False),
         cross_encoder_top_n=getattr(args, "cross_encoder_top_n", 40),
-        cross_encoder_blend=getattr(args, "cross_encoder_blend", 0.85),
+        cross_encoder_blend=getattr(args, "cross_encoder_blend", 0.65),
         cross_encoder_device=getattr(args, "cross_encoder_device", "auto"),
         cross_encoder_batch_size=getattr(args, "cross_encoder_batch_size", 32),
         cross_encoder_fp16=not getattr(args, "cross_encoder_no_fp16", False),
@@ -1203,7 +1203,7 @@ def main():
         help="Directory containing the LoRA adapter (adapter_config.json + adapter_model.safetensors).",
     )
     p_query.add_argument("--cross-encoder-top-n", type=int, default=40)
-    p_query.add_argument("--cross-encoder-blend", type=float, default=0.85)
+    p_query.add_argument("--cross-encoder-blend", type=float, default=0.65)
     p_query.add_argument("--cross-encoder-intent-weight", type=float, default=0.00,
                          help="Post-CE architectural intent path boost weight (0.0 to disable)")
     p_query.add_argument("--use-hyde", action="store_true",

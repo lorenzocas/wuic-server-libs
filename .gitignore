@@ -36,6 +36,8 @@ codebase_embeddings/*
 # Whitelist: source code del RAG chatbot server (resta nel folder per import diretto da generate_embeddings)
 !codebase_embeddings/rag_server.py
 !codebase_embeddings/requirements_rag_server.txt
+# Whitelist: benchmark script canonico Phase C (usato da docs CLAUDE.md per replicare metriche)
+!codebase_embeddings/eval_v4_lora.py
 CrmApp/.local-package-sync.stamp
 CrmApp/wwwroot/.wuic-framework-lib.lastinstall
 WuicTest/Tmp_export/*
