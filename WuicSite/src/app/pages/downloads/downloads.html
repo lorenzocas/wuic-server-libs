@@ -87,6 +87,23 @@
           <p [innerHTML]="'downloads.cards.ragText' | translate"></p>
         </div>
       </p-card>
+      <p-card>
+        <div class="info-card">
+          <h3><i class="pi pi-database"></i> {{ 'downloads.cards.tutorialTitle' | translate }}</h3>
+          <p [innerHTML]="'downloads.cards.tutorialText' | translate"></p>
+        </div>
+      </p-card>
+    </div>
+
+    <div class="requirements-block">
+      <h2><i class="pi pi-info-circle"></i> {{ 'downloads.requirements.title' | translate }}</h2>
+      <p class="requirements-subtitle">{{ 'downloads.requirements.subtitle' | translate }}</p>
+      <ul class="requirements-list">
+        <li [innerHTML]="'downloads.requirements.os' | translate"></li>
+        <li [innerHTML]="'downloads.requirements.runtime' | translate"></li>
+        <li [innerHTML]="'downloads.requirements.sql' | translate"></li>
+        <li [innerHTML]="'downloads.requirements.tls' | translate"></li>
+      </ul>
     </div>
   </div>
 </section>

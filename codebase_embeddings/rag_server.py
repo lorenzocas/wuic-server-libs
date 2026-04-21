@@ -23,6 +23,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import sys
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -87,6 +88,26 @@ def _load_state() -> None:
     llm_enabled = bool(api_key)
     LOG.info("Anthropic API key %s; chat mode %s", "present" if llm_enabled else "MISSING", "enabled" if llm_enabled else "DEGRADED to retrieval-only")
 
+    # Cross-encoder rerank (BGE reranker v2-m3 + LoRA v2): di default ON. Su CPU
+    # costa 30-120s per query con top_n=40 su ~5600 chunks, con rischio OOM+swap
+    # prolungato su VPS <=4 GB RAM (sintomo: query che restano appese per ore,
+    # processo Python con CPU time elevato ma nessun progresso stdout).
+    # Disabilitabile in 2 modi:
+    #   1) env var WUIC_RAG_DISABLE_CROSS_ENCODER=1 (persistente, consigliato su CPU-only)
+    #   2) CLI flag --disable-cross-encoder
+    # Quando disabilitato: BM25 + vector search only, ~2-5s per query.
+    # Tradeoff qualita': hit@8 da 0.87 (CE+LoRA v2) → 0.74 (no-CE) sul benchmark
+    # interno. Accettabile per demo pubblico, sconsigliato su deploy con GPU.
+    disable_ce_env = os.environ.get("WUIC_RAG_DISABLE_CROSS_ENCODER", "").strip().lower() in ("1", "true", "yes", "on")
+    disable_ce_cli = "--disable-cross-encoder" in sys.argv or "--no-use-cross-encoder" in sys.argv
+    use_cross_encoder = not (disable_ce_env or disable_ce_cli)
+    LOG.info(
+        "cross-encoder rerank %s (env=%s cli=%s)",
+        "ENABLED" if use_cross_encoder else "DISABLED",
+        "set" if disable_ce_env else "unset",
+        "set" if disable_ce_cli else "unset",
+    )
+
     _state.clear()
     _state.update(
         model=model,
@@ -97,6 +118,7 @@ def _load_state() -> None:
         translate_cache=cache,
         anthropic_api_key=api_key,
         llm_enabled=llm_enabled,
+        use_cross_encoder=use_cross_encoder,
         loaded_at=time.time(),
     )
 
@@ -109,6 +131,12 @@ def _load_state() -> None:
     # la prima domanda). Spostando il cold start qui, lo paghiamo durante il
     # boot del server (rag-setup.ps1 ha timeout bind 600s) e tutte le query
     # reali partono ~1-3s.
+    # Se il cross-encoder e' disabilitato (CPU-only deploy), skip del warm-up:
+    # eviterebbe di caricare inutilmente ~600 MB di model + LoRA in RAM, liberando
+    # spazio per retrieval plain BM25+vector che e' l'unico path attivo.
+    if not use_cross_encoder:
+        LOG.info("cross-encoder DISABLED → skipping warm-up (saves ~600 MB RAM + ~45s boot time)")
+        return
     LOG.info("warming up cross-encoder (pre-loading bge-reranker-v2-m3 + LoRA v2)...")
     t1 = time.time()
     try:
@@ -222,6 +250,10 @@ def _translate_query(query_text: str) -> str:
 
 def _do_search(query_text: str, top_k: int) -> List[Dict[str, Any]]:
     from generate_embeddings import search_loaded  # noqa: WPS433
+    # Rispetta il flag dinamico: su CPU-only deployment il cross-encoder rerank
+    # e' tipicamente disabilitato per evitare 30-120s di latenza per query +
+    # rischio OOM (vedi env WUIC_RAG_DISABLE_CROSS_ENCODER / --disable-cross-encoder).
+    use_ce = bool(_state.get("use_cross_encoder", True))
     return search_loaded(
         model=_state["model"],
         vectors=_state["vectors"],
@@ -229,7 +261,7 @@ def _do_search(query_text: str, top_k: int) -> List[Dict[str, Any]]:
         bm25=_state["bm25"],
         query=query_text,
         top_k=top_k,
-        use_cross_encoder=True,
+        use_cross_encoder=use_ce,
         # Defaults Phase C (gia' wired in generate_embeddings.py, ridichiarati qui per chiarezza)
         cross_encoder_top_n=40,
         cross_encoder_blend=0.85,

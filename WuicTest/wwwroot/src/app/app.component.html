@@ -135,6 +135,18 @@
                         placeholder="(min 4 caratteri)" />
                 </div>
 
+                <div class="first-run-field">
+                    <label for="first-run-admin-language">Lingua admin iniziale</label>
+                    <p-select [options]="firstRunAdminLanguageOptions" optionLabel="label" optionValue="value"
+                        [ngModel]="firstRunForm.adminLanguage"
+                        (ngModelChange)="firstRunForm.adminLanguage = $event"
+                        [disabled]="firstRunInstalling"
+                        [style]="{ width: '100%' }" inputId="first-run-admin-language"></p-select>
+                    <small style="display:block; margin-top:4px; opacity:0.75; font-size:0.8rem; line-height:1.35;">
+                        Lingua applicata all'utente admin dopo il primo login. Puoi cambiarla in seguito dal profilo utente.
+                    </small>
+                </div>
+
                 <div class="first-run-section-title first-run-section-title-rag">RAG Chatbot (opzionale)</div>
 
                 <div class="first-run-field first-run-checkbox-row">

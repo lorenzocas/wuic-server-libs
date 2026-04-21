@@ -72,3 +72,60 @@
     font-size: 0.85rem;
   }
 }
+
+.requirements-block {
+  margin-top: 48px;
+  padding: 28px 32px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #6366f1;
+  border-radius: 8px;
+
+  h2 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0 0 8px;
+    color: #0f172a;
+
+    i { color: #6366f1; }
+  }
+
+  .requirements-subtitle {
+    color: #64748b;
+    font-size: 0.9rem;
+    margin: 0 0 16px;
+  }
+
+  .requirements-list {
+    margin: 0;
+    padding-left: 20px;
+    color: #334155;
+    font-size: 0.92rem;
+    line-height: 1.7;
+
+    li { margin-bottom: 8px; }
+    li:last-child { margin-bottom: 0; }
+
+    strong { color: #0f172a; }
+
+    code {
+      background: #e2e8f0;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      color: #1e293b;
+    }
+
+    em {
+      font-style: normal;
+      background: #fef3c7;
+      padding: 1px 5px;
+      border-radius: 3px;
+      color: #713f12;
+      font-size: 0.88rem;
+    }
+  }
+}

@@ -1,4 +1,4 @@
-import { AfterContentInit, Component, forwardRef, Injector, OnDestroy, OnInit } from '@angular/core';
+import { AfterContentInit, ChangeDetectorRef, Component, forwardRef, Injector, OnDestroy, OnInit } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { utility } from './classes/utility';
 import { CommonModule, NgClass, NgComponentOutlet, NgFor, NgIf, NgStyle } from '@angular/common';
@@ -28,6 +28,25 @@ import { PrimeNG } from 'primeng/config';
 import Aura from '@primeuix/themes/aura';
 import Lara from '@primeuix/themes/lara';
 import Nora from '@primeuix/themes/nora';
+
+/**
+ * Default della lingua admin basato su `navigator.language`. Mappa su uno dei 5
+ * tag supportati (it-IT / en-US / fr-FR / es-ES / de-DE) matchando il prefisso
+ * linguistico (es. "fr", "fr-CA" → fr-FR). Fallback: 'it-IT'.
+ * Dichiarata come funzione module-scope (non metodo di classe) per essere
+ * utilizzabile nel field-initializer di `firstRunForm` senza incorrere in
+ * TS2339 (all'inizializzazione i metodi statici della classe non sono ancora
+ * accessibili via `typeof ClassName` in strict mode).
+ */
+function resolveDefaultAdminLanguage(): string {
+  const raw = (typeof navigator !== 'undefined' ? (navigator.language || '') : '').toLowerCase();
+  if (raw.startsWith('it')) return 'it-IT';
+  if (raw.startsWith('en')) return 'en-US';
+  if (raw.startsWith('fr')) return 'fr-FR';
+  if (raw.startsWith('es')) return 'es-ES';
+  if (raw.startsWith('de')) return 'de-DE';
+  return 'it-IT';
+}
 import Material from '@primeuix/themes/material';
 import { updatePrimaryPalette, usePreset } from '@primeuix/styled';
 import { WtoolboxService, MetadataProviderService, GlobalHandler, CustomException, TranslationManagerService, AuthSessionService, UserInfoService, getThemeOptions, PRIMARY_PALETTES, ThemeOption, LicenseFeatureService } from './wuic-bridges/core';
@@ -77,6 +96,16 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     { label: 'Oracle', value: 'oracle' },
     { label: 'PostgreSQL', value: 'postgres' }
   ];
+  // Opzioni lingua admin iniziale. I valori sono i 5 tag IETF supportati dal framework
+  // WUIC (ngx-translate carica `./assets/i18n/<tag>.json`). Il backend
+  // InsertFirstRunAdminUser accetta SOLO questi 5 valori, altrimenti fallback a 'it-IT'.
+  firstRunAdminLanguageOptions = [
+    { label: 'Italiano', value: 'it-IT' },
+    { label: 'English', value: 'en-US' },
+    { label: 'Français', value: 'fr-FR' },
+    { label: 'Español', value: 'es-ES' },
+    { label: 'Deutsch', value: 'de-DE' }
+  ];
   // Default both modes; bootstrapFirstRun() narrows the list to just "DB esistente"
   // when the backend reports tutorialAvailable=false (i.e. the deploy zip variant
   // ships only minimal-metadata.<dbms>.sql, not the WideWorldImporters tutorial bundle).
@@ -116,6 +145,12 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     metadataDbName: 'metadataDB',
     adminUsername: 'admin',
     adminPassword: '',
+    // Lingua di default dell'utente admin creato dal wizard. Scritta nel campo
+    // `utenti.language` (varchar(6)) durante configure_wuic → InsertFirstRunAdminUser.
+    // Al primo login il frontend legge questo valore via `UserInfoService.getuserInfo().lingua`
+    // e applica il set locale a ngx-translate. Default: detect da browser (navigator.language)
+    // con fallback a 'it-IT'. Valori validi: 'it-IT' | 'en-US' | 'fr-FR' | 'es-ES' | 'de-DE'.
+    adminLanguage: resolveDefaultAdminLanguage(),
     scaffoldExistingDatabase: false,
     // ── RAG Chatbot (opzionale) ──────────────────────────────────────
     // Se `installRag = true` il backend configure_wuic invoca
@@ -185,7 +220,8 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
   constructor(public messageService: MessageService, public confirmationService: ConfirmationService, private http: HttpClient, private dialogSrv: DialogService, private translationService: TranslationManagerService, public globalHandler: GlobalHandler, private primeng: PrimeNG,
     // private notificationRealtime: CrmNotificationRealtimeService, private router: Router,
     private injector: Injector,
-    private translate: TranslateService
+    private translate: TranslateService,
+    private cdr: ChangeDetectorRef
   ) {
 
     WtoolboxService.messageNotificationService = messageService;
@@ -461,6 +497,15 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
 
     this.metaMenuComponent = ui.LazyMetaMenuComponent;
     this.notificationBellComponent = notifications.NotificationBellComponent;
+    // Force CD: dynamic import resolve avviene in una microtask zone-patched,
+    // ma in alcune condizioni (prima emissione router, race con
+    // showFirstRunInstall che ri-monta il subtree dell'app shell) il change
+    // non viene propagato al template prima che Angular entri in stabile.
+    // Risultato: al refresh della pagina il metaMenuComponent resta null nel
+    // render anche se la property e' popolata, e il menu orizzontale non
+    // appare. detectChanges forza il re-eval di *ngIf="metaMenuComponent"
+    // dopo l'assignment. Idempotente/economico (CD locale sul componente).
+    this.cdr.detectChanges();
   }
 
   ngAfterContentInit(): void {
@@ -850,6 +895,10 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
         scaffoldExistingDatabase: (!isTutorialMode && this.firstRunForm.scaffoldExistingDatabase) ? 'true' : 'false',
         adminUsername,
         adminPassword,
+        // Tag IETF della lingua iniziale (es. 'it-IT'). Scritta su utenti.language
+        // dall'InsertFirstRunAdminUser; il frontend la applica a ngx-translate al
+        // primo login via UserInfoService.getuserInfo().lingua.
+        adminLanguage: this.firstRunForm.adminLanguage,
         // Opzione RAG: il backend, se `installRag === 'true'`, esegue
         // scripts/rag-setup.ps1 (winget Python + venv + deps + avvio server)
         // dopo l'install DB/metadata, riflettendo le 4 fasi nel progress

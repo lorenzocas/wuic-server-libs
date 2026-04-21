@@ -319,7 +319,17 @@
       "iisTitle": "Paquetes IIS",
       "iisText": "Salida de <code>dotnet publish</code> lista para IIS. Angular ya compilado. Extrae en la physical path del sitio, configura appsettings.json y arranca.",
       "ragTitle": "RAG Chatbot",
-      "ragText": "Los paquetes con RAG incluyen el índice vectorial y el servidor Python. Tras la extracción lanza <code>pwsh rag-setup.ps1</code> para el setup automático."
+      "ragText": "Los paquetes con RAG incluyen el índice vectorial y el servidor Python. Tras la extracción lanza <code>pwsh rag-setup.ps1</code> para el setup automático.",
+      "tutorialTitle": "DB tutorial: BAK vs SQL",
+      "tutorialText": "Los paquetes con sufijo <strong>-bak-</strong> incluyen una copia de seguridad binaria (<code>.bak</code>) de la base de datos tutorial lista para restaurar — requieren <strong>SQL Server 2022</strong> o superior (formato de backup) pero son <strong>mucho más rápidos de restaurar</strong> (pocos segundos frente a varios minutos). Los paquetes con tutorial <strong>SQL</strong> (sin <code>-bak-</code>) contienen scripts <code>.sql</code> compatibles desde <strong>SQL Server 2017</strong> (nivel de compatibilidad 140): elige estos si tu instancia es más antigua o de edición Express, a costa de una importación más lenta."
+    },
+    "requirements": {
+      "title": "Requisitos del sistema",
+      "subtitle": "Stack mínimo para ejecutar WUIC en producción sobre IIS.",
+      "os": "<strong>Windows Server</strong>: mínimo <strong>2019</strong> (base oficial ASP.NET Core 10). Recomendado <strong>2022</strong> o <strong>2025</strong>. 2016 / 2012 R2 / 2008 R2 fuera de soporte.",
+      "runtime": "<strong>ASP.NET Core Runtime 10 — Hosting Bundle</strong> en IIS. IIS 10+. App pool en <em>No Managed Code</em>, característica <code>Web-WebSockets</code> habilitada.",
+      "sql": "<strong>SQL Server</strong>: mínimo <strong>2017</strong> (compat 140, para <code>STRING_AGG</code> y <code>DROP IF EXISTS</code>). Recomendado 2019 / 2022. Ediciones Express / Standard / Developer / Enterprise equivalentes para el esquema de metadatos.",
+      "tls": "<strong>TLS 1.2+</strong> habilitado en el SO (activado por defecto desde WS 2016+). Requerido por el driver <code>Microsoft.Data.SqlClient 5.2</code>."
     }
   },
   "olderDownloads": {
