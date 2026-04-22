@@ -2,6 +2,32 @@ import { bootstrapApplication } from '@angular/platform-browser';
 import { appConfig } from './app/app.config';
 import { AppComponent } from './app/app.component';
 
+// NON chiamare enableProdMode() qui, nonostante Angular stampi
+// "Angular is running in development mode" in console ad ogni boot.
+//
+// Storico (2026-04-22): un tentativo di invocare enableProdMode() solo sui
+// deploy remoti (guard hostname != localhost) ha causato il crash
+//   TypeError: Cannot redefine property: ɵfac
+//     at addDirectiveFactoryDef
+//     at compileComponent
+//     at _DynamicRowTemplateComponent.getComponentFromTemplate
+// Motivo: Angular 18+ chiama `Object.defineProperty(..., { configurable:
+// isDevMode() })` su `ɵfac`. Con enableProdMode() attivo isDevMode() torna
+// false -> configurable=false -> il successivo ɵcompileComponent (eseguito
+// runtime da DynamicRowTemplateComponent per compilare template custom per
+// row) non riesce a ridefinire la proprieta' e crasha la list-grid.
+//
+// Lo stesso effetto era gia' noto con `optimization.scripts: true` (vedi
+// commento in postbuild-minify.mjs) perche' quel flag produce un define
+// esbuild `ngDevMode=false` che ha la stessa conseguenza. In entrambi i
+// casi la root cause e' `isDevMode()==false`, non il minifier in se'.
+//
+// Finche' DynamicRowTemplateComponent usa `ɵcompileComponent` runtime per
+// i template dinamici, il deploy DEVE restare in dev mode a livello runtime
+// (bundle minificato via terser, ma ngDevMode/isDevMode lasciati liberi di
+// valutare dev a runtime). Il prezzo e' il log in console + alcune
+// ottimizzazioni runtime skipped, non impatta funzionalita'.
+
 // Lazy-load Stimulsoft license setup — not needed at bootstrap, only before report components are used.
 // The dynamic import keeps the 16 MB library out of the initial bundle.
 import('stimulsoft-reports-js/Scripts/stimulsoft.reports').then((m) => {
