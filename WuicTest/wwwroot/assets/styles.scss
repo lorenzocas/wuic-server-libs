@@ -1,31 +1,90 @@
 @use 'styles/styles' as styles;
+
+/* =====================================================================
+ * WUIC list-grid: sticky frozen-left columns (body cells)
+ * =====================================================================
+ *
+ * Le colonne pinned a sinistra (chevron expand, checkbox multi-select,
+ * action button, e ogni col data marcata `col?.frozen`) sono renderizzate
+ * dal template runtime-compiled in `DynamicRowTemplateComponent` con le
+ * classi `.wuic-sticky-frozen-1/2/3/4` + `.wuic-sticky-frozen-left`.
+ *
+ * Devono stare globali (non scoped al componente Angular) per due motivi:
+ * 1. Il template runtime-compiled ha encapsulation Emulated; le regole
+ *    inline al componente sono scoped → non matchano se il template viene
+ *    re-compiled o cached separatamente.
+ * 2. Avere il CSS qui permette di tunarlo lato host (theme overrides)
+ *    senza dover ricompilare la lib WUIC.
+ *
+ * Gli offset px in fallback sono allineati alle measurements reali di
+ * PrimeNG pFrozenColumn (chevron 33 + checkbox 42 + action 58 = 133 px
+ * totali per la 4a sticky col). Il valore reale runtime e' propagato come
+ * CSS variable `--wuic-frozen-left-N` da `list-grid.component.ts:
+ * syncFrozenOffsetsFromHeader` che misura i <th> PrimeNG dopo il render.
+ * Il `var(..., fallbackpx)` permette di gestire entrambi i casi (var
+ * settata dal sync, fallback se sync non ha ancora girato).
+ */
+td.wuic-sticky-frozen-left {
+    position: sticky;
+    z-index: 2;
+}
+
+/* Background opaco con stripe alternation: il <td> dietro mostra il
+ * proprio bg (var --p-datatable-row-background). Per evitare che il
+ * contenuto scrollato sotto traspari attraverso la cella sticky,
+ * impostiamo background-color esplicito e diversificato per
+ * nth-child(odd) vs nth-child(even). */
+.p-datatable-tbody tr:nth-child(odd) td.wuic-sticky-frozen-left {
+    background: var(--p-datatable-row-background, #fff);
+}
+
+.p-datatable-tbody tr:nth-child(even) td.wuic-sticky-frozen-left {
+    background: var(--p-datatable-row-stripe-background, #f8fafc);
+}
+
+td.wuic-sticky-frozen-1 { left: var(--wuic-frozen-left-1, 0); }
+td.wuic-sticky-frozen-2 { left: var(--wuic-frozen-left-2, 33px); }
+td.wuic-sticky-frozen-3 { left: var(--wuic-frozen-left-3, 75px); }
+td.wuic-sticky-frozen-4 { left: var(--wuic-frozen-left-4, 133px); }
+
+/*
+ * Stacking order delle parti sticky della list-grid:
+ *   thead (sticky top:0)              -> z-index 10  (sopra TUTTO)
+ *   tfoot (sticky bottom:0, SUM row)  -> z-index 10  (sopra le frozen body)
+ *   body td.wuic-sticky-frozen-left   -> z-index 2   (sopra le altre body cells scrollabili)
+ *   body td (normali)                 -> z-index auto
+ *
+ * PrimeNG di default mette thead z=2 e tfoot z=1, valori troppo bassi:
+ * 1) thead z=2 == sticky body z=2 -> tie risolto in source order, vince il
+ *    body sticky -> intestazione colonna coperta dalla cella body durante
+ *    scroll verticale.
+ * 2) tfoot z=1 < sticky body z=2 -> body vince -> SUM nel footer coperto
+ *    dalla cella sticky frozen quando scrolli orizzontale o verticale.
+ *
+ * Fix: alziamo header/footer a z=10 con `!important` per battere la
+ * specificity di PrimeNG (`.p-datatable .p-datatable-tfoot`). Cosi' header
+ * e footer restano SEMPRE on top di tutto, incluse le sticky frozen body.
+ */
+thead.p-datatable-thead,
+tfoot.p-datatable-tfoot {
+    z-index: 10 !important;
+}
+
+/* I figli <th>/<td> di thead/tfoot ereditano lo stacking context dal
+ * parent grazie alla loro position: sticky (creata da PrimeNG). Quando
+ * una cella interna (es. <th> sticky frozen) ha il proprio z-index,
+ * compete dentro lo stesso piano del parent thead/tfoot - quindi sale
+ * automaticamente sopra le body cells. */
+
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
 /* You can add global styles to this file, and also import other style files */
 
-/* PrimeIcons font-display override.
- * Default primeicons.css (loaded before this file via angular.json "styles")
- * declares @font-face senza font-display, cioe' il browser usa "block" → durante
- * lo scarico del woff2 le icone restano invisibili (FOIT = Flash Of Invisible Text).
- * Lighthouse segnala ~40ms di FCP perso.
- *
- * Re-dichiarando @font-face con lo stesso font-family DOPO il primeicons.css
- * originale, il browser usa l'ultima dichiarazione → font-display: swap kicks in
- * e le icone mostrano un fallback finche' il woff2 non e' pronto (no FOIT, solo FOUT).
- *
- * Path woff2: primeicons copia automaticamente i font sotto dist/.../media/ al build,
- * quindi puntiamo al nome logico che Angular CLI risolve tramite url-loader del CSS
- * originale. Usiamo solo woff2 (supportato da tutti i browser moderni, inclusi IE11+
- * non e' un target WUIC).
- */
-@font-face {
-    font-family: 'primeicons';
-    font-display: swap;
-    src: url('../../node_modules/primeicons/fonts/primeicons.woff2') format('woff2'),
-         url('../../node_modules/primeicons/fonts/primeicons.woff') format('woff'),
-         url('../../node_modules/primeicons/fonts/primeicons.ttf') format('truetype');
-    font-weight: normal;
-    font-style: normal;
-}
+/* NOTE: PrimeIcons font-display override rimosso — i path relative a node_modules
+ * non sono risolvibili dal css-resource loader di Angular CLI/esbuild in prod.
+ * Re-implementazione prevista in un secondo giro usando il pattern con @font-face
+ * che carica via `assets` registrati in angular.json, oppure tramite patch-package
+ * su node_modules/primeicons/primeicons.css per aggiungere `font-display: swap`
+ * in-place al @font-face originale. */
 
 html,
 body {
