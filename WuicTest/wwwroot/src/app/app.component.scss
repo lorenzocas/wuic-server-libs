@@ -395,29 +395,62 @@
 }
 
 .first-run-error {
+    position: relative;
     margin: 8px 0 14px;
     color: #7f1d1d;
     background: #fee2e2;
     border: 1px solid #fca5a5;
     border-radius: 8px;
-    padding: 10px 12px;
-    // Long backend stack traces (es. "AsmxProxy invocation failed... InvalidOperationException...")
-    // can be hundreds of lines and would push the action button off-screen even with
-    // a scrollable card. Give the error block its own scroll boundary so the dialog
-    // remains usable.
-    //
-    // Sized to fit ~18-20 lines of monospace stack trace at 0.85rem before scrolling kicks in,
-    // which covers the typical SqlException + a few CLR frames without forcing the user to
-    // scroll just to read the cause line. The min-height prevents the box from squishing on
-    // short single-line errors (where it would otherwise be barely taller than the padding).
-    min-height: 120px;
-    max-height: 360px;
-    overflow-y: auto;
-    word-break: break-word;
-    white-space: pre-wrap;
-    font-family: ui-monospace, "Cascadia Code", "Consolas", monospace;
-    font-size: 0.85rem;
-    line-height: 1.4;
+    padding: 10px 36px 10px 12px; // right padding per non sovrapporre il testo al close "x"
+
+    &__body {
+        // Long backend stack traces (es. "AsmxProxy invocation failed... InvalidOperationException...")
+        // can be hundreds of lines and would push the action button off-screen even with
+        // a scrollable card. Give the error block its own scroll boundary so the dialog
+        // remains usable. Cap deliberato a 200px: l'utente ha chiesto un banner compatto
+        // che non rubi spazio; per traces lunghe basta scrollare internamente o usare la X.
+        max-height: 200px;
+        overflow-y: auto;
+        word-break: break-word;
+        white-space: pre-wrap;
+        font-family: ui-monospace, "Cascadia Code", "Consolas", monospace;
+        font-size: 0.85rem;
+        line-height: 1.4;
+    }
+
+    &__close {
+        // Posizionato sul wrapper non-scrollabile cosi' resta sempre visibile
+        // anche quando l'utente scrolla internamente lo stack trace.
+        position: absolute;
+        top: 6px;
+        right: 8px;
+        width: 24px;
+        height: 24px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        background: transparent;
+        border: 0;
+        border-radius: 4px;
+        color: inherit;
+        font-size: 1.25rem;
+        line-height: 1;
+        cursor: pointer;
+        opacity: 0.75;
+        transition: background-color 120ms ease, opacity 120ms ease;
+
+        &:hover,
+        &:focus-visible {
+            opacity: 1;
+            background: rgba(127, 29, 29, 0.12);
+            outline: none;
+        }
+
+        &:active {
+            background: rgba(127, 29, 29, 0.20);
+        }
+    }
 }
 
 // CTA "Conferma e genera metadataDB" — posizionato a destra del footer-row,

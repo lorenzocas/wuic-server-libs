@@ -89,7 +89,26 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
   firstRunDbLoading = false;
   firstRunConnectionTesting = false;
   firstRunConnectionValid = false;
-  firstRunError = '';
+  // Backing field per il banner di errore del first-run.
+  // Il template legge il getter `firstRunError` e il flag `firstRunErrorDismissed`
+  // per decidere la visibilita'; il setter resetta il flag di chiusura ogni volta
+  // che il messaggio cambia davvero, cosi' un NUOVO errore fa ricomparire il banner
+  // anche se l'utente aveva chiuso il precedente.
+  private _firstRunError = '';
+  firstRunErrorDismissed = false;
+  get firstRunError(): string { return this._firstRunError; }
+  set firstRunError(value: string) {
+    const next = value ?? '';
+    if (next !== this._firstRunError) {
+      // Reset sia sul passaggio empty->nonempty (nuovo errore dopo dismiss) sia
+      // sui cambi di testo (errore diverso). Non resettiamo quando il valore non
+      // cambia: evita di ri-aprire un banner che l'utente ha appena chiuso se
+      // qualche codice path riassegna la stessa stringa.
+      this.firstRunErrorDismissed = false;
+    }
+    this._firstRunError = next;
+  }
+  dismissFirstRunError(): void { this.firstRunErrorDismissed = true; }
   firstRunDbmsOptions = [
     { label: 'Microsoft SQL Server', value: 'mssql' },
     { label: 'MySQL', value: 'mysql' },
@@ -816,8 +835,15 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
         ? (this.firstRunForm.tutorialMetadataDbName || this.firstRunForm.metadataDbName || 'MetadataCRM')
         : (this.firstRunForm.metadataDbName || 'metadataDB')
     ).trim();
-    if (!conn.userId || !conn.password) {
-      this.firstRunError = 'Stringa DataSQLConnection non valida: servono almeno user e password.';
+    // Integrated Security / Trusted_Connection bypassa user+password (Windows Auth).
+    // Non-mssql DBMS (MySQL, PostgreSQL, Oracle) richiedono sempre user/pass: il
+    // concetto di Windows Integrated Auth non esiste per quei provider.
+    if (!conn.integratedSecurity && (!conn.userId || !conn.password)) {
+      this.firstRunError = 'Stringa DataSQLConnection non valida: servono almeno user e password (oppure Integrated Security=true su MSSQL).';
+      return;
+    }
+    if (conn.integratedSecurity && dbms !== 'mssql') {
+      this.firstRunError = 'Integrated Security è supportata solo su Microsoft SQL Server: per ' + dbms + ' servono user e password.';
       return;
     }
 
@@ -868,6 +894,7 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
         conn_database_name: selectedDataDbName,
         conn_user_id: conn.userId,
         conn_password: conn.password,
+        conn_integrated_security: conn.integratedSecurity ? 'true' : 'false',
         conn_data_base_connection_string: dataBaseConnection,
         preScaffoldDB: true,
         rdbDBMSMeta: dbms,
@@ -876,6 +903,7 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
         conn_metadata_db_name: selectedMetadataDbName,
         conn_user_id_meta: conn.userId,
         conn_password_meta: conn.password,
+        conn_integrated_security_meta: conn.integratedSecurity ? 'true' : 'false',
         psqlPath: '',
         theme: 'default',
         site_url: globalThis.location.origin,
@@ -1313,7 +1341,11 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
       port: parsed.port,
       databaseName: preferredDatabaseName,
       userId: parsed.userId,
-      password: parsed.password
+      password: parsed.password,
+      // Preserve Windows Integrated Auth se l'utente l'aveva scelta. Solo MSSQL la
+      // supporta: su cambio DBMS a MySQL/PG forziamo IS=false per evitare una conn
+      // string invalida per quei provider.
+      integratedSecurity: parsed.integratedSecurity && normalizedDbms === 'mssql'
     });
     this.firstRunForm.dataDbName = preferredDatabaseName;
 
@@ -1495,6 +1527,7 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     databaseName: string;
     userId: string;
     password: string;
+    integratedSecurity: boolean;
   } {
     const map = new Map<string, string>();
     (connectionString || '')
@@ -1514,6 +1547,16 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     const password = this.getConnValue(map, ['password', 'pwd']);
     const explicitPort = this.getConnValue(map, ['port']);
 
+    // Detect Windows Integrated Auth: SqlClient accepts
+    //   Integrated Security = true | yes | sspi
+    //   Trusted_Connection = true | yes
+    // When present and truthy, user id/password are not required.
+    const integratedSecurityRaw = this.getConnValue(map, ['integrated security', 'trusted_connection']).toLowerCase();
+    const integratedSecurity =
+      integratedSecurityRaw === 'true'
+      || integratedSecurityRaw === 'yes'
+      || integratedSecurityRaw === 'sspi';
+
     let dataSource = dataSourceRaw;
     let port = explicitPort;
     if (!port && dataSourceRaw.includes(',')) {
@@ -1527,7 +1570,8 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
       port,
       databaseName: dbName,
       userId,
-      password
+      password,
+      integratedSecurity
     };
   }
 
@@ -1567,6 +1611,7 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     databaseName: string;
     userId: string;
     password: string;
+    integratedSecurity?: boolean;
   }): string {
     const dbms = this.normalizeDbms(normalizedDbms);
     const dataSource = String(conn.dataSource || '').trim();
@@ -1574,6 +1619,7 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     const databaseName = String(conn.databaseName || '').trim();
     const userId = String(conn.userId || '').trim();
     const password = String(conn.password || '').trim();
+    const integratedSecurity = !!conn.integratedSecurity;
 
     const parts: string[] = [];
 
@@ -1586,14 +1632,19 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
       if (serverValue) {
         parts.push(`data source=${serverValue}`);
       }
-      parts.push('integrated security=False');
-      if (userId) {
-        parts.push(`User ID=${userId}`);
+      if (integratedSecurity) {
+        // Windows Auth: ignora user/pass anche se presenti nell'input originale.
+        parts.push('Integrated Security=True');
+      } else {
+        parts.push('integrated security=False');
+        if (userId) {
+          parts.push(`User ID=${userId}`);
+        }
+        if (password) {
+          parts.push(`Password=${password}`);
+        }
+        parts.push('Persist Security Info=true');
       }
-      if (password) {
-        parts.push(`Password=${password}`);
-      }
-      parts.push('Persist Security Info=true');
       parts.push('Encrypt=False');
       parts.push('TrustServerCertificate=True');
       if (databaseName) {

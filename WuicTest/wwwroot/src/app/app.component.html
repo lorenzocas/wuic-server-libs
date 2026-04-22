@@ -262,8 +262,15 @@
 
         <!-- FOOTER sticky: error (se presente) + riga progress|CTA sempre visibile. -->
         <div class="first-run-footer">
-            @if (firstRunError) {
-            <div class="first-run-error">{{ firstRunError }}</div>
+            @if (firstRunError && !firstRunErrorDismissed) {
+            <div class="first-run-error" role="alert">
+                <button type="button"
+                        class="first-run-error__close"
+                        (click)="dismissFirstRunError()"
+                        aria-label="Chiudi errore"
+                        title="Chiudi">×</button>
+                <div class="first-run-error__body">{{ firstRunError }}</div>
+            </div>
             }
 
             <div class="first-run-footer-row">

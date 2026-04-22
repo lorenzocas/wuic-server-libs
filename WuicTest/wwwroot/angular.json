@@ -91,6 +91,21 @@
               ],
               "outputHashing": "all"
             },
+            "analyze": {
+              "optimization": true,
+              "budgets": [
+                { "type": "initial", "maximumWarning": "10MB", "maximumError": "100MB" },
+                { "type": "anyComponentStyle", "maximumWarning": "10MB", "maximumError": "100MB" }
+              ],
+              "outputHashing": "all",
+              "extractLicenses": true,
+              "sourceMap": {
+                "scripts": true,
+                "styles": false,
+                "hidden": true,
+                "vendor": true
+              }
+            },
             "development": {
               "optimization": false,
               "extractLicenses": false,

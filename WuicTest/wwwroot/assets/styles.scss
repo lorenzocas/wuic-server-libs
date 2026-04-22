@@ -2,6 +2,31 @@
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
 /* You can add global styles to this file, and also import other style files */
 
+/* PrimeIcons font-display override.
+ * Default primeicons.css (loaded before this file via angular.json "styles")
+ * declares @font-face senza font-display, cioe' il browser usa "block" → durante
+ * lo scarico del woff2 le icone restano invisibili (FOIT = Flash Of Invisible Text).
+ * Lighthouse segnala ~40ms di FCP perso.
+ *
+ * Re-dichiarando @font-face con lo stesso font-family DOPO il primeicons.css
+ * originale, il browser usa l'ultima dichiarazione → font-display: swap kicks in
+ * e le icone mostrano un fallback finche' il woff2 non e' pronto (no FOIT, solo FOUT).
+ *
+ * Path woff2: primeicons copia automaticamente i font sotto dist/.../media/ al build,
+ * quindi puntiamo al nome logico che Angular CLI risolve tramite url-loader del CSS
+ * originale. Usiamo solo woff2 (supportato da tutti i browser moderni, inclusi IE11+
+ * non e' un target WUIC).
+ */
+@font-face {
+    font-family: 'primeicons';
+    font-display: swap;
+    src: url('../../node_modules/primeicons/fonts/primeicons.woff2') format('woff2'),
+         url('../../node_modules/primeicons/fonts/primeicons.woff') format('woff'),
+         url('../../node_modules/primeicons/fonts/primeicons.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
 html,
 body {
     height: 100%;
