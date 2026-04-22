@@ -908,7 +908,6 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
         anthropicApiKey: (this.firstRunForm.anthropicApiKey || '').trim()
       }));
 
-      this.showFirstRunInstall = false;
       await this.clearClientStateForFirstRunLogin();
 
       // The successful configure_wuic call flips AppSettings.firstRun -> false in
@@ -923,6 +922,13 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
       // returns 200 again. That confirms the worker is back up and the next page load
       // will succeed. Cap the wait at ~30s; after the cap we redirect anyway and let
       // the user retry manually if the restart took longer than expected.
+      //
+      // IMPORTANTE: NON flippare showFirstRunInstall = false prima di waitForBackendReady,
+      // altrimenti nei 1-3s di restart del worker l'app torna alla shell normale e mostra
+      // la login page con URL pulito. L'utente pensa che il setup sia finito, inizia a
+      // digitare username/password, e poi viene un location.assign che fa full reload →
+      // form svuotato. Lasciando la UI di install visibile (con il progress al 100%)
+      // l'utente non prova a loggarsi prematuramente.
       await this.waitForBackendReady();
 
       const scaffoldRoute = '/scaffolding/dialog/1556';
