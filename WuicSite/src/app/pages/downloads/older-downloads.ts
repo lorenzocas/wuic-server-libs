@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
@@ -34,11 +34,12 @@ import type { ReleaseEntry, ReleasesManifest, DownloadFile } from './downloads';
 export class OlderDownloads implements OnInit {
   private readonly http = inject(HttpClient);
 
-  /** Tutte le release DIVERSE dalla latest (releases[1..]). */
-  older: ReleaseEntry[] = [];
-
-  loading = true;
-  loadError: string | null = null;
+  // Signals: l'app e' zoneless, assegnazioni plain dopo subscribe() HTTP non
+  // triggerano change detection — senza signal la UI resta su "Caricamento..."
+  // finche' un click non forza un CD cycle. Vedi downloads.ts per il dettaglio.
+  readonly older = signal<ReleaseEntry[]>([]);
+  readonly loading = signal(true);
+  readonly loadError = signal<string | null>(null);
 
   ngOnInit(): void {
     const url = `/downloads/releases.json?t=${Date.now()}`;
@@ -46,12 +47,12 @@ export class OlderDownloads implements OnInit {
       next: (manifest) => {
         const list = Array.isArray(manifest?.releases) ? manifest.releases : [];
         // Esclude la latest (index 0), tiene dalla 2° alla 5°
-        this.older = list.slice(1);
-        this.loading = false;
+        this.older.set(list.slice(1));
+        this.loading.set(false);
       },
       error: (err) => {
-        this.loading = false;
-        this.loadError = this.extractErrorMessage(err);
+        this.loading.set(false);
+        this.loadError.set(this.extractErrorMessage(err));
       }
     });
   }

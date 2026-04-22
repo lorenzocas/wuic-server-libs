@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
@@ -61,17 +61,15 @@ export interface ReleasesManifest {
 export class Downloads implements OnInit {
   private readonly http = inject(HttpClient);
 
-  /** Release attualmente visualizzata (la piu' recente). */
-  latest: ReleaseEntry | null = null;
-
-  /** true se esistono >1 release storiche (mostra il link "older versions"). */
-  hasOlder = false;
-
-  /** Stato loading iniziale. */
-  loading = true;
-
-  /** Messaggio di errore se la fetch fallisce (mostra fallback vuoto). */
-  loadError: string | null = null;
+  // Signals perche' l'app e' zoneless (no zone.js, no provideZoneChangeDetection):
+  // in quella modalita' l'assegnazione a una proprieta' plain dopo una subscribe()
+  // HTTP NON triggera change detection, quindi la UI resta su "Caricamento..."
+  // finche' un click o altra interazione non forza un CD cycle. I signal sono
+  // reactive-native e triggerano CD automaticamente.
+  readonly latest = signal<ReleaseEntry | null>(null);
+  readonly hasOlder = signal(false);
+  readonly loading = signal(true);
+  readonly loadError = signal<string | null>(null);
 
   ngOnInit(): void {
     // Fetch con cache-busting leggero (query param timestamp) per evitare che
@@ -80,13 +78,13 @@ export class Downloads implements OnInit {
     this.http.get<ReleasesManifest>(url).subscribe({
       next: (manifest) => {
         const list = Array.isArray(manifest?.releases) ? manifest.releases : [];
-        this.latest = list.length > 0 ? list[0] : null;
-        this.hasOlder = list.length > 1;
-        this.loading = false;
+        this.latest.set(list.length > 0 ? list[0] : null);
+        this.hasOlder.set(list.length > 1);
+        this.loading.set(false);
       },
       error: (err) => {
-        this.loading = false;
-        this.loadError = this.extractErrorMessage(err);
+        this.loading.set(false);
+        this.loadError.set(this.extractErrorMessage(err));
       }
     });
   }

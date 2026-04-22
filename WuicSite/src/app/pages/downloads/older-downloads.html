@@ -15,16 +15,16 @@
       </a>
     </div>
 
-    @if (loading) {
+    @if (loading()) {
       <p-message severity="info" [text]="'downloads.loading' | translate"></p-message>
-    } @else if (older.length === 0) {
+    } @else if (older().length === 0) {
       <p-message severity="info" [text]="'olderDownloads.noOlder' | translate"></p-message>
-      @if (loadError) {
-        <small style="display:block;margin-top:0.5rem;color:#9ca3af;">{{ loadError }}</small>
+      @if (loadError()) {
+        <small style="display:block;margin-top:0.5rem;color:#9ca3af;">{{ loadError() }}</small>
       }
     } @else {
       <p-accordion [value]="'0'">
-        @for (rel of older; track rel.key; let i = $index) {
+        @for (rel of older(); track rel.key; let i = $index) {
           <p-accordion-panel [value]="i.toString()">
             <p-accordion-header>
               <div class="release-header">

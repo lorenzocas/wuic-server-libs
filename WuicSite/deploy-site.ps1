@@ -47,7 +47,14 @@ if (-not $ZipSourceDir) {
 }
 $distDir = Join-Path $scriptDir 'dist\WuicSite\browser'
 
-function Write-Step($msg) { Write-Host "`n--- $msg" -ForegroundColor Cyan }
+function Write-Step($msg) {
+    $ts = (Get-Date).ToString('HH:mm:ss')
+    Write-Host "`n--- [$ts] $msg" -ForegroundColor Cyan
+}
+function Write-Sub($msg) {
+    $ts = (Get-Date).ToString('HH:mm:ss')
+    Write-Host "    [$ts] $msg" -ForegroundColor DarkGray
+}
 
 function Invoke-RemotePwsh {
     <#
@@ -65,6 +72,52 @@ function Invoke-RemotePwsh {
     # function's return value — otherwise $code would capture remote output + exit code together.
     & ssh $RemoteUserHost "powershell -NoProfile -NonInteractive -EncodedCommand $encoded" | Out-Host
     return $LASTEXITCODE
+}
+
+function ConvertTo-ScpRemotePath {
+    <#
+    .SYNOPSIS
+        scp Windows-to-Windows (OpenSSH) vuole forward slash nel remote path
+        ('C:/inetpub/...'). Un backslash viene interpretato come escape dalla
+        shell remota e scp emette "No such file or directory" silenziosamente.
+        Questa funzione sostituisce '\' -> '/' nel path per farlo digerire.
+    #>
+    param([Parameter(Mandatory = $true)][string]$Path)
+    return ($Path -replace '\\', '/')
+}
+
+function ConvertTo-ZipMeta {
+    <#
+    .SYNOPSIS
+        Parse un filename ZIP del formato
+        WuicTest-<audience>-[tutorial(-bak)-]server-<serverVer>[-rag]-client-<clientVer>.zip
+        in hashtable {audience, rag, tutorial, serverVersion, clientVersion, key}.
+        audience: 'src' | 'iis'
+        tutorial: 'no' | 'SQL' | 'BAK'
+        Ritorna $null se il nome non matcha il pattern.
+    #>
+    param([Parameter(Mandatory = $true)][string]$FileName)
+    if ($FileName -notmatch 'WuicTest-(iis|src)(?:-(tutorial(?:-bak)?))?-server-([^-]+?)(-rag)?-client-(.+)\.zip$') {
+        return $null
+    }
+    $audience = $Matches[1]
+    $tutorialRaw = $Matches[2]
+    $serverVer = $Matches[3]
+    $rag = [bool]$Matches[4]
+    $clientVer = $Matches[5]
+    $tutorial = switch ($tutorialRaw) {
+        'tutorial' { 'SQL' }
+        'tutorial-bak' { 'BAK' }
+        default { 'no' }
+    }
+    return @{
+        audience      = $audience
+        rag           = $rag
+        tutorial      = $tutorial
+        serverVersion = $serverVer
+        clientVersion = $clientVer
+        key           = "v${serverVer}_${clientVer}"
+    }
 }
 
 function Get-HealthCheckUrl {
@@ -91,8 +144,16 @@ if (-not $SkipBuild) {
     Write-Step "1/3 Build Angular"
     Push-Location $scriptDir
     try {
-        npx ng build --configuration=production
-        if ($LASTEXITCODE -ne 0) { throw "ng build failed" }
+        # Invoke the local ng binary directly. `npx ng build` was used here in the
+        # past but hangs indefinitely in non-interactive pwsh sessions (observed
+        # 2026-04-22: 11 min wall time, 0.2s CPU, zero child processes).
+        # The local binary bypasses npx's module resolver and just works.
+        $ngCmd = Join-Path $scriptDir 'node_modules\.bin\ng.cmd'
+        if (-not (Test-Path $ngCmd)) { throw "ng binary not found at $ngCmd - run 'npm install' first" }
+        Write-Sub "exec: $ngCmd build --configuration=production"
+        & $ngCmd build --configuration=production
+        if ($LASTEXITCODE -ne 0) { throw "ng build failed (exit $LASTEXITCODE)" }
+        Write-Sub "ng build ok"
     } finally { Pop-Location }
 } else {
     Write-Step "1/3 Build Angular [SKIP]"
@@ -219,59 +280,135 @@ if (-not $SkipZip) {
             Write-Host "    $($z.Name) ($([math]::Round($z.Length / 1MB, 1)) MB)" -ForegroundColor DarkGray
         }
 
-        # Assicura che la cartella remota esista (incluso archive/)
+        # Assicura che la cartella remota esista (incluso archive/<newKey>/)
+        # e sposta ogni ZIP gia' presente in /downloads/ che NON appartiene
+        # alla release corrente nella sua sottocartella /archive/<oldKey>/.
+        # Questo tiene /downloads/ root "solo latest" e preserva le release
+        # precedenti sotto /archive/ senza bisogno di ridurre la pipeline.
+        #
+        # NOTA sintassi: `ssh ... "if not exist mkdir"` (CMD) non funziona perche'
+        # OpenSSH sul server IIS usa PowerShell come shell di default
+        # (verificato: i comandi remoti emettono CLIXML). Usiamo Invoke-RemotePwsh
+        # che manda il codice via -EncodedCommand a powershell.exe.
         $useUnc = [bool](Test-Path $uncDownloads -ErrorAction SilentlyContinue)
         $remoteDownloadsPath = "${User}@${Server}:${remoteDownloads}"
-        $remoteArchiveSubdir = "archive/$releaseKey"
-        if (-not $useUnc) {
-            ssh "${User}@${Server}" "if not exist `"$remoteDownloads`" mkdir `"$remoteDownloads`" && if not exist `"$remoteDownloads\archive`" mkdir `"$remoteDownloads\archive`" && if not exist `"$remoteDownloads\archive\$releaseKey`" mkdir `"$remoteDownloads\archive\$releaseKey`"" | Out-Null
-        } else {
-            foreach ($dir in @($uncDownloads, (Join-Path $uncDownloads 'archive'), (Join-Path $uncDownloads "archive\$releaseKey"))) {
+        $remoteArchiveDir = Join-Path $remoteDownloads 'archive'
+        $remoteNewArchiveDir = Join-Path $remoteArchiveDir $releaseKey
+
+        if ($useUnc) {
+            Write-Sub "modalita' UNC: prep cartelle archive"
+            foreach ($dir in @($uncDownloads, (Join-Path $uncDownloads 'archive'))) {
                 if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
             }
+            # Move old .zip in /downloads/ root (non-current) into /archive/<oldKey>/
+            $newNamesSet = @{}
+            foreach ($z in $zipFiles) { $newNamesSet[$z.Name] = $true }
+            Get-ChildItem -LiteralPath $uncDownloads -Filter '*.zip' -File -ErrorAction SilentlyContinue | ForEach-Object {
+                if ($newNamesSet.ContainsKey($_.Name)) { return }
+                if ($_.Name -match 'server-([^-]+?)(?:-rag)?-client-(.+)\.zip$') {
+                    $oldKey = "v$($Matches[1])_$($Matches[2])"
+                    $destDir = Join-Path $uncDownloads "archive\$oldKey"
+                    if (-not (Test-Path $destDir)) { New-Item -ItemType Directory -Path $destDir -Force | Out-Null }
+                    $destFile = Join-Path $destDir $_.Name
+                    Move-Item -LiteralPath $_.FullName -Destination $destFile -Force
+                    Write-Sub "moved $($_.Name) -> archive/$oldKey/"
+                } else {
+                    Write-Sub "[warn] filename non parsabile: $($_.Name) (lasciato in /downloads/)"
+                }
+            }
+        } else {
+            # Remote side: unico roundtrip ssh per mkdir + move-vecchi-in-archive
+            # + dump di uno snapshot JSON dello stato /archive/* (per ricostruire le
+            # entry storiche in releases.json anche se il file remoto era vuoto/malformato).
+            Write-Sub "prep cartelle archive remote + move ZIP di release precedenti..."
+            $newNamesLiteral = ($zipFiles | ForEach-Object { "'" + ($_.Name -replace "'", "''") + "'" }) -join ','
+            if (-not $newNamesLiteral) { $newNamesLiteral = "''" }  # defensive: never empty array literal
+            $remoteArchiveStateFile = Join-Path $remoteDownloads '.archive-state.json'
+            $prepScript = @"
+`$ErrorActionPreference = 'Stop'
+`$downloads   = '$remoteDownloads'
+`$archiveRoot = '$remoteArchiveDir'
+`$stateFile   = '$remoteArchiveStateFile'
+`$newNames    = @($newNamesLiteral)
+New-Item -ItemType Directory -Force -Path `$archiveRoot | Out-Null
+`$moved = @{}
+Get-ChildItem -LiteralPath `$downloads -Filter '*.zip' -File -ErrorAction SilentlyContinue | ForEach-Object {
+    if (`$newNames -contains `$_.Name) { return }
+    if (`$_.Name -match 'server-([^-]+?)(?:-rag)?-client-(.+)\.zip$') {
+        `$oldKey = 'v' + `$Matches[1] + '_' + `$Matches[2]
+        `$dest   = Join-Path `$archiveRoot `$oldKey
+        New-Item -ItemType Directory -Force -Path `$dest | Out-Null
+        Move-Item -LiteralPath `$_.FullName -Destination (Join-Path `$dest `$_.Name) -Force
+        if (-not `$moved.ContainsKey(`$oldKey)) { `$moved[`$oldKey] = 0 }
+        `$moved[`$oldKey]++
+    } else {
+        Write-Host "  [warn] filename non parsabile: `$(`$_.Name), lasciato in /downloads/"
+    }
+}
+foreach (`$k in `$moved.Keys) { Write-Host "  moved `$(`$moved[`$k]) file(s) -> archive/`$k/" }
+if (`$moved.Count -eq 0) { Write-Host "  nessuna release precedente da spostare" }
+
+# Dump snapshot dello stato /archive/* per merge in releases.json sul lato dev.
+`$state = @{}
+Get-ChildItem -LiteralPath `$archiveRoot -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+    `$keyDir = `$_
+    `$files = @(Get-ChildItem -LiteralPath `$keyDir.FullName -Filter '*.zip' -File -ErrorAction SilentlyContinue | ForEach-Object {
+        [ordered]@{
+            name     = `$_.Name
+            size     = `$_.Length
+            modified = `$_.LastWriteTimeUtc.ToString('o')
+        }
+    })
+    if (`$files.Count -gt 0) {
+        `$mostRecent = (`$files | ForEach-Object { [datetime]`$_.modified } | Sort-Object -Descending)[0]
+        `$state[`$keyDir.Name] = [ordered]@{
+            files = `$files
+            date  = `$mostRecent.ToString('yyyy-MM-dd')
+        }
+    }
+}
+`$state | ConvertTo-Json -Depth 6 | Set-Content -Path `$stateFile -Encoding UTF8
+Write-Host "  archive snapshot scritto: `$stateFile (keys: `$(`$state.Keys.Count))"
+"@
+            $code = Invoke-RemotePwsh -RemoteUserHost $remoteUserHost -Script $prepScript
+            if ($code -ne 0) { throw "step 3: prep archive remoto fallita (exit $code)" }
         }
 
-        # Upload degli zip in 2 location:
-        #  1) /downloads/<filename>.zip   (legacy, la pagina principale punta qui)
-        #  2) /downloads/archive/<releaseKey>/<filename>.zip (archivio immutabile per older-versions)
+        # Upload nuovi ZIP in /downloads/ root (latest). La copia "archive" della
+        # release corrente NON si carica qui: al prossimo deploy questi stessi
+        # file verranno spostati da /downloads/ a /archive/<releaseKey>/ dallo
+        # step di move sopra, senza ri-trasferire byte via rete.
+        Write-Sub "upload ZIP -> /downloads/ (latest)"
         if ($useUnc) {
             foreach ($z in $zipFiles) {
+                Write-Sub "  $($z.Name) ($([math]::Round($z.Length/1MB,1)) MB)"
                 Copy-Item $z.FullName (Join-Path $uncDownloads $z.Name) -Force
-                Copy-Item $z.FullName (Join-Path $uncDownloads "archive\$releaseKey\$($z.Name)") -Force
             }
         } else {
             foreach ($z in $zipFiles) {
+                Write-Sub "  $($z.Name) ($([math]::Round($z.Length/1MB,1)) MB)"
                 scp $z.FullName "${remoteDownloadsPath}/$($z.Name)"
-                scp $z.FullName "${remoteDownloadsPath}/archive/$releaseKey/$($z.Name)"
+                if ($LASTEXITCODE -ne 0) { throw "scp /downloads/$($z.Name) fallita (exit $LASTEXITCODE)" }
             }
         }
 
-        # Costruisci la release entry per releases.json
+        # Costruisci la release entry per releases.json (current release)
         $filesMeta = @()
         foreach ($z in $zipFiles) {
-            $sizeMb = [math]::Round($z.Length / 1MB, 1)
-            # Parse filename: WuicTest-<audience>-[tutorial-][bak-]server-<serverVer>[-rag]-client-<clientVer>.zip
-            # audience: src | iis
-            # tutorial: tutorial | tutorial-bak | (assente)
-            # rag: "-rag" infix prima di "client-"
-            $audience = 'src'
-            $tutorial = 'no'
-            $rag = $false
-            if ($z.Name -match 'WuicTest-(iis|src)(?:-(tutorial(?:-bak)?))?-server-[^-]+(-rag)?-client-') {
-                $audience = $Matches[1]
-                if ($Matches[2]) {
-                    $tutorial = switch ($Matches[2]) { 'tutorial' { 'SQL' } 'tutorial-bak' { 'BAK' } default { $Matches[2] } }
-                }
-                $rag = [bool]$Matches[3]
+            $meta = ConvertTo-ZipMeta -FileName $z.Name
+            if ($null -eq $meta) {
+                Write-Sub "[warn] filename non parsabile: $($z.Name), skip metadata"
+                continue
             }
+            $sizeMb = [math]::Round($z.Length / 1MB, 1)
             $filesMeta += @{
-                name     = $z.Name
-                audience = $audience
-                rag      = $rag
-                tutorial = $tutorial
-                size     = "$sizeMb MB"
-                sizeMb   = $sizeMb
-                url      = "/downloads/$($z.Name)"
+                name       = $z.Name
+                audience   = $meta.audience
+                rag        = $meta.rag
+                tutorial   = $meta.tutorial
+                size       = "$sizeMb MB"
+                sizeMb     = $sizeMb
+                url        = "/downloads/$($z.Name)"
                 archiveUrl = "/downloads/archive/$releaseKey/$($z.Name)"
             }
         }
@@ -303,7 +440,8 @@ if (-not $SkipZip) {
             }
         } else {
             # Tentativo non-bloccante di scaricare il releases.json corrente
-            & scp "${User}@${Server}:${remoteReleasesJson}" $localReleasesJson 2>$null | Out-Null
+            $remoteReleasesJsonScp = ConvertTo-ScpRemotePath $remoteReleasesJson
+            & scp "${User}@${Server}:${remoteReleasesJsonScp}" $localReleasesJson 2>$null | Out-Null
             if (Test-Path $localReleasesJson) {
                 try {
                     $existingReleases = (Get-Content $localReleasesJson -Raw | ConvertFrom-Json).releases
@@ -318,24 +456,103 @@ if (-not $SkipZip) {
         # Rimuovi eventuale duplicato della stessa release-key (ri-deploy della stessa versione)
         $existingReleases = @($existingReleases | Where-Object { $_.key -ne $releaseKey })
 
+        # Scarica lo snapshot archive-state.json scritto dal prep script remoto
+        # e ricostruisci synthetic ReleaseEntry per le key che lo script
+        # ha trovato in /archive/ ma che mancano da releases.json remoto. Questo
+        # copre il caso in cui releases.json era vuoto/stale (es. primo deploy
+        # dopo il fix pipeline): il filesystem server e' l'authoritative source.
+        if (-not $useUnc) {
+            $localArchiveState = Join-Path $tmpDir 'archive-state.json'
+            $remoteArchiveStateFileScp = ConvertTo-ScpRemotePath $remoteArchiveStateFile
+            & scp "${User}@${Server}:${remoteArchiveStateFileScp}" $localArchiveState 2>$null | Out-Null
+            if (Test-Path $localArchiveState) {
+                try {
+                    $archiveStateRaw = Get-Content $localArchiveState -Raw | ConvertFrom-Json
+                    $existingKeys = @{}
+                    foreach ($r in $existingReleases) { if ($r.key) { $existingKeys[$r.key] = $true } }
+                    $existingKeys[$releaseKey] = $true  # evita doppione della new release
+                    $synthesized = 0
+                    # ConvertFrom-Json produce PSCustomObject con proprieta' dinamiche
+                    foreach ($prop in $archiveStateRaw.PSObject.Properties) {
+                        $oldKey = $prop.Name
+                        if ($existingKeys.ContainsKey($oldKey)) { continue }
+                        $entry = $prop.Value
+                        # Parse server/client dal nome key: "vS.S.S_C.C.C"
+                        if ($oldKey -notmatch '^v(.+)_(.+)$') { continue }
+                        $sVer = $Matches[1]
+                        $cVer = $Matches[2]
+                        $syntheticFiles = @()
+                        foreach ($f in @($entry.files)) {
+                            $meta = ConvertTo-ZipMeta -FileName $f.name
+                            if ($null -eq $meta) { continue }
+                            $szMb = [math]::Round($f.size / 1MB, 1)
+                            $syntheticFiles += @{
+                                name       = $f.name
+                                audience   = $meta.audience
+                                rag        = $meta.rag
+                                tutorial   = $meta.tutorial
+                                size       = "$szMb MB"
+                                sizeMb     = $szMb
+                                url        = "/downloads/archive/$oldKey/$($f.name)"
+                                archiveUrl = "/downloads/archive/$oldKey/$($f.name)"
+                            }
+                        }
+                        if ($syntheticFiles.Count -eq 0) { continue }
+                        $existingReleases += [ordered]@{
+                            key          = $oldKey
+                            server       = $sVer
+                            client       = $cVer
+                            date         = if ($entry.date) { $entry.date } else { (Get-Date -Format 'yyyy-MM-dd') }
+                            timestampUtc = (Get-Date).ToUniversalTime().ToString('o')
+                            files        = $syntheticFiles
+                        }
+                        $existingKeys[$oldKey] = $true
+                        $synthesized++
+                    }
+                    if ($synthesized -gt 0) {
+                        Write-Sub "releases.json: ricostruite $synthesized release da /archive/* snapshot"
+                    }
+                } catch {
+                    Write-Host "  [warn] archive-state.json malformato, skip ricostruzione storica: $($_.Exception.Message)" -ForegroundColor Yellow
+                }
+            }
+            # Ordina le release esistenti per timestampUtc/date DESC (piu' recente prima)
+            # per mantenere l'ordine corretto dopo l'inserimento delle synthetic.
+            $existingReleases = @($existingReleases | Sort-Object -Property @{Expression = { if ($_.timestampUtc) { [datetime]$_.timestampUtc } else { [datetime]$_.date } }; Descending = $true })
+        }
+
         # Inserisci nuova release in testa, taglia a max 5
         $all = @($newRelease) + @($existingReleases)
         $keep = @($all | Select-Object -First 5)
         $drop = @($all | Select-Object -Skip 5)
 
-        # Cleanup archivio: cancella le release "drop" dal server
+        # Cleanup archivio: cancella le release "drop" dal server.
+        # Come sopra, OpenSSH usa PowerShell, non CMD → Remove-Item invece di rmdir.
         if ($drop.Count -gt 0) {
-            Write-Host "  rotation: elimino $($drop.Count) release obsolete:" -ForegroundColor DarkGray
-            foreach ($old in $drop) {
-                $oldKey = if ($old.key) { $old.key } else { "v$($old.server)_$($old.client)" }
-                Write-Host "    - $oldKey" -ForegroundColor DarkGray
-                if ($useUnc) {
-                    $dir = Join-Path $uncDownloads "archive\$oldKey"
-                    if (Test-Path $dir) { Remove-Item -Path $dir -Recurse -Force -ErrorAction SilentlyContinue }
-                } else {
-                    # Rimuovi la sottocartella dell'archivio con rmdir /s /q
-                    ssh "${User}@${Server}" "if exist `"$remoteDownloads\archive\$oldKey`" rmdir /s /q `"$remoteDownloads\archive\$oldKey`"" 2>$null | Out-Null
+            Write-Sub "rotation: elimino $($drop.Count) release obsolete"
+            $dropKeys = @($drop | ForEach-Object { if ($_.key) { $_.key } else { "v$($_.server)_$($_.client)" } })
+            foreach ($k in $dropKeys) { Write-Sub "  - $k" }
+            if ($useUnc) {
+                foreach ($k in $dropKeys) {
+                    $dir = Join-Path $uncDownloads "archive\$k"
+                    if (Test-Path $dir) { Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue }
                 }
+            } else {
+                $dropLiteral = ($dropKeys | ForEach-Object { "'" + ($_ -replace "'", "''") + "'" }) -join ','
+                if (-not $dropLiteral) { $dropLiteral = "''" }
+                $rotScript = @"
+`$archiveRoot = '$remoteArchiveDir'
+`$keys = @($dropLiteral)
+foreach (`$k in `$keys) {
+    if (-not `$k) { continue }
+    `$dir = Join-Path `$archiveRoot `$k
+    if (Test-Path -LiteralPath `$dir) {
+        Remove-Item -LiteralPath `$dir -Recurse -Force -ErrorAction SilentlyContinue
+        Write-Host "  deleted archive/`$k/"
+    }
+}
+"@
+                Invoke-RemotePwsh -RemoteUserHost $remoteUserHost -Script $rotScript | Out-Null
             }
         }
 

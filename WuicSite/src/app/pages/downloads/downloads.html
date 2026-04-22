@@ -3,22 +3,22 @@
     <h1 class="section-title">{{ 'downloads.pageTitle' | translate }}</h1>
     <p class="section-subtitle">{{ 'downloads.pageSubtitle' | translate }}</p>
 
-    @if (loading) {
+    @if (loading()) {
       <p-message severity="info" [text]="'downloads.loading' | translate"></p-message>
-    } @else if (!latest) {
+    } @else if (!latest()) {
       <p-message severity="warn" [text]="'downloads.noRelease' | translate"></p-message>
-      @if (loadError) {
-        <small style="display:block;margin-top:0.5rem;color:#9ca3af;">{{ loadError }}</small>
+      @if (loadError()) {
+        <small style="display:block;margin-top:0.5rem;color:#9ca3af;">{{ loadError() }}</small>
       }
     } @else {
       <div class="version-banner">
         <span>{{ 'downloads.lastVersion' | translate }}</span>
-        <p-tag value="Server {{ latest.server }}" severity="info" />
-        <p-tag value="Client {{ latest.client }}" severity="info" />
-        <span class="release-date">{{ latest.date }}</span>
+        <p-tag value="Server {{ latest()!.server }}" severity="info" />
+        <p-tag value="Client {{ latest()!.client }}" severity="info" />
+        <span class="release-date">{{ latest()!.date }}</span>
       </div>
 
-      <p-table [value]="latest.files" styleClass="p-datatable-striped" [tableStyle]="{'min-width': '50rem'}">
+      <p-table [value]="latest()!.files" styleClass="p-datatable-striped" [tableStyle]="{'min-width': '50rem'}">
         <ng-template #header>
           <tr>
             <th>{{ 'downloads.table.package' | translate }}</th>
@@ -53,7 +53,7 @@
         </ng-template>
       </p-table>
 
-      @if (hasOlder) {
+      @if (hasOlder()) {
         <div class="older-versions-link">
           <a routerLink="/downloads/older">
             <p-button
