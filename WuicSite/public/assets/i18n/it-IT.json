@@ -584,5 +584,8 @@
         "desc": "Cookie installati da PayPal per il checkout e la prevenzione frodi. Senza questi cookie, i pulsanti di acquisto non si caricano."
       }
     }
+  },
+  "maintenance": {
+    "reloading": "Aggiornamento in corso, ricarico la pagina..."
   }
 }

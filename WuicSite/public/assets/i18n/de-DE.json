@@ -584,5 +584,8 @@
         "desc": "Cookies von PayPal für Checkout und Betrugsprävention. Ohne diese Cookies laden die Kaufbuttons nicht."
       }
     }
+  },
+  "maintenance": {
+    "reloading": "Aktualisierung läuft, Seite wird neu geladen..."
   }
 }

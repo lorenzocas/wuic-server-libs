@@ -111,14 +111,45 @@ export class Docs implements OnInit {
 
     this.route.paramMap.subscribe(params => {
       const slug = params.get('slug');
-      if (slug) this.currentSlug.set(slug);
+      if (slug) {
+        this.currentSlug.set(slug);
+        // Scroll-to-top centralizzato: qualunque cambio di slug (click sidebar,
+        // back/forward del browser, link diretto, link interno nel body del
+        // docs) passa da qui, quindi un solo punto di reset scroll vale per
+        // tutti. `setTimeout(0)` defer dopo il render Angular della nuova
+        // pagina — altrimenti scrolliamo il layout *prima* che il contenuto
+        // nuovo sia mounted, e il browser resta all'offset precedente.
+        setTimeout(() => this.scrollContentToTop(), 0);
+      }
     });
   }
 
   openPage(slug: string) {
     this.currentSlug.set(slug);
+    // Lo scroll-to-top e' gestito centralmente nel paramMap.subscribe
+    // (vedi ngOnInit): `router.navigate` triggera quella subscribe, quindi
+    // qui non serve duplicare la chiamata — evita un doppio scroll che su
+    // Safari puo' produrre un "jump" percepibile.
     this.router.navigate(['/docs', slug]);
-    this.contentScroller?.nativeElement?.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /**
+   * Riporta la vista all'inizio della pagina docs. Tenta sia il container
+   * interno `contentScroller` (layout desktop, dove `.docs-content` ha il
+   * proprio overflow-y: auto) sia `window` (layout mobile / breakpoint sotto
+   * cui il layout perde la split-column e la pagina intera scrolla). Essere
+   * permissivi qui e' piu' semplice del sniffing del media query: la chiamata
+   * no-op lato che non scrolla non costa nulla.
+   */
+  private scrollContentToTop(): void {
+    try {
+      this.contentScroller?.nativeElement?.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch { /* ignore */ }
+    try {
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    } catch { /* ignore (SSR / privacy mode) */ }
   }
 
   scrollToSection(event: Event, sectionId: string) {

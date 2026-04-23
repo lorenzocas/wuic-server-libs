@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  web.config MAINTENANCE variant.
+
+  Used during `deploy-site.ps1` to redirect every incoming request to
+  /maintenance.html while the new site files are being SCP-uploaded.
+
+  The deploy script renames this file to `web.config` on the remote IIS
+  server (and swaps the real `web.config` to `web.config.production.bak`)
+  BEFORE the upload starts. After the upload completes, the swap is reversed.
+
+  IIS auto-reloads web.config on change, no AppPool restart required.
+
+  Notes:
+   * `defaultDocument` set to maintenance.html so any directory-level request
+     hits the static page.
+   * The rewrite rule catches every URL (including /assets/..., /xx/yy) and
+     sends them to /maintenance.html. The single exception is the maintenance
+     page itself, to avoid an infinite rewrite loop.
+   * `Retry-After: 180` header hints bots/CDNs to come back in 3 minutes.
+   * `X-Maintenance: true` is diagnostic — helps confirm the swap is active
+     when curl-checking from outside during a deploy.
+   * HTTP status stays 200 to keep UX friendly. If you prefer SEO-safer 503
+     responses, switch the `action type` to `CustomResponse` with
+     `statusCode="503"` and point `defaultResponseUrl` manually — tradeoff
+     is that browsers may cache an error instead of retrying.
+-->
+<configuration>
+  <system.webServer>
+    <defaultDocument>
+      <files>
+        <clear />
+        <add value="maintenance.html" />
+      </files>
+    </defaultDocument>
+
+    <rewrite>
+      <rules>
+        <rule name="Maintenance Fallback" stopProcessing="true">
+          <match url=".*" />
+          <conditions logicalGrouping="MatchAll">
+            <add input="{REQUEST_URI}" pattern="^/maintenance\.html$" negate="true" />
+          </conditions>
+          <action type="Rewrite" url="/maintenance.html" />
+        </rule>
+      </rules>
+    </rewrite>
+
+    <httpProtocol>
+      <customHeaders>
+        <add name="Retry-After" value="180" />
+        <add name="X-Maintenance" value="true" />
+        <add name="Cache-Control" value="no-store, must-revalidate" />
+      </customHeaders>
+    </httpProtocol>
+
+    <staticContent>
+      <clientCache cacheControlMode="DisableCache" />
+    </staticContent>
+  </system.webServer>
+</configuration>

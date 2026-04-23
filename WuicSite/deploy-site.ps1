@@ -21,9 +21,22 @@
 .PARAMETER SkipZip
   Se specificato, non carica i pacchetti ZIP sul server.
 
+.PARAMETER SkipAppPoolCycle
+  Legacy flag, mantenuto per backwards-compat ma ignorato: il nuovo flow
+  non cicla piu' l'AppPool (usa invece lo swap atomico di web.config per
+  attivare/disattivare la maintenance page).
+
+.PARAMETER SkipMaintenancePage
+  Se specificato, salta completamente la maintenance mode durante l'upload
+  del sito. SCP scrive direttamente sui file mentre IIS continua a servirli
+  live. Usare solo per hotfix veloci o quando si sa che non ci sono visitatori.
+  Con questo flag il rischio di file-lock/sharing violations durante lo SCP
+  torna a essere reale, seppur basso.
+
 .EXAMPLE
   pwsh deploy-site.ps1 -Server vps123.contabo.de
   pwsh deploy-site.ps1 -Server vps123.contabo.de -SkipBuild -SkipZip
+  pwsh deploy-site.ps1 -Server vps123.contabo.de -SkipMaintenancePage  # hotfix mode
 #>
 param(
     [Parameter(Mandatory = $true)]
@@ -34,7 +47,8 @@ param(
     [string]$AppPoolName = 'WuicSitePool',
     [switch]$SkipBuild,
     [switch]$SkipZip,
-    [switch]$SkipAppPoolCycle
+    [switch]$SkipAppPoolCycle,
+    [switch]$SkipMaintenancePage
 )
 
 $ErrorActionPreference = 'Stop'
@@ -164,6 +178,35 @@ if (-not (Test-Path $distDir)) {
 }
 
 # ── step 2: upload site ──────────────────────────────────────────────
+#
+# ZERO-DOWNTIME MAINTENANCE STRATEGY
+#
+# We NO LONGER stop the IIS AppPool. Instead, we swap the live `web.config`
+# with a maintenance-mode one (`web.config.maintenance`) that rewrites every
+# incoming request to `/maintenance.html`. While the swap is active:
+#
+#   * Visitors see a friendly "We'll be back shortly" page (static HTML,
+#     inline CSS, no external deps — served directly by IIS)
+#   * The bundled Angular assets (`*.js`, `*.css`, `index.html` of the old
+#     site) are NOT served by IIS, so SCP can overwrite them with zero
+#     risk of file-sharing violations
+#   * `maintenance.html` is the only file being served, and it is NOT in
+#     the SCP scope (it sits at the site root but we only upload the
+#     `dist/WuicSite/browser/` tree, which matches the Angular output —
+#     maintenance.html is at a different path level)
+#
+# Flow:
+#   1. pre-swap: upload maintenance.html + web.config.maintenance to the server
+#   2. activate maintenance: remote script renames web.config <-> maintenance variant
+#      IIS auto-reloads web.config (no AppPool restart), ~1s transition
+#   3. SCP the new dist/WuicSite/browser/* as usual
+#   4. deactivate maintenance: restore original web.config
+#   5. health check
+#
+# The SkipAppPoolCycle flag is kept for backwards compatibility but has no
+# effect with the new flow (we never cycle the pool). Use the new flag
+# `SkipMaintenancePage` to bypass the maintenance swap and just SCP directly
+# (accepts the small risk of file-lock collisions, useful for hotfixes).
 
 Write-Step "2/3 Upload sito promozionale -> $Server"
 
@@ -171,83 +214,207 @@ $remoteUserHost = "${User}@${Server}"
 $remoteSite = "${remoteUserHost}:${SitePath}"
 Write-Host "  scp $distDir/* -> $remoteSite"
 
-# Stop IIS app pool BEFORE the upload so files aren't locked by the worker process
-# and no partial requests can trigger rapid-fail protection while files are in flux.
-if (-not $SkipAppPoolCycle) {
-    Write-Host "  Stop-WebAppPool $AppPoolName (pre-upload)" -ForegroundColor DarkGray
-    $stopScript = @"
-Import-Module WebAdministration
-`$pool = Get-Item "IIS:\AppPools\$AppPoolName" -ErrorAction SilentlyContinue
-if (`$null -eq `$pool) { Write-Host "[warn] App pool $AppPoolName non trovato, skip stop" ; exit 0 }
-if (`$pool.State -ne 'Stopped') {
-    Stop-WebAppPool -Name '$AppPoolName'
-    # wait up to 10s for worker to exit
-    for (`$i = 0; `$i -lt 20; `$i++) {
-        Start-Sleep -Milliseconds 500
-        `$s = (Get-Item "IIS:\AppPools\$AppPoolName").State
-        if (`$s -eq 'Stopped') { break }
-    }
-}
-Write-Host "    pool state: `$((Get-Item 'IIS:\AppPools\$AppPoolName').State)"
-"@
-    $code = Invoke-RemotePwsh -RemoteUserHost $remoteUserHost -Script $stopScript
-    if ($code -ne 0) { Write-Host "  [warn] stop app pool exit=$code (continuo)" -ForegroundColor Yellow }
-}
+# Paths on the remote IIS server
+$remoteWebConfig = Join-Path $SitePath 'web.config'
+$remoteWebConfigBackup = Join-Path $SitePath 'web.config.production.bak'
+$remoteWebConfigMaintenance = Join-Path $SitePath 'web.config.maintenance'
+$remoteMaintenancePage = Join-Path $SitePath 'maintenance.html'
 
-# Use robocopy over UNC if on same Windows network, else scp
-$uncPath = "\\${Server}\$($SitePath -replace ':', '$')"
-if (Test-Path $uncPath -ErrorAction SilentlyContinue) {
-    Write-Host "  Modalita' UNC: $uncPath" -ForegroundColor DarkGray
-    robocopy $distDir $uncPath /MIR /NJH /NJS /NDL /NP /R:2 /W:1
-    if ($LASTEXITCODE -ge 8) { throw "robocopy sito fallito (exit code $LASTEXITCODE)" }
+# Local source paths for the maintenance-mode files
+$localMaintenanceHtml = Join-Path $scriptDir 'public\maintenance.html'
+$localWebConfigMaintenance = Join-Path $scriptDir 'web.config.maintenance'
+
+# ── 2a: activate maintenance page (web.config swap IN) ──────────────
+
+if (-not $SkipMaintenancePage) {
+    Write-Host "  [maint] Activating maintenance mode" -ForegroundColor DarkGray
+
+    # First, make sure maintenance.html and web.config.maintenance exist on the remote.
+    # We upload them unconditionally (idempotent — tiny files).
+    if (-not (Test-Path $localMaintenanceHtml)) {
+        throw "maintenance.html non trovato: $localMaintenanceHtml"
+    }
+    if (-not (Test-Path $localWebConfigMaintenance)) {
+        throw "web.config.maintenance non trovato: $localWebConfigMaintenance"
+    }
+    scp $localMaintenanceHtml "${remoteUserHost}:${remoteMaintenancePage}"
+    if ($LASTEXITCODE -ne 0) { throw "scp maintenance.html fallita (exit $LASTEXITCODE)" }
+    scp $localWebConfigMaintenance "${remoteUserHost}:${remoteWebConfigMaintenance}"
+    if ($LASTEXITCODE -ne 0) { throw "scp web.config.maintenance fallita (exit $LASTEXITCODE)" }
+
+    # Atomic swap: back up current web.config, then make maintenance the active one.
+    # IIS reloads web.config on change automatically — no AppPool restart needed.
+    $activateMaintenanceScript = @"
+if (Test-Path '$remoteWebConfig') {
+    Move-Item -Path '$remoteWebConfig' -Destination '$remoteWebConfigBackup' -Force
+}
+Copy-Item -Path '$remoteWebConfigMaintenance' -Destination '$remoteWebConfig' -Force
+Write-Host "    maintenance web.config active"
+"@
+    $code = Invoke-RemotePwsh -RemoteUserHost $remoteUserHost -Script $activateMaintenanceScript
+    if ($code -ne 0) {
+        throw "attivazione maintenance mode fallita (exit $code)"
+    }
+    Write-Host "  [ok] Maintenance mode attivo -> visitatori vedono maintenance.html" -ForegroundColor Green
+
+    # Small grace period so IIS picks up the new web.config before we start rewriting
+    # files that were being served.
+    Start-Sleep -Seconds 2
 } else {
-    Write-Host "  Modalita' SCP" -ForegroundColor DarkGray
-    scp -r "${distDir}/*" "${remoteSite}/"
-    if ($LASTEXITCODE -ne 0) {
-        # try to restart pool even on failure so we don't leave the site down
-        if (-not $SkipAppPoolCycle) {
-            Write-Host "  [warn] scp fallito, tento comunque restart pool" -ForegroundColor Yellow
-            Invoke-RemotePwsh -RemoteUserHost $remoteUserHost -Script "Import-Module WebAdministration; Start-WebAppPool -Name '$AppPoolName'" | Out-Null
-        }
-        throw "scp sito fallito"
-    }
+    Write-Host "  [maint] SKIP (flag -SkipMaintenancePage) -> deploy diretto, rischio file-lock" -ForegroundColor Yellow
 }
-Write-Host "  [ok] Sito caricato" -ForegroundColor Green
 
-# Restart app pool AFTER the upload and verify the site responds.
-if (-not $SkipAppPoolCycle) {
-    Write-Host "  Start-WebAppPool $AppPoolName (post-upload)" -ForegroundColor DarkGray
-    $startScript = @"
-Import-Module WebAdministration
-Start-WebAppPool -Name '$AppPoolName'
-for (`$i = 0; `$i -lt 20; `$i++) {
-    Start-Sleep -Milliseconds 500
-    `$s = (Get-Item "IIS:\AppPools\$AppPoolName").State
-    if (`$s -eq 'Started') { break }
-}
-Write-Host "    pool state: `$((Get-Item 'IIS:\AppPools\$AppPoolName').State)"
-"@
-    $code = Invoke-RemotePwsh -RemoteUserHost $remoteUserHost -Script $startScript
-    if ($code -ne 0) { Write-Host "  [warn] start app pool exit=$code" -ForegroundColor Yellow }
+# ── 2b: upload new site ─────────────────────────────────────────────
+#
+# Wrapped in try/finally so that even if SCP fails we always deactivate
+# maintenance mode (restore the previous web.config). We do NOT want to leave
+# the site stuck showing the maintenance page because of a transient upload
+# failure — better a half-rolled site than a permanently "under construction"
+# message for real visitors.
 
-    # Health check: hit the site via its real public hostname (IIS uses host-header bindings,
-    # so hitting the bare IP can return the wrong site or a 404).
-    $healthUrl = Get-HealthCheckUrl -Target $Server
-    Write-Host "  Health check $healthUrl" -ForegroundColor DarkGray
-    $ok = $false
-    for ($i = 0; $i -lt 10; $i++) {
-        try {
-            $resp = Invoke-WebRequest -Uri $healthUrl -Method Head -SkipCertificateCheck -TimeoutSec 10 -ErrorAction Stop
-            if ($resp.StatusCode -eq 200) { $ok = $true ; break }
-        } catch {
-            Start-Sleep -Milliseconds 750
-        }
-    }
-    if ($ok) {
-        Write-Host "  [ok] Health check HTTP 200 ($healthUrl)" -ForegroundColor Green
+$siteUploadOk = $false
+try {
+    $uncPath = "\\${Server}\$($SitePath -replace ':', '$')"
+    if (Test-Path $uncPath -ErrorAction SilentlyContinue) {
+        Write-Host "  Modalita' UNC: $uncPath" -ForegroundColor DarkGray
+        robocopy $distDir $uncPath /MIR /NJH /NJS /NDL /NP /R:2 /W:1 /XF web.config web.config.maintenance web.config.production.bak maintenance.html
+        if ($LASTEXITCODE -ge 8) { throw "robocopy sito fallito (exit code $LASTEXITCODE)" }
     } else {
-        Write-Host "  [warn] Health check fallito dopo retry su $healthUrl - controlla IIS manualmente" -ForegroundColor Yellow
+        Write-Host "  Modalita' SCP" -ForegroundColor DarkGray
+        scp -r "${distDir}/*" "${remoteSite}/"
+        if ($LASTEXITCODE -ne 0) { throw "scp sito fallito (exit $LASTEXITCODE)" }
     }
+    $siteUploadOk = $true
+    Write-Host "  [ok] Sito caricato" -ForegroundColor Green
+}
+finally {
+    # ── 2c: deactivate maintenance (web.config swap OUT) ────────────
+    #
+    # Difensiva a piu' strati:
+    #   1. Usa Remove-Item esplicito prima di Rename-Item (evita edge-case del
+    #      Move-Item -Force quando il dst e' "locked" da IIS worker o da un
+    #      handler static che tiene l'handle aperto)
+    #   2. Riprova fino a 3 volte con sleep crescente (1s/2s/3s)
+    #   3. Dopo ogni tentativo verifica via Get-Content che il contenuto
+    #      corrente sia quello di PRODUZIONE (cerca la stringa "Angular SPA
+    #      Fallback" che esiste solo nel web.config prod) e NON quello di
+    #      maintenance (cerca "MAINTENANCE variant" che esiste solo li').
+    #      Ritorna exit code 2 se dopo i retry il web.config e' ancora la
+    #      variante maintenance — chiamante logga come errore grave.
+    if (-not $SkipMaintenancePage) {
+        Write-Host "  [maint] Deactivating maintenance mode" -ForegroundColor DarkGray
+        $deactivateMaintenanceScript = @"
+`$ErrorActionPreference = 'Continue'
+`$backup = '$remoteWebConfigBackup'
+`$target = '$remoteWebConfig'
+
+function Test-IsProductionConfig {
+    param([string]`$Path)
+    if (-not (Test-Path `$Path)) { return `$false }
+    try {
+        `$content = Get-Content -Path `$Path -Raw -ErrorAction Stop
+        if (`$content -match 'MAINTENANCE variant') { return `$false }
+        if (`$content -match 'Angular SPA Fallback') { return `$true }
+        # Unknown content — be conservative and consider NOT production
+        return `$false
+    } catch {
+        return `$false
+    }
+}
+
+`$success = `$false
+for (`$attempt = 1; `$attempt -le 3; `$attempt++) {
+    Write-Host "    attempt `$attempt/3: restoring production web.config"
+    try {
+        # Remove current (maintenance) web.config explicitly, then rename the
+        # backup into place. This two-step is more resilient than Move-Item -Force
+        # against weird file-lock situations.
+        if (Test-Path `$target) {
+            Remove-Item -Path `$target -Force -ErrorAction Stop
+        }
+        if (Test-Path `$backup) {
+            Rename-Item -Path `$backup -NewName 'web.config' -Force -ErrorAction Stop
+        } else {
+            Write-Host "    [warn] backup .bak non presente (attempt `$attempt)"
+        }
+    } catch {
+        Write-Host "    [warn] errore attempt `$attempt: `$_"
+    }
+    # Verify the current state
+    if (Test-IsProductionConfig -Path `$target) {
+        Write-Host "    production web.config confirmed at attempt `$attempt"
+        `$success = `$true
+        break
+    }
+    Start-Sleep -Seconds `$attempt  # grow the backoff: 1s / 2s / 3s
+}
+
+if (-not `$success) {
+    Write-Host "    [FATAL] web.config is NOT in production state after 3 attempts"
+    # Last-resort: if backup still exists somewhere, try one more plain copy
+    if (Test-Path `$backup) {
+        try {
+            Copy-Item -Path `$backup -Destination `$target -Force -ErrorAction Stop
+            if (Test-IsProductionConfig -Path `$target) {
+                Write-Host "    recovered via final Copy-Item fallback"
+                `$success = `$true
+            }
+        } catch { Write-Host "    final fallback failed: `$_" }
+    }
+}
+
+if (`$success) { exit 0 } else { exit 2 }
+"@
+        $code = Invoke-RemotePwsh -RemoteUserHost $remoteUserHost -Script $deactivateMaintenanceScript
+        if ($code -ne 0) {
+            Write-Host "  [WARN] deactivate maintenance exit=$code - web.config potrebbe essere ancora in maintenance" -ForegroundColor Red
+            Write-Host "  [WARN] tento fallback: upload diretto del web.config di produzione" -ForegroundColor Yellow
+            $localProductionWebConfig = Join-Path $scriptDir 'web.config'
+            if (Test-Path $localProductionWebConfig) {
+                scp $localProductionWebConfig "${remoteUserHost}:${remoteWebConfig}"
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Host "  [ok] web.config di produzione ripristinato via SCP diretto" -ForegroundColor Green
+                } else {
+                    Write-Host "  [FATAL] impossibile ripristinare web.config — sito potrebbe essere stuck in maintenance" -ForegroundColor Red
+                }
+            } else {
+                Write-Host "  [FATAL] web.config locale non trovato a $localProductionWebConfig" -ForegroundColor Red
+            }
+        } else {
+            Write-Host "  [ok] Maintenance mode disattivato (verificato via content check)" -ForegroundColor Green
+        }
+    }
+}
+
+if (-not $siteUploadOk) { throw "Site upload failed (see errors above)" }
+
+# Health check: hit the site via its real public hostname (IIS uses host-header bindings,
+# so hitting the bare IP can return the wrong site or a 404). We also make sure we are
+# NOT seeing the maintenance page (X-Maintenance response header).
+$healthUrl = Get-HealthCheckUrl -Target $Server
+Write-Host "  Health check $healthUrl" -ForegroundColor DarkGray
+$ok = $false
+for ($i = 0; $i -lt 10; $i++) {
+    try {
+        $resp = Invoke-WebRequest -Uri $healthUrl -Method Head -SkipCertificateCheck -TimeoutSec 10 -ErrorAction Stop
+        if ($resp.StatusCode -eq 200) {
+            $isMaint = $false
+            try { $isMaint = ($resp.Headers['X-Maintenance'] -contains 'true') } catch { }
+            if ($isMaint) {
+                Write-Host "  [warn] X-Maintenance ancora presente, retry..." -ForegroundColor Yellow
+                Start-Sleep -Milliseconds 1000
+                continue
+            }
+            $ok = $true ; break
+        }
+    } catch {
+        Start-Sleep -Milliseconds 750
+    }
+}
+if ($ok) {
+    Write-Host "  [ok] Health check HTTP 200 ($healthUrl)" -ForegroundColor Green
+} else {
+    Write-Host "  [warn] Health check fallito dopo retry su $healthUrl - controlla IIS manualmente" -ForegroundColor Yellow
 }
 
 # ── step 3: upload ZIP artifacts ─────────────────────────────────────
