@@ -1,3 +1,4 @@
+import { enableProdMode } from '@angular/core';
 import { bootstrapApplication } from '@angular/platform-browser';
 import { appConfig } from './app/app.config';
 import { AppComponent } from './app/app.component';
@@ -22,31 +23,30 @@ import { environment as appSettings } from './app/environments/environment';
 //      store condivide lo stato tra tutte le copie.
 (globalThis as any).__WUIC_APP_SETTINGS = appSettings;
 
-// NON chiamare enableProdMode() qui, nonostante Angular stampi
-// "Angular is running in development mode" in console ad ogni boot.
+// enableProdMode(): abilitato su TUTTI i deploy dove hostname != 'localhost'.
+// Per testare la prod mode SULLA stessa macchina di sviluppo senza toccare
+// questo codice, registra un alias localhost nel file hosts di Windows
+// (`C:\Windows\System32\drivers\etc\hosts`):
+//     127.0.0.1    wuic.test
+// e naviga su `http://wuic.test:5000/` invece di `localhost:5000`. Il
+// browser invia Host: wuic.test, window.location.hostname diventa
+// 'wuic.test' → il guard qui sotto attiva prod mode.
 //
-// Storico (2026-04-22): un tentativo di invocare enableProdMode() solo sui
-// deploy remoti (guard hostname != localhost) ha causato il crash
-//   TypeError: Cannot redefine property: ɵfac
-//     at addDirectiveFactoryDef
-//     at compileComponent
-//     at _DynamicRowTemplateComponent.getComponentFromTemplate
-// Motivo: Angular 18+ chiama `Object.defineProperty(..., { configurable:
-// isDevMode() })` su `ɵfac`. Con enableProdMode() attivo isDevMode() torna
-// false -> configurable=false -> il successivo ɵcompileComponent (eseguito
-// runtime da DynamicRowTemplateComponent per compilare template custom per
-// row) non riesce a ridefinire la proprieta' e crasha la list-grid.
+// Storico (2026-04-22): il primo tentativo di attivarlo aveva causato il
+// crash `TypeError: Cannot redefine property: ɵfac at addDirectiveFactoryDef
+// at compileComponent at _DynamicRowTemplateComponent.getComponentFromTemplate`
+// perche' `enableProdMode()` rendeva `isDevMode()==false` → Angular 18+
+// definiva `ɵfac` con `configurable: false`, e il successivo
+// `ɵcompileComponent` runtime dei dynamic-*-template non poteva ridefinirlo.
 //
-// Lo stesso effetto era gia' noto con `optimization.scripts: true` (vedi
-// commento in postbuild-minify.mjs) perche' quel flag produce un define
-// esbuild `ngDevMode=false` che ha la stessa conseguenza. In entrambi i
-// casi la root cause e' `isDevMode()==false`, non il minifier in se'.
-//
-// Finche' DynamicRowTemplateComponent usa `ɵcompileComponent` runtime per
-// i template dinamici, il deploy DEVE restare in dev mode a livello runtime
-// (bundle minificato via terser, ma ngDevMode/isDevMode lasciati liberi di
-// valutare dev a runtime). Il prezzo e' il log in console + alcune
-// ottimizzazioni runtime skipped, non impatta funzionalita'.
+// Fix (2026-04-23): i 7 dynamic-*-template sono stati refactorati per
+// usare `DynamicCompilerService` (wrapper su API pubblica `Compiler` via
+// `JitCompilerFactory` manuale). Questo path NgModule-based non chiama
+// piu' `addDirectiveFactoryDef` sugli import → nessun crash in prod mode.
+// Vedi skills/angular-jit-compiler-migration/SKILL.md.
+if (window.location.hostname !== 'localhost') {
+  enableProdMode();
+}
 
 // Stimulsoft license registration is NOT done here at bootstrap.
 //
