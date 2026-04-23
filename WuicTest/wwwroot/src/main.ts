@@ -1,6 +1,26 @@
 import { bootstrapApplication } from '@angular/platform-browser';
 import { appConfig } from './app/app.config';
 import { AppComponent } from './app/app.component';
+import { environment as appSettings } from './app/environments/environment';
+
+// Popola il backing store globale di `WtoolboxService.appSettings` PRIMA
+// del bootstrap.
+//
+// Decisione di design: scriviamo direttamente su `globalThis.__WUIC_APP_SETTINGS`
+// invece di `import { WtoolboxService } from 'wuic-framework-lib'` + setter.
+// Motivazione:
+//   1. L'import di WtoolboxService a module-level di main.ts triggerava NG0200
+//      (Angular circular DI) perche' forzava Angular a hoistare il service
+//      nell'injector root prima che la chain `authExpiredInterceptor` →
+//      `AuthSessionService` → `WtoolboxService` fosse pronta.
+//   2. `WtoolboxService.appSettings` getter/setter leggono dallo stesso
+//      `globalThis.__WUIC_APP_SETTINGS`, quindi scrivere direttamente qui
+//      produce lo stesso risultato semanticamente, SENZA tirare il service
+//      nel grafo dependency del bootstrap.
+//   3. Con `optimization.scripts: true` + secondary entry points, esbuild
+//      puo' duplicare la classe `WtoolboxService` in piu' chunk; il global
+//      store condivide lo stato tra tutte le copie.
+(globalThis as any).__WUIC_APP_SETTINGS = appSettings;
 
 // NON chiamare enableProdMode() qui, nonostante Angular stampi
 // "Angular is running in development mode" in console ad ogni boot.
