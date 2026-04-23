@@ -3,11 +3,9 @@ import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 
 @Component({
-  selector: 'app-footer',
+  selector: 'app-privacy',
   imports: [RouterLink, TranslatePipe],
-  templateUrl: './footer.html',
-  styleUrl: './footer.scss'
+  templateUrl: './privacy.html',
+  styleUrl: './privacy.scss'
 })
-export class Footer {
-  year = new Date().getFullYear();
-}
+export class Privacy {}

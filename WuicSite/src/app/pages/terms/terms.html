@@ -1,0 +1,74 @@
+<div class="legal-page container">
+  <header class="legal-header">
+    <h1>{{ 'terms.pageTitle' | translate }}</h1>
+    <p class="legal-subtitle">{{ 'terms.pageSubtitle' | translate }}</p>
+    <p class="legal-update">{{ 'terms.lastUpdated' | translate }}</p>
+  </header>
+
+  <section class="legal-section">
+    <h2>{{ 'terms.provider.title' | translate }}</h2>
+    <p [innerHTML]="'terms.provider.body' | translate"></p>
+  </section>
+
+  <section class="legal-section">
+    <h2>{{ 'terms.service.title' | translate }}</h2>
+    <p [innerHTML]="'terms.service.body' | translate"></p>
+  </section>
+
+  <section class="legal-section">
+    <h2>{{ 'terms.pricing.title' | translate }}</h2>
+    <p [innerHTML]="'terms.pricing.body' | translate"></p>
+    <ul>
+      <li [innerHTML]="'terms.pricing.dev' | translate"></li>
+      <li [innerHTML]="'terms.pricing.pro' | translate"></li>
+      <li [innerHTML]="'terms.pricing.extras' | translate"></li>
+    </ul>
+  </section>
+
+  <section class="legal-section">
+    <h2>{{ 'terms.payment.title' | translate }}</h2>
+    <p [innerHTML]="'terms.payment.body' | translate"></p>
+  </section>
+
+  <section class="legal-section">
+    <h2>{{ 'terms.delivery.title' | translate }}</h2>
+    <p [innerHTML]="'terms.delivery.body' | translate"></p>
+  </section>
+
+  <section class="legal-section">
+    <h2>{{ 'terms.withdrawal.title' | translate }}</h2>
+    <p [innerHTML]="'terms.withdrawal.consumer' | translate"></p>
+    <p [innerHTML]="'terms.withdrawal.exception' | translate"></p>
+    <p class="legal-note">{{ 'terms.withdrawal.b2b' | translate }}</p>
+  </section>
+
+  <section class="legal-section">
+    <h2>{{ 'terms.warranty.title' | translate }}</h2>
+    <p [innerHTML]="'terms.warranty.body' | translate"></p>
+  </section>
+
+  <section class="legal-section">
+    <h2>{{ 'terms.liability.title' | translate }}</h2>
+    <p [innerHTML]="'terms.liability.body' | translate"></p>
+  </section>
+
+  <section class="legal-section">
+    <h2>{{ 'terms.ip.title' | translate }}</h2>
+    <p [innerHTML]="'terms.ip.body' | translate"></p>
+  </section>
+
+  <section class="legal-section">
+    <h2>{{ 'terms.law.title' | translate }}</h2>
+    <p [innerHTML]="'terms.law.body' | translate"></p>
+  </section>
+
+  <section class="legal-section">
+    <h2>{{ 'terms.changes.title' | translate }}</h2>
+    <p>{{ 'terms.changes.body' | translate }}</p>
+  </section>
+
+  <section class="legal-section">
+    <h2>{{ 'terms.contact.title' | translate }}</h2>
+    <p [innerHTML]="'terms.contact.body' | translate"></p>
+  </section>
+</div>

@@ -294,7 +294,10 @@
       "sendFingerprint": "Fingerprint per E-Mail senden",
       "close": "Schließen"
     },
-    "footerNote": "Sichere Zahlung über PayPal. Bezahlung mit PayPal-Konto oder Kreditkarte (kein PayPal-Konto erforderlich)."
+    "footerNote": "Sichere Zahlung über PayPal. Bezahlung mit PayPal-Konto oder Kreditkarte (kein PayPal-Konto erforderlich).",
+    "needsConsent": "Um den PayPal-Zahlungsbutton anzuzeigen und zu nutzen, müssen Sie zuerst <strong>Drittanbieter-Cookies</strong> (Kategorie Marketing) über das Cookie-Banner akzeptieren. Sie können das Banner mit der Schaltfläche unten erneut öffnen.",
+    "needsConsentOpenBanner": "Cookie-Einstellungen öffnen",
+    "needsConsentRetry": "Erneut versuchen"
   },
   "downloads": {
     "pageTitle": "Download",
@@ -350,5 +353,236 @@
     "unavailable": "Dokumentation nicht verfügbar.",
     "searchPlaceholder": "In Docs suchen...",
     "onThisPage": "Auf dieser Seite"
+  },
+  "footer": {
+    "features": "Funktionen",
+    "docs": "Dokumentation",
+    "downloads": "Downloads",
+    "community": "Community",
+    "privacy": "Datenschutz",
+    "cookies": "Cookies",
+    "terms": "AGB",
+    "legal": "Rechtliches",
+    "copyright": "© {{year}} Lorenzo Castrico — WUIC Framework. Alle Rechte vorbehalten.",
+    "attribution": "WUIC enthält Komponenten von Drittanbietern: Syncfusion Essential Studio (Community License), Stimulsoft Reports, Monaco Editor und Open-Source-Bibliotheken (PrimeNG / Angular / FullCalendar). Syncfusion ist eine eingetragene Marke von Syncfusion Inc."
+  },
+  "legal": {
+    "pageTitle": "Rechtliche Hinweise und Lizenzen",
+    "pageSubtitle": "Informationen über den Produkteigentümer, die Lizenzen der in WUIC integrierten Drittanbieter-Komponenten und die Nutzungsbedingungen.",
+    "licensor": {
+      "title": "Produkteigentümer",
+      "body": "WUIC Framework wird entwickelt und vertrieben von <strong>Lorenzo Castrico</strong>, Einzelunternehmen mit Sitz in Italien (VAT IT02098880681). Alle Rechte am Quellcode, der Marke WUIC und dem Marketingmaterial gehören dem Eigentümer."
+    },
+    "commercial": {
+      "title": "WUIC-Handelslizenz",
+      "body": "Das Framework wird unter einer kommerziellen Lizenz vertrieben (Developer / Professional). Der Lizenzkauf berechtigt zur Nutzung des Frameworks für die Entwicklung kommerzieller Anwendungen. Preis- und Umfangsdetails auf der <a routerLink='/pricing'>Pricing-Seite</a>."
+    },
+    "thirdParty": {
+      "title": "Drittanbieter-Komponenten",
+      "body": "WUIC enthält die folgenden Drittanbieter-Komponenten, jede unter ihrer eigenen Lizenz:",
+      "syncfusion": "<strong>Syncfusion Essential Studio</strong> (Community License auf den Eigentümer, genehmigt von Syncfusion Inc. am 2026-04-23, Ticket #832836). Die Lizenz deckt die Weiterverteilung der Komponenten innerhalb des WUIC-Frameworks ab. WUIC-Lizenznehmer, die Syncfusion direkt außerhalb der WUIC-Wrapper verwenden möchten, müssen eine eigene Syncfusion-Lizenz auf <a href='https://syncfusion.com/sales' target='_blank'>syncfusion.com</a> erwerben.",
+      "stimulsoft": "<strong>Stimulsoft Reports</strong> (kommerzielle Lizenz auf den Eigentümer mit Weiterverteilungsklausel). Verwendet vom Report-Designer und -Viewer.",
+      "openSource": "<strong>PrimeNG, Angular, FullCalendar, Monaco Editor und andere Open-Source-Bibliotheken</strong>: jeweils unter ihrer eigenen Lizenz (MIT, Apache 2.0, BSD). Die vollständigen Lizenztexte sind in den verteilten ZIP-Paketen enthalten.",
+      "fullNotices": "Vollständige Hinweise (LICENSE-Syncfusion.txt, LICENSE-Python.txt usw.) sind in jedem WUIC-Deployment-ZIP enthalten, im Stammverzeichnis und in den relevanten Unterordnern."
+    },
+    "trademarks": {
+      "title": "Marken",
+      "body": "Syncfusion ist eine eingetragene Marke von Syncfusion Inc. Stimulsoft ist eine Marke von Stimulsoft. Microsoft, WideWorldImporters, SQL Server sind Marken der Microsoft Corporation. Alle anderen genannten Marken sind Eigentum ihrer jeweiligen Inhaber."
+    },
+    "contact": {
+      "title": "Kontakt",
+      "body": "Für Fragen zu Lizenzen, Käufen oder Klärungen: <a href='mailto:licensing@wuic-framework.com'>licensing@wuic-framework.com</a>."
+    }
+  },
+  "privacy": {
+    "pageTitle": "Datenschutzerklärung",
+    "pageSubtitle": "Wie wir Ihre personenbezogenen Daten gemäß der EU-Verordnung 2016/679 (DSGVO) und dem italienischen Datenschutzgesetz (D.Lgs. 196/2003) verarbeiten.",
+    "lastUpdated": "Zuletzt aktualisiert: 23. April 2026",
+    "controller": {
+      "title": "Verantwortlicher",
+      "body": "Der Verantwortliche ist <strong>Lorenzo Castrico</strong>, italienisches Einzelunternehmen (VAT IT02098880681). Kontakt: <a href='mailto:licensing@wuic-framework.com'>licensing@wuic-framework.com</a>."
+    },
+    "data": {
+      "title": "Verarbeitete Daten",
+      "intro": "Über wuic-framework.com erheben wir die folgenden Kategorien personenbezogener Daten:",
+      "navigation": "<strong>Nutzungsdaten</strong>: IP-Adresse, Browser-User-Agent, Zeitstempel der Anfragen, besuchte Seiten. Automatisch durch Webserver-Logs erfasst.",
+      "preferences": "<strong>Technische Präferenzen</strong>: gewählte Sprache, Cookie-Einwilligungsstatus. Lokal im Browser gespeichert (localStorage), nie an unsere Server übertragen.",
+      "transactions": "<strong>Zahlungs- und Lizenzdaten</strong>: PayPal-E-Mail, Name des Zahlenden, Transaktions-IDs, Betrag, erworbenes Produkt, Machine-Fingerprint des Installationsservers. Durch PayPal beim Checkout übermittelt und für Lizenzausstellung und Support gespeichert.",
+      "support": "<strong>Support-Daten</strong>: Inhalt der E-Mails an licensing@wuic-framework.com oder andere veröffentlichte Kontaktadressen."
+    },
+    "purposes": {
+      "title": "Zwecke und Rechtsgrundlagen",
+      "contract": "<strong>Vertragserfüllung</strong> (Art. 6.1.b DSGVO): Ausstellung, Verlängerung und Support erworbener WUIC-Lizenzen.",
+      "security": "<strong>Berechtigtes Interesse</strong> (Art. 6.1.f DSGVO): Betrugsprävention, technische Diagnose, Sicherheit von Website und Systemen.",
+      "legal": "<strong>Rechtliche Verpflichtungen</strong> (Art. 6.1.c DSGVO): 10-jährige Aufbewahrung von Steuerdokumenten (Art. 2220 ital. ZGB), MwSt.- und Geldwäschepflichten.",
+      "consent": "<strong>Einwilligung</strong> (Art. 6.1.a DSGVO): Installation von Drittanbieter-Cookies (z. B. PayPal) gemäß Cookie-Banner. Einwilligung jederzeit widerruflich."
+    },
+    "thirdParties": {
+      "title": "Empfänger und Dritte",
+      "intro": "Ihre Daten können an folgende Stellen übermittelt werden, jeweils als eigenständige Verantwortliche oder Auftragsverarbeiter:",
+      "paypal": "<strong>PayPal (Europe) S.a.r.l. et Cie, S.C.A.</strong>: Zahlungsabwicklung. PayPal handelt als eigenständiger Verantwortlicher. Datenschutzerklärung: <a href='https://www.paypal.com/de/webapps/mpp/ua/privacy-full' target='_blank'>paypal.com/privacy</a>.",
+      "hosting": "<strong>Contabo GmbH</strong> (Deutschland): Hosting von Website und Anwendungsservern. Zugriffs-Logs werden 30 Tage aus Sicherheitsgründen aufbewahrt.",
+      "email": "<strong>E-Mail-Anbieter</strong> (SMTP): Zustellung von Support- und Lizenz-E-Mails.",
+      "noTransfer": "<strong>Keine Nicht-EU-Übermittlungen</strong>: Alle oben genannten Anbieter verarbeiten Daten im Europäischen Wirtschaftsraum oder, im Fall von PayPal, gemäß EU-Standardvertragsklauseln."
+    },
+    "retention": {
+      "title": "Aufbewahrungsfristen",
+      "navigation": "<strong>Zugriffs-Logs</strong>: 30 Tage ab Anfrage, außer bei Sicherheitsermittlungen.",
+      "preferences": "<strong>localStorage-Präferenzen</strong>: bestehend, bis sie vom Nutzer manuell gelöscht werden.",
+      "transactions": "<strong>Transaktionsdaten und Rechnungen</strong>: 10 Jahre ab Ausstellung gemäß Art. 2220 ital. ZGB und Steuerrecht.",
+      "support": "<strong>Support-Kommunikation</strong>: 3 Jahre ab Ticketschluss."
+    },
+    "rights": {
+      "title": "Ihre Rechte",
+      "intro": "Als betroffene Person haben Sie gemäß Art. 15-22 DSGVO das Recht auf:",
+      "access": "Zugang zu Ihren personenbezogenen Daten und Erhalt einer Kopie;",
+      "rectification": "Berichtigung unrichtiger Daten;",
+      "erasure": "Löschung der Daten, vorbehaltlich gesetzlicher Aufbewahrungspflichten;",
+      "restriction": "Einschränkung der Verarbeitung im Falle einer Beanstandung;",
+      "portability": "Erhalt Ihrer Daten in einem strukturierten, übertragbaren Format;",
+      "object": "Widerspruch gegen Verarbeitung auf Grundlage berechtigten Interesses;",
+      "consent": "jederzeitigen Widerruf der Einwilligung (unbeschadet der bisherigen rechtmäßigen Verarbeitung).",
+      "exercise": "Um diese Rechte auszuüben, schreiben Sie an <a href='mailto:licensing@wuic-framework.com'>licensing@wuic-framework.com</a>. Wir antworten innerhalb von 30 Tagen.",
+      "complaint": "Sie haben außerdem das Recht, eine Beschwerde beim <a href='https://www.garanteprivacy.it' target='_blank'>italienischen Garanten für Datenschutz</a> oder der zuständigen deutschen Aufsichtsbehörde einzureichen, wenn Sie der Ansicht sind, dass die Verarbeitung gegen geltendes Recht verstößt."
+    },
+    "cookies": {
+      "title": "Cookies und Tracking-Technologien",
+      "body": "Die Website verwendet technisch notwendige Cookies und, nach Einwilligung, Drittanbieter-Cookies für den PayPal-Checkout. Vollständige Details in der <a routerLink='/cookies'>Cookie Policy</a>."
+    },
+    "changes": {
+      "title": "Änderungen dieser Erklärung",
+      "body": "Diese Erklärung kann aktualisiert werden, um regulatorische oder betriebliche Änderungen abzubilden. Das Datum der letzten Aktualisierung steht oben. Bei wesentlichen Änderungen informieren wir registrierte Nutzer per E-Mail."
+    },
+    "contact": {
+      "title": "Kontakt",
+      "body": "Für Fragen zur Datenverarbeitung: <a href='mailto:licensing@wuic-framework.com'>licensing@wuic-framework.com</a>."
+    }
+  },
+  "cookies": {
+    "pageTitle": "Cookie-Richtlinie",
+    "pageSubtitle": "Welche Cookies und ähnliche Technologien wir verwenden, warum und wie Sie sie verwalten können.",
+    "lastUpdated": "Zuletzt aktualisiert: 23. April 2026",
+    "what": {
+      "title": "Was sind Cookies",
+      "body": "Cookies sind kleine Textdateien, die eine Website im Browser speichern kann. Diese Website nutzt auch <code>localStorage</code>, eine ähnliche aber modernere Technologie. Wir behandeln beide in dieser Richtlinie gleich."
+    },
+    "categories": {
+      "title": "Verwendete Kategorien",
+      "intro": "Wir unterscheiden Cookies und Storage in zwei Kategorien: <strong>technisch</strong> (immer aktiv, streng notwendig) und <strong>Marketing</strong> (nur nach Einwilligung aktiviert)."
+    },
+    "technical": {
+      "title": "Technische Cookies",
+      "body": "Cookies und Storage, die für den Betrieb der Website streng notwendig sind. Keine vorherige Einwilligung erforderlich (Art. 122 ital. Datenschutzgesetz).",
+      "langPurpose": "Speichert die gewählte Sprache, um Inhalte in Ihrer bevorzugten Sprache anzuzeigen.",
+      "consentPurpose": "Speichert Ihre Cookie-Einwilligungen, damit das Banner nicht bei jedem Besuch erneut angezeigt wird."
+    },
+    "marketing": {
+      "title": "Drittanbieter-Cookies (Marketing)",
+      "body": "Cookies von Drittanbietern, die gesetzt werden, wenn Sie bestimmte Funktionen nutzen. Standardmäßig blockiert; nur nach expliziter Einwilligung über das Cookie-Banner aktiviert.",
+      "paypalPurpose": "Betrieb des PayPal-Checkouts, Betrugsprävention, Lokalisierung der PayPal-Oberfläche.",
+      "paypalPolicy": "PayPal handelt als eigenständiger Verantwortlicher. Vollständige Information: <a href='https://www.paypal.com/de/webapps/mpp/ua/privacy-full' target='_blank'>paypal.com/privacy</a>."
+    },
+    "table": {
+      "name": "Name",
+      "purpose": "Zweck",
+      "duration": "Dauer",
+      "type": "Typ",
+      "provider": "Anbieter"
+    },
+    "duration": {
+      "persistent": "Persistent bis manuelle Löschung",
+      "sixMonths": "6 Monate",
+      "varies": "Variiert (Sitzung bis 2 Jahre)"
+    },
+    "manage": {
+      "title": "Einstellungen verwalten",
+      "body": "Sie können Ihre Cookie-Einwilligungen jederzeit über den Button unten ändern. Unser Banner erscheint dann erneut, damit Sie Ihre Auswahl aktualisieren können.",
+      "button": "Cookie-Einstellungen verwalten",
+      "browser": "Alternativ können Sie Cookies direkt in Ihren Browsereinstellungen (Chrome, Firefox, Safari, Edge) verwalten — dies blockiert sie für ALLE Websites, nicht nur wuic-framework.com."
+    },
+    "related": {
+      "title": "Verwandte Dokumente",
+      "body": "Siehe auch unsere <a routerLink='/privacy'>Datenschutzerklärung</a> für Zwecke und Rechtsgrundlagen der Verarbeitung, und die <a routerLink='/terms'>Verkaufsbedingungen</a> für die kommerziellen Bedingungen."
+    }
+  },
+  "terms": {
+    "pageTitle": "Allgemeine Verkaufsbedingungen",
+    "pageSubtitle": "Bedingungen für den Kauf und die Nutzung von WUIC-Framework-Lizenzen.",
+    "lastUpdated": "Zuletzt aktualisiert: 23. April 2026",
+    "provider": {
+      "title": "Verkäufer",
+      "body": "Der Verkäufer ist <strong>Lorenzo Castrico</strong>, italienisches Einzelunternehmen (VAT IT02098880681). Kontakt: <a href='mailto:licensing@wuic-framework.com'>licensing@wuic-framework.com</a>, Website <a href='https://wuic-framework.com'>wuic-framework.com</a>."
+    },
+    "service": {
+      "title": "Gegenstand des Dienstes",
+      "body": "Der Dienst besteht in der Einräumung einer Nutzungslizenz für das Framework <strong>WUIC Framework</strong> (proprietäres Software-Produkt) je nach erworbener Stufe (Developer oder Professional). Die Lizenz ist auf die autorisierte Anzahl von Machine-Fingerprints und die beim Kauf angegebene Laufzeit beschränkt."
+    },
+    "pricing": {
+      "title": "Preise",
+      "body": "Preise in Euro (EUR), ggf. ohne Steuern. Aktuelle Preise auf der <a routerLink='/pricing'>Pricing-Seite</a>, jederzeit ohne Vorankündigung aktualisierbar; maßgeblich ist der Preis zum Zeitpunkt der Bestellbestätigung.",
+      "dev": "<strong>Developer</strong>: 600 € / Jahr, 1 Fingerprint inklusive.",
+      "pro": "<strong>Professional</strong>: 1.200 € / Jahr, 3 Fingerprints inklusive.",
+      "extras": "<strong>Zusätzlicher Fingerprint</strong>: 200 € / Jahr je. <strong>Wartungsverlängerung</strong>: 300 € (Dev) / 600 € (Pro) für 12 zusätzliche Monate."
+    },
+    "payment": {
+      "title": "Zahlung",
+      "body": "Die Zahlung erfolgt über <strong>PayPal</strong>. Akzeptiert werden Kredit-/Debitkarten (ohne PayPal-Konto) und PayPal-Guthaben. Die elektronische Rechnung wird innerhalb von 12 Tagen nach Zahlungseingang ausgestellt und über das italienische SdI-System an den angegebenen Empfängercode übermittelt."
+    },
+    "delivery": {
+      "title": "Lizenzauslieferung",
+      "body": "Die Lizenz (RSA-2048 signierte Payload) wird manuell innerhalb von 2 Werktagen nach Erhalt von E-Mail, Machine-Fingerprint des Installationsservers und PayPal-Zahlungsbestätigung ausgestellt. Der Schlüssel wird per E-Mail an die beim Checkout angegebene Adresse gesendet."
+    },
+    "withdrawal": {
+      "title": "Widerrufsrecht",
+      "consumer": "<strong>Verbraucher (B2C)</strong>: Gemäß Art. 52 des italienischen Verbraucherschutzgesetzes (D.Lgs. 206/2005) hat der Verbraucher 14 Tage ab Vertragsschluss, um ohne Begründung vom Vertrag zurückzutreten.",
+      "exception": "<strong>Ausnahme digitale Inhalte</strong>: Gemäß Art. 59(1)(o) des italienischen Verbraucherschutzgesetzes <strong>erlischt</strong> das Widerrufsrecht, sobald die Vertragserfüllung (Ausstellung und Auslieferung der Lizenz) mit der ausdrücklichen Zustimmung des Verbrauchers und dessen Anerkennung des Verlusts des Widerrufsrechts begonnen hat. Durch Klick auf 'Kaufen' und Erhalt des Lizenzschlüssels akzeptieren Sie diese Klausel ausdrücklich.",
+      "b2b": "Das Widerrufsrecht gilt nicht für gewerbliche Kunden (B2B)."
+    },
+    "warranty": {
+      "title": "Gewährleistung",
+      "body": "Die Lizenz umfasst <strong>12 Monate Wartung</strong> ab Ausstellung: Framework-Updates, Bugfixes, E-Mail-Support. Danach kann die Wartung durch eine Verlängerung fortgesetzt werden. Das Framework wird 'wie besehen' bereitgestellt: die Gewährleistung deckt die Funktion gemäß Dokumentation ab, nicht die Eignung für einen spezifischen Anwendungsfall des Kunden."
+    },
+    "liability": {
+      "title": "Haftungsbeschränkung",
+      "body": "Soweit gesetzlich zulässig ist die Haftung des Verkäufers für direkte Schäden aus der Nutzung des Frameworks auf den Lizenzbetrag beschränkt, den der Kunde in den 12 Monaten vor dem Vorfall gezahlt hat. Indirekte, Folgeschäden, entgangener Gewinn und Datenverlust sind ausgeschlossen."
+    },
+    "ip": {
+      "title": "Geistiges Eigentum",
+      "body": "Quellcode, Marken, Dokumentation und sämtliche WUIC-Framework-bezogenen Materialien sind und bleiben ausschließliches Eigentum von Lorenzo Castrico. Die Lizenz gewährt ein begrenztes, nicht übertragbares Nutzungsrecht; sie stellt <strong>keine</strong> Übertragung geistigen Eigentums dar. Der Kunde bleibt Eigentümer des Quellcodes seiner eigenen mit WUIC entwickelten Anwendungen, innerhalb der auf der <a routerLink='/legal'>Rechtsseite</a> beschriebenen Grenzen."
+    },
+    "law": {
+      "title": "Anwendbares Recht und Gerichtsstand",
+      "body": "Der Vertrag unterliegt italienischem Recht. Für Streitigkeiten mit Verbrauchern gilt der Gerichtsstand am Wohnsitz oder Aufenthaltsort des Verbrauchers (Art. 66-bis ital. Verbraucherschutzgesetz). Für B2B-Streitigkeiten ist ausschließlich das <strong>Gericht Neapel, Italien</strong> zuständig."
+    },
+    "changes": {
+      "title": "Änderungen dieser Bedingungen",
+      "body": "Diese Bedingungen können aktualisiert werden. Für bereits laufende Verträge gelten die zum Zeitpunkt des Abschlusses geltenden Bedingungen."
+    },
+    "contact": {
+      "title": "Kontakt",
+      "body": "Für kommerzielle Anfragen, Lizenzinformationen oder Beschwerden: <a href='mailto:licensing@wuic-framework.com'>licensing@wuic-framework.com</a>."
+    }
+  },
+  "cookieBanner": {
+    "message": "Wir verwenden immer aktive <strong>technische</strong> Cookies für den Betrieb der Website. Drittanbieter-Cookies (<strong>PayPal</strong>) für den Checkout werden nur mit Ihrer Einwilligung gesetzt.",
+    "privacyLink": "Datenschutzerklärung",
+    "cookiesLink": "Cookie-Richtlinie",
+    "acceptAll": "Alle akzeptieren",
+    "reject": "Ablehnen",
+    "personalize": "Anpassen",
+    "savePreferences": "Speichern",
+    "preferences": {
+      "title": "Cookie-Einstellungen",
+      "intro": "Wählen Sie, welche Cookie-Kategorien akzeptiert werden. Die Auswahl kann jederzeit auf der Cookie-Richtlinie-Seite geändert werden.",
+      "required": "Immer aktiv",
+      "technical": {
+        "title": "Technische Cookies",
+        "desc": "Streng notwendig für den Website-Betrieb (gewählte Sprache, Einwilligungsstatus). Keine Einwilligung erforderlich gemäß Art. 122 ital. Datenschutzgesetz."
+      },
+      "marketing": {
+        "title": "Drittanbieter-Cookies (PayPal)",
+        "desc": "Cookies von PayPal für Checkout und Betrugsprävention. Ohne diese Cookies laden die Kaufbuttons nicht."
+      }
+    }
   }
 }

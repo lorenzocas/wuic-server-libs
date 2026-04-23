@@ -1,16 +1,17 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { TranslateModule } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-unauthorized',
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, TranslateModule],
   template: `
     <section class="unauthorized-wrap">
-      <h1>Accesso negato</h1>
-      <p>Non hai i permessi necessari per aprire questa pagina.</p>
-      <p *ngIf="fromRoute" class="from-route">Route richiesta: <code>{{ fromRoute }}</code></p>
-      <a routerLink="/">Torna alla home</a>
+      <h1>{{ 'auth.unauthorized.title' | translate }}</h1>
+      <p>{{ 'auth.unauthorized.message' | translate }}</p>
+      <p *ngIf="fromRoute" class="from-route">{{ 'auth.unauthorized.requested_route' | translate }} <code>{{ fromRoute }}</code></p>
+      <a routerLink="/">{{ 'auth.unauthorized.back_to_home' | translate }}</a>
     </section>
   `,
   styles: [`

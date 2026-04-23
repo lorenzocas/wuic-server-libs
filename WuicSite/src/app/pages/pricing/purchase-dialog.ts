@@ -1,4 +1,4 @@
-import { AfterViewInit, ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, ElementRef } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, ElementRef, inject } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -8,7 +8,8 @@ import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { TranslatePipe } from '@ngx-translate/core';
 import { PurchaseProduct, PAYPAL_CONFIG } from './paypal.config';
-import { isPaypalConfigured, loadPaypalSdk } from './paypal-loader';
+import { isPaypalConfigured, loadPaypalSdk, PaypalConsentRequiredError } from './paypal-loader';
+import { ConsentService } from '../../services/consent.service';
 
 @Component({
   selector: 'app-purchase-dialog',
@@ -28,8 +29,10 @@ export class PurchaseDialog implements OnChanges, AfterViewInit, OnDestroy {
   email = '';
   machineFingerprint = '';
 
-  state: 'idle' | 'loading-sdk' | 'sdk-ready' | 'not-configured' | 'processing' | 'success' | 'error' = 'idle';
+  state: 'idle' | 'loading-sdk' | 'sdk-ready' | 'not-configured' | 'needs-consent' | 'processing' | 'success' | 'error' = 'idle';
   errorMessage = '';
+
+  private consent = inject(ConsentService);
 
   successInfo: {
     orderId: string;
@@ -103,16 +106,42 @@ export class PurchaseDialog implements OnChanges, AfterViewInit, OnDestroy {
     this.cd.markForCheck();
 
     try {
-      this.paypalInstance = await loadPaypalSdk();
+      this.paypalInstance = await loadPaypalSdk(this.consent.canLoadMarketing());
       this.state = 'sdk-ready';
       this.cd.markForCheck();
       // Defer button render to next tick so #paypalContainer ViewChild is attached
       setTimeout(() => this.renderButton(), 0);
     } catch (err: any) {
+      if (err instanceof PaypalConsentRequiredError) {
+        // User has not opted in to marketing cookies — show consent prompt
+        // (template branch) instead of a generic error. The user can click
+        // the button in that branch to re-open the cookie banner.
+        this.state = 'needs-consent';
+        this.cd.markForCheck();
+        return;
+      }
       this.state = 'error';
       this.errorMessage = err?.message ?? 'SDK load error';
       this.cd.markForCheck();
     }
+  }
+
+  /**
+   * Re-open the cookie banner from the "needs-consent" state in the dialog.
+   * When the user accepts marketing cookies there, they can click "Retry"
+   * and the SDK will be loaded normally.
+   */
+  openCookiePreferences(): void {
+    this.consent.reopen();
+  }
+
+  /**
+   * Retry loading the PayPal SDK after the user has (presumably) granted
+   * marketing consent via the cookie banner. No-op if consent is still missing.
+   */
+  retryAfterConsent(): void {
+    if (!this.consent.canLoadMarketing()) return;
+    this.initialize();
   }
 
   private renderButton(): void {

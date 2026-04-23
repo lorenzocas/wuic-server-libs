@@ -1,0 +1,84 @@
+<div class="legal-page container">
+  <header class="legal-header">
+    <h1>{{ 'cookies.pageTitle' | translate }}</h1>
+    <p class="legal-subtitle">{{ 'cookies.pageSubtitle' | translate }}</p>
+    <p class="legal-update">{{ 'cookies.lastUpdated' | translate }}</p>
+  </header>
+
+  <section class="legal-section">
+    <h2>{{ 'cookies.what.title' | translate }}</h2>
+    <p [innerHTML]="'cookies.what.body' | translate"></p>
+  </section>
+
+  <section class="legal-section">
+    <h2>{{ 'cookies.categories.title' | translate }}</h2>
+    <p>{{ 'cookies.categories.intro' | translate }}</p>
+  </section>
+
+  <section class="legal-section">
+    <h3>{{ 'cookies.technical.title' | translate }}</h3>
+    <p [innerHTML]="'cookies.technical.body' | translate"></p>
+    <table class="cookie-table">
+      <thead>
+        <tr>
+          <th>{{ 'cookies.table.name' | translate }}</th>
+          <th>{{ 'cookies.table.purpose' | translate }}</th>
+          <th>{{ 'cookies.table.duration' | translate }}</th>
+          <th>{{ 'cookies.table.type' | translate }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>wuic-site-lang</code></td>
+          <td>{{ 'cookies.technical.langPurpose' | translate }}</td>
+          <td>{{ 'cookies.duration.persistent' | translate }}</td>
+          <td>localStorage</td>
+        </tr>
+        <tr>
+          <td><code>wuic-cookie-consent</code></td>
+          <td>{{ 'cookies.technical.consentPurpose' | translate }}</td>
+          <td>{{ 'cookies.duration.sixMonths' | translate }}</td>
+          <td>localStorage</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="legal-section">
+    <h3>{{ 'cookies.marketing.title' | translate }}</h3>
+    <p [innerHTML]="'cookies.marketing.body' | translate"></p>
+    <table class="cookie-table">
+      <thead>
+        <tr>
+          <th>{{ 'cookies.table.name' | translate }}</th>
+          <th>{{ 'cookies.table.provider' | translate }}</th>
+          <th>{{ 'cookies.table.purpose' | translate }}</th>
+          <th>{{ 'cookies.table.duration' | translate }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>ts</code>, <code>ts_c</code>, <code>LANG</code>, …</td>
+          <td>PayPal (paypal.com)</td>
+          <td>{{ 'cookies.marketing.paypalPurpose' | translate }}</td>
+          <td>{{ 'cookies.duration.varies' | translate }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="legal-note" [innerHTML]="'cookies.marketing.paypalPolicy' | translate"></p>
+  </section>
+
+  <section class="legal-section">
+    <h2>{{ 'cookies.manage.title' | translate }}</h2>
+    <p>{{ 'cookies.manage.body' | translate }}</p>
+    <button type="button" class="manage-btn" (click)="reopenPreferences()">
+      {{ 'cookies.manage.button' | translate }}
+    </button>
+    <p class="legal-note">{{ 'cookies.manage.browser' | translate }}</p>
+  </section>
+
+  <section class="legal-section">
+    <h2>{{ 'cookies.related.title' | translate }}</h2>
+    <p [innerHTML]="'cookies.related.body' | translate"></p>
+  </section>
+</div>

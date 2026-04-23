@@ -1,0 +1,73 @@
+@if (visible()) {
+  <div class="cookie-banner" role="dialog" aria-live="polite" aria-label="Cookie consent">
+    @if (!expanded()) {
+      <!-- Compact view: message + 3 primary actions -->
+      <div class="banner-row">
+        <div class="banner-message">
+          <p [innerHTML]="'cookieBanner.message' | translate"></p>
+          <p class="banner-links">
+            <a routerLink="/privacy">{{ 'cookieBanner.privacyLink' | translate }}</a>
+            <span class="sep">·</span>
+            <a routerLink="/cookies">{{ 'cookieBanner.cookiesLink' | translate }}</a>
+          </p>
+        </div>
+        <div class="banner-actions">
+          <button type="button" class="btn btn-secondary" (click)="rejectAll()">
+            {{ 'cookieBanner.reject' | translate }}
+          </button>
+          <button type="button" class="btn btn-outline" (click)="toggleExpanded()">
+            {{ 'cookieBanner.personalize' | translate }}
+          </button>
+          <button type="button" class="btn btn-primary" (click)="acceptAll()">
+            {{ 'cookieBanner.acceptAll' | translate }}
+          </button>
+        </div>
+      </div>
+    } @else {
+      <!-- Expanded view: per-category toggles -->
+      <div class="banner-expanded">
+        <h3>{{ 'cookieBanner.preferences.title' | translate }}</h3>
+        <p class="preferences-intro">{{ 'cookieBanner.preferences.intro' | translate }}</p>
+
+        <div class="category-row">
+          <div class="category-info">
+            <div class="category-title">
+              {{ 'cookieBanner.preferences.technical.title' | translate }}
+              <span class="category-required">{{ 'cookieBanner.preferences.required' | translate }}</span>
+            </div>
+            <p class="category-desc">{{ 'cookieBanner.preferences.technical.desc' | translate }}</p>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" [checked]="true" disabled />
+            <span class="toggle-slider toggle-slider--locked"></span>
+          </label>
+        </div>
+
+        <div class="category-row">
+          <div class="category-info">
+            <div class="category-title">
+              {{ 'cookieBanner.preferences.marketing.title' | translate }}
+            </div>
+            <p class="category-desc">{{ 'cookieBanner.preferences.marketing.desc' | translate }}</p>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" [checked]="marketingToggle()" (change)="onMarketingToggle($event)" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="banner-actions banner-actions--expanded">
+          <button type="button" class="btn btn-secondary" (click)="rejectAll()">
+            {{ 'cookieBanner.reject' | translate }}
+          </button>
+          <button type="button" class="btn btn-primary" (click)="savePreferences()">
+            {{ 'cookieBanner.savePreferences' | translate }}
+          </button>
+          <button type="button" class="btn btn-outline" (click)="acceptAll()">
+            {{ 'cookieBanner.acceptAll' | translate }}
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+}

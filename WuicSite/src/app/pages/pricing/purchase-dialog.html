@@ -66,6 +66,20 @@
             <span [innerHTML]="'purchaseDialog.error' | translate: { message: errorMessage || '' }"></span>
           </p-message>
         }
+
+        @case ('needs-consent') {
+          <p-message severity="warn" styleClass="purchase-msg">
+            <span [innerHTML]="'purchaseDialog.needsConsent' | translate"></span>
+          </p-message>
+          <div class="purchase-consent-actions">
+            <p-button [label]="'purchaseDialog.needsConsentOpenBanner' | translate"
+                      icon="pi pi-cog" severity="secondary" [outlined]="true"
+                      (onClick)="openCookiePreferences()"></p-button>
+            <p-button [label]="'purchaseDialog.needsConsentRetry' | translate"
+                      icon="pi pi-refresh"
+                      (onClick)="retryAfterConsent()"></p-button>
+          </div>
+        }
       }
 
       <div class="paypal-container" [class.hidden]="state !== 'sdk-ready' && state !== 'error'" #paypalContainer></div>

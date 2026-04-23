@@ -33,5 +33,21 @@ export const routes: Routes = [
     path: 'docs/:slug',
     loadComponent: () => import('./pages/docs/docs').then(m => m.Docs)
   },
+  {
+    path: 'legal',
+    loadComponent: () => import('./pages/legal/legal').then(m => m.Legal)
+  },
+  {
+    path: 'privacy',
+    loadComponent: () => import('./pages/privacy/privacy').then(m => m.Privacy)
+  },
+  {
+    path: 'cookies',
+    loadComponent: () => import('./pages/cookies/cookies').then(m => m.Cookies)
+  },
+  {
+    path: 'terms',
+    loadComponent: () => import('./pages/terms/terms').then(m => m.Terms)
+  },
   { path: '**', redirectTo: '' }
 ];

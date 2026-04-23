@@ -1,0 +1,37 @@
+<div class="legal-page container">
+  <header class="legal-header">
+    <h1>{{ 'legal.pageTitle' | translate }}</h1>
+    <p class="legal-subtitle">{{ 'legal.pageSubtitle' | translate }}</p>
+  </header>
+
+  <section class="legal-section">
+    <h2>{{ 'legal.licensor.title' | translate }}</h2>
+    <p [innerHTML]="'legal.licensor.body' | translate"></p>
+  </section>
+
+  <section class="legal-section">
+    <h2>{{ 'legal.commercial.title' | translate }}</h2>
+    <p [innerHTML]="'legal.commercial.body' | translate"></p>
+  </section>
+
+  <section class="legal-section">
+    <h2>{{ 'legal.thirdParty.title' | translate }}</h2>
+    <p>{{ 'legal.thirdParty.body' | translate }}</p>
+    <ul class="third-party-list">
+      <li [innerHTML]="'legal.thirdParty.syncfusion' | translate"></li>
+      <li [innerHTML]="'legal.thirdParty.stimulsoft' | translate"></li>
+      <li [innerHTML]="'legal.thirdParty.openSource' | translate"></li>
+    </ul>
+    <p class="legal-note">{{ 'legal.thirdParty.fullNotices' | translate }}</p>
+  </section>
+
+  <section class="legal-section">
+    <h2>{{ 'legal.trademarks.title' | translate }}</h2>
+    <p>{{ 'legal.trademarks.body' | translate }}</p>
+  </section>
+
+  <section class="legal-section">
+    <h2>{{ 'legal.contact.title' | translate }}</h2>
+    <p [innerHTML]="'legal.contact.body' | translate"></p>
+  </section>
+</div>

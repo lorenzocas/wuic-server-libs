@@ -34,7 +34,32 @@
   }
 }
 
+.footer-legal-links {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+
+  a {
+    color: #64748b;
+    font-size: 0.8rem;
+    transition: color 0.2s;
+    &:hover { color: #94a3b8; }
+  }
+}
+
 .footer-copy {
   font-size: 0.8rem;
   color: #475569;
+}
+
+.footer-attribution {
+  max-width: 780px;
+  text-align: center;
+  font-size: 0.72rem;
+  color: #475569;
+  line-height: 1.5;
+  padding-top: 8px;
+  border-top: 1px solid #1e293b;
+  margin-top: 4px;
 }

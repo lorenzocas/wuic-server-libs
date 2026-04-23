@@ -1,0 +1,85 @@
+<div class="legal-page container">
+  <header class="legal-header">
+    <h1>{{ 'privacy.pageTitle' | translate }}</h1>
+    <p class="legal-subtitle">{{ 'privacy.pageSubtitle' | translate }}</p>
+    <p class="legal-update">{{ 'privacy.lastUpdated' | translate }}</p>
+  </header>
+
+  <section class="legal-section">
+    <h2>{{ 'privacy.controller.title' | translate }}</h2>
+    <p [innerHTML]="'privacy.controller.body' | translate"></p>
+  </section>
+
+  <section class="legal-section">
+    <h2>{{ 'privacy.data.title' | translate }}</h2>
+    <p>{{ 'privacy.data.intro' | translate }}</p>
+    <ul>
+      <li [innerHTML]="'privacy.data.navigation' | translate"></li>
+      <li [innerHTML]="'privacy.data.preferences' | translate"></li>
+      <li [innerHTML]="'privacy.data.transactions' | translate"></li>
+      <li [innerHTML]="'privacy.data.support' | translate"></li>
+    </ul>
+  </section>
+
+  <section class="legal-section">
+    <h2>{{ 'privacy.purposes.title' | translate }}</h2>
+    <ul>
+      <li [innerHTML]="'privacy.purposes.contract' | translate"></li>
+      <li [innerHTML]="'privacy.purposes.security' | translate"></li>
+      <li [innerHTML]="'privacy.purposes.legal' | translate"></li>
+      <li [innerHTML]="'privacy.purposes.consent' | translate"></li>
+    </ul>
+  </section>
+
+  <section class="legal-section">
+    <h2>{{ 'privacy.thirdParties.title' | translate }}</h2>
+    <p>{{ 'privacy.thirdParties.intro' | translate }}</p>
+    <ul>
+      <li [innerHTML]="'privacy.thirdParties.paypal' | translate"></li>
+      <li [innerHTML]="'privacy.thirdParties.hosting' | translate"></li>
+      <li [innerHTML]="'privacy.thirdParties.email' | translate"></li>
+    </ul>
+    <p class="legal-note" [innerHTML]="'privacy.thirdParties.noTransfer' | translate"></p>
+  </section>
+
+  <section class="legal-section">
+    <h2>{{ 'privacy.retention.title' | translate }}</h2>
+    <ul>
+      <li [innerHTML]="'privacy.retention.navigation' | translate"></li>
+      <li [innerHTML]="'privacy.retention.preferences' | translate"></li>
+      <li [innerHTML]="'privacy.retention.transactions' | translate"></li>
+      <li [innerHTML]="'privacy.retention.support' | translate"></li>
+    </ul>
+  </section>
+
+  <section class="legal-section">
+    <h2>{{ 'privacy.rights.title' | translate }}</h2>
+    <p>{{ 'privacy.rights.intro' | translate }}</p>
+    <ul>
+      <li>{{ 'privacy.rights.access' | translate }}</li>
+      <li>{{ 'privacy.rights.rectification' | translate }}</li>
+      <li>{{ 'privacy.rights.erasure' | translate }}</li>
+      <li>{{ 'privacy.rights.restriction' | translate }}</li>
+      <li>{{ 'privacy.rights.portability' | translate }}</li>
+      <li>{{ 'privacy.rights.object' | translate }}</li>
+      <li>{{ 'privacy.rights.consent' | translate }}</li>
+    </ul>
+    <p [innerHTML]="'privacy.rights.exercise' | translate"></p>
+    <p [innerHTML]="'privacy.rights.complaint' | translate"></p>
+  </section>
+
+  <section class="legal-section">
+    <h2>{{ 'privacy.cookies.title' | translate }}</h2>
+    <p [innerHTML]="'privacy.cookies.body' | translate"></p>
+  </section>
+
+  <section class="legal-section">
+    <h2>{{ 'privacy.changes.title' | translate }}</h2>
+    <p>{{ 'privacy.changes.body' | translate }}</p>
+  </section>
+
+  <section class="legal-section">
+    <h2>{{ 'privacy.contact.title' | translate }}</h2>
+    <p [innerHTML]="'privacy.contact.body' | translate"></p>
+  </section>
+</div>
