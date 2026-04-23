@@ -1,5 +1,7 @@
 import { AfterContentInit, ChangeDetectorRef, Component, forwardRef, Injector, OnDestroy, OnInit } from '@angular/core';
-import { Router, RouterOutlet } from '@angular/router';
+import { ActivatedRoute, NavigationEnd, Router, RouterOutlet } from '@angular/router';
+import { Meta, Title } from '@angular/platform-browser';
+import { filter } from 'rxjs/operators';
 import { utility } from './classes/utility';
 import { CommonModule, NgClass, NgComponentOutlet, NgFor, NgIf, NgStyle } from '@angular/common';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
@@ -240,7 +242,11 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     // private notificationRealtime: CrmNotificationRealtimeService, private router: Router,
     private injector: Injector,
     private translate: TranslateService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private router: Router,
+    private metaTagService: Meta,
+    private titleService: Title,
+    private activatedRoute: ActivatedRoute
   ) {
 
     WtoolboxService.messageNotificationService = messageService;
@@ -535,6 +541,64 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     // this.notificationRealtime.disconnect();
   }
 
+  /**
+   * Costruisce e scrive la meta description dalla route corrente.
+   *
+   * Priorita':
+   *   1. `route.data.description` — descrizione curata staticamente nel
+   *      config di ogni route (app.routes.ts, wuic-bridges/routes.ts).
+   *      Questa e' la strada preferita: la descrizione e' scritta a mano
+   *      per ciascun componente e riflette il suo purpose.
+   *   2. Fallback humanize: per route metadata-driven `<route>/<action>`
+   *      (BoundedRepeater generico per qualsiasi tabella) non esiste una
+   *      description curata — costruiamo "<Route> <Action> | WUIC
+   *      Framework...".
+   *
+   * Cap a 155 char per rispettare il limite Google SERP.
+   */
+  private updateMetaDescriptionForCurrentRoute(): void {
+    // 1) Walk fino alla route foglia attiva
+    let r = this.activatedRoute.snapshot;
+    while (r.firstChild) r = r.firstChild;
+    const curated = (r?.data as any)?.description as string | undefined;
+
+    const humanize = (s: string) => String(s || '')
+      .replace(/[-_]+/g, ' ')
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+
+    let content: string;
+    if (curated && curated.trim().length > 0) {
+      // Token substitution: `{paramName}` nel template curato viene
+      // sostituito col valore del param umanizzato. Cosi' una descrizione
+      // tipo "Dashboard {route} WUIC — layout drag-and-drop..."  diventa
+      // contestuale per ogni dashboard specifica (sales-overview, ticket-kpi,
+      // ecc.), migliorando la SEO di ogni URL.
+      //
+      // Se il token esiste nel template ma il param e' vuoto (es. route
+      // statica che matcha di default una curata parametrica), il token
+      // resta come-is e il caller pu&#242 scegliere di bypassare.
+      const params = (r?.params as any) || {};
+      content = curated.trim().replace(/\{(\w+)\}/g, (match, key) => {
+        const value = params?.[key];
+        return value ? humanize(value) : match;
+      });
+      // Edge case: se dopo sub restano token non risolti (es. `{route}` in
+      // un contesto senza param), collassiamo gli spazi duplicati.
+      content = content.replace(/\s+/g, ' ').trim();
+    } else {
+      // 2) Fallback: humanize url segments (per :route/:action metadata-driven
+      //    il cui config non ha description curata).
+      const url = (this.router.url || '/').split('?')[0].split('#')[0];
+      const segments = url.split('/').filter(Boolean);
+      const routePart = segments.length > 0
+        ? segments.slice(0, 2).map(humanize).join(' — ')
+        : 'Home';
+      content = `${routePart} | WUIC Framework — Piattaforma low-code per gestione dati, dashboard e workflow.`;
+    }
+    const capped = content.length > 155 ? content.slice(0, 152) + '...' : content;
+    this.metaTagService.updateTag({ name: 'description', content: capped });
+  }
+
   ngOnInit(): void {
     // First-run translations (bundled, NO backend call) — registrate prima che il
     // wizard di installazione si mostri. Motivazione: il first-run gira con DB non
@@ -548,6 +612,19 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     // caricate dal backend senza sovrascriverle: se in futuro `firstrun.rag.*` sara'
     // in DB, quel valore viene mantenuto e prevale su questo bundle.
     this.registerFirstRunTranslations();
+
+    // SEO: aggiorna `<meta name="description">` dinamicamente a ogni
+    // NavigationEnd. La description e' derivata dai segmenti dell'hash
+    // route corrente. Lighthouse flagga "Document does not have a meta
+    // description" se la tag manca — con questo fix la tag e' sempre
+    // presente e context-aware.
+    //
+    // Format: "<Segment1> <Segment2> | WUIC Framework — Gestione dati e
+    // dashboard low-code". Cap a ~155 char (limite display Google).
+    this.updateMetaDescriptionForCurrentRoute();
+    this.router.events
+      .pipe(filter((e) => e instanceof NavigationEnd))
+      .subscribe(() => this.updateMetaDescriptionForCurrentRoute());
 
     this.busySub?.unsubscribe();
     this.busySub = this.isBusy.subscribe((v) => {
