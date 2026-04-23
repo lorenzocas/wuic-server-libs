@@ -117,7 +117,7 @@
             },
             "npm": {
               "optimization": {
-                "scripts": false,
+                "scripts": true,
                 "styles": true,
                 "fonts": true
               },
@@ -130,7 +130,9 @@
                 { "replace": "src/app/wuic-bridges/notifications.ts", "with": "src/app/wuic-bridges-npm/notifications.ts" },
                 { "replace": "src/app/wuic-bridges/routes.ts", "with": "src/app/wuic-bridges-npm/routes.ts" },
                 { "replace": "src/app/wuic-bridges/widget-loaders.ts", "with": "src/app/wuic-bridges-npm/widget-loaders.ts" },
-                { "replace": "src/app/wuic-bridges/widget-loaders-advanced.ts", "with": "src/app/wuic-bridges-npm/widget-loaders-advanced.ts" }
+                { "replace": "src/app/wuic-bridges/widget-loaders-advanced.ts", "with": "src/app/wuic-bridges-npm/widget-loaders-advanced.ts" },
+                { "replace": "src/app/wuic-bridges/public.ts", "with": "src/app/wuic-bridges-npm/public.ts" },
+                { "replace": "src/app/environments/environment.ts", "with": "src/app/environments/environment.prod.ts" }
               ]
             }
           },
