@@ -3,6 +3,13 @@
 // `ng build --env=prod` then `environment.prod.ts` will be used instead.
 // The list of which env maps to which file can be found in `.angular-cli.json`.
 
+// DEV ENVIRONMENT (default, usato da `ng serve:dev` su :4200).
+//
+// URL assoluti al backend su :5000 — necessari perche' il dev server Angular
+// gira su una porta diversa dal backend. In prod/npm config il builder
+// sostituisce questo file con `environment.prod.ts` (vedi
+// `angular.json` → `configurations.npm.fileReplacements`) che usa URL
+// relativi (origin-less) safe su qualsiasi host serving.
 export const environment = {
   file_path: 'http://localhost:5000/',
   api_url: 'http://localhost:5000/api/',
