@@ -138,6 +138,29 @@ app-root {
     --hc-disabled-border: #666666;
 }
 
+/* High contrast DARK variant. Attivata quando e' presente anche `.theme-dark`
+   (tema "Alto Contrasto Dark" selezionato dal dropdown, vedi theme-catalog.ts).
+   Valori scelti secondo lo standard WCAG per HC dark:
+   - bg #000000 nero puro (massima non-riflettanza per fotofobia)
+   - fg #ffffff bianco puro (contrasto 21:1)
+   - accent #ffff00 giallo per link (WCAG-compliant su bg nero, visibilita' daltonici)
+   - focus #ffff00 outline giallo (standard browser HC)
+   - hover un dark-lighter per feedback senza perdere contrasto
+   I nomi var restano gli stessi quindi tutte le regole `:is(html,body).theme-high-contrast ...`
+   esistenti usano automaticamente i valori invertiti. */
+:is(html, body).theme-high-contrast.theme-dark {
+    color-scheme: dark;
+    --hc-bg: #000000;
+    --hc-fg: #ffffff;
+    --hc-accent: #ffff00;
+    --hc-hover-bg: #1f1f1f;
+    --hc-border: #ffffff;
+    --hc-focus: #ffff00;
+    --hc-disabled-bg: #1a1a1a;
+    --hc-disabled-fg: #7a7a7a;
+    --hc-disabled-border: #5a5a5a;
+}
+
 :is(html, body).theme-high-contrast,
 :is(html, body).theme-high-contrast .p-component {
     --p-primary-color: var(--hc-accent);
@@ -149,6 +172,18 @@ app-root {
     --p-text-color: var(--hc-fg);
     --p-content-background: var(--hc-bg);
     --p-content-border-color: var(--hc-border);
+}
+
+/* Body/html/app-root: in HC le CSS var sopra settano `--p-*` ma il `body` di
+   default non consuma tali var per il suo `background-color`. In dark variant
+   senza questo override il body resta bianco mentre le surfaces PrimeNG sono
+   nere → flicker visivo e contrasto rotto. Forziamo bg/color sul body stesso
+   (e su app-root per coprire il caso in cui app-root copra tutto il viewport). */
+:is(html, body).theme-high-contrast,
+html.theme-high-contrast body,
+html.theme-high-contrast app-root {
+    background: var(--hc-bg) !important;
+    color: var(--hc-fg) !important;
 }
 
 :is(html, body).theme-high-contrast :is(.p-inputtext,
@@ -164,7 +199,21 @@ app-root {
     .p-checkbox-box,
     .p-radiobutton-box,
     .p-inputnumber-input,
-    .p-paginator) {
+    .p-paginator,
+    .p-select-overlay,
+    .p-dropdown-panel,
+    .p-multiselect-panel,
+    .p-autocomplete-panel,
+    .p-datepicker,
+    .p-datepicker-panel,
+    .p-popover,
+    .p-overlaypanel,
+    .p-menu,
+    .p-menu-overlay,
+    .p-contextmenu,
+    .p-tieredmenu,
+    .p-toast,
+    .p-toast-message) {
     background: var(--hc-bg) !important;
     color: var(--hc-fg) !important;
     border-color: var(--hc-border) !important;
@@ -205,6 +254,41 @@ app-root {
     color: var(--hc-disabled-fg) !important;
     border-color: var(--hc-disabled-border) !important;
     opacity: 1 !important;
+}
+
+/* Readonly fields — trattati con stile "disabled" in HC (sia light che dark
+   variant via `--hc-disabled-*`) cosi' l'utente capisce a colpo d'occhio che
+   non sono editabili. I selettori HTML `[readonly]` / `[aria-readonly='true']`
+   non erano coperti dalla regola sopra: senza override i readonly rendering
+   era quello "normal input" (bg `--hc-bg` + fg `--hc-fg`) — in HC dark il bg
+   scuro su un readonly si confonde col container. Regole analoghe agli hover
+   stoppate (il readonly non deve mostrare feedback di hover). */
+:is(html, body).theme-high-contrast :is(input[readonly],
+    textarea[readonly],
+    .p-inputtext[readonly],
+    .p-inputtext[aria-readonly='true'],
+    [aria-readonly='true'],
+    .p-select[readonly],
+    .p-select[aria-readonly='true'],
+    .p-autocomplete-input[readonly],
+    .p-datepicker-input[readonly],
+    .p-inputnumber-input[readonly],
+    .disabled-textfield,
+    span.disabled-textfield) {
+    background: var(--hc-disabled-bg) !important;
+    color: var(--hc-disabled-fg) !important;
+    border-color: var(--hc-disabled-border) !important;
+    opacity: 1 !important;
+    cursor: default !important;
+}
+:is(html, body).theme-high-contrast :is(input[readonly],
+    textarea[readonly],
+    .p-inputtext[readonly],
+    [aria-readonly='true'],
+    .disabled-textfield):hover {
+    background: var(--hc-disabled-bg) !important;
+    color: var(--hc-disabled-fg) !important;
+    border-color: var(--hc-disabled-border) !important;
 }
 
 :is(html, body).theme-high-contrast :is(a[href],

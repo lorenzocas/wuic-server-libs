@@ -1881,16 +1881,40 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
   }
 
   toggleLightDark() {
-    const linkElement = document.querySelector('html') as HTMLElement;
-    if (linkElement.classList.contains('theme-dark')) {
-      linkElement.classList.remove('theme-dark');
+    // Guard: quando un tema ad alto contrasto e' selezionato, la variante
+    // chiaro/scuro e' determinata dalla scelta del tema stesso nel dropdown
+    // (`a11y-high-contrast` = light, `a11y-high-contrast-dark` = dark).
+    // Il toggle manuale genererebbe ambiguita' con lo state del dropdown.
+    if (this.isHighContrastTheme()) {
+      return;
+    }
+    const root = document?.documentElement;
+    const body = document?.body;
+    // Sincronizza `theme-dark` su ENTRAMBI html e body — il path HC Dark
+    // (applyThemePreset) aggiunge la classe su tutti e due, quindi anche il
+    // toggle deve rimuoverla da tutti e due per evitare stato misto quando
+    // l'utente passa da HC Dark → tema regolare → toggle off.
+    if (root?.classList.contains('theme-dark')) {
+      root?.classList.remove('theme-dark');
+      body?.classList.remove('theme-dark');
       this.isDarkMode = false;
       localStorage.setItem(AppComponent.ThemeModeStorageKey, 'light');
     } else {
-      linkElement.classList.add('theme-dark');
+      root?.classList.add('theme-dark');
+      body?.classList.add('theme-dark');
       this.isDarkMode = true;
       localStorage.setItem(AppComponent.ThemeModeStorageKey, 'dark');
     }
+  }
+
+  /**
+   * True quando il tema correntemente selezionato e' una variante accessibility
+   * ad alto contrasto. Usato dal template per disabilitare il toggle dark/light
+   * e mostrare il tooltip esplicativo.
+   */
+  isHighContrastTheme(): boolean {
+    const selected = this.availableThemes.find(t => t.value === this.selectedTheme);
+    return !!selected?.isHighContrast;
   }
 
   onThemeChange(themeName: string) {
@@ -1914,6 +1938,33 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     if (!preset) {
       this.setHighContrastMode(false);
       return;
+    }
+
+    // CRITICO: applica `theme-dark` PRIMA di `usePreset()`. Quando PrimeNG
+    // installa il preset ricalcola le CSS var dark/light basandosi sul
+    // matching del `darkModeSelector: '.theme-dark'` (vedi app.config.ts).
+    // Se la classe viene aggiunta DOPO, le CSS var risolvono sul ramo light
+    // e rimangono tali finche' non si rifa' usePreset → l'UI appare light
+    // anche con .theme-dark presente. Per i temi HC con `highContrastMode`
+    // esplicito allineiamo la classe prima di toccare il preset.
+    // `theme-dark` va aggiunta SIA su html SIA su body — regole CSS del
+    // tipo `:is(html,body).theme-high-contrast.theme-dark` altrimenti
+    // matchano solo html e il body vede ancora le CSS var light.
+    if (selected.isHighContrast && selected.highContrastMode) {
+      const root = document?.documentElement;
+      const body = document?.body;
+      const wantsDark = selected.highContrastMode === 'dark';
+      if (wantsDark) {
+        root?.classList.add('theme-dark');
+        body?.classList.add('theme-dark');
+        this.isDarkMode = true;
+        localStorage.setItem(AppComponent.ThemeModeStorageKey, 'dark');
+      } else {
+        root?.classList.remove('theme-dark');
+        body?.classList.remove('theme-dark');
+        this.isDarkMode = false;
+        localStorage.setItem(AppComponent.ThemeModeStorageKey, 'light');
+      }
     }
 
     usePreset(preset);

@@ -357,8 +357,11 @@
                     🌞
                     }
                 </div>
-                <div class="app-shell-theme-switch">
+                <div class="app-shell-theme-switch"
+                    [pTooltip]="isHighContrastTheme() ? ('La variante chiaro/scuro e inclusa nella scelta del tema ad alto contrasto dal dropdown.') : null"
+                    tooltipPosition="bottom">
                     <p-toggleswitch [ngModel]="isDarkMode" (ngModelChange)="toggleLightDark()"
+                        [disabled]="isHighContrastTheme()"
                         [ariaLabel]="'Tema scuro'" />
                 </div>
             </div>
