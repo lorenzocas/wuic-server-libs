@@ -164,6 +164,31 @@ if (-not $SkipBuild) {
         # The local binary bypasses npx's module resolver and just works.
         $ngCmd = Join-Path $scriptDir 'node_modules\.bin\ng.cmd'
         if (-not (Test-Path $ngCmd)) { throw "ng binary not found at $ngCmd - run 'npm install' first" }
+
+        # Cache invalidation for `public/` asset changes (2026-04-24):
+        # esbuild/@angular/build fa cache fingerprinting sul contenuto degli
+        # input .ts/.html/.scss, ma NON rileva affidabilmente nuovi file
+        # aggiunti in `public/` (es. screenshots mirrorati da `docs:build`).
+        # Sintomo: dist contiene la versione vecchia di `assets/**`, il deploy
+        # carica asset stantii e il CDN pubblica 404 sui file nuovi.
+        # Fix: se un file in `public/` e' piu' recente dell'index.html in dist,
+        # cancella `dist/` + la cache Angular cosi' il prossimo build ricopi
+        # tutti gli asset da zero. Idempotente: se niente e' cambiato, noop.
+        $publicDir = Join-Path $scriptDir 'public'
+        $distIndex = Join-Path $distDir 'index.html'
+        if ((Test-Path $publicDir) -and (Test-Path $distIndex)) {
+            $distStamp = (Get-Item $distIndex).LastWriteTimeUtc
+            $stalePublic = Get-ChildItem -Path $publicDir -Recurse -File -ErrorAction SilentlyContinue |
+                Where-Object { $_.LastWriteTimeUtc -gt $distStamp } | Select-Object -First 1
+            if ($stalePublic) {
+                Write-Sub "public/ newer than dist (e.g. $($stalePublic.Name)) -> clean rebuild"
+                $distRoot = Split-Path -Parent $distDir
+                if (Test-Path $distRoot) { Remove-Item -Recurse -Force $distRoot }
+                $ngCache = Join-Path $scriptDir '.angular\cache'
+                if (Test-Path $ngCache) { Remove-Item -Recurse -Force $ngCache }
+            }
+        }
+
         Write-Sub "exec: $ngCmd build --configuration=production"
         & $ngCmd build --configuration=production
         if ($LASTEXITCODE -ne 0) { throw "ng build failed (exit $LASTEXITCODE)" }
@@ -338,7 +363,7 @@ for (`$attempt = 1; `$attempt -le 3; `$attempt++) {
             Write-Host "    [warn] backup .bak non presente (attempt `$attempt)"
         }
     } catch {
-        Write-Host "    [warn] errore attempt `$attempt: `$_"
+        Write-Host "    [warn] errore attempt `${attempt}: `$_"
     }
     # Verify the current state
     if (Test-IsProductionConfig -Path `$target) {
