@@ -14,7 +14,7 @@ import {
   ImageWrapperComponent,
   ImportExportButtonComponent,
   NotificationBellComponent,
-  CodeEditorComponent,
+  LazyCodeEditorComponent,
   ParametricDialogComponent,
   PagerComponent,
 } from 'wuic-framework-lib-dev';
@@ -35,7 +35,7 @@ import {
     ImageWrapperComponent,
     ImportExportButtonComponent,
     NotificationBellComponent,
-    CodeEditorComponent,
+    LazyCodeEditorComponent,
     ParametricDialogComponent,
     PagerComponent,
   ],

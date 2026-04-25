@@ -31,7 +31,11 @@
               {
                 "glob": "**/*",
                 "input": "assets",
-                "output": "assets"
+                "output": "assets",
+                "ignore": [
+                  "icons/Blue/**",
+                  "icons/White/**"
+                ]
               },
               {
                 "glob": "**/*",
@@ -108,7 +112,7 @@
                 "fonts": true
               },
               "extractLicenses": true,
-              "sourceMap": { "scripts": true, "styles": false, "vendor": true, "hidden": false },
+              "sourceMap": false,
               "outputHashing": "all",
               "fileReplacements": [
                 { "replace": "src/app/wuic-bridges/core.ts", "with": "src/app/wuic-bridges-npm/core.ts" },

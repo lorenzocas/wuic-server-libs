@@ -26,6 +26,6 @@ export { WtoolboxService } from 'wuic-framework-lib-src/service/wtoolbox.service
 export { ImportExportButtonComponent } from 'wuic-framework-lib-src/component/import-export-button/import-export-button.component';
 export { ImageWrapperComponent } from 'wuic-framework-lib-src/component/image-wrapper/image-wrapper.component';
 export { NotificationBellComponent } from 'wuic-framework-lib-src/component/notification-bell/notification-bell.component';
-export { CodeEditorComponent } from 'wuic-framework-lib-src/component/code-editor/code-editor.component';
+export { LazyCodeEditorComponent } from 'wuic-framework-lib-src/component/code-editor/code-editor.lazy.component';
 export { LazyReportViewerComponent } from 'wuic-framework-lib-src/component/report-viewer/report-viewer.lazy.component';
 export { LazyReportDesignerComponent } from 'wuic-framework-lib-src/component/report-designer/report-designer.lazy.component';

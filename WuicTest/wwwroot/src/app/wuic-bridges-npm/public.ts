@@ -26,6 +26,6 @@ export { WtoolboxService } from 'wuic-framework-lib';
 export { ImportExportButtonComponent } from 'wuic-framework-lib';
 export { ImageWrapperComponent } from 'wuic-framework-lib';
 export { NotificationBellComponent } from 'wuic-framework-lib';
-export { CodeEditorComponent } from 'wuic-framework-lib';
+export { LazyCodeEditorComponent } from 'wuic-framework-lib';
 export { LazyReportViewerComponent } from 'wuic-framework-lib';
 export { LazyReportDesignerComponent } from 'wuic-framework-lib';
