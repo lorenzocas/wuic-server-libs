@@ -1,5 +1,5 @@
 <div class="cities-chart-page">
   <wuic-data-source #citiesDs [hardcodedRoute]="'cities'" [autoload]="true"></wuic-data-source>
 
-  <wuic-chart-list #citiesChart [hardcodedDatasource]="citiesDs"></wuic-chart-list>
+  <wuic-chart-list-lazy #citiesChart [hardcodedDatasource]="citiesDs"></wuic-chart-list-lazy>
 </div>

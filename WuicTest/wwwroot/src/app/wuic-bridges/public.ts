@@ -3,13 +3,13 @@ export { ListGridComponent, type ListGridBeforeRowRenderEvent, type ListGridAfte
 export { ParametricDialogComponent } from 'wuic-framework-lib-src/component/parametric-dialog/parametric-dialog.component';
 export { PagerComponent } from 'wuic-framework-lib-src/component/pager/pager.component';
 export { DataRepeaterComponent } from 'wuic-framework-lib-src/component/data-repeater/data-repeater.component';
-export { ChartListComponent } from 'wuic-framework-lib-src/component/chart-list/chart-list.component';
+export { LazyChartListComponent } from 'wuic-framework-lib-src/component/chart-list/chart-list.lazy.component';
 export { TreeListComponent } from 'wuic-framework-lib-src/component/tree-list/tree-list.component';
 export { LazySpreadsheetListSfComponent } from 'wuic-framework-lib-src/component/spreadsheet-list-sf/spreadsheet-list-sf.lazy.component';
 export { FilterBarComponent } from 'wuic-framework-lib-src/component/filter-bar/filter-bar.component';
 export { MapListComponent } from 'wuic-framework-lib-src/component/map-list/map-list.component';
 export { CarouselListComponent } from 'wuic-framework-lib-src/component/carousel-list/carousel-list.component';
-export { SchedulerListComponent } from 'wuic-framework-lib-src/component/scheduler-list/scheduler-list.component';
+export { LazySchedulerListComponent } from 'wuic-framework-lib-src/component/scheduler-list/scheduler-list.lazy.component';
 export { KanbanListComponent } from 'wuic-framework-lib-src/component/kanban-list/kanban-list.component';
 export { WuicRagChatbotComponent } from 'wuic-framework-lib-src/component/rag-chatbot/rag-chatbot.component';
 export { WuicRagChatbotFabComponent } from 'wuic-framework-lib-src/component/rag-chatbot-fab/rag-chatbot-fab.component';
@@ -27,5 +27,5 @@ export { ImportExportButtonComponent } from 'wuic-framework-lib-src/component/im
 export { ImageWrapperComponent } from 'wuic-framework-lib-src/component/image-wrapper/image-wrapper.component';
 export { NotificationBellComponent } from 'wuic-framework-lib-src/component/notification-bell/notification-bell.component';
 export { CodeEditorComponent } from 'wuic-framework-lib-src/component/code-editor/code-editor.component';
-export { ReportViewerComponent } from 'wuic-framework-lib-src/component/report-viewer/report-viewer.component';
-export { ReportDesignerComponent } from 'wuic-framework-lib-src/component/report-designer/report-designer.component';
+export { LazyReportViewerComponent } from 'wuic-framework-lib-src/component/report-viewer/report-viewer.lazy.component';
+export { LazyReportDesignerComponent } from 'wuic-framework-lib-src/component/report-designer/report-designer.lazy.component';

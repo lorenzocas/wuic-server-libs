@@ -1,5 +1,5 @@
 <div class="schedules-scheduler-page">
   <wuic-data-source #schedulesDs [hardcodedRoute]="'schedules'" [autoload]="true"></wuic-data-source>
 
-  <wuic-scheduler-list #schedulesScheduler [hardcodedDatasource]="schedulesDs"></wuic-scheduler-list>
+  <wuic-scheduler-list-lazy #schedulesScheduler [hardcodedDatasource]="schedulesDs"></wuic-scheduler-list-lazy>
 </div>
