@@ -297,7 +297,21 @@
     "footerNote": "Paiement sécurisé géré par PayPal. Payez avec compte PayPal ou carte de crédit (aucun compte PayPal requis).",
     "needsConsent": "Pour afficher et utiliser le bouton de paiement PayPal vous devez d'abord accepter les <strong>cookies tiers</strong> (catégorie marketing) via le bandeau cookies. Vous pouvez rouvrir le bandeau avec le bouton ci-dessous.",
     "needsConsentOpenBanner": "Ouvrir les préférences cookies",
-    "needsConsentRetry": "Réessayer"
+    "needsConsentRetry": "Réessayer",
+    "invoicing": {
+      "toggle": "Ajouter les données pour la facture électronique (optionnel)",
+      "intro": "Remplissez ces champs uniquement si vous avez besoin d'une facture émise à une société ou à un assujetti à la TVA. Les particuliers peuvent tout laisser vide.",
+      "companyNameLabel": "Raison sociale",
+      "companyNamePlaceholder": "ex. Acme S.A.",
+      "vatLabel": "Numéro de TVA ou identifiant fiscal",
+      "vatPlaceholder": "ex. IT01234567890",
+      "vatHint": "Pour les acheteurs italiens : P.IVA ou codice fiscale. Pour les acheteurs étrangers : numéro de TVA avec préfixe pays.",
+      "sdiLabel": "Code destinataire SdI / PEC",
+      "sdiPlaceholder": "ex. ABCDE12 ou 0000000",
+      "sdiHint": "7 caractères. Laissez vide si vous n'êtes pas un contribuable italien. Utilisez <code>0000000</code> pour les particuliers italiens (ou indiquez votre adresse PEC ici si vous n'avez que la PEC), <code>XXXXXXX</code> pour les clients étrangers.",
+      "addressLabel": "Adresse (rue, ville, code postal, pays)",
+      "addressPlaceholder": "ex. 1 rue de la Paix, 75001 Paris, France"
+    }
   },
   "downloads": {
     "pageTitle": "Téléchargement",

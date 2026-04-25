@@ -29,6 +29,21 @@ export class PurchaseDialog implements OnChanges, AfterViewInit, OnDestroy {
   email = '';
   machineFingerprint = '';
 
+  // ── Optional invoicing fields ────────────────────────────────────────
+  // Required by Italian law for B2B sales (Fattura Elettronica via SdI).
+  // Optional for B2C consumers — they can leave blank and we'll invoice
+  // with their codice fiscale. Hidden behind a collapsible section so
+  // private buyers see a minimal form by default.
+  invoicingExpanded = false;
+  invoicingCompanyName = '';
+  invoicingVatNumber = '';
+  invoicingSdiCode = '';      // 7-char alphanumeric or "0000000" (consumer) / "XXXXXXX" (foreign)
+  invoicingAddress = '';
+
+  toggleInvoicing(): void {
+    this.invoicingExpanded = !this.invoicingExpanded;
+  }
+
   state: 'idle' | 'loading-sdk' | 'sdk-ready' | 'not-configured' | 'needs-consent' | 'processing' | 'success' | 'error' = 'idle';
   errorMessage = '';
 
@@ -79,7 +94,8 @@ export class PurchaseDialog implements OnChanges, AfterViewInit, OnDestroy {
   get mailtoHref(): string {
     if (!this.successInfo || !this.product) return '';
     const subject = `WUIC licenza — ${this.product.sku} — ord ${this.successInfo.orderId}`;
-    const body = [
+
+    const lines: string[] = [
       `Ciao,`,
       ``,
       `ho appena acquistato: ${this.product.label}`,
@@ -89,9 +105,29 @@ export class PurchaseDialog implements OnChanges, AfterViewInit, OnDestroy {
       ``,
       `Email su cui intestare la licenza: ${this.email || this.successInfo.payerEmail}`,
       `Machine fingerprint del server: ${this.machineFingerprint || '[da inviare dopo aver installato WUIC e chiamato GET /api/Meta/LicenseStatus]'}`,
-      ``,
-      `Grazie.`,
-    ].join('\n');
+    ];
+
+    // Append invoicing fields ONLY if at least one is filled — keeps the
+    // email tidy for B2C buyers who don't need a fattura elettronica.
+    const hasAnyInvoicing =
+      !!this.invoicingCompanyName.trim() ||
+      !!this.invoicingVatNumber.trim() ||
+      !!this.invoicingSdiCode.trim() ||
+      !!this.invoicingAddress.trim();
+
+    if (hasAnyInvoicing) {
+      lines.push('');
+      lines.push('--- Dati per fattura elettronica ---');
+      if (this.invoicingCompanyName.trim()) lines.push(`Ragione sociale: ${this.invoicingCompanyName.trim()}`);
+      if (this.invoicingVatNumber.trim()) lines.push(`P.IVA / Codice Fiscale: ${this.invoicingVatNumber.trim()}`);
+      if (this.invoicingSdiCode.trim()) lines.push(`Codice destinatario SdI / PEC: ${this.invoicingSdiCode.trim()}`);
+      if (this.invoicingAddress.trim()) lines.push(`Indirizzo: ${this.invoicingAddress.trim()}`);
+    }
+
+    lines.push('');
+    lines.push('Grazie.');
+
+    const body = lines.join('\n');
     return `mailto:${PAYPAL_CONFIG.LICENSE_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   }
 
@@ -224,5 +260,10 @@ export class PurchaseDialog implements OnChanges, AfterViewInit, OnDestroy {
     this.successInfo = null;
     this.email = '';
     this.machineFingerprint = '';
+    this.invoicingExpanded = false;
+    this.invoicingCompanyName = '';
+    this.invoicingVatNumber = '';
+    this.invoicingSdiCode = '';
+    this.invoicingAddress = '';
   }
 }

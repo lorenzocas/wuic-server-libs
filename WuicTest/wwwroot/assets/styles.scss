@@ -190,6 +190,7 @@ html.theme-high-contrast app-root {
     .p-select:not(.p-disabled):hover,
     .p-select-option:hover,
     .p-menuitem-link:hover,
+    .p-menubar-item-link:not(.p-disabled):hover,
     .p-datatable .p-datatable-tbody>tr:hover>td) {
     background: var(--hc-hover-bg) !important;
     color: var(--hc-fg) !important;
@@ -379,6 +380,16 @@ html.theme-high-contrast app-root {
     .p-tabs.p-component {
         height: calc(100% - 2px);
         border-width: 2px;
+    }
+}
+
+/* High contrast: i bordi grigio chiaro hardcoded di .edit-form-content
+   (linee sopra: solid 1px #e5e7eb) sono invisibili in HC dark e troppo
+   tenui in HC light. Forziamo la palette HC a 2px solid var(--hc-border). */
+:is(html, body).theme-high-contrast .edit-form-content {
+    .p-tabpanels {
+        border-left: 2px solid var(--hc-border);
+        border-right: 2px solid var(--hc-border);
     }
 }
 

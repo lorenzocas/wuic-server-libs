@@ -297,7 +297,21 @@
     "footerNote": "Secure payment handled by PayPal. Pay with your PayPal account or credit card (no PayPal account required).",
     "needsConsent": "To display and use the PayPal payment button you must first accept <strong>third-party cookies</strong> (marketing category) via the cookie banner. You can re-open the banner with the button below.",
     "needsConsentOpenBanner": "Open cookie preferences",
-    "needsConsentRetry": "Retry"
+    "needsConsentRetry": "Retry",
+    "invoicing": {
+      "toggle": "Add details for electronic invoice (optional)",
+      "intro": "Fill these fields only if you need an invoice issued to a company or VAT-registered entity. Private buyers can leave everything blank.",
+      "companyNameLabel": "Company name",
+      "companyNamePlaceholder": "e.g. Acme Inc.",
+      "vatLabel": "VAT number or tax ID",
+      "vatPlaceholder": "e.g. IT01234567890",
+      "vatHint": "For Italian buyers: P.IVA or codice fiscale. For foreign buyers: VAT number with country prefix.",
+      "sdiLabel": "SdI recipient code / PEC",
+      "sdiPlaceholder": "e.g. ABCDE12 or 0000000",
+      "sdiHint": "7 characters. Leave blank if you're not an Italian taxpayer. Use <code>0000000</code> for Italian private buyers (or put your PEC address here if you only have PEC), <code>XXXXXXX</code> for foreign buyers.",
+      "addressLabel": "Address (street, city, ZIP, country)",
+      "addressPlaceholder": "e.g. 123 Main St, New York NY 10001, USA"
+    }
   },
   "downloads": {
     "pageTitle": "Download",

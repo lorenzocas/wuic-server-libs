@@ -37,6 +37,48 @@
               <small class="purchase-field-hint" [innerHTML]="'purchaseDialog.fingerprintHint' | translate"></small>
             </label>
           }
+
+          <!-- Optional invoicing section: collapsed by default to keep the
+               form light for B2C buyers. B2B buyers click to expand and
+               provide P.IVA + codice SdI for fattura elettronica. -->
+          <div class="purchase-invoicing">
+            <button type="button" class="invoicing-toggle"
+                    [attr.aria-expanded]="invoicingExpanded"
+                    (click)="toggleInvoicing()">
+              <i class="pi" [class.pi-chevron-right]="!invoicingExpanded" [class.pi-chevron-down]="invoicingExpanded"></i>
+              <span>{{ 'purchaseDialog.invoicing.toggle' | translate }}</span>
+            </button>
+
+            @if (invoicingExpanded) {
+              <p class="invoicing-intro">{{ 'purchaseDialog.invoicing.intro' | translate }}</p>
+
+              <label class="purchase-field">
+                <span class="purchase-field-label">{{ 'purchaseDialog.invoicing.companyNameLabel' | translate }}</span>
+                <input type="text" pInputText [(ngModel)]="invoicingCompanyName" name="invoicingCompanyName"
+                       [placeholder]="'purchaseDialog.invoicing.companyNamePlaceholder' | translate" autocomplete="organization" />
+              </label>
+
+              <label class="purchase-field">
+                <span class="purchase-field-label">{{ 'purchaseDialog.invoicing.vatLabel' | translate }}</span>
+                <input type="text" pInputText [(ngModel)]="invoicingVatNumber" name="invoicingVatNumber"
+                       [placeholder]="'purchaseDialog.invoicing.vatPlaceholder' | translate" autocomplete="off" />
+                <small class="purchase-field-hint">{{ 'purchaseDialog.invoicing.vatHint' | translate }}</small>
+              </label>
+
+              <label class="purchase-field">
+                <span class="purchase-field-label">{{ 'purchaseDialog.invoicing.sdiLabel' | translate }}</span>
+                <input type="text" pInputText [(ngModel)]="invoicingSdiCode" name="invoicingSdiCode"
+                       [placeholder]="'purchaseDialog.invoicing.sdiPlaceholder' | translate" autocomplete="off" />
+                <small class="purchase-field-hint" [innerHTML]="'purchaseDialog.invoicing.sdiHint' | translate"></small>
+              </label>
+
+              <label class="purchase-field">
+                <span class="purchase-field-label">{{ 'purchaseDialog.invoicing.addressLabel' | translate }}</span>
+                <input type="text" pInputText [(ngModel)]="invoicingAddress" name="invoicingAddress"
+                       [placeholder]="'purchaseDialog.invoicing.addressPlaceholder' | translate" autocomplete="street-address" />
+              </label>
+            }
+          </div>
         </div>
       }
 

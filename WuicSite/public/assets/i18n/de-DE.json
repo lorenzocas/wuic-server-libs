@@ -297,7 +297,21 @@
     "footerNote": "Sichere Zahlung über PayPal. Bezahlung mit PayPal-Konto oder Kreditkarte (kein PayPal-Konto erforderlich).",
     "needsConsent": "Um den PayPal-Zahlungsbutton anzuzeigen und zu nutzen, müssen Sie zuerst <strong>Drittanbieter-Cookies</strong> (Kategorie Marketing) über das Cookie-Banner akzeptieren. Sie können das Banner mit der Schaltfläche unten erneut öffnen.",
     "needsConsentOpenBanner": "Cookie-Einstellungen öffnen",
-    "needsConsentRetry": "Erneut versuchen"
+    "needsConsentRetry": "Erneut versuchen",
+    "invoicing": {
+      "toggle": "Daten für elektronische Rechnung hinzufügen (optional)",
+      "intro": "Füllen Sie diese Felder nur aus, wenn Sie eine Rechnung an ein Unternehmen oder einen umsatzsteuerpflichtigen Käufer benötigen. Privatkäufer können alles leer lassen.",
+      "companyNameLabel": "Firmenname",
+      "companyNamePlaceholder": "z. B. Acme GmbH",
+      "vatLabel": "USt-IdNr. oder Steuernummer",
+      "vatPlaceholder": "z. B. IT01234567890",
+      "vatHint": "Für italienische Käufer: P.IVA oder codice fiscale. Für ausländische Käufer: USt-IdNr. mit Ländervorwahl.",
+      "sdiLabel": "SdI-Empfängercode / PEC",
+      "sdiPlaceholder": "z. B. ABCDE12 oder 0000000",
+      "sdiHint": "7 Zeichen. Leer lassen, wenn Sie kein italienischer Steuerpflichtiger sind. Verwenden Sie <code>0000000</code> für italienische Privatkäufer (oder geben Sie hier Ihre PEC-Adresse an, wenn Sie nur PEC haben), <code>XXXXXXX</code> für ausländische Käufer.",
+      "addressLabel": "Adresse (Straße, Stadt, PLZ, Land)",
+      "addressPlaceholder": "z. B. Hauptstraße 1, 10115 Berlin, Deutschland"
+    }
   },
   "downloads": {
     "pageTitle": "Download",

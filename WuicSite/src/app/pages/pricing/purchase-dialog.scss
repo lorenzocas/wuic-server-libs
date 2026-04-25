@@ -212,3 +212,42 @@
   justify-content: center;
   margin-top: 4px;
 }
+
+/* ────────────────────────────────────────────────────────────────
+   Optional invoicing section
+   Collapsible block under the main fields. By default the user only
+   sees a lightweight toggle button so B2C purchases stay simple.
+   ──────────────────────────────────────────────────────────────── */
+.purchase-invoicing {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px dashed rgba(0, 0, 0, 0.1);
+}
+
+.invoicing-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--primary-color, #2563eb);
+  padding: 6px 0;
+  transition: color 0.15s ease;
+
+  &:hover { color: #1d4ed8; }
+
+  i {
+    font-size: 0.75rem;
+    transition: transform 0.15s ease;
+  }
+}
+
+.invoicing-intro {
+  margin: 4px 0 12px;
+  font-size: 0.85rem;
+  color: var(--text-color-secondary, #6b7280);
+  line-height: 1.5;
+}
