@@ -41,7 +41,6 @@
     "bootstrap": "^5.3.3",
     "chart.js": "^4.4.6",
     "dexie": "^4.0.8",
-    "jspreadsheet": "^11.9.3",
     "monaco-editor": "^0.45.0",
     "monaco-editor-webpack-plugin": "^7.1.0",
     "ngx-cookie-service": "^19.0.0",

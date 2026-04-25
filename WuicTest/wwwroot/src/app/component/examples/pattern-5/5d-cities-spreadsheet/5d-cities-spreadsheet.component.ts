@@ -1,6 +1,6 @@
 import { AfterViewInit, Component, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { DataSourceAfterSyncEvent, DataSourceBeforeSyncEvent, DataSourceComponent, SpreadsheetListComponent, SpreadsheetListSfComponent } from 'wuic-framework-lib-dev';
+import { DataSourceAfterSyncEvent, DataSourceBeforeSyncEvent, DataSourceComponent, SpreadsheetListSfComponent } from 'wuic-framework-lib-dev';
 import { Subscription } from 'rxjs';
 
 /**
@@ -19,7 +19,7 @@ import { Subscription } from 'rxjs';
 })
 export class Pattern5dCitiesSpreadsheetComponent implements AfterViewInit, OnDestroy {
   @ViewChild(DataSourceComponent) datasource?: DataSourceComponent;
-  @ViewChild(SpreadsheetListComponent) spreadsheet?: SpreadsheetListComponent;
+  @ViewChild(SpreadsheetListSfComponent) spreadsheet?: SpreadsheetListSfComponent;
 
   private readonly subscriptions = new Subscription();
 

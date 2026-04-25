@@ -5,7 +5,6 @@ export { PagerComponent } from 'wuic-framework-lib';
 export { DataRepeaterComponent } from 'wuic-framework-lib';
 export { ChartListComponent } from 'wuic-framework-lib';
 export { TreeListComponent } from 'wuic-framework-lib';
-export { SpreadsheetListComponent } from 'wuic-framework-lib';
 export { SpreadsheetListSfComponent } from 'wuic-framework-lib';
 export { FilterBarComponent } from 'wuic-framework-lib';
 export { MapListComponent } from 'wuic-framework-lib';

@@ -24,7 +24,9 @@
             <ul>
               @for (item of group.items; track item.slug) {
                 <li>
-                  <a [class.active]="item.slug === currentSlug()" (click)="openPage(item.slug)">
+                  <a [class.active]="item.slug === currentSlug()"
+                     [href]="'/docs/' + item.slug"
+                     (click)="$event.preventDefault(); openPage(item.slug)">
                     <i class="pi" [ngClass]="item.icon || 'pi-file'"></i>
                     <span>{{ item.title }}</span>
                   </a>
@@ -135,7 +137,7 @@
               <h4>{{ 'docs.onThisPage' | translate }}</h4>
               <ul>
                 @for (item of page.toc; track item.id) {
-                  <li><a href="" (click)="scrollToSection($event, item.id)">{{ item.title }}</a></li>
+                  <li><a [href]="'#' + item.id" (click)="scrollToSection($event, item.id)">{{ item.title }}</a></li>
                 }
               </ul>
             </aside>

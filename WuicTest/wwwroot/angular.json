@@ -43,21 +43,7 @@
               "../../node_modules/bootstrap/dist/css/bootstrap-grid.min.css",
               "../../node_modules/primeicons/primeicons.css",
               "../../node_modules/primeflex/primeflex.css",
-              "assets/styles.scss",
-              "../../node_modules/jsuites/dist/jsuites.css",
-              "../../node_modules/jspreadsheet/dist/jspreadsheet.css",
-              "../../node_modules/@syncfusion/ej2-base/styles/material.css",
-              "../../node_modules/@syncfusion/ej2-buttons/styles/material.css",
-              "../../node_modules/@syncfusion/ej2-inputs/styles/material.css",
-              "../../node_modules/@syncfusion/ej2-popups/styles/material.css",
-              "../../node_modules/@syncfusion/ej2-lists/styles/material.css",
-              "../../node_modules/@syncfusion/ej2-navigations/styles/material.css",
-              "../../node_modules/@syncfusion/ej2-splitbuttons/styles/material.css",
-              "../../node_modules/@syncfusion/ej2-notifications/styles/material.css",
-              "../../node_modules/@syncfusion/ej2-dropdowns/styles/material.css",
-              "../../node_modules/@syncfusion/ej2-calendars/styles/material.css",
-              "../../node_modules/@syncfusion/ej2-grids/styles/material.css",
-              "../../node_modules/@syncfusion/ej2-spreadsheet/styles/material.css"
+              "assets/styles.scss"
             ],
             "scripts": [],
             "stylePreprocessorOptions": {
@@ -122,7 +108,7 @@
                 "fonts": true
               },
               "extractLicenses": true,
-              "sourceMap": false,
+              "sourceMap": { "scripts": true, "styles": false, "vendor": true, "hidden": false },
               "outputHashing": "all",
               "fileReplacements": [
                 { "replace": "src/app/wuic-bridges/core.ts", "with": "src/app/wuic-bridges-npm/core.ts" },
