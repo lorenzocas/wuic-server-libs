@@ -5,7 +5,7 @@ export { PagerComponent } from 'wuic-framework-lib-src/component/pager/pager.com
 export { DataRepeaterComponent } from 'wuic-framework-lib-src/component/data-repeater/data-repeater.component';
 export { ChartListComponent } from 'wuic-framework-lib-src/component/chart-list/chart-list.component';
 export { TreeListComponent } from 'wuic-framework-lib-src/component/tree-list/tree-list.component';
-export { SpreadsheetListSfComponent } from 'wuic-framework-lib-src/component/spreadsheet-list-sf/spreadsheet-list-sf.component';
+export { LazySpreadsheetListSfComponent } from 'wuic-framework-lib-src/component/spreadsheet-list-sf/spreadsheet-list-sf.lazy.component';
 export { FilterBarComponent } from 'wuic-framework-lib-src/component/filter-bar/filter-bar.component';
 export { MapListComponent } from 'wuic-framework-lib-src/component/map-list/map-list.component';
 export { CarouselListComponent } from 'wuic-framework-lib-src/component/carousel-list/carousel-list.component';
