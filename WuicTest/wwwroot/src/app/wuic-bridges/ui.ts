@@ -10,3 +10,5 @@ export { VisibleFieldListPipe } from 'wuic-framework-lib-src/pipe/visible-field-
 export { FormatGridViewValuePipe } from 'wuic-framework-lib-src/pipe/format-grid-view-value.pipe';
 export { CallbackPipe2 } from 'wuic-framework-lib-src/pipe/callback2.pipe';
 export { GetSrcUploadPreviewPipe } from 'wuic-framework-lib-src/pipe/get-src-upload-preview.pipe';
+export { WuicFrozenColumnDirective } from 'wuic-framework-lib-src/directive/wuic-frozen-column.directive';
+export { WuicRowTogglerDirective } from 'wuic-framework-lib-src/directive/wuic-row-toggler.directive';
