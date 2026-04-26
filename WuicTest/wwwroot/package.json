@@ -43,7 +43,7 @@
     "dexie": "^4.0.8",
     "monaco-editor": "^0.45.0",
     "monaco-editor-webpack-plugin": "^7.1.0",
-    "ngx-cookie-service": "^19.0.0",
+    "ngx-cookie-service": "^21.0.0",
     "primeflex": "^3.3.1",
     "primeicons": "^7.0.0",
     "primeng": "^21.1.3",

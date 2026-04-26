@@ -131,6 +131,10 @@
         "args": [],
         "cwd": "${workspaceFolder}",
         "stopAtEntry": false,
+        "env": {
+          "ASPNETCORE_URLS": "http://localhost:5000",
+          "ASPNETCORE_ENVIRONMENT": "Development"
+        },
         "serverReadyAction": {
           "action": "openExternally",
           "pattern": "Now listening on:\\s+(https?://\\S+)"
