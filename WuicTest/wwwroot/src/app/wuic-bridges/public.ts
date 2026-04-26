@@ -13,6 +13,7 @@ export { LazySchedulerListComponent } from 'wuic-framework-lib-src/component/sch
 export { KanbanListComponent } from 'wuic-framework-lib-src/component/kanban-list/kanban-list.component';
 export { WuicRagChatbotComponent } from 'wuic-framework-lib-src/component/rag-chatbot/rag-chatbot.component';
 export { WuicRagChatbotFabComponent } from 'wuic-framework-lib-src/component/rag-chatbot-fab/rag-chatbot-fab.component';
+export { LazyFirstRunWizardComponent } from 'wuic-framework-lib-src/component/first-run-wizard/first-run-wizard.lazy.component';
 export type { RagSource } from 'wuic-framework-lib-src/service/wuic-rag.service';
 export type { IDataBoundHostComponent } from 'wuic-framework-lib-src/class/IDataBoundHostComponent';
 export { MetaInfo } from 'wuic-framework-lib-src/class/metaInfo';
