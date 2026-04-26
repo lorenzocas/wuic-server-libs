@@ -1,5 +1,5 @@
 import { ApplicationConfig, effect, inject, provideAppInitializer, provideBrowserGlobalErrorListeners } from '@angular/core';
-import { provideRouter, withHashLocation } from '@angular/router';
+import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { maintenanceInterceptor } from './core/maintenance.interceptor';
@@ -14,7 +14,17 @@ import { LanguageService } from './services/language.service';
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideRouter(routes, withHashLocation()),
+    // Path-based routing (NOT hash) — clean URLs like /pricing instead of
+    // /#/pricing. Critical for SEO: Google does not index URL fragments,
+    // so hash-based URLs are invisible to search crawlers. The IIS site
+    // has an SPA fallback rewrite (web.config) so direct deep-link access
+    // resolves correctly. `scrollPositionRestoration: 'top'` makes every
+    // navigation start at the top of the page (otherwise users land mid-
+    // scroll on long pages because Angular preserves scroll across routes).
+    provideRouter(routes, withInMemoryScrolling({
+      scrollPositionRestoration: 'top',
+      anchorScrolling: 'enabled',
+    })),
     provideAnimationsAsync(),
     provideHttpClient(withInterceptors([maintenanceInterceptor])),
     providePrimeNG({

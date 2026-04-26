@@ -1,9 +1,10 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { DialogModule } from 'primeng/dialog';
 import { TranslatePipe } from '@ngx-translate/core';
+import { SeoService } from '../../services/seo.service';
 
 @Component({
   selector: 'app-home',
@@ -12,6 +13,9 @@ import { TranslatePipe } from '@ngx-translate/core';
   styleUrl: './home.scss'
 })
 export class Home {
+  constructor() {
+    inject(SeoService).set({ titleKey: 'seo.home.title', descriptionKey: 'seo.home.description', path: '/' });
+  }
   /**
    * Feature cards shown in the "Tutto incluso, zero boilerplate" section.
    * Only the icon + i18n key travel here; title/desc are looked up via

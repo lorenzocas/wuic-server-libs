@@ -11,6 +11,7 @@ import { ImageModule } from 'primeng/image';
 import { TranslatePipe } from '@ngx-translate/core';
 import { DocsContentManifest, DocsPage, DocsNavGroup, DocsSection, DocsCodeSample } from '../../models/docs.model';
 import { LanguageService } from '../../services/language.service';
+import { SeoService } from '../../services/seo.service';
 
 interface SectionPart {
   kind: 'html' | 'code';
@@ -29,6 +30,10 @@ export class Docs implements OnInit {
   private router = inject(Router);
   private sanitizer = inject(DomSanitizer);
   private languageService = inject(LanguageService);
+
+  constructor() {
+    inject(SeoService).set({ titleKey: 'seo.docs.title', descriptionKey: 'seo.docs.description', path: '/docs' });
+  }
 
   manifest = signal<DocsContentManifest | null>(null);
   loading = signal(true);

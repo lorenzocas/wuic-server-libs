@@ -1,0 +1,11 @@
+# robots.txt for https://wuic-framework.com
+# Allow all crawlers on the public site, block the API sub-app and the
+# downloads tree (large ZIP files don't belong in search index).
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /downloads/*.zip$
+
+# Lighthouse / SEO crawlers can find the site map here:
+Sitemap: https://wuic-framework.com/sitemap.xml

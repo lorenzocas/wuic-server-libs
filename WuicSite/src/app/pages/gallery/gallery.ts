@@ -6,6 +6,7 @@ import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { TranslatePipe } from '@ngx-translate/core';
 import { DocsContentManifest, DocsImage, DocsPage } from '../../models/docs.model';
+import { SeoService } from '../../services/seo.service';
 
 /**
  * Live Demos gallery: aggrega tutte le immagini `.gif` presenti in
@@ -31,6 +32,10 @@ interface GalleryItem {
 })
 export class Gallery implements OnInit {
   private sanitizer = inject(DomSanitizer);
+
+  constructor() {
+    inject(SeoService).set({ titleKey: 'seo.gallery.title', descriptionKey: 'seo.gallery.description', path: '/gallery' });
+  }
 
   loading = signal(true);
   items = signal<GalleryItem[]>([]);

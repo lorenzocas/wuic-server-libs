@@ -266,6 +266,67 @@
       color: #475569;
       font-style: italic;
     }
+
+    // Markdown <pre> e <table> generati dal markdown renderer dentro
+    // `.section-html`: contenuto wide (es. command sqlcmd lunghi, code path
+    // assoluti, tabelle con > 3 colonne dense) puo' overfloware la viewport.
+    // Senza scrollbar custom Chrome/Edge mostrano una thin overlay scrollbar
+    // quasi invisibile su sfondo chiaro `#f8fafc` → utente non capisce di
+    // poter scrollare. Forziamo scrollbar visibile su entrambi gli scroller.
+    :deep(pre) {
+      overflow-x: auto;
+      background: #f1f5f9;
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin: 12px 0;
+      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size: 0.85rem;
+      line-height: 1.55;
+      color: #0f172a;
+
+      scrollbar-width: thin;
+      scrollbar-color: #94a3b8 #e2e8f0;
+
+      &::-webkit-scrollbar {
+        height: 10px;
+      }
+      &::-webkit-scrollbar-track {
+        background: #e2e8f0;
+        border-radius: 4px;
+      }
+      &::-webkit-scrollbar-thumb {
+        background: #94a3b8;
+        border-radius: 4px;
+        border: 2px solid #e2e8f0;
+        &:hover { background: #64748b; }
+      }
+    }
+
+    // Tabelle markdown: wrapper scrollable orizzontale per contenuti dense
+    // (es. col "Cosa | Verifica | Note" con sqlcmd inline). Il `display: block`
+    // sovrascrive `display: table` cosi' `overflow-x` ha effetto (sui <table>
+    // veri overflow sul container non scatta).
+    :deep(table) {
+      display: block;
+      overflow-x: auto;
+      max-width: 100%;
+
+      scrollbar-width: thin;
+      scrollbar-color: #94a3b8 #e2e8f0;
+
+      &::-webkit-scrollbar {
+        height: 10px;
+      }
+      &::-webkit-scrollbar-track {
+        background: #e2e8f0;
+      }
+      &::-webkit-scrollbar-thumb {
+        background: #94a3b8;
+        border-radius: 4px;
+        border: 2px solid #e2e8f0;
+        &:hover { background: #64748b; }
+      }
+    }
   }
 }
 
@@ -307,8 +368,38 @@
 
   pre {
     margin: 0;
-    padding: 16px;
+    padding: 16px 16px 0;
     overflow-x: auto;
+
+    // Scrollbar esplicita: il default Chrome/Edge in HiDPI + tema scuro
+    // renderizza il track/thumb quasi invisibili sul bg slate-800 (#1e293b)
+    // — l'utente non capisce che il blocco si scrolla. Forziamo colori
+    // contrastati e altezza visibile (8px) sia su WebKit/Blink (regole
+    // ::-webkit-scrollbar) che su Firefox (scrollbar-width/color).
+    scrollbar-width: thin;
+    scrollbar-color: #64748b #0f172a;
+
+    &::-webkit-scrollbar {
+      height: 10px;
+    }
+    &::-webkit-scrollbar-track {
+      background: #0f172a;
+      border-radius: 4px;
+      margin: 0 4px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: #64748b;
+      border-radius: 4px;
+      border: 2px solid #0f172a;
+
+      &:hover {
+        background: #94a3b8;
+      }
+    }
+
+    // Padding-bottom riservato al canale scrollbar cosi' la barra non
+    // copre l'ultima riga di codice (10px scrollbar + 6px gap).
+    padding-bottom: 16px;
 
     code {
       font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;

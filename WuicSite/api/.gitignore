@@ -1,0 +1,12 @@
+# build output
+bin/
+obj/
+publish/
+
+# local-only secrets (NEVER commit)
+appsettings.Development.json
+appsettings.Local.json
+
+# IDE
+*.user
+.vs/

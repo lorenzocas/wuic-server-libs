@@ -2,11 +2,133 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>WUIC Framework — Metadata-Driven Business Applications</title>
-  <meta name="description" content="Framework metadata-driven per applicazioni business: CRUD, dashboard, workflow, report e chatbot AI. .NET 10 + Angular 21.">
   <base href="/">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- ─── Core ──────────────────────────────────────────────────────── -->
+  <title>WUIC Framework — Metadata-Driven Business Applications</title>
+  <meta name="description" content="Build complete CRUD apps, dashboards, workflows, reports and AI chatbots from metadata. .NET 10 + Angular 21 framework, no boilerplate.">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b132b" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0b132b" media="(prefers-color-scheme: dark)">
+  <meta name="color-scheme" content="light dark">
+
+  <!-- ─── Crawlers ──────────────────────────────────────────────────── -->
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <meta name="googlebot" content="index, follow">
+  <link rel="canonical" href="https://wuic-framework.com/">
+
+  <!-- ─── Branding / authorship ─────────────────────────────────────── -->
+  <meta name="author" content="Lorenzo Castrico">
+  <meta name="application-name" content="WUIC Framework">
+  <meta name="generator" content="Angular 21">
+
+  <!-- ─── Open Graph (Facebook, LinkedIn, WhatsApp link previews) ───── -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="WUIC Framework">
+  <meta property="og:title" content="WUIC Framework — Metadata-Driven Business Applications">
+  <meta property="og:description" content="Build complete CRUD apps, dashboards, workflows, reports and AI chatbots from metadata. .NET 10 + Angular 21, no boilerplate.">
+  <meta property="og:url" content="https://wuic-framework.com/">
+  <meta property="og:image" content="https://wuic-framework.com/assets/og-image.svg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="WUIC Framework — metadata-driven business applications">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:locale:alternate" content="it_IT">
+  <meta property="og:locale:alternate" content="fr_FR">
+  <meta property="og:locale:alternate" content="es_ES">
+  <meta property="og:locale:alternate" content="de_DE">
+
+  <!-- ─── Twitter Card ──────────────────────────────────────────────── -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="WUIC Framework — Metadata-Driven Business Applications">
+  <meta name="twitter:description" content="Build complete CRUD apps, dashboards, workflows, reports and AI chatbots from metadata.">
+  <meta name="twitter:image" content="https://wuic-framework.com/assets/og-image.svg">
+  <meta name="twitter:image:alt" content="WUIC Framework">
+
+  <!-- ─── Icons ─────────────────────────────────────────────────────── -->
   <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="apple-touch-icon" href="favicon.ico">
+
+  <!-- ─── Performance hints ─────────────────────────────────────────── -->
+  <!-- preconnect to PayPal: the SDK is loaded only on the /pricing page,
+       but warming up the TLS+DNS handshake here saves ~150ms when the user
+       opens the purchase dialog. crossorigin is required for the SDK
+       script tag (CORS preflight). -->
+  <link rel="preconnect" href="https://www.paypal.com" crossorigin>
+  <link rel="dns-prefetch" href="https://www.paypal.com">
+
+  <!-- ─── Structured data: Organization + WebSite (sitewide) ────────── -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://wuic-framework.com/#org",
+        "name": "WUIC Framework",
+        "alternateName": "WUIC",
+        "url": "https://wuic-framework.com/",
+        "logo": "https://wuic-framework.com/assets/og-image.svg",
+        "founder": {
+          "@type": "Person",
+          "name": "Lorenzo Castrico"
+        },
+        "vatID": "IT02098880681",
+        "sameAs": [
+          "https://github.com/wuic-framework"
+        ]
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://wuic-framework.com/#website",
+        "url": "https://wuic-framework.com/",
+        "name": "WUIC Framework",
+        "publisher": { "@id": "https://wuic-framework.com/#org" },
+        "inLanguage": ["en-US", "it-IT", "fr-FR", "es-ES", "de-DE"]
+      },
+      {
+        "@type": "SoftwareApplication",
+        "name": "WUIC Framework",
+        "operatingSystem": "Windows, Linux, macOS",
+        "applicationCategory": "DeveloperApplication",
+        "offers": [
+          {
+            "@type": "Offer",
+            "name": "WUIC Developer — Annual License",
+            "price": "600",
+            "priceCurrency": "EUR",
+            "url": "https://wuic-framework.com/pricing"
+          },
+          {
+            "@type": "Offer",
+            "name": "WUIC Professional — Annual License",
+            "price": "1200",
+            "priceCurrency": "EUR",
+            "url": "https://wuic-framework.com/pricing"
+          }
+        ],
+        "publisher": { "@id": "https://wuic-framework.com/#org" }
+      }
+    ]
+  }
+  </script>
+
+  <!-- ─── Legacy hash-URL redirect (one-time, run before app boot) ──── -->
+  <!-- Older shared links pointed to https://wuic-framework.com/#/pricing
+       (when the app used HashLocationStrategy). After switching to path-based
+       routing those links would land on the home page (the hash is ignored
+       by Angular). This tiny inline script catches `/#/<path>` URLs at first
+       page load and replaces the URL with the clean `/<path>` equivalent
+       BEFORE Angular bootstraps. Bookmarks and external shares keep working. -->
+  <script>
+    (function(){
+      var h = location.hash;
+      if (h && h.length > 2 && h.charAt(1) === '/') {
+        var clean = h.substring(1) + location.search;
+        history.replaceState(null, '', clean);
+      }
+    })();
+  </script>
 </head>
 <body>
   <app-root></app-root>

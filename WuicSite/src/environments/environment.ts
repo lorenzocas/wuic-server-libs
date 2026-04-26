@@ -5,18 +5,24 @@
  * For production, `environment.prod.ts` is swapped in via `fileReplacements`
  * in angular.json.
  *
- * PAYPAL_CLIENT_ID:
- *   Put your PayPal SANDBOX Client ID here (from
- *   https://developer.paypal.com/dashboard/applications/sandbox).
- *   It is a PUBLIC identifier — safe to commit to source control.
- *   The Client SECRET must NEVER be placed here (server-only).
+ * Note on PayPal configuration:
+ *   The PayPal ClientId and Mode (sandbox/live) are NOT configured here
+ *   anymore — they are fetched at runtime from the WuicSiteApi backend
+ *   (`GET /api/paypal/config`). This way switching sandbox <-> live is a
+ *   single appsettings.json edit on the IIS server, no Angular rebuild.
+ *   See `paypal-loader.ts` and the backend `Program.cs`.
+ *
+ * apiBaseUrl:
+ *   In dev, points to the local API (`dotnet run` in WuicSite/api).
+ *   In prod (`environment.prod.ts`), points to the relative `/api` sub-app.
  */
 export const environment = {
   production: false,
   paypal: {
-    mode: 'sandbox' as 'sandbox' | 'production',
-    clientId: 'Aen2LtIGY9kVSruhyrtmy45eHnc53KzI09rS1-PXSyW7oMyEsD0KN6JmeDBvZBfaYsxXVuWMbTC3LBYQ',
+    /** Display + fallback currency. The actual currency on each order is
+     *  decided server-side via `Paypal:Currency` in appsettings.json. */
     currency: 'EUR' as const,
   },
+  apiBaseUrl: 'http://localhost:5080' as const,
   licenseEmail: 'licenses@wuic-framework.com' as const,
 };

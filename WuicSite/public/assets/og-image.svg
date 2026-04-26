@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Open Graph / social preview image, 1200x630 (the canonical 1.91:1 ratio
+  used by Facebook, LinkedIn, WhatsApp, Slack, Discord). Referenced from
+  src/index.html as `/assets/og-image.png` AND `/assets/og-image.svg`.
+
+  Twitter Card (`summary_large_image`) wants a PNG/JPG — modern Facebook
+  also prefers raster. To produce the PNG companion of this SVG:
+     - online (zero-install): https://cloudconvert.com/svg-to-png — set
+       width 1200, height 630, save as og-image.png in this same folder.
+     - local (ImageMagick):   magick convert -density 144 og-image.svg
+                              -resize 1200x630 og-image.png
+     - local (Inkscape CLI):  inkscape og-image.svg --export-type=png
+                              --export-width=1200 --export-filename=og-image.png
+
+  The PNG and SVG together cover every social previewer in 2026.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#0b132b"/>
+      <stop offset="60%"  stop-color="#1c2541"/>
+      <stop offset="100%" stop-color="#3a506b"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#5bc0be"/>
+      <stop offset="100%" stop-color="#6fffe9"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- subtle grid pattern (metadata hint) -->
+  <g stroke="#5bc0be" stroke-opacity="0.07" stroke-width="1">
+    <line x1="0" y1="105" x2="1200" y2="105"/>
+    <line x1="0" y1="210" x2="1200" y2="210"/>
+    <line x1="0" y1="315" x2="1200" y2="315"/>
+    <line x1="0" y1="420" x2="1200" y2="420"/>
+    <line x1="0" y1="525" x2="1200" y2="525"/>
+    <line x1="200"  y1="0" x2="200"  y2="630"/>
+    <line x1="400"  y1="0" x2="400"  y2="630"/>
+    <line x1="600"  y1="0" x2="600"  y2="630"/>
+    <line x1="800"  y1="0" x2="800"  y2="630"/>
+    <line x1="1000" y1="0" x2="1000" y2="630"/>
+  </g>
+
+  <!-- decorative accent stroke (top-right corner) -->
+  <path d="M 800 0 L 1200 0 L 1200 200 Z" fill="url(#accent)" opacity="0.08"/>
+
+  <!-- WUIC wordmark -->
+  <g transform="translate(80, 220)" filter="url(#glow)">
+    <text x="0" y="0"
+          font-family="Segoe UI, system-ui, -apple-system, sans-serif"
+          font-weight="900" font-size="180"
+          fill="#ffffff"
+          letter-spacing="-6">WUIC</text>
+  </g>
+
+  <!-- Tagline -->
+  <text x="80" y="320"
+        font-family="Segoe UI, system-ui, -apple-system, sans-serif"
+        font-weight="600" font-size="44"
+        fill="url(#accent)"
+        letter-spacing="-1">Metadata-Driven Business Applications</text>
+
+  <!-- Subtitle -->
+  <text x="80" y="395"
+        font-family="Segoe UI, system-ui, -apple-system, sans-serif"
+        font-weight="400" font-size="28"
+        fill="#c5c6c7">CRUD &middot; Dashboards &middot; Workflows &middot; Reports &middot; AI Chatbots</text>
+
+  <text x="80" y="440"
+        font-family="Segoe UI, system-ui, -apple-system, sans-serif"
+        font-weight="400" font-size="24"
+        fill="#9aa5b1">.NET 10 &nbsp;&middot;&nbsp; Angular 21 &nbsp;&middot;&nbsp; Multi-DBMS &nbsp;&middot;&nbsp; Zero boilerplate</text>
+
+  <!-- Bottom badge bar -->
+  <g transform="translate(80, 530)">
+    <rect x="0" y="0" width="280" height="48" rx="8" fill="#5bc0be" fill-opacity="0.15" stroke="#5bc0be" stroke-opacity="0.4" stroke-width="1"/>
+    <text x="20" y="32"
+          font-family="Segoe UI, system-ui, -apple-system, sans-serif"
+          font-weight="600" font-size="20"
+          fill="#6fffe9">wuic-framework.com</text>
+  </g>
+
+  <!-- decorative dot grid (right side) -->
+  <g fill="#5bc0be" fill-opacity="0.25">
+    <circle cx="850"  cy="500" r="4"/>
+    <circle cx="900"  cy="500" r="4"/>
+    <circle cx="950"  cy="500" r="4"/>
+    <circle cx="1000" cy="500" r="4"/>
+    <circle cx="1050" cy="500" r="4"/>
+    <circle cx="1100" cy="500" r="4"/>
+    <circle cx="850"  cy="540" r="4"/>
+    <circle cx="900"  cy="540" r="4"/>
+    <circle cx="950"  cy="540" r="4"/>
+    <circle cx="1000" cy="540" r="4"/>
+    <circle cx="1050" cy="540" r="4"/>
+    <circle cx="1100" cy="540" r="4"/>
+    <circle cx="850"  cy="580" r="4"/>
+    <circle cx="900"  cy="580" r="4"/>
+    <circle cx="950"  cy="580" r="4"/>
+    <circle cx="1000" cy="580" r="4"/>
+    <circle cx="1050" cy="580" r="4"/>
+    <circle cx="1100" cy="580" r="4"/>
+  </g>
+</svg>

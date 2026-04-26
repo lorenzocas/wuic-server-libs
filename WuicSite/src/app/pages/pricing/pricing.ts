@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { MessageModule } from 'primeng/message';
@@ -6,7 +6,8 @@ import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { PurchaseDialog } from './purchase-dialog';
 import { PRODUCTS, PAYPAL_CONFIG, PurchaseProduct } from './paypal.config';
-import { isPaypalConfigured } from './paypal-loader';
+import { fetchPaypalConfig } from './paypal-loader';
+import { SeoService } from '../../services/seo.service';
 
 interface FeatureRow {
   key: string;   // i18n subkey under pricing.comparison.rows
@@ -25,19 +26,38 @@ interface FeatureGroup {
   templateUrl: './pricing.html',
   styleUrl: './pricing.scss'
 })
-export class Pricing {
+export class Pricing implements OnInit {
 
   /** Currently selected product (drives PurchaseDialog). */
   selectedProduct: PurchaseProduct | null = null;
   purchaseDialogVisible = false;
 
   /**
-   * True when a real PayPal Client ID is wired in the active environment.
-   * When false, the /pricing page hides the "Acquista ora" buttons and shows
-   * a "contact us by email" fallback instead — so we can deploy the site even
-   * before the live PayPal credentials are ready.
+   * True when the backend reports a usable PayPal Client ID in its current
+   * Mode (`Paypal:Mode` in appsettings.json: sandbox|live).
+   * When false, the /pricing page hides the "Acquista ora" buttons and
+   * shows a "contact us by email" fallback — so we can deploy the site even
+   * before the PayPal credentials are populated on the server.
+   *
+   * Optimistic default: assume true so the buttons show immediately. If the
+   * backend says otherwise the field flips to false on `ngOnInit`. The
+   * "not configured" state is rare in practice (only during the very first
+   * deploy before secrets are in place), so the brief flash is acceptable.
    */
-  readonly paypalAvailable: boolean = isPaypalConfigured();
+  paypalAvailable = true;
+
+  constructor() {
+    inject(SeoService).set({ titleKey: 'seo.pricing.title', descriptionKey: 'seo.pricing.description', path: '/pricing' });
+  }
+
+  ngOnInit(): void {
+    // Fetch runtime config from backend — single source of truth for the
+    // ClientId+Mode (sandbox/live), so a server-side switch propagates to
+    // the SPA without a rebuild. See `paypal-loader.fetchPaypalConfig()`.
+    fetchPaypalConfig()
+      .then(cfg => { this.paypalAvailable = cfg.configured; })
+      .catch(() => { /* network error — keep optimistic true, dialog will surface real error */ });
+  }
 
   /** Contact email shown in the fallback banner when PayPal is not wired. */
   readonly contactEmail: string = PAYPAL_CONFIG.LICENSE_EMAIL;

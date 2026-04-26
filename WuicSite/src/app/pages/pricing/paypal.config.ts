@@ -1,33 +1,40 @@
 import { environment } from '../../../environments/environment';
 
 /**
- * PayPal integration config.
+ * PayPal integration config (frontend side).
  *
- * Values are pulled from `environment.ts` (dev/sandbox) or
- * `environment.prod.ts` (production, swapped in by angular.json
- * `fileReplacements` when building with --configuration production, which is
- * the default for `ng build`).
+ * Note: ClientId and Mode (sandbox/live) are NOT here anymore — they are
+ * fetched at runtime from the WuicSiteApi backend via `GET /api/paypal/config`,
+ * see `paypal-loader.ts`. This way switching sandbox <-> live is a one-line
+ * edit to `appsettings.json` on the IIS server (no Angular rebuild required,
+ * since the ClientId is no longer baked into the bundle).
  *
- * The Client ID is a PUBLIC identifier — safe to expose in the frontend bundle.
- * The Client SECRET must NEVER be placed here (server-only).
- *
- * IMPORTANT: with this purely-client integration the transaction capture happens
- * client-side. PayPal still emails the vendor on every transaction, and the
- * license is issued manually after verifying amount + buyer email. For full
- * fraud-proofing switch to server-side order creation via PayPal Orders v2 API.
+ * What remains here is purely client-side / build-time config:
+ *  - currency (display + fallback)
+ *  - the email shown in the success screen mailto
+ *  - the API base URL for the backend endpoints
  */
 export const PAYPAL_CONFIG = {
-  /** 'sandbox' during dev/testing, 'production' in the deployed build */
-  MODE: environment.paypal.mode,
-
-  /** PayPal Business Client ID (sandbox or live, depending on build target) */
-  CLIENT_ID: environment.paypal.clientId,
-
-  /** ISO currency code */
+  /**
+   * ISO currency code — used as fallback if the backend doesn't echo one.
+   * The actual currency on each order is decided server-side in the
+   * `Paypal:Currency` setting (defaults to EUR there too).
+   */
   CURRENCY: environment.paypal.currency,
 
-  /** Email where license requests are sent after successful payment */
+  /** Email shown in the success-screen mailto link (license issuer inbox). */
   LICENSE_EMAIL: environment.licenseEmail,
+
+  /**
+   * Base URL of the WuicSiteApi backend that:
+   *   - returns the public PayPal config (`GET /paypal/config`)
+   *   - creates and captures PayPal orders server-side
+   *   - sends the post-capture notification email
+   * Server-side capture avoids the unreliable client-side `actions.order.capture()`
+   * flow (which fails in sandbox with "Buyer access token not present") and
+   * keeps the Client SECRET off the browser bundle. See WuicSite/api/Program.cs.
+   */
+  API_BASE_URL: environment.apiBaseUrl,
 };
 
 /** Product catalog — prices match /pricing page and license-issue.ps1 pricing rules. */

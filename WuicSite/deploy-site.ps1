@@ -33,10 +33,17 @@
   Con questo flag il rischio di file-lock/sharing violations durante lo SCP
   torna a essere reale, seppur basso.
 
+.PARAMETER SkipApi
+  Se specificato, salta build + deploy del progetto WuicSiteApi (.NET).
+  L'API e' la sub-app `/api` che gestisce server-side la create/capture
+  PayPal (vedi WuicSite/api/Program.cs) tenendo il Client SECRET fuori
+  dal browser bundle. Usare quando si sta lavorando solo sul sito statico.
+
 .EXAMPLE
   pwsh deploy-site.ps1 -Server vps123.contabo.de
   pwsh deploy-site.ps1 -Server vps123.contabo.de -SkipBuild -SkipZip
   pwsh deploy-site.ps1 -Server vps123.contabo.de -SkipMaintenancePage  # hotfix mode
+  pwsh deploy-site.ps1 -Server vps123.contabo.de -SkipApi              # solo sito statico
 #>
 param(
     [Parameter(Mandatory = $true)]
@@ -48,7 +55,8 @@ param(
     [switch]$SkipBuild,
     [switch]$SkipZip,
     [switch]$SkipAppPoolCycle,
-    [switch]$SkipMaintenancePage
+    [switch]$SkipMaintenancePage,
+    [switch]$SkipApi
 )
 
 $ErrorActionPreference = 'Stop'
@@ -267,6 +275,19 @@ if (-not $SkipMaintenancePage) {
     scp $localWebConfigMaintenance "${remoteUserHost}:${remoteWebConfigMaintenance}"
     if ($LASTEXITCODE -ne 0) { throw "scp web.config.maintenance fallita (exit $LASTEXITCODE)" }
 
+    # Upload the LATEST production web.config from the repo BEFORE the swap.
+    # This way the backup snapshot taken in the next step contains the new
+    # file, and the post-deploy restore brings it back live. Without this
+    # step the deploy never updates web.config: the swap preserves whatever
+    # was on the server at install time, so changes to the SPA-fallback /
+    # API-passthrough rules made in the repo never take effect on prod.
+    $localProductionWebConfig = Join-Path $scriptDir 'web.config'
+    if (Test-Path $localProductionWebConfig) {
+        scp $localProductionWebConfig "${remoteUserHost}:${remoteWebConfig}"
+        if ($LASTEXITCODE -ne 0) { throw "scp production web.config fallita (exit $LASTEXITCODE)" }
+        Write-Host "    production web.config aggiornato dal repo" -ForegroundColor DarkGray
+    }
+
     # Atomic swap: back up current web.config, then make maintenance the active one.
     # IIS reloads web.config on change automatically — no AppPool restart needed.
     $activateMaintenanceScript = @"
@@ -311,6 +332,88 @@ try {
     }
     $siteUploadOk = $true
     Write-Host "  [ok] Sito caricato" -ForegroundColor Green
+
+    # ── 2c-bis: build + upload .NET API (server-side PayPal capture) ──
+    #
+    # Il progetto WuicSite/api/ e' un minimal API .NET 10 che gestisce
+    # server-side la creazione e la cattura degli ordini PayPal — vedi
+    # WuicSite/api/Program.cs. Viene deployato come sub-application IIS
+    # `/api` (physical path: $SitePath\api). Il file appsettings.json
+    # NON viene sovrascritto: contiene il Client SECRET PayPal, e' "server-managed".
+    #
+    # Per rilasciare i lock sulle DLL usiamo il pattern app_offline.htm:
+    # AspNetCoreModuleV2 lo rileva automaticamente e shutdown il worker
+    # process, liberando i file. Dopo lo SCP rimuoviamo il file e
+    # AspNetCoreModuleV2 riavvia il worker.
+    if (-not $SkipApi) {
+        $apiSrcDir = Join-Path $scriptDir 'api'
+        if (Test-Path $apiSrcDir) {
+            Write-Host "  [api] Build + deploy WuicSiteApi (.NET 10)" -ForegroundColor DarkGray
+
+            # publish locale in cartella temp dedicata (resta utile per debug)
+            $apiPublishDir = Join-Path $scriptDir 'dist\api-publish'
+            if (Test-Path $apiPublishDir) { Remove-Item $apiPublishDir -Recurse -Force }
+            New-Item -ItemType Directory -Path $apiPublishDir -Force | Out-Null
+
+            Push-Location $apiSrcDir
+            try {
+                Write-Sub "dotnet publish -c Release -o $apiPublishDir"
+                & dotnet publish -c Release -o $apiPublishDir --nologo /p:PublishProfile=
+                if ($LASTEXITCODE -ne 0) { throw "dotnet publish API fallito (exit $LASTEXITCODE)" }
+            } finally { Pop-Location }
+
+            # NEVER overwrite appsettings.json on the server: contiene
+            # i Client SECRET (sandbox + live) configurati a mano in deploy iniziale.
+            $localProdSettings = Join-Path $apiPublishDir 'appsettings.json'
+            if (Test-Path $localProdSettings) { Remove-Item $localProdSettings -Force }
+
+            $remoteApiPath = Join-Path $SitePath 'api'
+
+            # Step 1: garantisci che la cartella esista, scrivi app_offline.htm
+            $offlineScript = @"
+`$apiPath = '$remoteApiPath'
+if (-not (Test-Path `$apiPath)) {
+    New-Item -ItemType Directory -Force -Path `$apiPath | Out-Null
+    Write-Host "    [api] cartella api/ creata: `$apiPath"
+}
+Set-Content -Path (Join-Path `$apiPath 'app_offline.htm') -Value '<h1>API deploying</h1>' -Encoding UTF8
+Write-Host "    [api] app_offline.htm scritto, attendo 2s shutdown worker"
+Start-Sleep -Seconds 2
+"@
+            $code = Invoke-RemotePwsh -RemoteUserHost $remoteUserHost -Script $offlineScript
+            if ($code -ne 0) { throw "[api] preparazione cartella remota fallita (exit $code)" }
+
+            # Step 2: SCP del publish output (modalita' UNC se supportata, altrimenti SCP)
+            $uncApiPath = "\\${Server}\$($remoteApiPath -replace ':', '$')"
+            if (Test-Path $uncApiPath -ErrorAction SilentlyContinue) {
+                Write-Sub "[api] modalita' UNC: $uncApiPath"
+                # Skip appsettings.json (server-managed)
+                robocopy $apiPublishDir $uncApiPath /MIR /NJH /NJS /NDL /NP /R:2 /W:1 /XF appsettings.json app_offline.htm
+                if ($LASTEXITCODE -ge 8) { throw "[api] robocopy fallito (exit $LASTEXITCODE)" }
+            } else {
+                Write-Sub "[api] modalita' SCP -> ${remoteUserHost}:${remoteApiPath}"
+                scp -r "${apiPublishDir}/*" "${remoteUserHost}:${remoteApiPath}/"
+                if ($LASTEXITCODE -ne 0) { throw "[api] scp fallito (exit $LASTEXITCODE)" }
+            }
+
+            # Step 3: rimuovi app_offline.htm → AspNetCoreModuleV2 riavvia il worker
+            $onlineScript = @"
+`$f = Join-Path '$remoteApiPath' 'app_offline.htm'
+if (Test-Path `$f) {
+    Remove-Item -Path `$f -Force
+    Write-Host "    [api] app_offline.htm rimosso, worker in restart"
+}
+"@
+            $code = Invoke-RemotePwsh -RemoteUserHost $remoteUserHost -Script $onlineScript
+            if ($code -ne 0) { Write-Host "  [warn] [api] rimozione app_offline.htm fallita (exit $code)" -ForegroundColor Yellow }
+
+            Write-Host "  [ok] API deployata" -ForegroundColor Green
+        } else {
+            Write-Sub "[api] cartella api/ non trovata, skip"
+        }
+    } else {
+        Write-Sub "[api] SKIP (-SkipApi)"
+    }
 }
 finally {
     # ── 2c: deactivate maintenance (web.config swap OUT) ────────────
@@ -440,6 +543,28 @@ if ($ok) {
     Write-Host "  [ok] Health check HTTP 200 ($healthUrl)" -ForegroundColor Green
 } else {
     Write-Host "  [warn] Health check fallito dopo retry su $healthUrl - controlla IIS manualmente" -ForegroundColor Yellow
+}
+
+# API health check (non-fatal — se la sub-app /api non e' configurata in IIS,
+# il path torna 404 / 500 ma il sito principale resta valido).
+if (-not $SkipApi) {
+    $apiHealthUrl = ($healthUrl.TrimEnd('/')) + "/api/health"
+    Write-Host "  Health check $apiHealthUrl" -ForegroundColor DarkGray
+    $apiOk = $false
+    for ($i = 0; $i -lt 6; $i++) {
+        try {
+            $resp = Invoke-WebRequest -Uri $apiHealthUrl -Method Get -SkipCertificateCheck -TimeoutSec 10 -ErrorAction Stop
+            if ($resp.StatusCode -eq 200) { $apiOk = $true ; break }
+        } catch { Start-Sleep -Milliseconds 1000 }
+    }
+    if ($apiOk) {
+        Write-Host "  [ok] API health HTTP 200 ($apiHealthUrl)" -ForegroundColor Green
+    } else {
+        Write-Host "  [warn] API health fallito su $apiHealthUrl" -ForegroundColor Yellow
+        Write-Host "         - se e' la prima volta, configura la sub-app IIS '/api' che punta a ${SitePath}\api" -ForegroundColor Yellow
+        Write-Host "         - poi popola ${SitePath}\api\appsettings.json con i Client SECRET PayPal" -ForegroundColor Yellow
+        Write-Host "         - vedi WuicSite/api/Program.cs per dettagli" -ForegroundColor Yellow
+    }
 }
 
 # ── step 3: upload ZIP artifacts ─────────────────────────────────────

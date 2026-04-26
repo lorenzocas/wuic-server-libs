@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
+import { SeoService } from '../../services/seo.service';
 
 @Component({
   selector: 'app-privacy',
@@ -8,4 +9,8 @@ import { TranslatePipe } from '@ngx-translate/core';
   templateUrl: './privacy.html',
   styleUrl: './privacy.scss'
 })
-export class Privacy {}
+export class Privacy {
+  constructor() {
+    inject(SeoService).set({ titleKey: 'seo.privacy.title', descriptionKey: 'seo.privacy.description', path: '/privacy' });
+  }
+}

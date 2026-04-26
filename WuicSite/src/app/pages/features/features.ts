@@ -1,7 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CardModule } from 'primeng/card';
 import { AccordionModule } from 'primeng/accordion';
 import { TranslatePipe } from '@ngx-translate/core';
+import { SeoService } from '../../services/seo.service';
 
 interface FeatureItem {
   icon: string;
@@ -20,6 +21,9 @@ interface FeatureCategory {
   styleUrl: './features.scss'
 })
 export class Features {
+  constructor() {
+    inject(SeoService).set({ titleKey: 'seo.features.title', descriptionKey: 'seo.features.description', path: '/features' });
+  }
   /**
    * Feature categories — only icons + i18n keys live here. Titles and
    * descriptions are resolved at render time from the loaded translation JSON

@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
+import { SeoService } from '../../services/seo.service';
 
 /**
  * /legal — public-facing legal notices, license summary, third-party
@@ -13,4 +14,8 @@ import { TranslatePipe } from '@ngx-translate/core';
   templateUrl: './legal.html',
   styleUrl: './legal.scss'
 })
-export class Legal {}
+export class Legal {
+  constructor() {
+    inject(SeoService).set({ titleKey: 'seo.legal.title', descriptionKey: 'seo.legal.description', path: '/legal' });
+  }
+}

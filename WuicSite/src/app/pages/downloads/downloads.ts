@@ -8,6 +8,7 @@ import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { MessageModule } from 'primeng/message';
 import { TranslatePipe } from '@ngx-translate/core';
+import { SeoService } from '../../services/seo.service';
 
 /**
  * Singolo file (ZIP) di una release. Shape allineata a deploy-site.ps1 che
@@ -60,6 +61,10 @@ export interface ReleasesManifest {
 })
 export class Downloads implements OnInit {
   private readonly http = inject(HttpClient);
+
+  constructor() {
+    inject(SeoService).set({ titleKey: 'seo.downloads.title', descriptionKey: 'seo.downloads.description', path: '/downloads' });
+  }
 
   // Signals perche' l'app e' zoneless (no zone.js, no provideZoneChangeDetection):
   // in quella modalita' l'assegnazione a una proprieta' plain dopo una subscribe()

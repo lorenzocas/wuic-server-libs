@@ -311,6 +311,23 @@
       "sdiHint": "7 caracteres. Déjalo vacío si no eres contribuyente italiano. Usa <code>0000000</code> para particulares italianos (o indica tu dirección PEC aquí si solo tienes PEC), <code>XXXXXXX</code> para clientes extranjeros.",
       "addressLabel": "Dirección (calle, ciudad, código postal, país)",
       "addressPlaceholder": "ej. Calle Mayor 1, 28001 Madrid, España"
+    },
+    "successMail": {
+      "subject": "Licencia WUIC — {{sku}} — pedido {{orderId}}",
+      "greeting": "Hola,",
+      "intro": "acabo de comprar: {{product}}",
+      "amount": "Importe: {{amount}} {{currency}}",
+      "orderId": "PayPal Order ID: {{orderId}}",
+      "payerEmail": "Email PayPal: {{email}}",
+      "licenseEmail": "Email donde registrar la licencia: {{email}}",
+      "fingerprint": "Machine fingerprint del servidor: {{fingerprint}}",
+      "fingerprintPlaceholder": "[a enviar tras instalar WUIC y llamar a GET /api/Meta/LicenseStatus]",
+      "invoicingHeader": "--- Datos para factura electrónica ---",
+      "invoicingCompanyName": "Razón social: {{value}}",
+      "invoicingVatNumber": "Número de IVA / NIF: {{value}}",
+      "invoicingSdiCode": "Código destinatario SdI / PEC: {{value}}",
+      "invoicingAddress": "Dirección: {{value}}",
+      "signoff": "Gracias."
     }
   },
   "downloads": {
@@ -338,14 +355,15 @@
       "ragTitle": "RAG Chatbot",
       "ragText": "Los paquetes con RAG incluyen el índice vectorial y el servidor Python. Tras la extracción lanza <code>pwsh rag-setup.ps1</code> para el setup automático.",
       "tutorialTitle": "DB tutorial: BAK vs SQL",
-      "tutorialText": "Los paquetes con sufijo <strong>-bak-</strong> incluyen una copia de seguridad binaria (<code>.bak</code>) de la base de datos tutorial lista para restaurar — requieren <strong>SQL Server 2022</strong> o superior (formato de backup) pero son <strong>mucho más rápidos de restaurar</strong> (pocos segundos frente a varios minutos). Los paquetes con tutorial <strong>SQL</strong> (sin <code>-bak-</code>) contienen scripts <code>.sql</code> compatibles desde <strong>SQL Server 2017</strong> (nivel de compatibilidad 140): elige estos si tu instancia es más antigua o de edición Express, a costa de una importación más lenta."
+      "tutorialText": "Los paquetes con sufijo <strong>-bak-</strong> incluyen una copia de seguridad binaria (<code>.bak</code>) de la base de datos tutorial lista para restaurar — requieren <strong>SQL Server 2022</strong> o superior (formato de backup) pero son <strong>mucho más rápidos de restaurar</strong> (pocos segundos frente a varios minutos). Los paquetes con tutorial <strong>SQL</strong> (sin <code>-bak-</code>) contienen scripts <code>.sql</code> compatibles desde <strong>SQL Server 2019</strong> (nivel de compatibilidad 150): elige estos si tu instancia es 2019/2020 o edición Express reciente, a costa de una importación más lenta."
     },
     "requirements": {
       "title": "Requisitos del sistema",
       "subtitle": "Stack mínimo para ejecutar WUIC en producción sobre IIS.",
       "os": "<strong>Windows Server</strong>: mínimo <strong>2019</strong> (base oficial ASP.NET Core 10). Recomendado <strong>2022</strong> o <strong>2025</strong>. 2016 / 2012 R2 / 2008 R2 fuera de soporte.",
+      "osDev": "<strong>Windows 10 / 11</strong> (estación de desarrollo): mínimo <strong>Windows 10 22H2</strong> con SDK .NET 10. Recomendado <strong>Windows 11 23H2+</strong> para paridad con el pipeline oficial de build/test.",
       "runtime": "<strong>ASP.NET Core Runtime 10 — Hosting Bundle</strong> en IIS. IIS 10+. App pool en <em>No Managed Code</em>, característica <code>Web-WebSockets</code> habilitada.",
-      "sql": "<strong>SQL Server</strong>: mínimo <strong>2017</strong> (compat 140, para <code>STRING_AGG</code> y <code>DROP IF EXISTS</code>). Recomendado 2019 / 2022. Ediciones Express / Standard / Developer / Enterprise equivalentes para el esquema de metadatos.",
+      "sql": "<strong>SQL Server</strong>: mínimo <strong>2019</strong> (compat 150). 2017 ya no está soportado debido a bugs conocidos de memoria/CLR en Windows client que provocan el error 10316 durante el scaffolding del tutorial. Recomendado 2022 / 2025. Ediciones Standard / Developer / Enterprise equivalentes para el esquema de metadatos; Express ok pero sujeta al cap RAM 1.4 GB (se recomienda Developer Edition para dev local).",
       "tls": "<strong>TLS 1.2+</strong> habilitado en el SO (activado por defecto desde WS 2016+). Requerido por el driver <code>Microsoft.Data.SqlClient 5.2</code>."
     }
   },
@@ -601,5 +619,17 @@
   },
   "maintenance": {
     "reloading": "Actualización en curso, recargando la página..."
+  },
+  "seo": {
+    "home":      { "title": "Framework metadata-driven para aplicaciones de negocio",  "description": "WUIC convierte metadatos en interfaces completas: CRUD, dashboards, workflows, informes y chatbots IA. .NET 10 + Angular 21, sin boilerplate." },
+    "features":  { "title": "Características del framework",                            "description": "Todo incluido: capa de datos, diseñador visual, motor de workflow, generador de informes, chatbot RAG, multi-SGBD. Cada componente es metadata-driven." },
+    "pricing":   { "title": "Precios y licencias",                                      "description": "Dos niveles: Developer 600€/año (1 fingerprint) y Professional 1200€/año (3 fingerprints, diseñador, IA). Pago con PayPal o tarjeta." },
+    "gallery":   { "title": "Galería — Capturas reales",                                "description": "Capturas de interfaces reales generadas por el framework: listas, dashboards, formularios de edición, diseñador de workflow, visor de informes." },
+    "docs":      { "title": "Documentación",                                            "description": "Documentación completa del framework: arquitectura, arquetipos de componentes, configuración de metadatos, APIs del servidor, despliegue en IIS." },
+    "downloads": { "title": "Descargas",                                                "description": "Paquetes listos para usar: build IIS, fuentes completas, base de datos tutorial (BAK o SQL), chatbot RAG opcional. Backend .NET 10 + frontend Angular 21." },
+    "legal":     { "title": "Avisos legales y descargos",                               "description": "Avisos sobre el uso del framework, licencias de terceros (Syncfusion, PrimeNG), responsabilidades del licenciatario." },
+    "privacy":   { "title": "Política de privacidad",                                   "description": "Política de privacidad GDPR para wuic-framework.com: datos recogidos, finalidades, base legal, derechos del interesado, contactos del responsable." },
+    "cookies":   { "title": "Política de cookies",                                      "description": "Tipos de cookies en uso (técnicas y de terceros PayPal), finalidades, gestión del consentimiento, referencias normativas italianas y europeas." },
+    "terms":     { "title": "Términos y condiciones",                                   "description": "Términos de venta de las licencias WUIC: objeto, precios, métodos de pago, activación, soporte, garantías y limitaciones." }
   }
 }
