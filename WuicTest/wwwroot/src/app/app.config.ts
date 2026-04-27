@@ -30,8 +30,7 @@ registerLocaleData(localeEs, 'es-ES', localeEsExtra);
 registerLocaleData(localeDe, 'de-DE', localeDeExtra);
 import Aura from '@primeuix/themes/aura';
 import { credentialsInterceptor } from './interceptors/credentials.interceptor';
-import { authExpiredInterceptor } from './wuic-bridges/core';
-import { wuicErrorInterceptor } from 'wuic-framework-lib-src/interceptor/wuic-error.interceptor';
+import { authExpiredInterceptor, wuicErrorInterceptor } from './wuic-bridges/core';
 
 export const appConfig: ApplicationConfig = {
   providers: [

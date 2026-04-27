@@ -4,6 +4,7 @@ export { MetadataEditorService } from 'wuic-framework-lib-src/service/metadata-e
 export { AuthSessionService } from 'wuic-framework-lib-src/service/auth-session.service';
 export { UserInfoService } from 'wuic-framework-lib-src/service/user-info.service';
 export { authExpiredInterceptor } from 'wuic-framework-lib-src/interceptor/auth-expired.interceptor';
+export { wuicErrorInterceptor } from 'wuic-framework-lib-src/interceptor/wuic-error.interceptor';
 export { TranslationManagerService } from 'wuic-framework-lib-src/service/translation-manager.service';
 export { getThemeOptions, PRIMARY_PALETTES } from 'wuic-framework-lib-src/config/theme-catalog';
 export type { ThemeOption } from 'wuic-framework-lib-src/config/theme-catalog';

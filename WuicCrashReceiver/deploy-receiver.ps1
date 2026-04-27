@@ -100,11 +100,11 @@ if (-not $SkipBuild) {
 
     # Sanity: web.config + admin/index.html devono essere nel publish.
     $checks = @(
-        Join-Path $publishDir 'web.config',
-        Join-Path $publishDir 'WuicCrashReceiver.dll',
-        Join-Path $publishDir 'wwwroot\admin\index.html',
-        Join-Path $publishDir 'wwwroot\admin\app.js',
-        Join-Path $publishDir 'wwwroot\admin\style.css'
+        (Join-Path $publishDir 'web.config'),
+        (Join-Path $publishDir 'WuicCrashReceiver.dll'),
+        (Join-Path $publishDir 'wwwroot\admin\index.html'),
+        (Join-Path $publishDir 'wwwroot\admin\app.js'),
+        (Join-Path $publishDir 'wwwroot\admin\style.css')
     )
     foreach ($c in $checks) {
         if (-not (Test-Path $c)) { throw "publish sanity FAILED: missing $c" }

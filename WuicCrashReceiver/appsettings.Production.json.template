@@ -19,6 +19,7 @@
   },
 
   "ConnectionStrings": {
+    "_comment": "Una sola connection string. Il DB WuicLicensing (skill license-issuing) e' co-locato sulla stessa istanza SQL del WuicCrashes; LicenseRegistryService deriva runtime la sua connection string sostituendo Initial Catalog=WuicLicensing.",
     "WuicCrashes": "Data Source=REPLACE_AT_DEPLOY_SQLSERVER_HOST;Initial Catalog=WuicCrashes;User ID=REPLACE_AT_DEPLOY_SQL_USER;Password=REPLACE_AT_DEPLOY_SQL_PASSWORD;Encrypt=True;TrustServerCertificate=True"
   },
 

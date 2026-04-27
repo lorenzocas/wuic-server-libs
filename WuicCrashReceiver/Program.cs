@@ -34,6 +34,13 @@ builder.Services.AddSingleton<CrashIngestService>();
 builder.Services.AddSingleton<CrashConsentService>();
 builder.Services.AddSingleton<AdminCrashService>();
 
+// Skill license-issuing: registry centralizzato delle licenze emesse dal
+// vendor. Doppio uso: admin endpoints (register/revoke/list) + lookup
+// dall'ingest path per validare ogni crash submitted.
+// Connection string derivata internamente da WuicCrashes (vedi
+// LicenseRegistryService ctor) — niente chiave WuicLicensing in appsettings.
+builder.Services.AddSingleton<LicenseRegistryService>();
+
 // Crash-reporting Commit 11a: deobfuscation server-side on-demand via
 // ConfuserEx 2 symbols.map (sostituisce il vecchio ObfuscarMappingParser
 // che soffriva del bug Original==New di Obfuscar 2.x).
@@ -123,6 +130,33 @@ app.MapPost("/api/crash/ingest", async (HttpRequest req,
         log.LogWarning("Crash ingest rejected: license past grace ({Expiry} < {Cutoff}) for {Email}",
             verify.Payload.ExpiryUtc, cutoff, verify.Payload.Email);
         return Results.Json(new CrashIngestResponse { Ok = false, Error = "license_past_grace" }, statusCode: 401);
+    }
+
+    // Skill license-issuing — registry enforcement (Commit 13).
+    // Lookup la license_history row corrispondente al payload base64.
+    //
+    // Policy hardcoded ADVISORY:
+    //   - se la licenza NON e' nel registry → log info + ACCETTA (consente
+    //     transizione di clienti esistenti senza rompere ingest mentre li
+    //     re-issuamo+syncamo).
+    //   - se la licenza E' nel registry e revoked=1 → REJECT 401 license_revoked.
+    //
+    // Per passare a strict (rifiuto anche dei not-registered), modificare qui.
+    // Decisione cosciente: niente toggle in appsettings, e' code-controlled.
+    {
+        var licReg = app.Services.GetRequiredService<LicenseRegistryService>();
+        var entry = await licReg.FindByPayloadAsync(licensePayloadB64, ct);
+        if (entry is null)
+        {
+            log.LogInformation("Crash ingest accepted but license not in registry (advisory) for {Email}",
+                verify.Payload.Email);
+        }
+        else if (entry.Revoked)
+        {
+            log.LogWarning("Crash ingest rejected: license id={Id} revoked at {RevokedAt} reason={Reason} for {Email}",
+                entry.Id, entry.RevokedAt, entry.RevokedReason, entry.Email);
+            return Results.Json(new CrashIngestResponse { Ok = false, Error = "license_revoked" }, statusCode: 401);
+        }
     }
 
     CrashReportPayload? body;
@@ -326,6 +360,97 @@ app.MapPost("/api/admin/crash/{id:long}/resolve", async (long id,
     if (!ok)
         return Results.Json(new AdminGenericResponse { Ok = false, Error = "not_found_or_db_error" }, statusCode: 404);
     return Results.Json(new AdminGenericResponse { Ok = true });
+});
+
+// ── License admin endpoints (skill license-issuing) ──────────────────
+// Tutti gated da AdminAuth (IP whitelist + bearer fallback).
+
+// POST /api/admin/licenses — register/upsert dal vendor tool license-issue.ps1 -SyncRemote.
+app.MapPost("/api/admin/licenses", async (HttpRequest req,
+                                            AdminAuth auth,
+                                            LicenseRegistryService licReg,
+                                            CancellationToken ct) =>
+{
+    if (!auth.Authorize(req, out var err))
+        return Results.Json(new LicenseRegisterResponse { Ok = false, Error = err }, statusCode: 401);
+    LicenseRegisterRequest? body;
+    try { body = await JsonSerializer.DeserializeAsync<LicenseRegisterRequest>(req.Body, cancellationToken: ct); }
+    catch { return Results.Json(new LicenseRegisterResponse { Ok = false, Error = "body_invalid_json" }, statusCode: 400); }
+    if (body is null)
+        return Results.Json(new LicenseRegisterResponse { Ok = false, Error = "body_missing" }, statusCode: 400);
+
+    var (ok, errMsg, id, customerId) = await licReg.RegisterAsync(body, ct);
+    return Results.Json(new LicenseRegisterResponse
+    {
+        Ok = ok,
+        Error = errMsg,
+        Id = id,
+        CustomerId = customerId,
+    }, statusCode: ok ? 200 : 400);
+});
+
+// POST /api/admin/licenses/{id}/revoke — revoca una specifica license_history row.
+app.MapPost("/api/admin/licenses/{id:long}/revoke", async (long id,
+                                                              HttpRequest req,
+                                                              AdminAuth auth,
+                                                              LicenseRegistryService licReg,
+                                                              CancellationToken ct) =>
+{
+    if (!auth.Authorize(req, out var err))
+        return Results.Json(new AdminGenericResponse { Ok = false, Error = err }, statusCode: 401);
+    LicenseRevokeRequest? body;
+    try { body = await JsonSerializer.DeserializeAsync<LicenseRevokeRequest>(req.Body, cancellationToken: ct); }
+    catch { return Results.Json(new AdminGenericResponse { Ok = false, Error = "body_invalid_json" }, statusCode: 400); }
+    body ??= new LicenseRevokeRequest();
+
+    var actor = req.HttpContext.Connection.RemoteIpAddress?.ToString();
+    var (ok, errMsg) = await licReg.RevokeAsync(id, body.Reason, actor, ct);
+    if (!ok)
+        return Results.Json(new AdminGenericResponse { Ok = false, Error = errMsg }, statusCode: errMsg == "not_found" ? 404 : 500);
+    return Results.Json(new AdminGenericResponse { Ok = true });
+});
+
+// POST /api/admin/versions — registra un push npm/NuGet dalla pipeline
+// `deploy-release.ps1 :: Register-WuicVersionHistory`. Skill license-issuing.
+// Comportamento best-effort lato pipeline: una fail di questo endpoint NON
+// blocca il deploy (la pipeline gia' logga warning in quel caso).
+app.MapPost("/api/admin/versions", async (HttpRequest req,
+                                            AdminAuth auth,
+                                            LicenseRegistryService licReg,
+                                            CancellationToken ct) =>
+{
+    if (!auth.Authorize(req, out var err))
+        return Results.Json(new VersionRegisterResponse { Ok = false, Error = err }, statusCode: 401);
+    VersionRegisterRequest? body;
+    try { body = await JsonSerializer.DeserializeAsync<VersionRegisterRequest>(req.Body, cancellationToken: ct); }
+    catch { return Results.Json(new VersionRegisterResponse { Ok = false, Error = "body_invalid_json" }, statusCode: 400); }
+    if (body is null)
+        return Results.Json(new VersionRegisterResponse { Ok = false, Error = "body_missing" }, statusCode: 400);
+
+    var (ok, errMsg, id) = await licReg.RegisterVersionAsync(body, ct);
+    return Results.Json(new VersionRegisterResponse
+    {
+        Ok = ok,
+        Error = errMsg,
+        Id = id,
+    }, statusCode: ok ? 200 : 400);
+});
+
+// GET /api/admin/licenses?email=&includeRevoked=&limit=&offset= — list paginated.
+app.MapGet("/api/admin/licenses", async (HttpRequest req,
+                                           AdminAuth auth,
+                                           LicenseRegistryService licReg,
+                                           CancellationToken ct) =>
+{
+    if (!auth.Authorize(req, out var err))
+        return Results.Json(new LicenseListResponse { Ok = false }, statusCode: 401);
+    var emailFilter = req.Query["email"].ToString() is { Length: > 0 } e ? e : null;
+    var includeRevoked = bool.TryParse(req.Query["includeRevoked"], out var ir) && ir;
+    int.TryParse(req.Query["limit"], out var limit);
+    int.TryParse(req.Query["offset"], out var offset);
+    if (limit == 0) limit = 50;
+    var resp = await licReg.ListAsync(emailFilter, includeRevoked, limit, offset, ct);
+    return Results.Json(resp);
 });
 
 app.Logger.LogInformation("WuicCrashReceiver starting on {Urls}", string.Join(", ", app.Urls));
