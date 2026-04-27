@@ -16,6 +16,7 @@ import { ToastModule } from 'primeng/toast';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { TableModule } from 'primeng/table';
+import { FieldsetModule } from 'primeng/fieldset';
 
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Subscription } from 'rxjs';
@@ -44,7 +45,7 @@ import { CustomListComponent } from './component/custom-list/custom-list.compone
   imports: [
     CommonModule, RouterOutlet, NgComponentOutlet, ToggleSwitchModule, SelectModule,
     FormsModule, DialogModule, ButtonModule, TranslateModule, TooltipModule, ToastModule,
-    ConfirmDialogModule, WuicRagChatbotFabComponent, LazyFirstRunWizardComponent
+    ConfirmDialogModule, FieldsetModule, WuicRagChatbotFabComponent, LazyFirstRunWizardComponent
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
@@ -106,6 +107,9 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     GlobalHandler.messageNotification.subscribe((data: any) => {
       this.currentException = data.exception;
       this.visible = data.show;
+      // Test/debug only: expose the last rendered exception so e2e probes
+      // can verify which fields the dialog received without DOM scraping.
+      try { (window as any).__wuicLastDialogException = data.exception; } catch { /* noop */ }
     });
 
     this.authSession = this.injector.get(AuthSessionService);
@@ -468,5 +472,60 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
       root?.removeAttribute('data-contrast-mode');
       body?.removeAttribute('data-contrast-mode');
     }
+  }
+
+  // ─────────────────────────── Error dialog helpers ───────────────────────────
+  // The currentException carries optional fields populated by the SQL passthrough
+  // branch of GlobalHandler (skill typed-localized-exceptions section 4-bis):
+  //   kind: 'sql-passthrough'
+  //   body, sqlDetails, query, parameters, innerExceptions, labels
+  // Plain (legacy) exceptions only have `title` + `stackTrace` and the SQL
+  // sections are hidden via the *ngIf in the template.
+
+  formatParameters(params: Record<string, unknown> | undefined): string {
+    if (!params || typeof params !== 'object') return '';
+    try {
+      return Object.entries(params)
+        .map(([k, v]) => `${k} = ${JSON.stringify(v)}`)
+        .join('\n');
+    } catch {
+      return '';
+    }
+  }
+
+  formatSqlDetails(d: any): string {
+    if (!d) return '';
+    const parts: string[] = [];
+    if (d.number    !== undefined && d.number    !== null) parts.push(`Number: ${d.number}`);
+    if (d.state     !== undefined && d.state     !== null) parts.push(`State: ${d.state}`);
+    if (d.class     !== undefined && d.class     !== null) parts.push(`Class: ${d.class}`);
+    if (d.line      !== undefined && d.line      !== null) parts.push(`Line: ${d.line}`);
+    if (d.procedure)                                       parts.push(`Procedure: ${d.procedure}`);
+    if (d.server)                                          parts.push(`Server: ${d.server}`);
+    if (d.database)                                        parts.push(`DB: ${d.database}`);
+    return parts.join('  ·  ');
+  }
+
+  /**
+   * Copy a self-contained text blob with everything the user might paste
+   * into a ticket / DBA chat: message, query, parameters, stack.
+   */
+  copyErrorDetails(): void {
+    const e: any = this.currentException;
+    if (!e) return;
+    const sections: string[] = [];
+    if (e.title) sections.push(`# ${e.title}`);
+    if (e.body)  sections.push(e.body);
+    const det = this.formatSqlDetails(e.sqlDetails);
+    if (det)     sections.push(det);
+    if (e.query) sections.push('-- Query --\n' + e.query);
+    const pars = this.formatParameters(e.parameters);
+    if (pars)    sections.push('-- Parameters --\n' + pars);
+    if (e.stackTrace) sections.push('-- Stack --\n' + e.stackTrace);
+    if (e.traceId)    sections.push(`traceId: ${e.traceId}`);
+    const text = sections.join('\n\n');
+    try {
+      navigator?.clipboard?.writeText(text);
+    } catch { /* clipboard unavailable, e.g. in headless without permission */ }
   }
 }

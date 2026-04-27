@@ -1751,8 +1751,24 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
             return (Action<IDbCommand, object>)dm.CreateDelegate(typeof(Action<IDbCommand, object>));
         }
 
+        /// <summary>
+        /// Optional observer invoked right before every command is sent to
+        /// the DB. Wired by KonvergenceCore at startup to populate
+        /// <c>DapperQueryCapture</c>, so the typed-exception pipeline can
+        /// surface the offending query/parameters in the SQL passthrough
+        /// dialog (skill typed-localized-exceptions section 4-bis).
+        /// Defaults to no-op so this assembly stays standalone.
+        /// </summary>
+        public static Action<string, object> CommandObserver;
+
         private static IDbCommand SetupCommand(IDbConnection cnn, IDbTransaction transaction, string sql, Action<IDbCommand, object> paramReader, object obj, int? commandTimeout, CommandType? commandType)
         {
+            // Notify observers before binding parameters — observers receive
+            // the raw `obj` (anonymous type or dictionary) so they can extract
+            // human-readable parameter names without re-walking the
+            // SqlParameterCollection.
+            try { CommandObserver?.Invoke(sql, obj); } catch { /* observer must not break the command pipeline */ }
+
             var cmd = cnn.CreateCommand();
             var bindByName = GetBindByName(cmd.GetType());
             if (bindByName != null) bindByName(cmd, true);

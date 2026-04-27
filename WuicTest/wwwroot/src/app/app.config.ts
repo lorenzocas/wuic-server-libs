@@ -31,11 +31,12 @@ registerLocaleData(localeDe, 'de-DE', localeDeExtra);
 import Aura from '@primeuix/themes/aura';
 import { credentialsInterceptor } from './interceptors/credentials.interceptor';
 import { authExpiredInterceptor } from './wuic-bridges/core';
+import { wuicErrorInterceptor } from 'wuic-framework-lib-src/interceptor/wuic-error.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
-    provideHttpClient(withInterceptors([credentialsInterceptor, authExpiredInterceptor])),
+    provideHttpClient(withInterceptors([credentialsInterceptor, authExpiredInterceptor, wuicErrorInterceptor])),
     importProvidersFrom(TranslateModule.forRoot()),
     importProvidersFrom(BrowserAnimationsModule),
     // importProvidersFrom(ResizableModule),

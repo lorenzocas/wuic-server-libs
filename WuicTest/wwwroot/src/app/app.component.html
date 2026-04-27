@@ -73,12 +73,84 @@
 
 <p-toast position="bottom-right" [baseZIndex]="3000"></p-toast>
 
-<p-dialog [header]="'error' | translate" [attr.title]="'error' | translate" [modal]="true" [(visible)]="visible" [style]="{ width: '75%' }">
-    <h2>{{currentException?.title}}</h2>
-    <h3>{{currentException?.stackTrace}}</h3>
-    <div class="flex justify-content-end gap-2">
-        <p-button label="{{'ok' | translate}}" (onClick)="visible = false" />
+<p-dialog [header]="currentException?.title || ('error' | translate)"
+          [attr.title]="currentException?.title || ('error' | translate)"
+          [modal]="true" [(visible)]="visible" [style]="{ width: '75%' }"
+          [contentStyle]="{ 'max-height': '70vh', 'overflow': 'auto' }">
+
+    <!-- Section: main error message
+         For SQL passthrough this is the raw engine text (NOT translated).
+         For other errors it is the localized title used as fallback. -->
+    <div class="wuic-err-main" data-testid="wuic-error-dialog-body">
+        <ng-container *ngIf="currentException?.kind === 'sql-passthrough'; else legacyBody">
+            <p class="wuic-err-msg" style="font-size: 1rem; margin: 0 0 0.5rem 0; white-space: pre-wrap;">
+                {{ currentException?.body }}
+            </p>
+            <p class="wuic-err-meta" *ngIf="currentException?.sqlDetails"
+               style="color: var(--text-color-secondary); font-size: 0.85rem; margin: 0 0 1rem 0;">
+                {{ formatSqlDetails(currentException?.sqlDetails) }}
+            </p>
+        </ng-container>
+        <ng-template #legacyBody>
+            <!-- Localized typed envelope (errors.metadata.*, errors.input.*,
+                 errors.client.*, errors.auth.*, etc.). Shows the title +
+                 a structured args block so the user gets parser context
+                 (line number, route, parameter name) without scraping the
+                 stack trace. The stack remains in its own collapsible
+                 section below. -->
+            <p style="margin: 0 0 0.5rem 0; white-space: pre-wrap;">
+                {{ currentException?.title }}
+            </p>
+            <p *ngIf="currentException?.args?.['parserMessage']"
+               style="color: var(--text-color-secondary); font-size: 0.85rem; margin: 0 0 0.5rem 0; white-space: pre-wrap;">
+                {{ currentException?.args?.['parserMessage'] }}
+            </p>
+            <p *ngIf="currentException?.args?.['lineNumber'] !== undefined && currentException?.args?.['lineNumber'] !== null"
+               style="color: var(--text-color-secondary); font-size: 0.85rem; margin: 0 0 1rem 0;">
+                line {{ currentException?.args?.['lineNumber'] }} · pos {{ currentException?.args?.['linePosition'] }}
+                <ng-container *ngIf="currentException?.args?.['route']"> · route <code>{{ currentException?.args?.['route'] }}</code></ng-container>
+            </p>
+        </ng-template>
     </div>
+
+    <!-- Section: executed query (SQL passthrough only) -->
+    <p-fieldset *ngIf="currentException?.query"
+                [legend]="currentException?.labels?.query || 'Executed query'"
+                [toggleable]="true" [collapsed]="true"
+                styleClass="wuic-err-section wuic-err-section-spacer">
+        <pre style="margin: 0; white-space: pre-wrap; word-break: break-word; font-size: 0.78rem; max-height: 28vh; overflow: auto;">{{ currentException?.query }}</pre>
+    </p-fieldset>
+
+    <!-- Section: parameters (SQL passthrough only) -->
+    <p-fieldset *ngIf="currentException?.parameters && (currentException?.parameters | json) !== '{}'"
+                [legend]="currentException?.labels?.params || 'Parameters'"
+                [toggleable]="true" [collapsed]="true"
+                styleClass="wuic-err-section wuic-err-section-spacer">
+        <pre style="margin: 0; white-space: pre-wrap; font-size: 0.78rem; max-height: 22vh; overflow: auto;">{{ formatParameters(currentException?.parameters) }}</pre>
+    </p-fieldset>
+
+    <!-- Section: stack trace (collapsed by default) -->
+    <p-fieldset *ngIf="currentException?.stackTrace"
+                [legend]="currentException?.labels?.stack || 'Stack trace'"
+                [toggleable]="true" [collapsed]="true"
+                styleClass="wuic-err-section wuic-err-section-spacer">
+        <pre style="margin: 0; white-space: pre-wrap; font-size: 0.78rem; max-height: 28vh; overflow: auto;">{{ currentException?.stackTrace }}</pre>
+    </p-fieldset>
+
+    <!-- Section: trace id (always shown when present, single-line) -->
+    <p *ngIf="currentException?.traceId"
+       style="color: var(--text-color-secondary); font-size: 0.78rem; margin: 0 0 0.5rem 0;">
+        traceId: <code>{{ currentException?.traceId }}</code>
+    </p>
+
+    <ng-template pTemplate="footer">
+        <div class="flex justify-content-end gap-2">
+            <p-button [label]="currentException?.labels?.copy || 'Copia'"
+                      severity="secondary" icon="pi pi-copy"
+                      (onClick)="copyErrorDetails()" />
+            <p-button [label]="'ok' | translate" (onClick)="visible = false" />
+        </div>
+    </ng-template>
 </p-dialog>
 
 <p-confirmDialog [header]="'conferma'" [closeAriaLabel]="'chiudi'" [acceptAriaLabel]="'conferma'"

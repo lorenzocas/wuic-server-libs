@@ -283,3 +283,10 @@
 .notification-clear-read-btn:hover {
     background: color-mix(in srgb, var(--p-surface-0) 82%, #ef4444 18%);
 }
+
+/* Error dialog (typed-localized-exceptions skill section 4-bis):
+   spacing between collapsible sections (Stack / Query / Parameters). */
+.wuic-err-section-spacer {
+    display: block;
+    margin-bottom: 0.75rem;
+}
