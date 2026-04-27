@@ -2121,7 +2121,14 @@ FROM {fromTable}
 
         public static string EscapeDBObjectName(string obj)
         {
-            return string.Format("\"{0}\"", obj);
+            // SECURITY: see twin in KonvergenceCore/MetaModel/_Metadati_methods.cs:2403
+            // for full SQL-Injection rationale + repro. Oracle identifier
+            // quoting uses double-quotes ".." (SQL standard); escape by
+            // doubling: " -> "". Without this, an admin who controls a
+            // metadata identifier field can break out of the quotes and
+            // inject arbitrary SQL into the auto-generated query.
+            if (obj == null) return "\"\"";
+            return string.Concat("\"", obj.Replace("\"", "\"\""), "\"");
         }
 
         private static string NormalizeSql(string sql)

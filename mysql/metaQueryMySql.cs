@@ -1589,7 +1589,15 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
         public static string EscapeDBObjectName(string obj)
         {
-            return string.Format("`{0}`", obj);
+            // SECURITY: see twin in KonvergenceCore/MetaModel/_Metadati_methods.cs:2403
+            // for full SQL-Injection rationale + repro. MySQL identifier
+            // quoting uses backticks `..` ; the only escape needed is doubling
+            // the backtick: ` -> `` (SQL Server uses ] -> ]] for [..]; same
+            // principle). Without escaping, an admin who controls a metadata
+            // identifier field (e.g. mc_real_column_name) can break out of
+            // the backtick quoting and inject arbitrary SQL.
+            if (obj == null) return "``";
+            return string.Concat("`", obj.Replace("`", "``"), "`");
         }
 
         private static string GetUnqualifiedTableNameForMySql(string tableName)
