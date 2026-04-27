@@ -32,12 +32,12 @@ import Material from '@primeuix/themes/material';
 import { updatePrimaryPalette, usePreset } from '@primeuix/styled';
 
 import {
-  WtoolboxService, MetadataProviderService, GlobalHandler, CustomException,
+  WtoolboxService, MetadataProviderService, GlobalHandler,
   TranslationManagerService, AuthSessionService, getThemeOptions,
   PRIMARY_PALETTES, ThemeOption, LicenseFeatureService
 } from './wuic-bridges/core';
 import { ImageWrapperComponent } from './wuic-bridges/ui';
-import { WuicRagChatbotFabComponent, LazyFirstRunWizardComponent } from './wuic-bridges/public';
+import { WuicRagChatbotFabComponent, LazyFirstRunWizardComponent, WuicErrorDialogComponent } from './wuic-bridges/public';
 import { CustomListComponent } from './component/custom-list/custom-list.component';
 
 @Component({
@@ -45,7 +45,8 @@ import { CustomListComponent } from './component/custom-list/custom-list.compone
   imports: [
     CommonModule, RouterOutlet, NgComponentOutlet, ToggleSwitchModule, SelectModule,
     FormsModule, DialogModule, ButtonModule, TranslateModule, TooltipModule, ToastModule,
-    ConfirmDialogModule, FieldsetModule, WuicRagChatbotFabComponent, LazyFirstRunWizardComponent
+    ConfirmDialogModule, FieldsetModule, WuicRagChatbotFabComponent, LazyFirstRunWizardComponent,
+    WuicErrorDialogComponent,
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
@@ -63,8 +64,9 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
   title = 'wuic-test';
   isDarkMode = false;
 
-  visible: boolean = false;
-  currentException: CustomException;
+  // Error dialog state moved into the lib `<wuic-error-dialog>` component
+  // (skill crash-reporting Commit 9b — Opzione B). Il consumer non subscribe
+  // piu' a GlobalHandler.messageNotification: lo fa il dialog component.
 
   isBusy: BehaviorSubject<boolean> = WtoolboxService.isBusy;
   busyVisible: boolean = false;
@@ -104,13 +106,9 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     WtoolboxService.translationService = translationService;
     WtoolboxService.errorHandler = this.globalHandler;
 
-    GlobalHandler.messageNotification.subscribe((data: any) => {
-      this.currentException = data.exception;
-      this.visible = data.show;
-      // Test/debug only: expose the last rendered exception so e2e probes
-      // can verify which fields the dialog received without DOM scraping.
-      try { (window as any).__wuicLastDialogException = data.exception; } catch { /* noop */ }
-    });
+    // GlobalHandler.messageNotification subscription moved into the lib
+    // `<wuic-error-dialog>` component (Commit 9b). The dialog renders + the
+    // `__wuicLastDialogException` test probe is set there now.
 
     this.authSession = this.injector.get(AuthSessionService);
 
@@ -474,58 +472,7 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     }
   }
 
-  // ─────────────────────────── Error dialog helpers ───────────────────────────
-  // The currentException carries optional fields populated by the SQL passthrough
-  // branch of GlobalHandler (skill typed-localized-exceptions section 4-bis):
-  //   kind: 'sql-passthrough'
-  //   body, sqlDetails, query, parameters, innerExceptions, labels
-  // Plain (legacy) exceptions only have `title` + `stackTrace` and the SQL
-  // sections are hidden via the *ngIf in the template.
-
-  formatParameters(params: Record<string, unknown> | undefined): string {
-    if (!params || typeof params !== 'object') return '';
-    try {
-      return Object.entries(params)
-        .map(([k, v]) => `${k} = ${JSON.stringify(v)}`)
-        .join('\n');
-    } catch {
-      return '';
-    }
-  }
-
-  formatSqlDetails(d: any): string {
-    if (!d) return '';
-    const parts: string[] = [];
-    if (d.number    !== undefined && d.number    !== null) parts.push(`Number: ${d.number}`);
-    if (d.state     !== undefined && d.state     !== null) parts.push(`State: ${d.state}`);
-    if (d.class     !== undefined && d.class     !== null) parts.push(`Class: ${d.class}`);
-    if (d.line      !== undefined && d.line      !== null) parts.push(`Line: ${d.line}`);
-    if (d.procedure)                                       parts.push(`Procedure: ${d.procedure}`);
-    if (d.server)                                          parts.push(`Server: ${d.server}`);
-    if (d.database)                                        parts.push(`DB: ${d.database}`);
-    return parts.join('  ·  ');
-  }
-
-  /**
-   * Copy a self-contained text blob with everything the user might paste
-   * into a ticket / DBA chat: message, query, parameters, stack.
-   */
-  copyErrorDetails(): void {
-    const e: any = this.currentException;
-    if (!e) return;
-    const sections: string[] = [];
-    if (e.title) sections.push(`# ${e.title}`);
-    if (e.body)  sections.push(e.body);
-    const det = this.formatSqlDetails(e.sqlDetails);
-    if (det)     sections.push(det);
-    if (e.query) sections.push('-- Query --\n' + e.query);
-    const pars = this.formatParameters(e.parameters);
-    if (pars)    sections.push('-- Parameters --\n' + pars);
-    if (e.stackTrace) sections.push('-- Stack --\n' + e.stackTrace);
-    if (e.traceId)    sections.push(`traceId: ${e.traceId}`);
-    const text = sections.join('\n\n');
-    try {
-      navigator?.clipboard?.writeText(text);
-    } catch { /* clipboard unavailable, e.g. in headless without permission */ }
-  }
+  // formatParameters / formatSqlDetails / copyErrorDetails moved into the
+  // lib `<wuic-error-dialog>` component (Commit 9b — Opzione B). Niente
+  // duplicazione tra consumer.
 }

@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>WuicCrashReceiver</RootNamespace>
+    <AssemblyName>WuicCrashReceiver</AssemblyName>
+    <UserSecretsId>wuic-crash-receiver-2026</UserSecretsId>
+    <!--
+      Self-contained deploy non strettamente necessario (server gia' ha .NET runtime
+      visto che KonvergenceCore + WuicSite girano la'). Mantenere standard publish
+      framework-dependent: zip piu' piccolo, riusa runtime di sistema.
+    -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.0.1" />
+    <!-- Plain System.Text.Json sufficient for ingest payload deserialization. -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- web.config: copiato in publish per IIS ANCM hosting (skill crash-reporting Commit 11). -->
+    <None Update="web.config" CopyToPublishDirectory="PreserveNewest" />
+    <!-- NOTA: i file in wwwroot/admin/ vengono inclusi automaticamente da
+         Microsoft.NET.Sdk.Web come `Content` (vedi NETSDK1022 se ribaditi
+         qui esplicitamente). Niente da fare — il publish li copia gia'. -->
+  </ItemGroup>
+
+</Project>

@@ -35,6 +35,9 @@
     },
     {
       "path": "WuicSite"
+    },
+    {
+      "path": "WuicCrashReceiver"
     }
   ],
   "settings": {

@@ -27,11 +27,11 @@ import Lara from '@primeng/themes/lara';
 import Nora from '@primeng/themes/nora';
 import Material from '@primeng/themes/material';
 import { updatePrimaryPalette, usePreset } from '@primeuix/styled';
-import { WtoolboxService, MetadataProviderService, GlobalHandler, CustomException, TranslationManagerService, AuthSessionService } from './wuic-bridges/core';
+import { WtoolboxService, MetadataProviderService, GlobalHandler, TranslationManagerService, AuthSessionService, WuicErrorDialogComponent } from './wuic-bridges/core';
 
 @Component({
   selector: 'app-root',
-  imports: [AsyncPipe, RouterOutlet, NgComponentOutlet, ToggleSwitchModule, SelectModule, FormsModule, DialogModule, ButtonModule, TranslateModule, ToastModule, ConfirmDialogModule],
+  imports: [AsyncPipe, RouterOutlet, NgComponentOutlet, ToggleSwitchModule, SelectModule, FormsModule, DialogModule, ButtonModule, TranslateModule, ToastModule, ConfirmDialogModule, WuicErrorDialogComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
   providers: [MessageService, ConfirmationService, DialogService, GlobalHandler]
@@ -61,8 +61,10 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
   // #document = inject(DOCUMENT);
   isDarkMode = false;
 
-  visible: boolean = false;
-  currentException: CustomException;
+
+  // Error dialog state moved into the lib `<wuic-error-dialog>` component
+  // (skill crash-reporting Commit 9b — Opzione B). Il consumer non subscribe
+  // piu' a GlobalHandler.messageNotification: lo fa il dialog component.
 
   isBusy: BehaviorSubject<boolean>;
   fixBusy: boolean = false;
@@ -138,10 +140,8 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     WtoolboxService.translationService = translationService;
     WtoolboxService.errorHandler = this.globalHandler;
 
-    GlobalHandler.messageNotification.subscribe((data) => {
-      this.currentException = data.exception;
-      this.visible = data.show;
-    });
+    // GlobalHandler.messageNotification subscription moved into the lib
+    // `<wuic-error-dialog>` component (Commit 9b).
 
     // this.notificationRealtime.unreadCount$.subscribe((count) => {
     //   this.unreadNotificationsCount = Number(count || 0);

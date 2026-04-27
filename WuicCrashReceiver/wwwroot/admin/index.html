@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WUIC Crash Admin</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header>
+    <h1>WUIC Crash Admin</h1>
+    <div class="header-actions">
+      <span id="auth-status" class="auth-status auth-status--unset">no token</span>
+      <button id="btn-set-token" class="btn-secondary">Set bearer</button>
+      <button id="btn-logout" class="btn-secondary" style="display:none">Forget token</button>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- View 1: list -->
+    <section id="view-list" class="view view-active">
+      <div class="filter-bar">
+        <input id="f-error-code" type="text" placeholder="errorCode (esatto)">
+        <input id="f-client-id" type="text" placeholder="clientId (email license)">
+        <select id="f-resolved">
+          <option value="">tutti</option>
+          <option value="0">aperti</option>
+          <option value="1">risolti</option>
+        </select>
+        <input id="f-since" type="datetime-local" title="last_seen >= ...">
+        <button id="btn-refresh" class="btn-primary">Cerca</button>
+        <span id="list-status" class="list-status"></span>
+      </div>
+      <div class="table-wrapper">
+        <table id="t-list">
+          <thead>
+            <tr>
+              <th>id</th>
+              <th>last_seen</th>
+              <th>occ</th>
+              <th>source</th>
+              <th>client</th>
+              <th>release</th>
+              <th>type</th>
+              <th>errorCode</th>
+              <th>message</th>
+              <th>state</th>
+            </tr>
+          </thead>
+          <tbody id="t-list-body"></tbody>
+        </table>
+      </div>
+      <div class="paginator">
+        <button id="btn-prev">&lt;</button>
+        <span id="page-info"></span>
+        <button id="btn-next">&gt;</button>
+      </div>
+    </section>
+
+    <!-- View 2: detail -->
+    <section id="view-detail" class="view">
+      <button id="btn-back" class="btn-secondary">&larr; Torna alla lista</button>
+      <div id="detail-body"></div>
+    </section>
+  </main>
+
+  <div id="dialog-token" class="dialog-overlay" style="display:none">
+    <div class="dialog">
+      <h2>Bearer token admin</h2>
+      <p>Incollare qui il valore di <code>Admin:BearerToken</code>. Salvato solo in <code>localStorage</code> di questo browser, mai trasmesso a terze parti. Per produzione: usa l'IP whitelist su IIS, il bearer e' fallback.</p>
+      <input id="dialog-token-input" type="password" autocomplete="off" placeholder="bearer token">
+      <div class="dialog-actions">
+        <button id="dialog-token-cancel" class="btn-secondary">Annulla</button>
+        <button id="dialog-token-save" class="btn-primary">Salva</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>

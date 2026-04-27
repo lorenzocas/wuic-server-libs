@@ -6,4 +6,5 @@ export { TranslationManagerService } from 'wuic-framework-lib-src/service/transl
 export { authExpiredInterceptor } from 'wuic-framework-lib-src/interceptor/auth-expired.interceptor';
 export { GlobalHandler } from 'wuic-framework-lib-src/handler/GlobalHandler';
 export { CustomException } from 'wuic-framework-lib-src/class/customException';
+export { WuicErrorDialogComponent } from 'wuic-framework-lib-src/component/error-dialog/error-dialog.component';
 export { MetadatiColonna } from 'wuic-framework-lib-src/class/metadati_colonna';

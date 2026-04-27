@@ -1,0 +1,50 @@
+{
+  "_comment": "Skill crash-reporting Commit 11 — PRODUCTION configuration template.",
+  "_instructions": [
+    "1. Copy this file to `appsettings.Production.json` (NEVER commit the real one).",
+    "2. Replace ALL the REPLACE_AT_DEPLOY_* placeholders.",
+    "3. Deploy with: pwsh deploy-receiver.ps1",
+    "4. The published .NET app picks `appsettings.Production.json` when",
+    "   ASPNETCORE_ENVIRONMENT=Production (set by web.config <environmentVariables>).",
+    "Do NOT check the populated appsettings.Production.json into git — it",
+    "contains the SQL password and the admin bearer token."
+  ],
+
+  "Logging": {
+    "LogLevel": {
+      "Default": "Warning",
+      "WuicCrashReceiver": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+
+  "ConnectionStrings": {
+    "WuicCrashes": "Data Source=REPLACE_AT_DEPLOY_SQLSERVER_HOST;Initial Catalog=WuicCrashes;User ID=REPLACE_AT_DEPLOY_SQL_USER;Password=REPLACE_AT_DEPLOY_SQL_PASSWORD;Encrypt=True;TrustServerCertificate=True"
+  },
+
+  "License": {
+    "PublicKeyPem": "-----BEGIN RSA PUBLIC KEY-----\nREPLACE_AT_DEPLOY_WITH_RSA_PUBLIC_KEY_PEM\n-----END RSA PUBLIC KEY-----",
+    "GracePeriodDays": 30
+  },
+
+  "Smtp": {
+    "Host": "smtp.zoho.eu",
+    "Port": 587,
+    "UseStartTls": true,
+    "Username": "licenses@wuic-framework.com",
+    "Password": "REPLACE_AT_DEPLOY_SMTP_PASSWORD",
+    "FromEmail": "licenses@wuic-framework.com",
+    "FromName": "WUIC Framework"
+  },
+
+  "Admin": {
+    "_comment": "Decisione 12 (skill crash-reporting): admin auth = solo IP whitelist in produzione. AllowedIp e' la lista CSV degli IP statici autorizzati (workstation amministratore). Il bearer token resta come fallback emergency in caso di IP change improvviso. AllowLoopback=false in prod cosi' un attaccante che riesce ad eseguire codice sulla macchina IIS non puo' bypassare l'auth tramite localhost.",
+    "AllowedIp": "REPLACE_AT_DEPLOY_ADMIN_IPS_CSV",
+    "BearerToken": "REPLACE_AT_DEPLOY_RANDOM_64CHAR_HEX",
+    "AllowLoopback": false
+  },
+
+  "CrashReceiver": {
+    "MappingsRoot": "C:/wuic-obfuscar-mappings"
+  }
+}
