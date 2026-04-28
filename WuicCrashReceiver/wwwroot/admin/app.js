@@ -10,7 +10,8 @@
  *   GET  /api/admin/crash/list?errorCode=&clientId=&resolved=&since=&page=&pageSize=
  *   GET  /api/admin/crash/{id}
  *   POST /api/admin/crash/{id}/resolve   { resolved, resolvedBy, notes }
- *   POST /api/crash/deobfuscate          { release, assembly, stack }
+ *   POST /api/crash/deobfuscate          { release, assembly, stack }   ← .NET (ConfuserEx symbols.map)
+ *   POST /api/crash/deobfuscate-js       { release, stack }             ← JS  (sourcemap V3 .js.map sotto iis/)
  *
  * Auth:
  *   - In dev: AllowLoopback=true → niente bearer richiesto da localhost.
@@ -177,7 +178,7 @@ function renderDetail(d) {
     <p style="font-size:0.95rem; white-space:pre-wrap; color:var(--fg);">${escapeHtml(d.message)}</p>
 
     <div class="detail-actions">
-      <button id="btn-deobfuscate" class="btn-primary">Deobfuscate stack</button>
+      <button id="btn-deobfuscate" class="btn-primary">${(d.source || '').toLowerCase() === 'js' ? 'Deobfuscate JS stack' : 'Deobfuscate stack'}</button>
       <button id="btn-toggle-resolved" class="btn-secondary">${d.resolved ? 'Riapri' : 'Marca risolto'}</button>
       <button id="btn-copy" class="btn-secondary">Copia tutto</button>
     </div>
@@ -222,30 +223,48 @@ function renderDetail(d) {
 }
 
 async function onDeobfuscate(d) {
-  // Heuristic: per il .NET il MappingsRoot e' indicizzato come WuicCore.
-  // Qui assumiamo l'assembly principale e' WuicCore — Commit 5 supporta
-  // gia' il body { release, assembly, stack }.
-  const release = d.releaseTag.replace(/^wuic@/, '');
-  const assembly = 'WuicCore';
+  // Switch endpoint in base al source del crash:
+  //   .net → /api/crash/deobfuscate     (ConfuserEx symbols.map)
+  //   js   → /api/crash/deobfuscate-js  (sourcemap V3 .js.map sotto iis/)
+  // releaseTag arriva dall'ingest tipo "wuic@1.0.11" → strippa il prefix.
+  const release = (d.releaseTag || '').replace(/^wuic@/, '').trim();
+  const isJs = (d.source || '').toLowerCase() === 'js';
   const btn = $('btn-deobfuscate');
   btn.disabled = true;
-  btn.textContent = 'deobfuscating…';
+  btn.textContent = isJs ? 'deobfuscating JS…' : 'deobfuscating…';
+  const baseLabel = isJs ? 'Deobfuscate JS stack' : 'Deobfuscate stack';
   try {
-    const resp = await api('POST', '/api/crash/deobfuscate', {
-      release, assembly, stack: d.stackRaw
-    });
+    let resp;
+    if (isJs) {
+      resp = await api('POST', '/api/crash/deobfuscate-js', { release, stack: d.stackRaw });
+    } else {
+      // Heuristic .NET: assumiamo l'assembly principale e' WuicCore.
+      // Commit 5 supporta gia' il body { release, assembly, stack }.
+      resp = await api('POST', '/api/crash/deobfuscate', {
+        release, assembly: 'WuicCore', stack: d.stackRaw
+      });
+    }
     if (resp.ok && resp.deobfuscated) {
       $('detail-stack').textContent = resp.deobfuscated;
-      btn.textContent = `Done (${resp.stats?.parsedMethods || 0} methods)`;
+      // Stat label dipende dal source (shape diversa di stats).
+      let statLabel;
+      if (isJs) {
+        const s = resp.stats || {};
+        statLabel = `Done (${s.hitCount || 0}/${s.totalLookups || 0} hits, ${(s.chunksReferenced || []).length} chunks)`;
+        if (s.missCount > 0) statLabel += ` — ${s.missCount} miss`;
+      } else {
+        statLabel = `Done (${resp.stats?.parsedMethods || 0} methods)`;
+      }
+      btn.textContent = statLabel;
     } else {
       btn.textContent = 'mapping not found';
-      setTimeout(() => { btn.textContent = 'Deobfuscate stack'; btn.disabled = false; }, 2000);
+      setTimeout(() => { btn.textContent = baseLabel; btn.disabled = false; }, 2000);
       return;
     }
   } catch (e) {
     btn.textContent = 'errore: ' + e.message;
   }
-  setTimeout(() => { btn.textContent = 'Deobfuscate stack'; btn.disabled = false; }, 3000);
+  setTimeout(() => { btn.textContent = baseLabel; btn.disabled = false; }, 3000);
 }
 
 async function onToggleResolved(d) {

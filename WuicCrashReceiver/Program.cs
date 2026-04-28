@@ -46,6 +46,9 @@ builder.Services.AddSingleton<LicenseRegistryService>();
 // che soffriva del bug Original==New di Obfuscar 2.x).
 builder.Services.AddSingleton<ConfuserSymbolMapParser>();
 builder.Services.AddSingleton<ConfuserSymbolMapCache>();
+// JS sourcemap deobfuscation: legge i `.js.map` uppati da deploy-release.ps1
+// sotto {MappingsRoot}/{release}/iis/. Servito da POST /api/crash/deobfuscate-js.
+builder.Services.AddSingleton<JsSourceMapCache>();
 builder.Services.AddSingleton<AdminAuth>();
 
 var app = builder.Build();
@@ -292,6 +295,77 @@ app.MapPost("/api/crash/deobfuscate", async (HttpRequest req,
             EntryCount = mapping.EntryCount,
             SkippedLineCount = mapping.SkippedLineCount,
             Collisions = mapping.Collisions.Count,
+        }
+    });
+});
+
+// JS sourcemap deobfuscation. Estrae triplet `chunk-XXX.js:line:col` dallo
+// stack-trace, fa lookup nei `.js.map` uppati sotto {MappingsRoot}/{release}/iis/,
+// annota inline ogni riga risolta con `→ src/foo/bar.ts:42:8 (Name)`.
+//
+//   POST /api/crash/deobfuscate-js
+//   Body: { release, stack }
+//   Risposta: { ok, deobfuscated, stats }
+//
+// Auth: stesso AdminAuth (IP whitelist + bearer).
+app.MapPost("/api/crash/deobfuscate-js", async (HttpRequest req,
+                                                  AdminAuth auth,
+                                                  JsSourceMapCache cache,
+                                                  ILogger<Program> log,
+                                                  CancellationToken ct) =>
+{
+    if (!auth.Authorize(req, out var authError))
+        return Results.Json(new DeobfuscateJsResponse { Ok = false, Error = authError }, statusCode: 401);
+
+    DeobfuscateJsRequest? body;
+    try { body = await JsonSerializer.DeserializeAsync<DeobfuscateJsRequest>(req.Body, cancellationToken: ct); }
+    catch { return Results.Json(new DeobfuscateJsResponse { Ok = false, Error = "body_invalid_json" }, statusCode: 400); }
+    if (body is null)
+        return Results.Json(new DeobfuscateJsResponse { Ok = false, Error = "body_missing" }, statusCode: 400);
+    if (string.IsNullOrWhiteSpace(body.Release))
+        return Results.Json(new DeobfuscateJsResponse { Ok = false, Error = "release_missing" }, statusCode: 400);
+    if (string.IsNullOrWhiteSpace(body.Stack))
+        return Results.Json(new DeobfuscateJsResponse { Ok = false, Error = "stack_missing" }, statusCode: 400);
+
+    // Pattern: cattura nomi file chunk emessi da esbuild (formato `chunk-<hash>.js`)
+    // o nomi tipo `main-<hash>.js`/`polyfills-<hash>.js`/`runtime-<hash>.js` con line:col.
+    // Esempio match: "chunk-DI4ZRJPY.js:1:34526" oppure "main-ABCDEFGH.js:42:7".
+    var rx = new System.Text.RegularExpressions.Regex(
+        @"\b([A-Za-z][A-Za-z0-9_\-]*\.js):(\d+):(\d+)",
+        System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    int hits = 0, misses = 0;
+    var chunksSeen = new HashSet<string>(StringComparer.Ordinal);
+
+    var rewritten = rx.Replace(body.Stack!, m =>
+    {
+        var chunk = m.Groups[1].Value;
+        if (!int.TryParse(m.Groups[2].Value, out var ln)) return m.Value;
+        if (!int.TryParse(m.Groups[3].Value, out var col)) return m.Value;
+        chunksSeen.Add(chunk);
+
+        var map = cache.TryGet(body.Release!, chunk);
+        if (map is null) { misses++; return m.Value; }
+
+        // Source map V3: GenLine 0-based. Browser stack trace: 1-based. Adjust.
+        var hit = map.Lookup(ln - 1, col - 1);
+        if (hit is null) { misses++; return m.Value; }
+
+        hits++;
+        var name = hit.Value.Name is { Length: > 0 } n ? $" ({n})" : "";
+        return $"{m.Value}  →  {hit.Value.Source}:{hit.Value.SrcLine + 1}:{hit.Value.SrcCol + 1}{name}";
+    });
+
+    return Results.Json(new DeobfuscateJsResponse
+    {
+        Ok = true,
+        Deobfuscated = rewritten,
+        Stats = new DeobfuscateJsStats
+        {
+            TotalLookups = hits + misses,
+            HitCount = hits,
+            MissCount = misses,
+            ChunksReferenced = chunksSeen.OrderBy(s => s, StringComparer.Ordinal).ToList(),
         }
     });
 });
