@@ -6,21 +6,38 @@ namespace WuicCrashReceiver.Services;
 /// <summary>
 ///  Server-side hard filter (skill crash-reporting Commit 8b — modello M3 ibrido).
 ///
-///  Decide se un payload deve essere accettato e inserito in
-///  <c>_wuic_crash_reports</c>, o droppato silenziosamente. Sequenza:
+///  ── Filosofia (revisione 2026-04-28) ─────────────────────────────────
+///  Il filter e' un sistema di **noise reduction**, NON una whitelist
+///  difensiva. La filosofia originale "default deny + esplicito allow"
+///  era sbagliata per il caso d'uso: gli errori NON listati (codici
+///  nuovi, errori imprevisti del framework, eccezioni .NET non
+///  pianificate) sono esattamente quelli che hanno valore di triage
+///  massimo. Bloccarli per "no_match" significava perdere i veri
+///  unhandled. Inversione: **default accept** via fallback al pattern
+///  catch-all <c>&lt;unhandled&gt;</c>, gli operatori usano la allowlist
+///  table SOLO per disable/sample-down/rate-limit codici noti come noise.
 ///
-///   1. **Match pattern** contro <c>_wuic_crash_allowlist</c>.
-///      - Esatto: pattern == errorCode (o "&lt;unhandled&gt;" se errorCode null).
-///      - Prefix: pattern termina in '%' (LIKE-style).
-///      - No match → reject (default: solo cio' che e' esplicitamente listato passa).
+///  ── Sequenza decisionale ────────────────────────────────────────────
+///   1. **Match pattern** contro <c>_wuic_crash_allowlist</c>:
+///      - Esatto: pattern == errorCode (o <c>&lt;unhandled&gt;</c> se errorCode null).
+///      - Prefix: pattern termina in '%' (LIKE-style), longest-prefix wins.
+///      - **Fallback**: nessun match → uso la regola <c>&lt;unhandled&gt;</c>
+///        come catch-all (rate-limit + sample del DB).
+///      - Se manca anche <c>&lt;unhandled&gt;</c>: fail-open (accetta tutto).
+///        Significa "tabella vuota o DB down" — meglio accettare temp che
+///        droppare 100% del traffico.
 ///
-///   2. **Sample rate** deterministico via <c>stack_hash</c> (NOT random):
+///   2. **Disabled gate**: se la regola matcha ma <c>enabled=0</c>, drop
+///      con <c>allowlist_disabled</c> (l'operatore ha esplicitamente
+///      silenziato questo pattern come noise).
+///
+///   3. **Sample rate** deterministico via <c>stack_hash</c> (NOT random):
 ///      bucket = (FNV(stack_hash) mod 1000) / 1000.0; accetta se bucket &lt; sample_rate.
 ///      Determinismo importante: lo stesso bug ha sempre lo stesso sample
 ///      decision, quindi la dedup MERGE non si rompe (un bug non puo' essere
 ///      "dentro" su un'occorrenza e "fuori" sulla successiva).
 ///
-///   3. **Rate limit** per <c>(client_id, error_code, hour_bucket)</c>:
+///   4. **Rate limit** per <c>(client_id, error_code, hour_bucket)</c>:
 ///      MERGE incremento del counter atomico in
 ///      <c>_wuic_crash_rate_buckets</c>. Se counter post-incremento &gt;=
 ///      <c>rate_limit_per_hour</c>, reject. NULL = no limit.
@@ -67,7 +84,25 @@ public sealed class AllowlistFilter
         var key = string.IsNullOrEmpty(errorCode) ? UnhandledSentinel : errorCode;
 
         var matched = await GetMatchingPatternAsync(key, ct);
-        if (matched is null) return new FilterDecision(false, "allowlist_no_match");
+
+        // Default-accept (revisione 2026-04-28): se nessun pattern matcha
+        // l'errorCode esattamente o per prefix, fallback al catch-all
+        // <unhandled>. Questo significa che gli errori NON listati passano
+        // con la policy del catch-all (di solito rate-limit alto + sample 1.0).
+        // La filosofia precedente "default deny" silenziava esattamente i
+        // codici nuovi/imprevisti che hanno valore di triage massimo.
+        if (matched is null)
+        {
+            matched = await GetExactPatternAsync(UnhandledSentinel, ct);
+            if (matched is null)
+            {
+                // Tabella vuota o DB down: fail-open. Meglio accettare con
+                // policy permissiva che droppare 100% del traffico crash
+                // proprio nel momento in cui l'admin sta debuggando.
+                _log.LogWarning("AllowlistFilter: no <unhandled> catch-all and no exact/prefix match for code='{Code}' — fail-open accept", key);
+                return new FilterDecision(true, null);
+            }
+        }
         if (!matched.Enabled) return new FilterDecision(false, "allowlist_disabled");
 
         // Sample rate (deterministico).
@@ -87,6 +122,21 @@ public sealed class AllowlistFilter
         }
 
         return new FilterDecision(true, null);
+    }
+
+    /// <summary>
+    ///  Lookup esatto di un pattern (no prefix-match). Usato per il fallback
+    ///  a `&lt;unhandled&gt;` come catch-all.
+    /// </summary>
+    private async Task<Pattern?> GetExactPatternAsync(string key, CancellationToken ct)
+    {
+        var patterns = await GetCachedPatternsAsync(ct);
+        foreach (var p in patterns)
+        {
+            if (string.Equals(p.Value, key, StringComparison.Ordinal))
+                return p;
+        }
+        return null;
     }
 
     private async Task<Pattern?> GetMatchingPatternAsync(string key, CancellationToken ct)
