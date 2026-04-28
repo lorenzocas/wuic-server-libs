@@ -108,6 +108,7 @@ app.MapGet("/health", () => Results.Ok(new
 app.MapPost("/api/crash/ingest", async (HttpRequest req,
                                         LicenseSignatureVerifier verifier,
                                         CrashIngestService ingest,
+                                        CrashConsentService consents,
                                         IConfiguration cfg,
                                         ILogger<Program> log,
                                         CancellationToken ct) =>
@@ -115,20 +116,65 @@ app.MapPost("/api/crash/ingest", async (HttpRequest req,
     string licensePayloadB64 = req.Headers["X-Wuic-License-Payload"].ToString();
     string licenseSignatureB64 = req.Headers["X-Wuic-License-Signature"].ToString();
 
-    var verify = verifier.Verify(licensePayloadB64, licenseSignatureB64);
-    if (!verify.Valid || verify.Payload is null)
+    // Anonymous-trial path (policy 2026-04-28): se le license headers sono
+    // assenti / vuote, accettiamo comunque il payload come "anonymous trial".
+    // Razionale: i deploy trial / dev / demo hanno `CrashReporting:Enabled=true`
+    // (gate sender-side che esprime l'opt-in dell'admin) ma nessuna licenza
+    // attivata. Vogliamo comunque la loro telemetria per fixare gli errori
+    // pre-purchase. Skippiamo verify firma + grace + registry + consent gate
+    // (sender's Enabled=true E' il consent in questo path).
+    //
+    // Anti-abuse residuo: l'AllowlistFilter applica rate-limit per
+    // (client_id, error_code, hour_bucket). Per gli anonymous trial usiamo
+    // come `client_id` un derivato dal `machine_fingerprint` del payload
+    // (fallback: client IP) cosi' uno spammer non puo' inflate il counter
+    // di un altro tenant cambiando solo l'errorCode.
+    bool isAnonymousTrial = string.IsNullOrWhiteSpace(licensePayloadB64)
+                            || string.IsNullOrWhiteSpace(licenseSignatureB64);
+
+    LicenseSignatureVerifier.VerifyResult verify;
+    if (isAnonymousTrial)
     {
-        log.LogWarning("Crash ingest rejected: license verify failed = {Error}", verify.Error);
-        return Results.Json(new CrashIngestResponse { Ok = false, Error = "license_invalid" }, statusCode: 401);
+        // Synthesize una LicensePayload fittizia per il path downstream.
+        // Email = sentinella "anonymous-trial" + identifier stabile dal request
+        // (fingerprint del payload, riempito poi da IngestAsync). Qui mettiamo
+        // un placeholder generico: IngestAsync sovrascrive `clientId` da
+        // `license.Email` ma siccome il body include `MachineFingerprint`,
+        // useremo quello come parte del clientId effettivo (vedi sotto).
+        verify = new LicenseSignatureVerifier.VerifyResult(
+            Valid: true,
+            Error: null,
+            Payload: new LicenseSignatureVerifier.LicensePayload(
+                Email: "anonymous-trial@wuic-framework.com",
+                ExpiryUtc: DateTimeOffset.UtcNow.AddYears(10), // never expires (it's anon)
+                MachineFingerprints: System.Array.Empty<string>(),
+                MaintenanceExpiryUtc: null,
+                Tier: "trial",
+                Features: System.Array.Empty<string>()));
+        log.LogDebug("Crash ingest accepted (anonymous trial — no license headers)");
+    }
+    else
+    {
+        verify = verifier.Verify(licensePayloadB64, licenseSignatureB64);
+        if (!verify.Valid || verify.Payload is null)
+        {
+            // Headers presenti ma firma INVALIDA → 401 (protezione tampering).
+            // Non degradiamo a anonymous trial qui: chi prova a inviare con
+            // una firma sbagliata sta tentando lo spoof di una licenza vera,
+            // non e' lo stesso scenario del trial-no-license.
+            log.LogWarning("Crash ingest rejected: license verify failed = {Error}", verify.Error);
+            return Results.Json(new CrashIngestResponse { Ok = false, Error = "license_invalid" }, statusCode: 401);
+        }
     }
 
     // Grace period: una license expired puo' ancora ingestare crash (utile per
     // catturare i crash tipici di expiry-related code paths). Marchiamo la
     // riga con license_expired_at_ingest=1 cosi' il triage lo vede.
+    // SKIP per anonymous trial (la expiry e' sintetica far-future).
     int graceDays = int.TryParse(cfg["License:GracePeriodDays"], out var g) ? g : 30;
     DateTimeOffset cutoff = DateTimeOffset.UtcNow.AddDays(-graceDays);
-    bool licenseExpiredAtIngest = verify.Payload.ExpiryUtc < DateTimeOffset.UtcNow;
-    if (verify.Payload.ExpiryUtc < cutoff)
+    bool licenseExpiredAtIngest = !isAnonymousTrial && verify.Payload.ExpiryUtc < DateTimeOffset.UtcNow;
+    if (!isAnonymousTrial && verify.Payload.ExpiryUtc < cutoff)
     {
         log.LogWarning("Crash ingest rejected: license past grace ({Expiry} < {Cutoff}) for {Email}",
             verify.Payload.ExpiryUtc, cutoff, verify.Payload.Email);
@@ -146,6 +192,8 @@ app.MapPost("/api/crash/ingest", async (HttpRequest req,
     //
     // Per passare a strict (rifiuto anche dei not-registered), modificare qui.
     // Decisione cosciente: niente toggle in appsettings, e' code-controlled.
+    // SKIP per anonymous trial (non c'e' license_history row da cercare).
+    if (!isAnonymousTrial)
     {
         var licReg = app.Services.GetRequiredService<LicenseRegistryService>();
         var entry = await licReg.FindByPayloadAsync(licensePayloadB64, ct);
@@ -162,6 +210,30 @@ app.MapPost("/api/crash/ingest", async (HttpRequest req,
         }
     }
 
+    // GDPR consent gate (2026-04-28): prima di accettare il payload verifichiamo
+    // che il client abbia il consenso ATTIVO. La tabella `_wuic_crash_consents`
+    // e' append-only; lo stato corrente e' la riga piu' recente per `client_id`
+    // ordinata per `consent_timestamp DESC`. Se l'ultima toggle e' granted=0
+    // (opt-out) o non c'e' nessuna riga (mai dato consent), droppiamo il
+    // payload con HTTP 200 + reason `consent_missing` cosi' il sender non
+    // ritenta inutilmente. NON e' 4xx perche' non e' un errore protocollo —
+    // e' una scelta dell'utente che il sender deve rispettare lato suo
+    // (UI gli ha gia' mostrato l'opt-out, non c'e' nulla da fixare).
+    // SKIP consent gate per anonymous trial: il sender ha gia' espresso
+    // l'opt-in tramite `CrashReporting:Enabled=true` lato client. Non c'e'
+    // un email-based identity da cui pescare la riga consents (e creare
+    // righe consent fake per anonymous trial inquinerebbe l'audit GDPR).
+    if (!isAnonymousTrial)
+    {
+        string clientIdForConsent = (verify.Payload.Email ?? "").Trim().ToLowerInvariant();
+        bool consentActive = await consents.IsConsentGrantedAsync(clientIdForConsent, ct);
+        if (!consentActive)
+        {
+            log.LogInformation("Crash ingest dropped: no active consent for {Client}", clientIdForConsent);
+            return Results.Json(new CrashIngestResponse { Ok = false, Error = "consent_missing" }, statusCode: 200);
+        }
+    }
+
     CrashReportPayload? body;
     try
     {
@@ -173,6 +245,23 @@ app.MapPost("/api/crash/ingest", async (HttpRequest req,
     }
     if (body is null)
         return Results.Json(new CrashIngestResponse { Ok = false, Error = "body_missing" }, statusCode: 400);
+
+    // Anonymous trial: deriva client_id stabile dal `machine_fingerprint` del
+    // body (fallback: IP del client). Senza questo, tutto il traffico anon
+    // collasserebbe sotto lo stesso `client_id="anonymous-trial@..."` e
+    // l'AllowlistFilter rate-limiterebbe in cumulo, creando false positive
+    // per altri trial. Il fingerprint e' gia' un hash stabile sha256 del
+    // machine name lato sender (vedi CrashReportingService.ResolveMachineFingerprint).
+    if (isAnonymousTrial)
+    {
+        string anonId = !string.IsNullOrWhiteSpace(body.MachineFingerprint)
+            ? "trial:fp:" + body.MachineFingerprint
+            : "trial:ip:" + (req.HttpContext?.Connection?.RemoteIpAddress?.ToString() ?? "unknown");
+        verify = new LicenseSignatureVerifier.VerifyResult(
+            Valid: true,
+            Error: null,
+            Payload: verify.Payload! with { Email = anonId });
+    }
 
     var outcome = await ingest.IngestAsync(body, verify.Payload, licenseExpiredAtIngest, ct);
     return Results.Json(new CrashIngestResponse

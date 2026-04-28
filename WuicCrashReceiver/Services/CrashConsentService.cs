@@ -79,6 +79,60 @@ VALUES
         }
     }
 
+    /// <summary>
+    ///  Determina se il client ha attualmente il consenso GDPR per il
+    ///  crash reporting. Strategia: leggi la riga PIU' RECENTE per
+    ///  <c>client_id</c> ordinata per <c>consent_timestamp DESC, id DESC</c>
+    ///  (tie-breaker su id se due toggle nello stesso ms) e ritorna
+    ///  <c>granted == 1</c>.
+    ///
+    ///  ── Razionale ───────────────────────────────────────────────────
+    ///  La tabella e' append-only per audit GDPR art. 7 (storico
+    ///  immutabile dei consensi). Quindi un cliente che ha fatto
+    ///  opt-in (granted=1) e poi opt-out (granted=0) ha 2 righe:
+    ///  l'ULTIMA dice lo stato corrente. Senza l'<c>ORDER BY</c>
+    ///  potremmo prendere una riga vecchia.
+    ///
+    ///  ── Casi ────────────────────────────────────────────────────────
+    ///   - Nessuna riga per clientId          → false (mai consentito)
+    ///   - Ultima riga ha granted=1           → true  (opt-in attivo)
+    ///   - Ultima riga ha granted=0           → false (opt-out attivo)
+    ///   - DB irraggiungibile / SQL error     → fail-open (true) +
+    ///       LogError. Razionale: meglio accettare crash temp con DB
+    ///       down che droppare 100% del traffico telemetria.
+    /// </summary>
+    public async Task<bool> IsConsentGrantedAsync(string clientId, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(clientId)) return false;
+        const string sql = @"
+SELECT TOP 1 consent_granted
+FROM dbo._wuic_crash_consents
+WHERE client_id = @client_id
+ORDER BY consent_timestamp DESC, id DESC;";
+        try
+        {
+            await using var cn = new SqlConnection(_connectionString);
+            await cn.OpenAsync(ct);
+            await using var cmd = new SqlCommand(sql, cn);
+            cmd.Parameters.AddWithValue("@client_id", clientId);
+            var result = await cmd.ExecuteScalarAsync(ct);
+            if (result is null || result == DBNull.Value) return false;
+            // bit column → ritorna come bool/byte/int a seconda del provider
+            return result switch
+            {
+                bool b => b,
+                int i => i != 0,
+                byte by => by != 0,
+                _ => Convert.ToInt32(result) != 0,
+            };
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "IsConsentGrantedAsync DB error for client={Client} — fail-open accept", clientId);
+            return true; // fail-open: vedi razionale nel doc-comment
+        }
+    }
+
     private static string Truncate(string s, int max) =>
         s.Length <= max ? s : s.Substring(0, max);
     private static string? TruncateOrNull(string? s, int max) =>
