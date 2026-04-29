@@ -1021,19 +1021,33 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
         {
             using (MySqlConnection connection = string.IsNullOrEmpty(infos.user_db_name) ? metaQueryMySql.GetOpenConnection(true) : metaQueryMySql.getSpecificConnection(infos.user_db_name))
             {
+                // Allineato a MSSQL `Utility_mssql.cs:authenticate(infos,user)`: i messaggi
+                // di eccezione (`session_expired`, `auth_exception`, `session_replaced`) sono
+                // matched dal client (auth-expired.interceptor / auth-session.service) per
+                // distinguere expired da kicked-out e mostrare la banner rossa "session_replaced"
+                // sotto la form di login. Su MySQL prima si lanciava generic "Authentication
+                // exception!" → niente banner.
                 Dapper.SqlMapper.FastExpando token = connection.Query(string.Format("SELECT token, ip FROM {0} WHERE {1} = '{2}' and ADDDATE(LastActivityDate, Interval " + ConfigHelper.GetSettingAsString("sessionTimeoutMinutes") + " MINUTE) > NOW()", infos.user_table_name, infos.user_id_column_name, user.user_id)).FirstOrDefault();
 
                 if (token == null)
-                    throw new AuthenticationException("Session expired!");
+                    throw new SessionExpiredException("session_expired");
 
                 string current_ip = HttpContext.Current.Request.UserHostAddress;
                 string saved_token = token.data["token"].ToString();
                 string saved_ip = token.data["ip"].ToString();
 
-                if (saved_token != user.user_token || current_ip != saved_ip || string.IsNullOrEmpty(saved_token))
+                if (string.IsNullOrEmpty(saved_token))
                 {
-                    connection.Execute(string.Format("UPDATE {0} SET {1}='', LastActivityDate=NOW() WHERE {2} = {3}", infos.user_table_name, "token", infos.user_id_column_name, user.user_id));
-                    throw new AuthenticationException("Authentication exception!");
+                    throw new AuthenticationException("auth_exception");
+                }
+
+                if (saved_token != user.user_token || current_ip != saved_ip)
+                {
+                    // Don't clear the DB token: the current valid session (from the
+                    // newer login) must stay alive. Only the stale caller is rejected.
+                    // (Allineato MSSQL — il vecchio comportamento MySQL azzerava il token,
+                    // kickando entrambi i browser.)
+                    throw new AuthenticationException("session_replaced");
                 }
                 else
                 {
@@ -1252,10 +1266,17 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
             if (lastAct != null)
                 DateTime.TryParse(lastAct.ToString(), out lastActivity);
 
+            // `isSuperAdmin` deriva da `ruoli.superadmin` letto in `mapRoleFields`.
+            // Senza questa propagazione, `RawHelpers.checkAdmin` falliva con
+            // "Need administrative rights!" per qualunque utente loggato sul
+            // provider MySQL (allineato a MSSQL `Utility_mssql.cs:mapUserFields`).
+            bool isSuperAdmin = myRole != null && myRole.superadmin;
+
             user u = new user()
             {
                 display_name = display,
                 isAdmin = isAdmin,
+                isSuperAdmin = isSuperAdmin,
                 role = roleName,
                 otherRoles = roles,
                 role_id = role_id,
@@ -1294,10 +1315,30 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
         private static role mapRoleFields(SysInfo infos, SqlMapper.FastExpando role)
         {
+            // Allinea il provider MySQL al comportamento MSSQL: la `role` deve esporre
+            // i flag `superadmin` e `admin` letti rispettivamente da `ruoli.superadmin`
+            // e `ruoli.admin`. Senza questi, `RawHelpers.checkAdmin` falliva con
+            // "Need administrative rights!" anche per utenti con role_id mappato al
+            // ruolo Admin (id_ruolo=1) perche' `mapUserFields` propaga
+            // `isSuperAdmin = myRole?.superadmin` e qui il campo restava sempre false.
+            bool superadminVal = false;
+            var saKv = role.FirstOrDefault(x => x.Key == "superadmin");
+            if (!saKv.Equals(default(KeyValuePair<string, object>)) && saKv.Value != null)
+            {
+                superadminVal = RawHelpers.ParseBool(saKv.Value.ToString());
+            }
+            bool adminVal = false;
+            var aKv = role.FirstOrDefault(x => x.Key == "admin");
+            if (!aKv.Equals(default(KeyValuePair<string, object>)) && aKv.Value != null)
+            {
+                adminVal = RawHelpers.ParseBool(aKv.Value.ToString());
+            }
             return new role()
             {
                 role_name = role.First(x => x.Key == infos.role_description_column_name).Value.ToString(),
                 role_id = role.First(x => x.Key == infos.role_id_column_name).Value.ToString(),
+                superadmin = superadminVal,
+                admin = adminVal,
             };
         }
 
