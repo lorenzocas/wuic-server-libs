@@ -2718,7 +2718,13 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                 throw optEx;
             }
 
-            List<_Metadati_Colonne_Upload> upload_fixes = metadata.OfType<_Metadati_Colonne_Upload>().Where(x => x.isDBUpload).ToList();
+            // NOTE: include ALL upload columns (DB blob AND filesystem). The
+            // post-update cleanup loop below relocates files from the client's
+            // upload-time <__guid>/ folder to the canonical <pkey>/ folder for
+            // both flavors — without filesystem upload columns the move never
+            // happens and Img/FilePath references in the DB point at files
+            // sitting in a stale guid directory.
+            List<_Metadati_Colonne_Upload> upload_fixes = metadata.OfType<_Metadati_Colonne_Upload>().ToList();
             List<_Metadati_Colonne_Grid> multiple_check_fixes = metadata.OfType<_Metadati_Colonne_Grid>().ToList();
 
             Utility.beforeUpdate(route, entity, userId);
@@ -2805,72 +2811,95 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
             upload_fixes.ForEach(upload_fix =>
             {
-                if (!entity.ContainsKey(upload_fix.mc_nome_colonna))
-                {
-                    return;
-                }
+                if (upload_fix == null) return;
+                if (!entity.ContainsKey(upload_fix.mc_nome_colonna) || entity[upload_fix.mc_nome_colonna] == null) return;
+                if (!upload_fix.UseRecordIDAsSubfolder) return;
 
-                if (upload_fix != null)
-                {
+                // SOURCE id: the client uploaded the file into the temp
+                // <__guid>/ folder (multi-upload pattern). The "result" of an
+                // UPDATE is the row-count, NOT the pkey, so we can't use it
+                // here as we do in the INSERT path.
+                string __id_src = entity.ContainsKey("__guid") ? entity["__guid"]?.ToString() :
+                                  entity.ContainsKey("__id")   ? entity["__id"]?.ToString()   :
+                                  entity.ContainsKey("uid")    ? entity["uid"]?.ToString()    :
+                                  entity[metadata.First(x => x.mc_is_primary_key is true).mc_nome_colonna]?.ToString();
+                // DESTINATION id: the existing record's primary key.
+                string __id_dst = entity[metadata.First(x => x.mc_is_primary_key is true).mc_nome_colonna]?.ToString();
 
-                    if (entity[upload_fix.mc_nome_colonna] != null && upload_fix.UseRecordIDAsSubfolder)
+                string rootPath = upload_fix.DefaultUploadRootPath;
+                if (string.IsNullOrEmpty(rootPath) || rootPath == "null")
+                    rootPath = ConfigHelper.GetSettingAsString("uploadFolder");
+                if (string.IsNullOrEmpty(rootPath))
+                    rootPath = "/upload";
+
+                string normalizedRootPath = (rootPath ?? string.Empty).Trim().Trim('\'', '"');
+                if (normalizedRootPath.StartsWith("/") && normalizedRootPath.Length > 2 && normalizedRootPath[2] == ':')
+                    normalizedRootPath = normalizedRootPath.TrimStart('/');
+
+                string rootPhysicalPath = System.IO.Path.IsPathRooted(normalizedRootPath)
+                    ? normalizedRootPath
+                    : HttpContext.Current.Server.MapPath(normalizedRootPath);
+
+                string routeSegment = (route ?? string.Empty).Trim().Trim('\'', '"').Trim('\\', '/');
+                string srcSegment = (__id_src ?? string.Empty).Trim().Trim('\'', '"').Trim('\\', '/');
+                string dstSegment = (__id_dst ?? string.Empty).Trim().Trim('\'', '"').Trim('\\', '/');
+
+                string srcDir = rootPhysicalPath;
+                if (upload_fix.UseRouteNameAsSubfolder && !string.IsNullOrWhiteSpace(routeSegment))
+                    srcDir = System.IO.Path.Combine(srcDir, routeSegment);
+                if (upload_fix.UseRecordIDAsSubfolder && !string.IsNullOrWhiteSpace(srcSegment))
+                    srcDir = System.IO.Path.Combine(srcDir, srcSegment);
+
+                string dstDir = string.IsNullOrWhiteSpace(routeSegment)
+                    ? System.IO.Path.Combine(rootPhysicalPath, dstSegment)
+                    : System.IO.Path.Combine(rootPhysicalPath, routeSegment, dstSegment);
+
+                string filename = entity[upload_fix.mc_nome_colonna].ToString();
+                string fname = System.IO.Path.Combine(srcDir, filename);
+
+                if (System.IO.File.Exists(fname))
+                {
+                    if (!upload_fix.isDBUpload)
                     {
-                        string __id = entity[metadata.First(x => x.mc_is_primary_key is true).mc_nome_colonna].ToString();
+                        if (!System.IO.Directory.Exists(dstDir))
+                            System.IO.Directory.CreateDirectory(dstDir);
 
-                        string rootPath = upload_fix.DefaultUploadRootPath;
+                        string dstFile = System.IO.Path.Combine(dstDir, filename);
+                        if (System.IO.File.Exists(dstFile))
+                            System.IO.File.Delete(dstFile);
+                        System.IO.File.Copy(fname, dstFile);
 
-                        if (string.IsNullOrEmpty(rootPath))
-                            rootPath = "/" + (ConfigHelper.GetSettingAsString("uploadFolder") ?? "/upload/");
-
-                        string normalizedRootPath = (rootPath ?? string.Empty).Trim().Trim('\'', '"');
-                        if (normalizedRootPath.StartsWith("/") && normalizedRootPath.Length > 2 && normalizedRootPath[2] == ':')
-                            normalizedRootPath = normalizedRootPath.TrimStart('/');
-
-                        string rootPhysicalPath = System.IO.Path.IsPathRooted(normalizedRootPath)
-                            ? normalizedRootPath
-                            : HttpContext.Current.Server.MapPath(normalizedRootPath);
-
-                        string routeSegment = (route ?? string.Empty).Trim().Trim('\'', '"').Trim('\\', '/');
-                        string idSegment = (__id ?? string.Empty).Trim().Trim('\'', '"').Trim('\\', '/');
-
-                        string pth = rootPhysicalPath;
-                        if (upload_fix.UseRouteNameAsSubfolder && !string.IsNullOrWhiteSpace(routeSegment))
-                            pth = System.IO.Path.Combine(pth, routeSegment);
-                        if (upload_fix.UseRecordIDAsSubfolder && !string.IsNullOrWhiteSpace(idSegment))
-                            pth = System.IO.Path.Combine(pth, idSegment);
-
-                        string new_dir = string.IsNullOrWhiteSpace(routeSegment)
-                            ? System.IO.Path.Combine(rootPhysicalPath, result)
-                            : System.IO.Path.Combine(rootPhysicalPath, routeSegment, result);
-
-                        string fname = System.IO.Path.Combine(pth, entity[upload_fix.mc_nome_colonna].ToString());
-
-                        if (System.IO.File.Exists(fname))
+                        if (upload_fix.isImageUpload && upload_fix.createThumb)
                         {
-                            if (!upload_fix.isDBUpload)
+                            FileInfo fi = new FileInfo(fname);
+                            string thumbName = fi.Name.Replace(fi.Extension, "_thumb" + fi.Extension);
+                            string thumbSrc = System.IO.Path.Combine(srcDir, thumbName);
+                            string thumbDst = System.IO.Path.Combine(dstDir, thumbName);
+                            if (System.IO.File.Exists(thumbSrc))
                             {
-                                if (!System.IO.Directory.Exists(new_dir))
-                                    System.IO.Directory.CreateDirectory(new_dir);
-
-                                System.IO.File.Copy(fname, System.IO.Path.Combine(new_dir, entity[upload_fix.mc_nome_colonna].ToString()));
-
-                                if (upload_fix.isImageUpload && upload_fix.createThumb)
-                                {
-                                    FileInfo fi = new FileInfo(fname);
-                                    string thumbName = fi.Name.Replace(fi.Extension, "_thumb" + fi.Extension);
-                                    System.IO.File.Copy(fname, System.IO.Path.Combine(new_dir, thumbName));
-                                    System.IO.File.Delete(thumbName);
-
-                                }
+                                if (System.IO.File.Exists(thumbDst))
+                                    System.IO.File.Delete(thumbDst);
+                                System.IO.File.Copy(thumbSrc, thumbDst);
+                                System.IO.File.Delete(thumbSrc);
                             }
-                            System.IO.File.Delete(fname);
                         }
                     }
-                    else
+                    System.IO.File.Delete(fname);
+                }
+
+                // If the source temp folder is now empty AND it's the
+                // upload-time __guid folder (not the canonical pkey folder),
+                // remove it so the uploads tree doesn't accumulate dead
+                // directories.
+                if (!string.Equals(srcSegment, dstSegment, StringComparison.OrdinalIgnoreCase)
+                    && System.IO.Directory.Exists(srcDir))
+                {
+                    try
                     {
-
+                        if (!System.IO.Directory.EnumerateFileSystemEntries(srcDir).Any())
+                            System.IO.Directory.Delete(srcDir);
                     }
-
+                    catch { /* best-effort cleanup */ }
                 }
             });
 
@@ -3336,23 +3365,33 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                                 if (!System.IO.Directory.Exists(new_dir))
                                     System.IO.Directory.CreateDirectory(new_dir);
 
-                                System.IO.File.Copy(fname, System.IO.Path.Combine(new_dir, entity[upload_fix.mc_nome_colonna].ToString()));
+                                string dstPath = System.IO.Path.Combine(new_dir, entity[upload_fix.mc_nome_colonna].ToString());
+                                if (System.IO.File.Exists(dstPath))
+                                    System.IO.File.Delete(dstPath);
+                                System.IO.File.Copy(fname, dstPath);
 
                                 if (upload_fix.isImageUpload && upload_fix.createThumb)
                                 {
                                     FileInfo fi = new FileInfo(fname);
                                     string thumbName = fi.Name.Replace(fi.Extension, "_thumb" + fi.Extension);
                                     string thumbPath = System.IO.Path.Combine(pth, thumbName);
-                                    System.IO.File.Copy(thumbPath, System.IO.Path.Combine(new_dir, thumbName));
-                                    System.IO.File.Delete(thumbPath);
-
+                                    string thumbDst = System.IO.Path.Combine(new_dir, thumbName);
+                                    if (System.IO.File.Exists(thumbPath))
+                                    {
+                                        if (System.IO.File.Exists(thumbDst))
+                                            System.IO.File.Delete(thumbDst);
+                                        System.IO.File.Copy(thumbPath, thumbDst);
+                                        System.IO.File.Delete(thumbPath);
+                                    }
                                 }
                             }
                             System.IO.File.Delete(fname);
-                            if (!upload_fix.isDBUpload)
-                            {
-                                System.IO.Directory.Delete(pth, true);
-                            }
+                            // NOTE: do NOT Directory.Delete(pth, true) here — pth
+                            // is the shared <__guid>/ folder and other upload
+                            // columns later in the iteration still need files
+                            // from it. The post-loop sweep below cleans up the
+                            // empty guid folder (if any) once every column has
+                            // been processed.
                         }
 
                         if (upload_fix.isDBUpload
@@ -3384,6 +3423,48 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                 }
             });
 
+            // Post-loop sweep: if the shared <__guid>/ folder is now empty
+            // (all files processed by the loop above and either copied to
+            // <recordID>/ for filesystem uploads or moved by the isDBUpload
+            // branch), drop the empty folder so the uploads tree doesn't
+            // accumulate dead directories.
+            try
+            {
+                if (entity.ContainsKey("__guid"))
+                {
+                    string guidVal = entity["__guid"]?.ToString();
+                    if (!string.IsNullOrWhiteSpace(guidVal))
+                    {
+                        var firstUpload = upload_fixes.FirstOrDefault();
+                        if (firstUpload != null && firstUpload.UseRecordIDAsSubfolder)
+                        {
+                            string rootPath = firstUpload.DefaultUploadRootPath;
+                            if (string.IsNullOrEmpty(rootPath) || rootPath == "null")
+                                rootPath = ConfigHelper.GetSettingAsString("uploadFolder");
+                            if (!string.IsNullOrEmpty(rootPath))
+                            {
+                                string normalized = (rootPath ?? string.Empty).Trim().Trim('\'', '"');
+                                if (normalized.StartsWith("/") && normalized.Length > 2 && normalized[2] == ':')
+                                    normalized = normalized.TrimStart('/');
+                                string root = System.IO.Path.IsPathRooted(normalized)
+                                    ? normalized
+                                    : HttpContext.Current.Server.MapPath(normalized);
+                                string routeSeg = (route ?? string.Empty).Trim().Trim('\'', '"').Trim('\\', '/');
+                                string guidSeg = guidVal.Trim().Trim('\'', '"').Trim('\\', '/');
+                                string guidDir = firstUpload.UseRouteNameAsSubfolder && !string.IsNullOrWhiteSpace(routeSeg)
+                                    ? System.IO.Path.Combine(root, routeSeg, guidSeg)
+                                    : System.IO.Path.Combine(root, guidSeg);
+                                if (System.IO.Directory.Exists(guidDir)
+                                    && !System.IO.Directory.EnumerateFileSystemEntries(guidDir).Any())
+                                {
+                                    System.IO.Directory.Delete(guidDir);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch { /* best-effort cleanup */ }
 
             if (!string.IsNullOrEmpty(metadata.First()._Metadati_Tabelle.md_after_save_server_method_name))
             {

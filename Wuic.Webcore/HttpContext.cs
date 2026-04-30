@@ -75,7 +75,7 @@ namespace System.WebCore
             }
             catch (Exception ex)
             {
-                Exception root = ex.InnerException ?? ex;
+                Exception root = UnwrapTargetInvocation(ex);
                 string currentState = Current == null ? "null" : "ok";
                 string appState = Current?.Application == null ? "null" : "ok";
                 string instancesType = Current?.Application?["instances"]?.GetType().FullName ?? "<null>";
@@ -87,6 +87,22 @@ namespace System.WebCore
                     $"Inner='{root.GetType().FullName}: {root.Message}'",
                     root);
             }
+        }
+
+        // method.Invoke wraps any thrown exception in TargetInvocationException;
+        // when the invoked target itself uses reflection (or wraps further), the
+        // chain becomes TIE -> TIE -> realCause. We unwrap until we hit the first
+        // non-TIE exception so that callers (and the JSON exception filter) see
+        // the actual failure type and message instead of the generic
+        // "Exception has been thrown by the target of an invocation." placeholder.
+        private static Exception UnwrapTargetInvocation(Exception ex)
+        {
+            Exception current = ex;
+            while (current is TargetInvocationException && current.InnerException != null)
+            {
+                current = current.InnerException;
+            }
+            return current;
         }
 
         private static void tracer(dynamic pmr, string methodName, Stopwatch sw)
@@ -918,9 +934,27 @@ namespace System.WebCore
         {
             public string MapPath(string path)
             {
+                if (string.IsNullOrEmpty(path)) return _webRootPath;
+
+                string normalized = path.Replace("~/", "");
+
+                // Already-absolute Linux path: the legacy `Replace("/", "\\")`
+                // below is a Windows-only normalization (so a Windows-flavored
+                // appsettings path like "C:\\src\\..." with stray forward
+                // slashes still resolves). On Linux that conversion turns a
+                // valid `/var/lib/...` into `\var\lib\...` which Path.Combine
+                // then treats as relative, producing
+                // `<webRoot>/\var\lib\...`. Detect this case up front and
+                // return the absolute path as-is.
+                if (System.IO.Path.DirectorySeparatorChar == '/'
+                    && normalized.StartsWith("/", StringComparison.Ordinal))
+                {
+                    return normalized;
+                }
+
                 string webRootPath = _webRootPath;
                 string contentRootPath = _contentRootPath;
-                string combined = System.IO.Path.Combine(webRootPath, path.Replace("~/", "").Replace("/", @"\"));
+                string combined = System.IO.Path.Combine(webRootPath, normalized.Replace("/", @"\"));
                 string absolutePath;
 
                 IFileInfo fi = _contentRootFileProvider.GetFileInfo(combined);

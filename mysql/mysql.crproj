@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ConfuserEx 2 project for the WUIC mysql provider gateway.
+
+  Replicates the obfuscation profile of KonvergenceCore.crproj but trimmed to
+  the surface area of this small drop-in DLL. The mysql provider is loaded
+  *by reflection* from the WUIC runtime (RawHelpers.ResolveAssemblyPath probes
+  bin/mysql.dll → loads MySqlProviderGateway via Type.GetType + reflection
+  Invoke), so its public API must not be renamed.
+
+  Profile (post-bisection 2026-04-29, mirroring KonvergenceCore.crproj):
+   - rename mode=decodable, renPublic=false
+       Produces symbols.map (tab-separated Original→Obfuscated) for crash
+       deobfuscation, and leaves all public field/property/method names intact.
+   - anti ildasm
+       Harmless attribute marker; placebo against modern decompilers.
+   - anti tamper
+       Encrypted method bodies + runtime checksum.
+
+  Disabled (same rationale as KonvergenceCore.crproj):
+   - constants  → injects nested helper types in <global> with Unicode names,
+                  breaks NestedClass table at runtime.
+   - resources  → injects Confuser.Runtime helpers that collide with the
+                  global namespace types pulled in via the
+                  ProjectReference="..\KonvergenceCore\KonvergenceCore.csproj".
+   - invalid metadata → emits illegal metadata table entries that break
+                        consumer ResolveAssemblyReferences with MSB3246.
+
+  Escluded from rename:
+   - All compiler-generated nested types whose name starts with `<`
+     (anonymous types, async state machines, closure scopes, lambda bodies).
+     Rationale identical to KonvergenceCore.crproj rule (C2): renaming those
+     destroys post-mortem stack-trace readability.
+   - All ProviderGateway-named types (caught by the same name pattern as the
+     core .crproj). On the mysql side this matches MySqlProviderGateway —
+     the class invoked by reflection from metaModelRaw.GetOpenConnection /
+     RawHelpers.GetOrCreateProviderInstance<T>.
+
+  Reference: https://github.com/mkaring/ConfuserEx/blob/master/docs/ProjectFormat.md
+-->
+<project xmlns="http://confuser.codeplex.com" outputDir="" baseDir="" debug="true">
+
+  <!-- 1) Global rule: apply the three protections to every type. -->
+  <rule pattern="true" preset="none" inherit="false">
+    <protection id="rename">
+      <argument name="mode" value="decodable" />
+      <argument name="renPublic" value="false" />
+    </protection>
+    <protection id="anti ildasm" />
+    <protection id="anti tamper" />
+  </rule>
+
+  <!-- 2) Skip rename for compiler-generated nested types (anonymous, async,
+          closures, lambdas). Their names always start with '<'. -->
+  <rule pattern="match-type-name('^&lt;')" inherit="true">
+    <protection id="rename" action="remove" />
+  </rule>
+
+  <!-- 3) Skip rename for the *ProviderGateway types — the public reflection
+          entry point used by the WUIC core to call into this DLL. -->
+  <rule pattern="match-type-name('^.+ProviderGateway$')" inherit="true">
+    <protection id="rename" action="remove" />
+  </rule>
+
+  <!-- ── Module ──────────────────────────────────────────────────────────
+       Confuser.MSBuild CreateProjectTask substitutes the absolute path of
+       the IntermediateAssembly here at build time. The string below is just
+       the placeholder. -->
+  <module path="mysql.dll" />
+</project>

@@ -99,7 +99,27 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
             field_list += (field_list == "" ? "" : ", ") + RawHelpers.escapeDBObjectName(uploader.MultipleUploadBlobFieldName, "mysql");
             if (!string.IsNullOrEmpty(RawHelpers.ParseNull(entity[uploader.mc_nome_colonna])))
             {
-                string __id = entity.ContainsKey("__id") ? entity["__id"].ToString() : entity["__guid"].ToString();
+                // Resolve the upload-time folder id: prefer __guid (the
+                // multi-upload temp folder the client wrote into), then __id
+                // when it is a real value (not a placeholder "0"/""), then
+                // fall back to __guid even if blank as the original behavior.
+                // Without preferring __guid, two consecutive isDBUpload
+                // columns processed in the same BuildDynamicInsertQuery run
+                // can resolve to different paths if the loop populates
+                // entity["__id"] partway through iteration.
+                string __id = null;
+                if (entity.ContainsKey("__guid"))
+                {
+                    string g = entity["__guid"]?.ToString();
+                    if (!string.IsNullOrWhiteSpace(g)) __id = g;
+                }
+                if (__id == null && entity.ContainsKey("__id"))
+                {
+                    string i = entity["__id"]?.ToString();
+                    if (!string.IsNullOrWhiteSpace(i) && i != "0") __id = i;
+                }
+                if (__id == null) __id = entity.ContainsKey("__guid") ? entity["__guid"]?.ToString() : "";
+
                 string pth = ResolveUploadRecordDirectory(uploader, tabel, __id);
 
                 string tmp_path = System.IO.Path.Combine(pth, entity[uploader.mc_nome_colonna].ToString());
@@ -142,6 +162,27 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
                 string pth = ResolveUploadRecordDirectory(uploader, tabel, __id);
 
                 string tmp_path = System.IO.Path.Combine(pth, entity[uploader.mc_nome_colonna].ToString());
+
+                // Fallback to the upload-time __guid folder when the canonical
+                // pkey path doesn't have the file yet. The client uploads to
+                // <root>/<route>/<__guid>/<file> (the multi-upload pattern's
+                // temp folder); _Metadati_methods.RawUpdateFlatData later
+                // moves it into <root>/<route>/<pkey>/, but
+                // BuildDynamicUpdateQuery (and therefore this method) runs
+                // BEFORE that cleanup. Without this fallback the UPDATE SET
+                // clause omits the BLOB literal entirely and the existing blob
+                // value silently survives the update.
+                if (!System.IO.File.Exists(tmp_path) && entity.ContainsKey("__guid"))
+                {
+                    string guid = entity["__guid"]?.ToString();
+                    if (!string.IsNullOrWhiteSpace(guid))
+                    {
+                        string guidPth = ResolveUploadRecordDirectory(uploader, tabel, guid);
+                        string guidTmp = System.IO.Path.Combine(guidPth, entity[uploader.mc_nome_colonna].ToString());
+                        if (System.IO.File.Exists(guidTmp))
+                            tmp_path = guidTmp;
+                    }
+                }
 
                 if (base64Image)
                 {

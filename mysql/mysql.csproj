@@ -7,14 +7,40 @@
     <EnableNETAnalyzers>false</EnableNETAnalyzers>
     <WarningLevel>0</WarningLevel>
     <IsPackable>true</IsPackable>
+    <!--
+      CopyLocalLockFileAssemblies=true is required for ConfuserEx 2 to resolve
+      the NuGet dependencies of mysql.dll at obfuscation time. Without it,
+      dotnet build copies only the project DLL into bin/Release/net10.0/ and
+      the NuGet runtime DLLs (MySql.Data.dll, Microsoft.Extensions.DependencyModel.dll,
+      System.Security.Cryptography.Xml.dll) stay in publish/ — Confuser then
+      fails with "[ERROR] Failed to resolve dependency of 'mysql.dll'".
+    -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <PackageId>Wuic.MySqlProvider</PackageId>
-    <Version>1.0.1</Version>
+    <Version>1.0.18</Version>
     <Authors>Wuic</Authors>
     <Description>Wuic MySQL provider for metadata/data runtime.</Description>
     <EnableObfuscationOnPack Condition="'$(EnableObfuscationOnPack)' == ''">true</EnableObfuscationOnPack>
-    <ObfuscarConfigFile>$(MSBuildProjectDirectory)\obfuscar.mysql.xml</ObfuscarConfigFile>
-    <ObfuscatedOutputDirectory>$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)-obfuscated</ObfuscatedOutputDirectory>
-    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);UseObfuscatedBuildOutput</TargetsForTfmSpecificBuildOutput>
+    <!--
+      Migrated 2026-04-29 from Obfuscar 2.2.44 to ConfuserEx 2 (mkaring/ConfuserEx 1.6.0)
+      to align with KonvergenceCore's obfuscation pipeline. See
+      KonvergenceCore.csproj header for the full rationale (Obfuscar mapping
+      degeneration, ConfuserEx symbols.map for crash deobfuscation, etc.).
+
+      The four ConfuserEx targets (EnsureConfuserCli / ResolveConfuserConfig /
+      ConfuseBeforePack / UseConfusedBuildOutput) are identical in structure to
+      the ones in KonvergenceCore.csproj — they just point at this project's
+      .crproj template + assembly + bin path. The two helper scripts
+      (scripts/ensure-confuserex-cli.ps1 and scripts/generate-confuserex-config.ps1)
+      live in KonvergenceCore/scripts/ and are reused as-is, since both csproj
+      sit side-by-side under C:\src\Wuic\.
+    -->
+    <ConfuserProjectTemplate>$(MSBuildProjectDirectory)\mysql.crproj</ConfuserProjectTemplate>
+    <ConfuserProjectFile>$(IntermediateOutputPath)mysql.runtime.crproj</ConfuserProjectFile>
+    <ConfuserCliRoot>$(MSBuildProjectDirectory)\..\KonvergenceCore\tools\confuserex-cli</ConfuserCliRoot>
+    <ConfuserCliExe>$(ConfuserCliRoot)\Confuser.CLI.exe</ConfuserCliExe>
+    <ConfusedOutputDirectory>$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)-confused</ConfusedOutputDirectory>
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);UseConfusedBuildOutput</TargetsForTfmSpecificBuildOutput>
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,18 +53,51 @@
     <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.6" />
   </ItemGroup>
 
-  <Target Name="ObfuscateBeforePack" BeforeTargets="Pack" Condition="'$(EnableObfuscationOnPack)' == 'true' and '$(Configuration)' == 'Release'">
-    <Message Text="Running Obfuscar for mysql provider before NuGet pack..." Importance="high" />
-    <Exec Command="dotnet tool restore" WorkingDirectory="$(MSBuildProjectDirectory)\..\KonvergenceCore" />
-    <Exec Command="dotnet tool run obfuscar.console &quot;$(ObfuscarConfigFile)&quot;" WorkingDirectory="$(MSBuildProjectDirectory)\..\KonvergenceCore" />
-    <Error Condition="!Exists('$(ObfuscatedOutputDirectory)\$(AssemblyName).dll')" Text="Obfuscated assembly not found at $(ObfuscatedOutputDirectory)\$(AssemblyName).dll" />
-    <Copy SourceFiles="$(ObfuscatedOutputDirectory)\$(AssemblyName).dll" DestinationFiles="$(TargetDir)$(AssemblyName).dll" OverwriteReadOnlyFiles="true" />
+  <!-- ConfuserEx 2 obfuscation pipeline. Mirrors KonvergenceCore.csproj
+       (skill crash-reporting Commit 11). Reuses the same helper scripts and
+       CLI install root, since both csproj live side-by-side in the workspace.
+       See KonvergenceCore.csproj for inline target documentation. -->
+
+  <Target Name="EnsureConfuserCli" Condition="'$(EnableObfuscationOnPack)' == 'true' and '$(Configuration)' == 'Release'">
+    <Message Text="Ensuring ConfuserEx CLI is present at $(ConfuserCliRoot)..." Importance="high" />
+    <MakeDir Directories="$(ConfuserCliRoot)" Condition="!Exists('$(ConfuserCliRoot)')" />
+    <Exec Command="pwsh -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\KonvergenceCore\scripts\ensure-confuserex-cli.ps1&quot; -InstallRoot &quot;$(ConfuserCliRoot)&quot;"
+          Condition="!Exists('$(ConfuserCliExe)')"
+          WorkingDirectory="$(MSBuildProjectDirectory)" />
+    <Error Condition="!Exists('$(ConfuserCliExe)')"
+           Text="Confuser.CLI.exe not found at $(ConfuserCliExe) after ensure step." />
   </Target>
 
-  <Target Name="UseObfuscatedBuildOutput" DependsOnTargets="ObfuscateBeforePack" Condition="'$(EnableObfuscationOnPack)' == 'true' and '$(Configuration)' == 'Release'">
+  <Target Name="ResolveConfuserConfig" DependsOnTargets="EnsureConfuserCli"
+          BeforeTargets="ConfuseBeforePack"
+          Condition="'$(EnableObfuscationOnPack)' == 'true' and '$(Configuration)' == 'Release'">
+    <Message Text="Resolving ConfuserEx config (template: $(ConfuserProjectTemplate)) → $(ConfuserProjectFile)" Importance="high" />
+    <MakeDir Directories="$(IntermediateOutputPath)" Condition="!Exists('$(IntermediateOutputPath)')" />
+    <Exec Command="pwsh -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\KonvergenceCore\scripts\generate-confuserex-config.ps1&quot; -TemplatePath &quot;$(ConfuserProjectTemplate)&quot; -OutputPath &quot;$(ConfuserProjectFile)&quot; -ModulePath &quot;$(TargetDir)$(AssemblyName)$(TargetExt)&quot; -OutputDir &quot;$(ConfusedOutputDirectory)&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)" />
+    <Error Condition="!Exists('$(ConfuserProjectFile)')" Text="Resolved ConfuserEx config not generated at $(ConfuserProjectFile)" />
+  </Target>
+
+  <Target Name="ConfuseBeforePack" BeforeTargets="Pack"
+          DependsOnTargets="ResolveConfuserConfig"
+          Inputs="$(TargetDir)$(AssemblyName)$(TargetExt);$(ConfuserProjectFile)"
+          Outputs="$(ConfusedOutputDirectory)\$(AssemblyName).dll;$(ConfusedOutputDirectory)\symbols.map"
+          Condition="'$(EnableObfuscationOnPack)' == 'true' and '$(Configuration)' == 'Release'">
+    <Message Text="Running ConfuserEx 2 before NuGet pack (config: $(ConfuserProjectFile))..." Importance="high" />
+    <MakeDir Directories="$(ConfusedOutputDirectory)" Condition="!Exists('$(ConfusedOutputDirectory)')" />
+    <Exec Command="&quot;$(ConfuserCliExe)&quot; -n &quot;$(ConfuserProjectFile)&quot;" WorkingDirectory="$(MSBuildProjectDirectory)" />
+    <Error Condition="!Exists('$(ConfusedOutputDirectory)\$(AssemblyName).dll')"
+           Text="Obfuscated assembly not found at $(ConfusedOutputDirectory)\$(AssemblyName).dll" />
+    <Error Condition="!Exists('$(ConfusedOutputDirectory)\symbols.map')"
+           Text="ConfuserEx symbols.map not produced at $(ConfusedOutputDirectory)\symbols.map. Did the rename mode set 'decodable'?" />
+    <Message Text="symbols.map written to $(ConfusedOutputDirectory)\symbols.map" Importance="high" />
+  </Target>
+
+  <Target Name="UseConfusedBuildOutput" DependsOnTargets="ConfuseBeforePack"
+          Condition="'$(EnableObfuscationOnPack)' == 'true' and '$(Configuration)' == 'Release'">
     <ItemGroup>
       <BuildOutputInPackage Remove="$(TargetDir)$(AssemblyName).dll" />
-      <BuildOutputInPackage Include="$(ObfuscatedOutputDirectory)\$(AssemblyName).dll">
+      <BuildOutputInPackage Include="$(ConfusedOutputDirectory)\$(AssemblyName).dll">
         <TargetPath>$(AssemblyName).dll</TargetPath>
       </BuildOutputInPackage>
     </ItemGroup>
