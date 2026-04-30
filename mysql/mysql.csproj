@@ -51,6 +51,10 @@
     <PackageReference Include="MySql.Data" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="8.0.1" />
     <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.6" />
+    <!-- EF Core MySQL provider (Pomelo) — required by MySqlOdataConfigurator
+         to register `UseMySql` on the OData DbContext when the host is MySQL.
+         Pinned to EF Core 8.x to match WuicOData's `Microsoft.EntityFrameworkCore` 8.0.8. -->
+    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.2" />
   </ItemGroup>
 
   <!-- ConfuserEx 2 obfuscation pipeline. Mirrors KonvergenceCore.csproj

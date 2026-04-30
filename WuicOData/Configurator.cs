@@ -12,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Xml.Linq;
 using WuicOData.Services;
 
@@ -111,7 +112,30 @@ namespace WuicOData
                         "in the host project's appsettings.json.");
                 }
 
-                options.UseSqlServer(connectionString, o => o.UseNetTopologySuite()).EnableSensitiveDataLogging();
+                // Per-DBMS dispatch (BUG FIX 2026-04-30): WuicOData was hardcoded
+                // to UseSqlServer, so on a MySQL host the OData /entity-set queries
+                // crashed at request time with "TCP Provider, error: 26 — Error
+                // Locating Server/Instance Specified" (the SqlServer provider was
+                // resolving the connection string against `localhost\sqlexpress`,
+                // its default fallback). The fix keeps WuicOData MSSQL-only at
+                // compile time and dispatches MySQL configuration via reflection
+                // to `metaModelRaw.MySqlOdataConfigurator` (in the Wuic.MySqlProvider
+                // NuGet, loaded at runtime alongside the rest of `mysql.dll`).
+                string odataDbms = (configuration?["AppSettings:dbms"] ?? "mssql").Trim().ToLowerInvariant();
+                if (odataDbms == "mysql")
+                {
+                    if (!TryConfigureMySql(options, connectionString))
+                    {
+                        throw new InvalidOperationException(
+                            "WuicOData: AppSettings:dbms='mysql' but `Wuic.MySqlProvider/MySqlOdataConfigurator` is not loadable at runtime. " +
+                            "Ensure mysql.dll is deployed alongside the host (the package ships it) and that " +
+                            "Pomelo.EntityFrameworkCore.MySql resolves on the runtime path.");
+                    }
+                }
+                else
+                {
+                    options.UseSqlServer(connectionString, o => o.UseNetTopologySuite()).EnableSensitiveDataLogging();
+                }
             });
 
             services.Configure<ApplicationErrorHandlerOptions>(o =>
@@ -186,6 +210,117 @@ namespace WuicOData
                 ?.Attribute("connectionString")?.Value;
 
             return string.IsNullOrWhiteSpace(value) ? null : value;
+        }
+
+        // Reflection-based hook into Wuic.MySqlProvider/MySqlOdataConfigurator.
+        // WuicOData itself does NOT reference Pomelo.EntityFrameworkCore.MySql:
+        // that dependency lives in `mysql.dll` (Wuic.MySqlProvider NuGet) and is
+        // resolved at runtime when the host's dbms is MySQL. This keeps the
+        // OData package MSSQL-only at compile time and avoids forcing every
+        // consumer (including pure MSSQL hosts) to ship the MySQL provider.
+        private const string MySqlConfiguratorTypeName = "metaModelRaw.MySqlOdataConfigurator";
+        private const string MySqlConfiguratorMethod = "ConfigureDynamicContextOptions";
+
+        /// <summary>
+        /// Expose the cached IConfiguration so EntitiesController can read
+        /// AppSettings:dbms without re-bootstrapping configuration.
+        /// </summary>
+        public static IConfiguration GetCachedConfiguration() => _cachedConfiguration;
+
+        /// <summary>
+        /// Reflection-based bridge from EntitiesController (write-flags /
+        /// forced-top metadata reads) into the MySQL helper methods that
+        /// live in `Wuic.MySqlProvider/MySqlOdataConfigurator`. Mirrors the
+        /// pattern of TryConfigureMySql but for arbitrary helpers — pass the
+        /// method name and args, get the typed return back. Returns the
+        /// default of T if the type/method/invocation fails (mirrors the
+        /// fail-safe semantic of the original MSSQL helpers).
+        /// </summary>
+        public static T InvokeMySqlOdataMethod<T>(string methodName, params object[] args)
+        {
+            try
+            {
+                Type t = null;
+                foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    t = asm.GetType(MySqlConfiguratorTypeName, throwOnError: false, ignoreCase: false);
+                    if (t != null) break;
+                }
+                if (t == null)
+                {
+                    string[] probes = {
+                        Path.Combine(AppContext.BaseDirectory, "mysql.dll"),
+                        Path.Combine(AppContext.BaseDirectory, "bin", "mysql.dll")
+                    };
+                    foreach (var probe in probes)
+                    {
+                        if (!File.Exists(probe)) continue;
+                        var loaded = Assembly.LoadFrom(probe);
+                        t = loaded.GetType(MySqlConfiguratorTypeName, throwOnError: false, ignoreCase: false);
+                        if (t != null) break;
+                    }
+                }
+                if (t == null) return default;
+                var method = t.GetMethod(methodName, BindingFlags.Public | BindingFlags.Static);
+                if (method == null) return default;
+                var result = method.Invoke(null, args);
+                return result == null ? default : (T)result;
+            }
+            catch
+            {
+                return default;
+            }
+        }
+
+        private static bool TryConfigureMySql(DbContextOptionsBuilder options, string connectionString)
+        {
+            try
+            {
+                Type t = null;
+                foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    t = asm.GetType(MySqlConfiguratorTypeName, throwOnError: false, ignoreCase: false);
+                    if (t != null) break;
+                }
+                if (t == null)
+                {
+                    // Force-load mysql.dll if it is on disk but hasn't been
+                    // triggered yet. Probe both the host root (where the .NET
+                    // SDK puts package DLLs by default) and the `bin/` subdir
+                    // (where the WUIC linux installer drops obfuscated runtime
+                    // assemblies — see scripts/linux/50-publish-app.sh).
+                    string[] probes = {
+                        Path.Combine(AppContext.BaseDirectory, "mysql.dll"),
+                        Path.Combine(AppContext.BaseDirectory, "bin", "mysql.dll")
+                    };
+                    foreach (var probe in probes)
+                    {
+                        if (!File.Exists(probe)) continue;
+                        var loaded = System.Reflection.Assembly.LoadFrom(probe);
+                        t = loaded.GetType(MySqlConfiguratorTypeName, throwOnError: false, ignoreCase: false);
+                        if (t != null) break;
+                    }
+                }
+                if (t == null) return false;
+                var method = t.GetMethod(MySqlConfiguratorMethod, BindingFlags.Public | BindingFlags.Static);
+                if (method == null) return false;
+                method.Invoke(null, new object[] { options, connectionString });
+                return true;
+            }
+            catch (Exception ex)
+            {
+                // Surface the real reason (Pomelo missing, version mismatch,
+                // bad connection string, etc.) instead of silently falling back
+                // to MSSQL — the fallback would crash later with the same
+                // "TCP Provider, error: 26" that prompted this whole branch.
+                string csKeys = "";
+                try
+                {
+                    csKeys = string.Join(",", (connectionString ?? "").Split(';').Where(p => p.Contains("=")).Select(p => p.Split('=')[0].Trim()));
+                }
+                catch { }
+                throw new InvalidOperationException("TryConfigureMySql failed: " + ex.GetType().FullName + ": " + ex.Message + (ex.InnerException != null ? " | inner: " + ex.InnerException.GetType().FullName + ": " + ex.InnerException.Message : "") + " | csKeys=[" + csKeys + "]", ex);
+            }
         }
 
         private static string FindKonvergenceAppConfigPath()

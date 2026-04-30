@@ -674,11 +674,22 @@ namespace WuicCore.Controllers
                 return (false, null, $"EF metadata not found for '{entityType.Name}'.");
 
             var tableName = efEntity.GetTableName();
-            var schema = efEntity.GetSchema() ?? "dbo";
+            // BUG FIX 2026-04-30: Pomelo MySQL maps tables under `Schema = null`
+            // (MySQL has no schema concept). The previous fallback to "dbo" broke
+            // `StoreObjectIdentifier.Table(tableName, "dbo")` because the EF
+            // metadata key was `("_e2e_odata_demo", null)`, so `p.GetColumnName(store)`
+            // returned null for every property → propMap stayed empty → INSERT
+            // bailed with "No insertable fields". Preserve the EF-reported schema
+            // (which is null for MySQL); fall back to "dbo" only when the EF
+            // metadata explicitly sets a schema we want to honor (MSSQL path).
+            var efSchema = efEntity.GetSchema();
+            var schema = efSchema; // null on MySQL, real schema on MSSQL/Postgres
             if (string.IsNullOrWhiteSpace(tableName))
                 return (false, null, $"Table mapping not found for '{entityType.Name}'.");
 
-            var store = StoreObjectIdentifier.Table(tableName, schema);
+            var store = string.IsNullOrEmpty(schema)
+                ? StoreObjectIdentifier.Table(tableName)
+                : StoreObjectIdentifier.Table(tableName, schema);
             var key = efEntity.FindPrimaryKey();
             var keyProp = key?.Properties?.Count == 1 ? key.Properties[0] : null;
             var keyColumn = keyProp?.GetColumnName(store);
@@ -759,34 +770,68 @@ namespace WuicCore.Controllers
             if (columns.Count == 0)
                 return (false, null, "No insertable fields found in payload.");
 
-            var sql = $"INSERT INTO [{schema}].[{tableName}] ({string.Join(", ", columns)})";
-            if (!string.IsNullOrWhiteSpace(keyColumn))
-                sql += $" OUTPUT INSERTED.[{keyColumn}]";
-            sql += $" VALUES ({string.Join(", ", paramNames)});";
-
-            var conn = (SqlConnection)_context.Database.GetDbConnection();
-            if (conn.State != System.Data.ConnectionState.Open)
-                await conn.OpenAsync();
-
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = sql;
-            var currentTx = _context.Database.CurrentTransaction?.GetDbTransaction();
-            if (currentTx is SqlTransaction sqlTx)
-                cmd.Transaction = sqlTx;
-
-            foreach (var kv in values)
-            {
-                var p = cmd.CreateParameter();
-                p.ParameterName = kv.Key;
-                p.Value = kv.Value;
-                cmd.Parameters.Add(p);
-            }
-
+            // Per-DBMS dispatch (BUG FIX 2026-04-30): the path below was MSSQL-only
+            // (T-SQL bracket quoting + `OUTPUT INSERTED` + cast to SqlConnection).
+            // On MySQL, dispatch to `Wuic.MySqlProvider/MySqlOdataConfigurator.InsertEntity`
+            // via reflection (same pattern as TryConfigureMySql / TryGetWriteFlags).
+            // The MySQL helper uses backtick quoting + `LAST_INSERT_ID()` to fetch
+            // the auto-generated PK in the same connection.
+            var dbms = (WuicOData.Configurator.GetCachedConfiguration()?["AppSettings:dbms"] ?? "mssql").Trim().ToLowerInvariant();
             object insertedKey = null;
-            if (!string.IsNullOrWhiteSpace(keyColumn))
-                insertedKey = await cmd.ExecuteScalarAsync();
+            if (dbms == "mysql")
+            {
+                string dataConnStr = WuicOData.Configurator.LoadKonvergenceConnectionString("DataSQLConnection");
+                // For MySQL, the schema concept is the database name itself.
+                // EF metadata's `GetSchema()` may return "dbo" by default — we
+                // honor an explicit non-"dbo" value (rare) but otherwise fall
+                // back to the connection-string `Database=…`.
+                string mysqlDbName = (schema != null && schema != "dbo" ? schema : ExtractDatabaseFromConnectionString(dataConnStr));
+                var mysqlColumns = columns.Select(c => "`" + c.Trim('[', ']').Replace("`", "``") + "`").ToArray();
+                try
+                {
+                    insertedKey = WuicOData.Configurator.InvokeMySqlOdataMethod<object>(
+                        "InsertEntity",
+                        dataConnStr, mysqlDbName, tableName,
+                        mysqlColumns, paramNames.ToArray(), values, keyColumn);
+                }
+                catch (Exception ex)
+                {
+                    return (false, null, "MySQL insert failed: " + ex.Message + (ex.InnerException != null ? " | " + ex.InnerException.Message : ""));
+                }
+            }
             else
-                await cmd.ExecuteNonQueryAsync();
+            {
+                // MSSQL fallback: bracket-qualify with default "dbo" when EF
+                // doesn't report a schema (legacy MSSQL behavior preserved).
+                var mssqlSchema = string.IsNullOrEmpty(schema) ? "dbo" : schema;
+                var sql = $"INSERT INTO [{mssqlSchema}].[{tableName}] ({string.Join(", ", columns)})";
+                if (!string.IsNullOrWhiteSpace(keyColumn))
+                    sql += $" OUTPUT INSERTED.[{keyColumn}]";
+                sql += $" VALUES ({string.Join(", ", paramNames)});";
+
+                var conn = (SqlConnection)_context.Database.GetDbConnection();
+                if (conn.State != System.Data.ConnectionState.Open)
+                    await conn.OpenAsync();
+
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = sql;
+                var currentTx = _context.Database.CurrentTransaction?.GetDbTransaction();
+                if (currentTx is SqlTransaction sqlTx)
+                    cmd.Transaction = sqlTx;
+
+                foreach (var kv in values)
+                {
+                    var p = cmd.CreateParameter();
+                    p.ParameterName = kv.Key;
+                    p.Value = kv.Value;
+                    cmd.Parameters.Add(p);
+                }
+
+                if (!string.IsNullOrWhiteSpace(keyColumn))
+                    insertedKey = await cmd.ExecuteScalarAsync();
+                else
+                    await cmd.ExecuteNonQueryAsync();
+            }
 
             var response = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             foreach (var item in payload.EnumerateObject())
@@ -798,9 +843,52 @@ namespace WuicCore.Controllers
             return (true, response, null);
         }
 
+        // Inline parser for the `Database=<name>` (or `Initial Catalog=<name>`)
+        // segment of a connection string. Used by the MySQL insert dispatch
+        // when EF's GetSchema() returns the default "dbo" placeholder and we
+        // need the actual MySQL database name for the `\`db\`.\`table\`` prefix.
+        private static string ExtractDatabaseFromConnectionString(string cs)
+        {
+            if (string.IsNullOrEmpty(cs)) return null;
+            foreach (var raw in cs.Split(';'))
+            {
+                var part = raw?.Trim();
+                if (string.IsNullOrEmpty(part)) continue;
+                int eq = part.IndexOf('=');
+                if (eq <= 0) continue;
+                string k = part.Substring(0, eq).Trim();
+                string v = part.Substring(eq + 1).Trim();
+                if (string.IsNullOrEmpty(v)) continue;
+                if (k.Equals("database", StringComparison.OrdinalIgnoreCase) ||
+                    k.Equals("initial catalog", StringComparison.OrdinalIgnoreCase))
+                {
+                    return v;
+                }
+            }
+            return null;
+        }
+
         private async Task<HashSet<string>> GetNonInsertableColumnsAsync(string schema, string tableName)
         {
             var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            // Per-DBMS dispatch (vedi InsertEntityWithSqlAsync): on MySQL the
+            // sys.* catalog is unavailable; query information_schema.columns
+            // via the MySQL provider helper for `auto_increment` + `GENERATED`.
+            var dbms = (WuicOData.Configurator.GetCachedConfiguration()?["AppSettings:dbms"] ?? "mssql").Trim().ToLowerInvariant();
+            if (dbms == "mysql")
+            {
+                string dataConnStr = WuicOData.Configurator.LoadKonvergenceConnectionString("DataSQLConnection");
+                string mysqlDbName = (schema != null && schema != "dbo" ? schema : ExtractDatabaseFromConnectionString(dataConnStr));
+                var arr = WuicOData.Configurator.InvokeMySqlOdataMethod<string[]>(
+                    "GetNonInsertableColumns", dataConnStr, mysqlDbName, tableName);
+                if (arr != null)
+                {
+                    foreach (var c in arr) result.Add(c);
+                }
+                return result;
+            }
+
             var conn = (SqlConnection)_context.Database.GetDbConnection();
             if (conn.State != System.Data.ConnectionState.Open)
                 await conn.OpenAsync();
@@ -848,6 +936,21 @@ namespace WuicCore.Controllers
             {
                 string conStr = WuicOData.Configurator.LoadKonvergenceConnectionString("MetaDataSQLConnection");
 
+                // Per-DBMS dispatch (BUG FIX 2026-04-30): on a MySQL host this
+                // method was returning null silently because SqlConnection +
+                // `SELECT TOP 1` are MSSQL-only and the catch block swallowed
+                // the resulting MySqlException, blocking every CUD on
+                // `/odata/<EntitySet>`. Dispatch to the MySQL sibling in
+                // `Wuic.MySqlProvider/MySqlOdataConfigurator` via reflection
+                // (same pattern as WuicOData/Configurator.TryConfigureMySql).
+                var dbms = (WuicOData.Configurator.GetCachedConfiguration()?["AppSettings:dbms"] ?? "mssql").Trim().ToLowerInvariant();
+                if (dbms == "mysql")
+                {
+                    var arr = WuicOData.Configurator.InvokeMySqlOdataMethod<bool[]>("TryGetWriteFlags", conStr, entityset);
+                    if (arr == null) return null;
+                    return new WriteFlags { EnableInsert = arr[0], EnableEdit = arr[1], EnableDelete = arr[2] };
+                }
+
                 using var connection = new SqlConnection(conStr);
                 using var cmd = connection.CreateCommand();
                 cmd.CommandText = @"
@@ -891,6 +994,13 @@ namespace WuicCore.Controllers
             try
             {
                 string conStr = WuicOData.Configurator.LoadKonvergenceConnectionString("MetaDataSQLConnection");
+
+                // Per-DBMS dispatch (vedi sibling TryGetWriteFlagsFromMetadata).
+                var dbms = (WuicOData.Configurator.GetCachedConfiguration()?["AppSettings:dbms"] ?? "mssql").Trim().ToLowerInvariant();
+                if (dbms == "mysql")
+                {
+                    return WuicOData.Configurator.InvokeMySqlOdataMethod<int?>("TryGetForcedTop", conStr, entityset);
+                }
 
                 using var connection = new SqlConnection(conStr);
                 using var cmd = connection.CreateCommand();

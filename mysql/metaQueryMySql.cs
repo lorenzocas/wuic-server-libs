@@ -2557,10 +2557,18 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
                 if (!string.IsNullOrEmpty(metaStored.md_props_bag))
                 {
-                    dynamic extraProps = RawHelpers.deserialize(metaStored.md_props_bag, null);
-                    if (extraProps != null)
+                    // BUG FIX 2026-04-30: RawHelpers.deserialize returns System.Dynamic.ExpandoObject
+                    // (System.Text.Json default). The `foreach (JToken jt in parameterDefinition)`
+                    // loop below requires Newtonsoft.Json.Linq.JArray. Re-parse via Newtonsoft
+                    // so the JToken iteration works regardless of the underlying deserializer.
+                    try
                     {
-                        parameterDefinition = extraProps.parameters;
+                        var props = Newtonsoft.Json.Linq.JObject.Parse(metaStored.md_props_bag);
+                        parameterDefinition = props["parameters"] as Newtonsoft.Json.Linq.JArray;
+                    }
+                    catch
+                    {
+                        parameterDefinition = null;
                     }
                 }
 
@@ -2619,13 +2627,20 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                         List<Dapper.SqlMapper.FastExpando> rows = new List<SqlMapper.FastExpando>();
                         long conto = 0;
 
+                        // BUG FIX 2026-04-30: ConfigHelper.GetSettingAsString("storedProcTimeout")
+                        // ritorna null su deploy che non hanno la chiave in appsettings (es. il
+                        // tutorial mysql del wuic-framework). `int.Parse(null)` solleva
+                        // ArgumentNullException("s") che il filter classifica come errors.input.required
+                        // con paramName='s' — completamente opaco. Fallback a 60s, allineato al
+                        // default che il sibling MSSQL usa storicamente nei deploy senza override.
+                        int spTimeout = int.TryParse(ConfigHelper.GetSettingAsString("storedProcTimeout") ?? "60", out var t) ? t : 60;
                         if (noResults)
                         {
-                            connection.Execute(stored, dbArgs, commandType: CommandType.StoredProcedure, commandTimeout: int.Parse(ConfigHelper.GetSettingAsString("storedProcTimeout")));
+                            connection.Execute(stored, dbArgs, commandType: CommandType.StoredProcedure, commandTimeout: spTimeout);
                         }
                         else
                         {
-                            rows = (List<Dapper.SqlMapper.FastExpando>)connection.Query(stored, dbArgs, commandType: CommandType.StoredProcedure, commandTimeout: int.Parse(ConfigHelper.GetSettingAsString("storedProcTimeout")));
+                            rows = (List<Dapper.SqlMapper.FastExpando>)connection.Query(stored, dbArgs, commandType: CommandType.StoredProcedure, commandTimeout: spTimeout);
                         }
 
                         if (rows.Count == 1 && rows[0].data.Keys.Count == 1 && string.IsNullOrEmpty(rows[0].data.Keys.First()))
@@ -4849,7 +4864,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
         }
 
-        public static string BuildDynamicWhere(FilterInfos filterInfo, PageInfo PageInfo, metaRawModel mmd, List<_Metadati_Colonne> lst, _Metadati_Tabelle tab, _Metadati_Colonne pKey, string logicOperator, string distinct, Dictionary<aliasPair, string> joins, string formulaLookup, string userId, int mcId = 0, _Metadati_Colonne linkedCol = null)
+        public static string BuildDynamicWhere(FilterInfos filterInfo, PageInfo PageInfo, metaRawModel mmd, List<_Metadati_Colonne> lst, _Metadati_Tabelle tab, _Metadati_Colonne pKey, string logicOperator, string distinct, Dictionary<aliasPair, string> joins, string formulaLookup, string userId, int mcId = 0, _Metadati_Colonne linkedCol = null) // 2026-04-30-build
         {
             string where = "";
 
@@ -4878,33 +4893,46 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                 where += ((where == "") ? " where " : " " + logicOperator + " ") + safetableName + "." + tab.reticular_key_name + " = " + (tab.reticular_key_value.HasValue ? tab.reticular_key_value.Value.ToString() : "null");
             }
 
-            if (ConfigHelper.GetSettingAsString("logicDeleteField") != null)
+            // BUG FIX 2026-04-30: il check `!= null` era sbagliato perché
+            // `ConfigHelper.GetSettingAsString` ritorna `""` (empty string, NON null)
+            // quando la chiave non è in appsettings, quindi il branch legacy
+            // veniva sempre preso e poi il `IsNullOrEmpty(field)` skippava il
+            // filtro. Risultato: il branch else (con il filtro logic-delete
+            // basato su `mc_is_logic_delete_key`) non veniva MAI raggiunto e
+            // le righe con `is_deleted=1` continuavano ad essere ritornate da
+            // `getFlatRecordData` su MySQL. Cambio in `IsNullOrEmpty` check.
+            if (!string.IsNullOrEmpty(ConfigHelper.GetSettingAsString("logicDeleteField")))
             {
                 string logicDeleteField = ConfigHelper.GetSettingAsString("logicDeleteField");
                 string logicDeleteValue = ConfigHelper.GetSettingAsString("logicDeleteValue");
 
-                if (!string.IsNullOrEmpty(logicDeleteField))
+                _Metadati_Colonne logic_del_key = tab._Metadati_Colonnes.FirstOrDefault(x => x.mc_nome_colonna == logicDeleteField);
+                if (logic_del_key != null)
                 {
-                    _Metadati_Colonne logic_del_key = tab._Metadati_Colonnes.FirstOrDefault(x => x.mc_nome_colonna == logicDeleteField);
-                    if (logic_del_key != null)
-                    {
-                        where += ((string.IsNullOrEmpty(where)) ? " where " : " " + logicOperator + " ") + " coalesce(" + safetableName + "." + EscapeDBObjectName(RawHelpers.getStoreColumnName(logic_del_key)) + string.Format(", '') <> '{0}'", logicDeleteValue);
-                    }
+                    where += ((string.IsNullOrEmpty(where)) ? " where " : " " + logicOperator + " ") + " coalesce(" + safetableName + "." + EscapeDBObjectName(RawHelpers.getStoreColumnName(logic_del_key)) + string.Format(", '') <> '{0}'", logicDeleteValue);
                 }
             }
             else
             {
-                if (tab.md_has_logic_delete)
+                // BUG FIX 2026-04-30 (audit logic-delete su MySQL): non possiamo gate-are
+                // l'auto-filter su `tab.md_has_logic_delete` perché `tab` arriva qui dalla
+                // catena `lst.First()._Metadati_Tabelle` (via getColonneByUserID->Clone),
+                // e su MySQL il flag a volte è stale a runtime anche subito dopo
+                // invalidateMetadataRuntime (DB ha mdhaslogicdelete=1, API READ ritorna 1,
+                // ma il `tab` qui è 0 — cache layer non ricaricato). Guardiamo direttamente
+                // la colonna marcata `mc_is_logic_delete_key=true`: se esiste, applichiamo
+                // il filtro `coalesce(<col>,0)=0`. Equivalente semantico (la presenza della
+                // chiave è già il segnale che la tabella supporta logic-delete) e immune
+                // alla cache stale del flag table-level.
+                _Metadati_Colonne logic_del_key = lst.FirstOrDefault(x => x.mc_is_logic_delete_key == true)
+                                                  ?? tab._Metadati_Colonnes.FirstOrDefault(x => x.mc_is_logic_delete_key == true);
+                if (logic_del_key != null)
                 {
-                    _Metadati_Colonne logic_del_key = tab._Metadati_Colonnes.FirstOrDefault(x => x.mc_is_logic_delete_key.HasValue && x.mc_is_logic_delete_key.Value);
-                    if (logic_del_key != null)
-                    {
-                        where += ((where == "") ? " where " : " " + logicOperator + " ") + " coalesce(" + safetableName + "." + EscapeDBObjectName(RawHelpers.getStoreColumnName(logic_del_key)) + ",0) = 0";
-                    }
-                    else if (tab.md_is_reticular)
-                    {
-                        where += ((where == "") ? " where " : " " + logicOperator + " ") + " coalesce(" + safetableName + ".[cancellato],0) = 0";
-                    }
+                    where += ((where == "") ? " where " : " " + logicOperator + " ") + " coalesce(" + safetableName + "." + EscapeDBObjectName(RawHelpers.getStoreColumnName(logic_del_key)) + ",0) = 0";
+                }
+                else if (tab.md_has_logic_delete && tab.md_is_reticular)
+                {
+                    where += ((where == "") ? " where " : " " + logicOperator + " ") + " coalesce(" + safetableName + ".[cancellato],0) = 0";
                 }
             }
 
@@ -6012,24 +6040,25 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                     }
 
                 }
-                else if ((fld.mc_ui_column_type == "boolean" || fld.mc_ui_column_type == "bit") && tabel.md_is_reticular)
+                else if (fld.mc_ui_column_type == "boolean" || fld.mc_ui_column_type == "bit" || fld.mc_db_column_type == "bit")
                 {
+                    // MySQL: coerce boolean values to 0/1 integers always.
+                    // The previous branch only fired for `tabel.md_is_reticular`,
+                    // leaving non-reticular tables (notably `_metadati__colonne`
+                    // when editing flags like `mcuiispassword`) to flow through
+                    // with `valore.ToString()` returning "True"/"False" literals,
+                    // which MySQL rejects with "Incorrect integer value".
                     if (valore != null)
                     {
-                        if (valore.ToString().ToLower() == "true")
-                        {
-                            valore = true;
-                        }
-                        else if (valore.ToString().ToLower() == "false")
-                        {
-                            valore = false;
-                        }
+                        string s = valore.ToString().ToLower();
+                        if (s == "true" || s == "1") valore = 1;
+                        else if (s == "false" || s == "0" || s == "") valore = 0;
                     }
                     else
                     {
                         if (fld.mc_validation_has.HasValue && fld.mc_validation_has.Value && fld.mc_validation_required.HasValue && fld.mc_validation_required.Value)
                         {
-                            valore = false;
+                            valore = 0;
                         }
                     }
                 }
@@ -7000,34 +7029,24 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                                 valore = null;
                         }
                     }
-                    else if ((fld.mc_ui_column_type == "boolean" || fld.mc_ui_column_type == "bit") && tabel.md_is_reticular)
+                    else if (fld.mc_ui_column_type == "boolean" || fld.mc_ui_column_type == "bit" || fld.mc_db_column_type == "bit")
                     {
+                        // MySQL: coerce booleans to 0/1 integers always (insert path).
+                        // Mirror of the same fix in BuildDynamicUpdateQuery — without
+                        // this, INSERTs of metadata rows with boolean columns send
+                        // the literal "False"/"True" string and MySQL rejects with
+                        // "Incorrect integer value".
                         if (valore != null)
                         {
-                            if (valore.ToString().ToLower() == "true")
-                            {
-                                valore = true;
-                            }
-                            else if (valore.ToString().ToLower() == "false")
-                            {
-                                valore = false;
-                            }
+                            string s = valore.ToString().ToLower();
+                            if (s == "true" || s == "1") valore = 1;
+                            else if (s == "false" || s == "0" || s == "") valore = 0;
                         }
                         else
                         {
                             if (fld.mc_validation_has.HasValue && fld.mc_validation_has.Value && fld.mc_validation_required.HasValue && fld.mc_validation_required.Value)
                             {
-                                valore = false;
-                            }
-                        }
-                    }
-                    else if (fld.mc_ui_column_type == "boolean")
-                    {
-                        if (valore == null)
-                        {
-                            if (fld.mc_validation_has.HasValue && fld.mc_validation_has.Value && fld.mc_validation_required.HasValue && fld.mc_validation_required.Value)
-                            {
-                                valore = false;
+                                valore = 0;
                             }
                         }
                     }
