@@ -36,6 +36,8 @@
     "@angular/build": "^21.2.7",
     "@angular/cli": "^21.2.7",
     "@angular/compiler-cli": "^21.2.0",
+    "@angular/platform-server": "^21.2.11",
+    "@angular/ssr": "^21.2.9",
     "prettier": "^3.8.1",
     "typescript": "~5.9.2"
   }

@@ -1,7 +1,6 @@
-import { ApplicationConfig, effect, inject, provideAppInitializer, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { ApplicationConfig, effect, inject, provideAppInitializer } from '@angular/core';
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
-import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import { maintenanceInterceptor } from './core/maintenance.interceptor';
 import { providePrimeNG } from 'primeng/config';
 import Aura from '@primeng/themes/aura';
@@ -12,8 +11,13 @@ import { routes } from './app.routes';
 import { LanguageService } from './services/language.service';
 
 export const appConfig: ApplicationConfig = {
+  // Browser-only providers (provideBrowserGlobalErrorListeners,
+  // provideClientHydration, provideAnimationsAsync) live in main.ts so
+  // app.config.ts can be imported by both the browser bootstrap and the
+  // server-side prerender bootstrap (app.config.server.ts) without
+  // pulling DOM-dependent code into the prerender extractor — that's
+  // what was crashing prerender with NG0401.
   providers: [
-    provideBrowserGlobalErrorListeners(),
     // Path-based routing (NOT hash) — clean URLs like /pricing instead of
     // /#/pricing. Critical for SEO: Google does not index URL fragments,
     // so hash-based URLs are invisible to search crawlers. The IIS site
@@ -25,8 +29,14 @@ export const appConfig: ApplicationConfig = {
       scrollPositionRestoration: 'top',
       anchorScrolling: 'enabled',
     })),
-    provideAnimationsAsync(),
-    provideHttpClient(withInterceptors([maintenanceInterceptor])),
+    // `withFetch()` makes Angular HttpClient use the standard fetch API
+    // instead of XHR. This is required during prerender: the fetch backend
+    // is the one Angular SSR intercepts to serve files from the in-memory
+    // assets bundle, so requests like ngx-translate's
+    // GET /assets/i18n/it-IT.json resolve at build time. Without it, the
+    // request escapes to a fake "ng-localhost" host and fails with 0
+    // Unknown Error, killing every prerendered route.
+    provideHttpClient(withFetch(), withInterceptors([maintenanceInterceptor])),
     providePrimeNG({
       theme: {
         preset: Aura,

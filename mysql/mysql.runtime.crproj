@@ -14,8 +14,6 @@
        deobfuscation, and leaves all public field/property/method names intact.
    - anti ildasm
        Harmless attribute marker; placebo against modern decompilers.
-   - anti tamper
-       Encrypted method bodies + runtime checksum.
 
   Disabled (same rationale as KonvergenceCore.crproj):
    - constants  → injects nested helper types in <global> with Unicode names,
@@ -25,6 +23,28 @@
                   ProjectReference="..\KonvergenceCore\KonvergenceCore.csproj".
    - invalid metadata → emits illegal metadata table entries that break
                         consumer ResolveAssemblyReferences with MSB3246.
+
+  Disabled SPECIFICALLY on mysql.dll (vs KonvergenceCore.crproj which keeps it):
+   - anti tamper → its <Module> cctor decrypts method bodies on first access
+                   and relies on `Marshal.GetHINSTANCE(module)` + walks the
+                   entry assembly's metadata. Both work fine when the DLL is
+                   the .NET host's entry assembly (KonvergenceCore on Linux),
+                   but throw NullReferenceException when the DLL is
+                   *reflection-loaded* (Assembly.LoadFrom from
+                   RawHelpers.ResolveAssemblyPath in metaModelRaw). On Linux
+                   this manifests as:
+                     System.TypeInitializationException: The type initializer
+                     for '&lt;Module&gt;' threw an exception.
+                       inner: NullReferenceException
+                   ...which propagates as `mysql provider not available` and
+                   crashes wuic-core at first metadata fetch in Startup.cs.
+                   On Windows/IIS the same DLL works because IIS loads it via
+                   its own assembly load context that mimics entry-assembly
+                   semantics for legacy ASP.NET / aspnet_compiler scenarios.
+                   The remaining `rename` protection still encrypts class /
+                   method / field names + emits symbols.map, which is the
+                   bulk of the IP protection. Anti-tamper alone is bypassable
+                   in <5 min by anyone with dnSpy regardless.
 
   Escluded from rename:
    - All compiler-generated nested types whose name starts with `<`
@@ -39,14 +59,17 @@
   Reference: https://github.com/mkaring/ConfuserEx/blob/master/docs/ProjectFormat.md
 -->
 <project xmlns="http://confuser.codeplex.com" outputDir="C:\src\Wuic\mysql\bin\Release\net10.0-confused" baseDir="C:\src\Wuic\mysql\bin\Release\net10.0" debug="true">
-  <!-- 1) Global rule: apply the three protections to every type. -->
+  <!-- 1) Global rule: apply the two protections to every type.
+          NOTE: anti tamper is INTENTIONALLY disabled here (vs the KonvergenceCore
+          project) because the <Module> cctor's anti-tamper code throws
+          NullReferenceException when the DLL is reflection-loaded on Linux —
+          see comment block above. -->
   <rule pattern="true" preset="none" inherit="false">
     <protection id="rename">
       <argument name="mode" value="decodable" />
       <argument name="renPublic" value="false" />
     </protection>
     <protection id="anti ildasm" />
-    <protection id="anti tamper" />
   </rule>
   <!-- 2) Skip rename for compiler-generated nested types (anonymous, async,
           closures, lambdas). Their names always start with '<'. -->

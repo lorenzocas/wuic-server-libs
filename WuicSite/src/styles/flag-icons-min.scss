@@ -1,0 +1,40 @@
+// Minimal flag-icons replacement for the 5 languages this site actually
+// supports. The full `flag-icons/css/flag-icons.css` from npm declares
+// ~250 flags and references each SVG twice (../flags/4x3/xx.svg and
+// ../flags/1x1/xx.svg with the same filename). The Angular @angular/build
+// bundler then tries to copy both into a single output `media/` folder and
+// fails with 39 "Two output files share the same path" errors, blocking
+// `ng serve` and preventing prerender (which static-builds every route).
+//
+// We only render flags via `<span class="fi fi-XX">` (4x3 only — see
+// language-selector.html); the .fis (1x1) variant isn't used anywhere. So
+// we vendor exactly what we need: 5 background-image rules pointing at
+// `flags/4x3/{it,gb,fr,es,de}.svg`, copied at build time by the assets
+// entry in angular.json. Adding a new site language = add a row here +
+// extend the glob in angular.json.
+//
+// If a future page ever needs more flags, extending this file is cheap;
+// reverting to the full library should be avoided unless flag-icons fixes
+// upstream the dual-folder same-name asset collision (open issue at the
+// time of writing).
+
+.fi {
+  background-size: contain;
+  background-position: 50%;
+  background-repeat: no-repeat;
+  position: relative;
+  display: inline-block;
+  width: 1.333333em;
+  line-height: 1em;
+
+  &:before {
+    content: " ";
+  }
+}
+
+// 4x3 flag aspect ratio — this is what the language selector uses.
+.fi-it { background-image: url('/flags/4x3/it.svg'); }
+.fi-gb { background-image: url('/flags/4x3/gb.svg'); }
+.fi-fr { background-image: url('/flags/4x3/fr.svg'); }
+.fi-es { background-image: url('/flags/4x3/es.svg'); }
+.fi-de { background-image: url('/flags/4x3/de.svg'); }

@@ -1,0 +1,199 @@
+<!-- Hero -->
+<section class="cmp-hero">
+  <div class="container">
+    <span class="cmp-eyebrow">Honest comparison</span>
+    <h1>WUIC vs Retool, Refine, Budibase, AppSmith</h1>
+    <p class="cmp-lede">
+      A side-by-side look at how WUIC stacks up against the most common low-code
+      and admin-panel alternatives. No marketing fluff — feature matrix, the
+      tradeoffs we see in real teams, and explicit guidance on when each tool
+      is the better pick.
+    </p>
+    <div class="cmp-actions">
+      <a routerLink="/sandbox">
+        <p-button label="Try WUIC in your browser" icon="pi pi-play" size="large" />
+      </a>
+      <a routerLink="/pricing">
+        <p-button label="See pricing" icon="pi pi-tag" severity="secondary" [outlined]="true" size="large" />
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Quick verdict -->
+<section class="cmp-section verdict-section">
+  <div class="container">
+    <h2 class="cmp-section-title">Quick verdict</h2>
+    <p class="cmp-section-lede">
+      Five dimensions evaluators usually filter on first.
+    </p>
+
+    <div class="cmp-table-wrapper">
+      <table class="cmp-table verdict-table" aria-label="Quick verdict">
+        <thead>
+          <tr>
+            <th scope="col" class="th-label">Dimension</th>
+            @for (t of tools; track t) {
+              <th scope="col" [class.th-highlight]="t === 'WUIC'">{{ t }}</th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of verdictRows; track row.label) {
+            <tr>
+              <th scope="row" class="th-label">{{ row.label }}</th>
+              @for (key of toolKey; track key) {
+                <td [class.td-highlight]="key === 'wuic'">
+                  <span class="cell-note">{{ row.notes?.[key] }}</span>
+                </td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- Feature comparison -->
+<section class="cmp-section feature-section">
+  <div class="container">
+    <h2 class="cmp-section-title">Feature comparison</h2>
+    <p class="cmp-section-lede">
+      Twelve concrete capabilities, scored against published documentation at
+      time of writing. ✓ full, ~ partial / limited, ✗ unsupported.
+    </p>
+
+    <div class="cmp-table-wrapper">
+      <table class="cmp-table feature-table" aria-label="Feature comparison">
+        <thead>
+          <tr>
+            <th scope="col" class="th-label">Feature</th>
+            @for (t of tools; track t) {
+              <th scope="col" [class.th-highlight]="t === 'WUIC'">{{ t }}</th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of featureRows; track row.label) {
+            <tr>
+              <th scope="row" class="th-label">
+                <div class="feature-name">{{ row.label }}</div>
+                @if (row.detail) {
+                  <div class="feature-detail">{{ row.detail }}</div>
+                }
+              </th>
+              @for (key of toolKey; track key) {
+                <td [class.td-highlight]="key === 'wuic'">
+                  @if (row.notes?.[key]) {
+                    <span class="cell-note">{{ row.notes?.[key] }}</span>
+                  } @else {
+                    <span [class]="ratingClass(row[key])" [attr.aria-label]="ratingLabel(row[key])" [title]="ratingLabel(row[key])">
+                      {{ ratingIcon(row[key]) }}
+                    </span>
+                  }
+                </td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- When to choose what -->
+<section class="cmp-section choice-section">
+  <div class="container">
+    <h2 class="cmp-section-title">When to choose which</h2>
+    <p class="cmp-section-lede">
+      Each of these tools has a sweet spot. Picking the right one upfront
+      saves a year of rework.
+    </p>
+
+    <div class="choice-grid">
+      <article class="choice-card choice-card-wuic">
+        <h3>Choose WUIC if…</h3>
+        <ul>
+          <li>You start from a SQL database and want CRUD, dashboards, workflows and reports auto-generated from the schema.</li>
+          <li>Your stack is .NET on the server, Angular on the client, and you want to keep that.</li>
+          <li>You deploy to corporate Windows / IIS environments where Docker isn't always welcome.</li>
+          <li>You want a workflow + report engine in the box, not as a third-party bolt-on.</li>
+          <li>You value metadata-driven configuration over hand-written TypeScript per screen.</li>
+        </ul>
+      </article>
+
+      <article class="choice-card">
+        <h3>Choose Retool if…</h3>
+        <ul>
+          <li>You need to wire up an internal panel over a heterogeneous mix of REST APIs, SaaS tools, and SQL databases — fast.</li>
+          <li>Your builders are non-developers (or developers who want to ship without a deploy pipeline).</li>
+          <li>You are happy paying per end-user / month for the productivity gain.</li>
+          <li>SaaS is acceptable for the data the panel touches.</li>
+        </ul>
+      </article>
+
+      <article class="choice-card">
+        <h3>Choose Refine if…</h3>
+        <ul>
+          <li>Your team is React-fluent and wants a hand-written UI with code review, not a visual builder.</li>
+          <li>Open-source (MIT) is a hard requirement.</li>
+          <li>You're comfortable building reports, workflows, and access control yourself.</li>
+        </ul>
+      </article>
+
+      <article class="choice-card">
+        <h3>Choose Budibase if…</h3>
+        <ul>
+          <li>You want a friendly drag-and-drop builder you can self-host for free, with a permissive enough license.</li>
+          <li>Most apps you build are simple forms over PostgreSQL / MySQL.</li>
+          <li>Non-technical staff are the primary builders.</li>
+        </ul>
+      </article>
+
+      <article class="choice-card">
+        <h3>Choose AppSmith if…</h3>
+        <ul>
+          <li>You like custom JS-driven internal tools and value Apache-2.0 licensing.</li>
+          <li>You're building one-off panels and don't need a strong opinion about the data model.</li>
+          <li>You want a self-hosted alternative to Retool with a similar UX.</li>
+        </ul>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="cmp-section faq-section">
+  <div class="container">
+    <h2 class="cmp-section-title">Frequently asked</h2>
+    <p class="cmp-section-lede">
+      The questions teams actually ask before evaluating.
+    </p>
+
+    <div class="faq-list">
+      @for (f of faqs; track f.q) {
+        <details class="faq-item">
+          <summary>{{ f.q }}</summary>
+          <p>{{ f.a }}</p>
+        </details>
+      }
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cmp-section cta-section">
+  <div class="container cta-inner">
+    <h2>Ready to see it in action?</h2>
+    <p>Try the live sandbox in your browser, or book a guided demo. Both take less than a minute to start.</p>
+    <div class="cta-actions">
+      <a routerLink="/sandbox">
+        <p-button label="Open the sandbox" icon="pi pi-play" size="large" />
+      </a>
+      <a routerLink="/start">
+        <p-button label="Get a guided demo" icon="pi pi-arrow-right" severity="secondary" [outlined]="true" size="large" />
+      </a>
+    </div>
+  </div>
+</section>

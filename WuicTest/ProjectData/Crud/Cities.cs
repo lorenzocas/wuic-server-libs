@@ -155,6 +155,21 @@ public class Cities : ICrudRouteHandler
         return false;
     }
 
+    public Cell customizeExcelFieldCell(
+        string fieldName,
+        string routeName,
+        string type,
+        dynamic metaInfo,
+        uint columnIndex,
+        uint rowIndex,
+        object value,
+        uint defaultStyleIndex)
+    {
+        // No streaming-export customization for cities → return null so the
+        // exporter falls back to the default cell rendering for this column.
+        return null;
+    }
+
     public void customizeRowImport(
         string routeName,
         dynamic metaInfo,

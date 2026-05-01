@@ -294,6 +294,33 @@ public class UtilityHost : IUtilityHost
         }
     }
 
+    public Cell customizeExcelFieldCell(
+        string fieldName,
+        string routeName,
+        string type,
+        dynamic metaInfo,
+        uint columnIndex,
+        uint rowIndex,
+        object value,
+        uint defaultStyleIndex)
+    {
+        var handler = ResolveRouteHandler(routeName);
+        if (handler == null)
+        {
+            return null;
+        }
+
+        try
+        {
+            return handler.customizeExcelFieldCell(fieldName, routeName, type, metaInfo, columnIndex, rowIndex, value, defaultStyleIndex);
+        }
+        catch (Exception ex)
+        {
+            HandleHookError(handler, nameof(customizeExcelFieldCell), ex);
+            throw;
+        }
+    }
+
     public void customizeRowImport(
         string routeName,
         dynamic metaInfo,

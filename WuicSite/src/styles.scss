@@ -1,10 +1,19 @@
 @use 'primeicons/primeicons.css';
-// Country flag CSS sprites — used by the language selector.
-// We import it globally because Windows 10 does not render flag emojis
-// natively (falls back to 2-letter region indicators like "IT", "GB"),
-// while flag-icons provides actual coloured SVG flags that work on every
+// Country flag SVGs — used by the language selector.
+// We render them ourselves (background-image on a span) because Windows 10
+// does not render flag emojis natively (falls back to 2-letter region
+// indicators like "IT", "GB"), while real coloured SVGs work on every
 // OS/browser.
-@use 'flag-icons/css/flag-icons.css';
+//
+// We don't import the upstream `flag-icons/css/flag-icons.css` because it
+// references both flags/4x3/xx.svg and flags/1x1/xx.svg with the same
+// filename — the Angular bundler then collides them into a single
+// `media/xx.svg` and fails the build with 39 "Two output files share the
+// same path" errors. Instead we use a hand-rolled minimal stylesheet that
+// declares only the 5 flags this site ships (4x3 only). Add a row in
+// flag-icons-min.scss + extend the assets glob in angular.json to add a
+// new language.
+@use './styles/flag-icons-min';
 
 *,
 *::before,

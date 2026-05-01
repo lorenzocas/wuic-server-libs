@@ -43,12 +43,19 @@
           "builder": "@angular/build:application",
           "options": {
             "browser": "src/main.ts",
+            "server": "src/main.server.ts",
+            "outputMode": "static",
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
               {
                 "glob": "**/*",
                 "input": "public"
+              },
+              {
+                "glob": "{it,gb,fr,es,de}.svg",
+                "input": "node_modules/flag-icons/flags/4x3",
+                "output": "/flags/4x3/"
               }
             ],
             "styles": [

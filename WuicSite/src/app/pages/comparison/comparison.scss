@@ -1,0 +1,373 @@
+// ─── Hero ──────────────────────────────────────────────────────────
+.cmp-hero {
+  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 50%, #c7d2fe 100%);
+  padding: 100px 0 80px;
+  text-align: center;
+}
+
+.cmp-eyebrow {
+  display: inline-block;
+  background: #6366f1;
+  color: #fff;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+
+.cmp-hero h1 {
+  font-size: 2.6rem;
+  font-weight: 800;
+  line-height: 1.18;
+  color: #0f172a;
+  margin: 0 0 22px;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.cmp-lede {
+  font-size: 1.12rem;
+  color: #475569;
+  max-width: 720px;
+  margin: 0 auto 36px;
+  line-height: 1.7;
+}
+
+.cmp-actions {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+// ─── Section scaffolding ──────────────────────────────────────────
+.cmp-section {
+  padding: 72px 0;
+
+  &:nth-of-type(odd) {
+    background: #f8fafc;
+  }
+}
+
+.cmp-section-title {
+  font-size: 1.9rem;
+  font-weight: 700;
+  text-align: center;
+  color: #0f172a;
+  margin: 0 0 12px;
+}
+
+.cmp-section-lede {
+  text-align: center;
+  color: #64748b;
+  font-size: 1.05rem;
+  line-height: 1.65;
+  margin: 0 auto 40px;
+  max-width: 640px;
+}
+
+// ─── Comparison tables (verdict + feature) ────────────────────────
+.cmp-table-wrapper {
+  overflow-x: auto;
+  // Subtle scrollbar only when overflowing.
+  -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
+  // Cast the raised-card look from the wrapper so inner table can stay flat.
+  box-shadow: 0 4px 18px -8px rgba(15, 23, 42, 0.16),
+              0 2px 6px -2px rgba(15, 23, 42, 0.08);
+  background: #fff;
+}
+
+.cmp-table {
+  width: 100%;
+  // Min-width keeps the layout legible on tablets; below that the wrapper
+  // scrolls horizontally rather than squishing every column.
+  min-width: 760px;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+
+  thead {
+    background: #0f172a;
+    color: #fff;
+  }
+
+  th, td {
+    padding: 14px 16px;
+    text-align: center;
+    vertical-align: middle;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  thead th {
+    font-weight: 600;
+    font-size: 0.92rem;
+    letter-spacing: 0.02em;
+    border-bottom: none;
+  }
+
+  // Left-most label column: wider, left-aligned, slightly heavier.
+  .th-label {
+    text-align: left;
+    background: #f8fafc;
+    color: #0f172a;
+    font-weight: 600;
+    width: 30%;
+    min-width: 220px;
+  }
+  thead .th-label {
+    background: #0f172a;
+    color: #fff;
+  }
+
+  // Highlight the WUIC column to draw the eye without being shouty.
+  .th-highlight {
+    background: #4338ca;
+    position: relative;
+  }
+  .td-highlight {
+    background: #eef2ff;
+  }
+
+  tbody tr:last-child th,
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  tbody tr:hover td,
+  tbody tr:hover th.th-label {
+    background: #f1f5f9;
+  }
+  tbody tr:hover .td-highlight {
+    background: #e0e7ff;
+  }
+}
+
+// ─── Rating cells (✓ ~ ✗) ─────────────────────────────────────────
+.rating {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1;
+
+  &.rating-yes {
+    background: #dcfce7;
+    color: #15803d;
+  }
+  &.rating-partial {
+    background: #fef9c3;
+    color: #a16207;
+  }
+  &.rating-no {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+}
+
+.cell-note {
+  display: inline-block;
+  font-size: 0.85rem;
+  color: #475569;
+  line-height: 1.45;
+}
+
+.feature-name {
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.feature-detail {
+  font-size: 0.82rem;
+  color: #64748b;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+// ─── Choice cards (When to choose…) ───────────────────────────────
+.choice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 22px;
+}
+
+.choice-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 28px 24px;
+  box-shadow: 0 2px 10px -4px rgba(15, 23, 42, 0.08);
+
+  h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 16px;
+  }
+
+  ul {
+    margin: 0;
+    padding: 0 0 0 18px;
+    color: #475569;
+    line-height: 1.6;
+  }
+
+  li {
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.choice-card-wuic {
+  border-color: #6366f1;
+  background: linear-gradient(180deg, #eef2ff 0%, #fff 60%);
+  position: relative;
+
+  &::before {
+    content: 'WUIC';
+    position: absolute;
+    top: -12px;
+    left: 24px;
+    background: #6366f1;
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+
+  h3 {
+    color: #4338ca;
+  }
+}
+
+// ─── FAQ accordion ────────────────────────────────────────────────
+.faq-list {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.faq-item {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0;
+  overflow: hidden;
+  transition: box-shadow 0.18s ease;
+
+  &[open] {
+    box-shadow: 0 4px 14px -6px rgba(15, 23, 42, 0.12);
+  }
+
+  summary {
+    cursor: pointer;
+    padding: 18px 22px;
+    font-weight: 600;
+    color: #0f172a;
+    list-style: none;
+    position: relative;
+    padding-right: 48px;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    &::after {
+      content: '+';
+      position: absolute;
+      right: 22px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.4rem;
+      color: #6366f1;
+      font-weight: 400;
+      transition: transform 0.15s ease;
+    }
+  }
+
+  &[open] summary::after {
+    content: '−';
+  }
+
+  p {
+    margin: 0;
+    padding: 0 22px 20px;
+    color: #475569;
+    line-height: 1.7;
+    font-size: 0.96rem;
+  }
+}
+
+// ─── CTA ──────────────────────────────────────────────────────────
+.cta-section {
+  background: linear-gradient(135deg, #4338ca 0%, #6366f1 100%);
+  color: #fff;
+
+  &.cmp-section:nth-of-type(odd) {
+    // Override the alternating background for the final CTA strip.
+    background: linear-gradient(135deg, #4338ca 0%, #6366f1 100%);
+  }
+}
+
+.cta-inner {
+  text-align: center;
+  max-width: 720px;
+
+  h2 {
+    color: #fff;
+    font-size: 1.9rem;
+    margin: 0 0 12px;
+    font-weight: 700;
+  }
+
+  p {
+    color: #e0e7ff;
+    font-size: 1.05rem;
+    margin: 0 0 28px;
+  }
+}
+
+.cta-actions {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+// ─── Mobile tweaks ────────────────────────────────────────────────
+@media (max-width: 720px) {
+  .cmp-hero {
+    padding: 72px 0 56px;
+  }
+  .cmp-hero h1 {
+    font-size: 2rem;
+  }
+  .cmp-section {
+    padding: 56px 0;
+  }
+  .cmp-section-title {
+    font-size: 1.55rem;
+  }
+  .cmp-table {
+    font-size: 0.88rem;
+  }
+  .cmp-table th, .cmp-table td {
+    padding: 10px 12px;
+  }
+}

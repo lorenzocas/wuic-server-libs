@@ -18,14 +18,43 @@ import { LanguageService } from './language.service';
  * APP_INITIALIZER has primed the active language file.
  */
 export interface PageSeo {
-  /** i18n key for the document <title>. Suffixed with " — WUIC Framework" automatically. */
-  titleKey: string;
-  /** i18n key for the meta description (≤160 chars in the translated value). */
-  descriptionKey: string;
+  /**
+   * i18n key for the document <title>. Suffixed with " — WUIC Framework"
+   * automatically. Either `titleKey` or `titleLiteral` must be provided.
+   */
+  titleKey?: string;
+  /**
+   * i18n key for the meta description (≤160 chars in the translated value).
+   * Either `descriptionKey` or `descriptionLiteral` must be provided.
+   */
+  descriptionKey?: string;
+  /**
+   * Bypass i18n and use this literal title — handy for placeholder /
+   * not-yet-localized pages. Wins over `titleKey` when both are set.
+   */
+  titleLiteral?: string;
+  /** Like `titleLiteral` but for the meta description. */
+  descriptionLiteral?: string;
   /** Path of the current route, e.g. '/pricing'. Drives canonical + og:url + hreflang. */
   path: string;
   /** Optional translation params for titleKey / descriptionKey interpolation. */
   params?: Record<string, unknown>;
+  /**
+   * When true, emit `<meta name="robots" content="noindex, follow">` for this
+   * page. Use for placeholder routes ("coming soon"), thin-content pages, and
+   * landing pages reserved for paid traffic where organic indexing isn't wanted.
+   * Without this flag the sitewide default in index.html ("index, follow") wins.
+   */
+  noindex?: boolean;
+  /**
+   * Optional per-page JSON-LD payload(s). Inserted as a `<script
+   * type="application/ld+json" data-seo-page="1">` block, separate from the
+   * static sitewide schema in index.html. Replaced on every navigation so two
+   * routes can't accidentally bleed schema into each other. Use the helpers
+   * in `./seo-schemas` (articleSchema / faqPageSchema / breadcrumbsSchema /
+   * softwareAppSchema) to build the payload.
+   */
+  structuredData?: object | object[];
 }
 
 const SUPPORTED_LANGS = ['it-IT', 'en-US', 'fr-FR', 'es-ES', 'de-DE'] as const;
@@ -65,9 +94,11 @@ export class SeoService {
   }
 
   private applyAll(seo: PageSeo): void {
-    const titleBase = this.translate.instant(seo.titleKey, seo.params);
+    const titleBase = seo.titleLiteral
+      ?? (seo.titleKey ? this.translate.instant(seo.titleKey, seo.params) : '');
     const title = titleBase ? `${titleBase} — WUIC Framework` : 'WUIC Framework';
-    const description = this.translate.instant(seo.descriptionKey, seo.params);
+    const description = seo.descriptionLiteral
+      ?? (seo.descriptionKey ? this.translate.instant(seo.descriptionKey, seo.params) : '');
     const canonical = `${BASE_URL}${seo.path}`;
 
     this.titleSvc.setTitle(title);
@@ -107,6 +138,39 @@ export class SeoService {
     });
     // x-default is the fallback for unmatched user locales — point to canonical.
     this.appendLink({ rel: 'alternate', hreflang: 'x-default', href: canonical });
+
+    // Per-page robots directive: opt-out of indexing for placeholder /
+    // ad-only landing pages. The sitewide default "index, follow" is set
+    // statically in index.html — only override when noindex is requested.
+    if (seo.noindex) {
+      this.upsertMetaName('robots', 'noindex, follow');
+    } else {
+      this.upsertMetaName('robots', 'index, follow, max-image-preview:large');
+    }
+
+    // Per-page JSON-LD: replace any previously injected page-level schema so
+    // navigating from /pricing (Article) to /docs (Article) doesn't leave a
+    // stale Article describing the wrong URL. Sitewide Organization+WebSite
+    // schema baked into index.html is left untouched (no data-seo-page tag).
+    this.applyStructuredData(seo.structuredData);
+  }
+
+  /**
+   * Replace the page-level JSON-LD block. Pass `undefined` to clear it (no
+   * page-specific schema, fall back to the sitewide block in index.html).
+   */
+  private applyStructuredData(data: object | object[] | undefined): void {
+    this.doc.querySelectorAll('script[data-seo-page="1"]').forEach(s => s.remove());
+    if (!data) return;
+    const payload = Array.isArray(data) && data.length > 1
+      ? { '@context': 'https://schema.org', '@graph': data }
+      : Array.isArray(data) ? data[0] : data;
+    if (!payload) return;
+    const script = this.doc.createElement('script');
+    script.setAttribute('type', 'application/ld+json');
+    script.setAttribute('data-seo-page', '1');
+    script.textContent = JSON.stringify(payload);
+    this.doc.head.appendChild(script);
   }
 
   /** Sync <html lang="..."> with active language so screen readers + crawlers know. */
