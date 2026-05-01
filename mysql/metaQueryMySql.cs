@@ -1291,7 +1291,18 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
             if (user.data.ContainsKey("language") && user.data["language"] != null)
                 u.language = user.data["language"].ToString();
 
-            var extra_fields = user.data.Keys.Where(x => x != infos.password_column_name);
+            // Defensive denylist: foreach below is currently commented out so
+            // there is no live extra_keys leak from this path, but keep the
+            // filter aligned with `KonvergenceCore/_Metadati_methods.cs:mapUserFields`
+            // so the bug does not regress if the foreach is re-enabled. The
+            // login SELECT aliases the password column as `pwd_hash`, which is
+            // NOT caught by `infos.password_column_name` alone.
+            var sensitiveColumnDenylist = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                infos.password_column_name ?? string.Empty,
+                "pwd_hash", "password", "passwd", "pwd"
+            };
+            var extra_fields = user.data.Keys.Where(x => !sensitiveColumnDenylist.Contains(x));
 
             // foreach (string extra_field in extra_fields)
             // {
@@ -5881,7 +5892,31 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
             Dictionary<string, object> original = (importing || !entity.ContainsKey("__original") ? new Dictionary<string, object>() : entity["__original"] as Dictionary<string, object>);
 
+            // FIX 2026-05-01 — same defensive null-guard as BuildDynamicInsertQuery
+            // above (search for "FIX 2026-05-01" there for the full rationale).
+            // The cached column-list returned by getColonneByUserID can have a
+            // null `_Metadati_Tabelle` back-ref under fresh-install / cache-warmup
+            // conditions; re-load by md_id and patch every column to avoid NRE
+            // in the rest of this method.
             _Metadati_Tabelle tabel = metadata[0]._Metadati_Tabelle;
+            if (tabel == null)
+            {
+                int parentMdId = metadata[0].md_id;
+                using (metaRawModel mrmReload = new metaRawModel())
+                {
+                    tabel = mrmReload.GetMetadati_Tabelles("", parentMdId.ToString()).FirstOrDefault();
+                }
+                if (tabel == null)
+                {
+                    throw new InvalidOperationException(
+                        "BuildDynamicUpdateQuery: metadata[0]._Metadati_Tabelle is null and re-load by md_id=" + parentMdId + " also returned null. Metadata cache is corrupt — restart the app or invalidate the column cache.");
+                }
+                foreach (var c in metadata)
+                {
+                    if (c._Metadati_Tabelle == null)
+                        c._Metadati_Tabelle = tabel;
+                }
+            }
             string table_name = tabel.md_nome_tabella;
 
             if (tabel.md_is_reticular)
@@ -6861,7 +6896,50 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
             string query = "";
             string local_generated_pkey = "";
 
+            // FIX 2026-05-01 — defensive null-guard with re-load.
+            // On a freshly-installed MySQL backend with empty data tables, the
+            // session column-cache populated by `_Metadati_Colonne.getColonneByUserID`
+            // can return cloned _Metadati_Colonne objects whose `_Metadati_Tabelle`
+            // back-reference is null (the deep-clone path bypasses EF navigation
+            // fix-up for stale-cache entries). Subsequent access to
+            // `tabel.md_nome_tabella` then throws NullReferenceException with
+            // an opaque "Object reference not set to an instance of an object"
+            // message and zero useful stack context inside BuildDynamicInsertQuery.
+            //
+            // Observed during docs-driven master 2 on a fresh VM (2026-05-01):
+            //   crudInsert('scheduler', {...}) on an empty scheduler table →
+            //   NRE inside BuildDynamicInsertQuery → dispatch as
+            //   errors.db.sql_exception, no row written, test fails with
+            //   confusing "Expected action_cmd to have a runtime value" further
+            //   downstream.
+            //
+            // Recovery: when the back-ref is null, re-load the parent table
+            // metadata from md_id (which IS present on the column row even when
+            // the navigation property is null). All downstream code already
+            // reads `tabel` properties only — re-loading is sufficient.
             _Metadati_Tabelle tabel = metadata[0]._Metadati_Tabelle;
+            if (tabel == null)
+            {
+                int parentMdId = metadata[0].md_id;
+                using (metaRawModel mrmReload = new metaRawModel())
+                {
+                    tabel = mrmReload.GetMetadati_Tabelles("", parentMdId.ToString()).FirstOrDefault();
+                }
+                if (tabel == null)
+                {
+                    throw new InvalidOperationException(
+                        "BuildDynamicInsertQuery: metadata[0]._Metadati_Tabelle is null and re-load by md_id=" + parentMdId + " also returned null. Metadata cache is corrupt — restart the app or invalidate the column cache.");
+                }
+                // Patch the back-reference on every column in the metadata list
+                // so downstream paths that re-read `_Metadati_Tabelle` (e.g. in
+                // ManageMaxKeyType, the upload-fix loop, the column-default
+                // resolver) see the same fixed object.
+                foreach (var c in metadata)
+                {
+                    if (c._Metadati_Tabelle == null)
+                        c._Metadati_Tabelle = tabel;
+                }
+            }
             string table_name = tabel.md_nome_tabella;
             string safetable_name = RawHelpers.getStoreTableName(tabel, "mysql");
 

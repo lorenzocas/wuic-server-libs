@@ -831,7 +831,20 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziPostgreSql
             if (user.data.ContainsKey("language") && user.data["language"] != null)
                 u.language = user.data["language"].ToString();
 
-            var extra_fields = user.data.Keys.Where(x => x != infos.password_column_name).Any() ? user.data.Keys.Where(x => x != infos.password_column_name) : null;
+            // Defensive denylist: foreach below is currently commented out so
+            // there is no live extra_keys leak from this path, but keep the
+            // filter aligned with `KonvergenceCore/_Metadati_methods.cs:mapUserFields`
+            // so the bug does not regress if the foreach is re-enabled. The
+            // login SELECT aliases the password column as `pwd_hash`, which is
+            // NOT caught by `infos.password_column_name` alone.
+            var sensitiveColumnDenylist = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                infos.password_column_name ?? string.Empty,
+                "pwd_hash", "password", "passwd", "pwd"
+            };
+            var extra_fields = user.data.Keys.Where(x => !sensitiveColumnDenylist.Contains(x)).Any()
+                ? user.data.Keys.Where(x => !sensitiveColumnDenylist.Contains(x))
+                : null;
             if (extra_fields != null)
             {
                 // foreach (string extra_field in extra_fields)

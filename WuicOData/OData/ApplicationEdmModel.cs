@@ -21,6 +21,26 @@ namespace WuicCore.Server.Api.Models
         /// </summary>
         private const string ModelsNamespace = MetadataModelGenerator.TargetNamespace;
 
+        /// <summary>
+        /// Property names that must NEVER be exposed via the OData feed,
+        /// regardless of caller authentication. Auto-registration via
+        /// reflection (the loop below) would otherwise propagate every
+        /// public property of every entity to the EDM, including credential
+        /// material like the `hashedPassword` column on the WWI Person
+        /// entity (157 PBKDF2 hashes were live-leaked publicly via
+        /// `/odata/Person?$select=hashedPassword&amp;$filter=hashedPassword ne null`
+        /// before this filter existed). Defense-in-depth: even when the
+        /// /odata/* route is correctly auth-gated upstream, stripping these
+        /// at the EDM level guarantees no future model/route change can
+        /// re-leak them.
+        /// </summary>
+        private static readonly HashSet<string> SensitivePropertyDenylist =
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "hashedPassword", "pwd_hash", "password", "passwd", "pwd",
+                "secret", "apiKey", "api_key", "accessToken", "refreshToken"
+            };
+
         public static IEdmModel GetEdmModel(DynamicModelService dynamicModelService = null)
         {
             var modelBuilder = new ODataConventionModelBuilder();
@@ -52,6 +72,23 @@ namespace WuicCore.Server.Api.Models
                     {
                         var genMethod = entitySetMethod!.MakeGenericMethod(t);
                         genMethod.Invoke(modelBuilder, new object[] { t.Name });
+
+                        // Strip credential-shaped properties from the just-registered
+                        // entity type. AddEntityType(Type) is idempotent — it returns
+                        // the existing EntityTypeConfiguration the EntitySet<T> call
+                        // above just created, on which RemoveProperty drops the
+                        // property from the EDM so it is neither selectable nor
+                        // filterable nor returned by default. Any future entity that
+                        // happens to have a `hashedPassword` / `pwd_hash` / etc.
+                        // column gets the same treatment for free.
+                        var entityConfig = modelBuilder.AddEntityType(t);
+                        foreach (var prop in t.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+                        {
+                            if (SensitivePropertyDenylist.Contains(prop.Name))
+                            {
+                                entityConfig.RemoveProperty(prop);
+                            }
+                        }
                     }
                     catch (TargetInvocationException ex) when (
                         ex.InnerException is FileNotFoundException ||
