@@ -3,7 +3,6 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
-using WuicCore.Server.Database.Models;
 using System.Reflection;
 using System.Linq;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;

@@ -1,0 +1,55 @@
+{
+  "generatedAt": "2026-05-01T16:53:52.430Z",
+  "count": 3,
+  "posts": [
+    {
+      "slug": "rag-chatbot-with-claude-and-bge-m3",
+      "title": "Building an in-product RAG chatbot with Claude + BAAI/bge-m3",
+      "date": "2026-05-01",
+      "author": "Lorenzo Castrico",
+      "description": "How we built a closed-source codebase chatbot that cites real source files, using a hybrid BM25 + bge-m3 retrieval, a LoRA-fine-tuned cross-encoder, and Claude for synthesis. The boring engineering numbers, not the hype.",
+      "tags": [
+        "rag",
+        "claude",
+        "bge-m3",
+        "ai",
+        "angular",
+        "llm"
+      ],
+      "readingMinutes": 7,
+      "sourcePath": "assets/blog/rag-chatbot-with-claude-and-bge-m3.md"
+    },
+    {
+      "slug": "sql-table-to-crud-form-in-30-seconds",
+      "title": "From SQL table to working CRUD form in 30 seconds: a metadata-driven scaffolding approach",
+      "date": "2026-05-01",
+      "author": "Lorenzo Castrico",
+      "description": "How WUIC turns a CREATE TABLE statement into a complete CRUD UI — list, edit form, validation, lookup widgets — without writing a single TypeScript file. The actual scaffolding endpoint, what it inspects, and what it skips.",
+      "tags": [
+        "scaffolding",
+        "crud",
+        "angular",
+        "sql-server",
+        "metadata-driven"
+      ],
+      "readingMinutes": 6,
+      "sourcePath": "assets/blog/sql-table-to-crud-form-in-30-seconds.md"
+    },
+    {
+      "slug": "why-metadata-driven-not-retool",
+      "title": "Why we built a metadata-driven Angular framework instead of using Retool",
+      "date": "2026-05-01",
+      "author": "Lorenzo Castrico",
+      "description": "Honest origin story behind WUIC: the moment Retool stopped scaling for our team, the tradeoffs we weighed, and what we did instead.",
+      "tags": [
+        "angular",
+        "metadata-driven",
+        "retool",
+        "low-code",
+        "framework"
+      ],
+      "readingMinutes": 6,
+      "sourcePath": "assets/blog/why-metadata-driven-not-retool.md"
+    }
+  ]
+}

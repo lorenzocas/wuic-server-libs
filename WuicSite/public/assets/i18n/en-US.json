@@ -3,6 +3,7 @@
     "home": "Home",
     "features": "Features",
     "pricing": "Pricing",
+    "compare": "Compare",
     "gallery": "Gallery",
     "docs": "Docs",
     "downloads": "Download",
@@ -11,6 +12,11 @@
     "download": "Download"
   },
   "home": {
+    "blog": {
+      "sectionTitle": "From the engineering blog",
+      "sectionSubtitle": "Deep dives on the framework — metadata, RAG, designer, mobile auto-layout, workflow engine.",
+      "cta": "Read all posts"
+    },
     "hero": {
       "title1": "The",
       "accent": "metadata-driven",
@@ -378,7 +384,23 @@
     "pageSubtitle": "Real animations of the main WUIC features. Click any demo to enlarge; jump to the feature's docs from the card link.",
     "loading": "Loading demos...",
     "empty": "No demos available.",
-    "openDocs": "Open documentation"
+    "openDocs": "Open documentation",
+    "featured": {
+      "sectionTitle": "Featured demos",
+      "sectionLede": "Hand-picked walkthroughs of the most-asked WUIC capabilities. Click any thumbnail to play full-screen.",
+      "badge": "Curated",
+      "designer": { "title": "Dashboard designer",     "blurb": "Drop a widget on the canvas, bind a route, save — your dashboard is live." },
+      "kanban":   { "title": "Kanban board",           "blurb": "Drag-and-drop columns and cards, configurable from metadata, no extra code." },
+      "chart":    { "title": "Charts that filter live", "blurb": "Interactive charts that respond to grid filters in real time." },
+      "carousel": { "title": "Image carousel",         "blurb": "Built-in carousel for media galleries inside any list or detail page." },
+      "editForm": { "title": "Edit form",              "blurb": "Inline editing with validation, lookup fields and save-as-you-go." },
+      "listGrid": { "title": "List grid",              "blurb": "Full CRUD list with sort, filter, group and inline edit out of the box." },
+      "map":      { "title": "Map view",               "blurb": "Geo data on an interactive map with markers, polygons and live filters." },
+      "workflow":    { "title": "Workflow engine",     "blurb": "Multi-step business workflows with conditional branches, configured from metadata." },
+      "spreadsheet": { "title": "Spreadsheet view",    "blurb": "Excel-like grid with formulas, frozen rows and bulk paste, on top of any list." },
+      "tree":        { "title": "Tree view",           "blurb": "Hierarchical data with drag-and-drop reorder, expand/collapse, and contextual actions." },
+      "themes":      { "title": "Theme switcher",      "blurb": "Live light/dark and palette switching across the whole UI without a reload." }
+    }
   },
   "docs": {
     "loading": "Loading documentation...",
@@ -388,7 +410,10 @@
   },
   "footer": {
     "features": "Features",
+    "compare": "Compare",
+    "sandbox": "Live demo",
     "docs": "Docs",
+    "blog": "Blog",
     "downloads": "Downloads",
     "community": "Community",
     "privacy": "Privacy",

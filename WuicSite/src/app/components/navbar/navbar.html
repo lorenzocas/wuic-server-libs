@@ -9,6 +9,7 @@
       <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">{{ 'navbar.home' | translate }}</a>
       <a routerLink="/features" routerLinkActive="active">{{ 'navbar.features' | translate }}</a>
       <a routerLink="/pricing" routerLinkActive="active">{{ 'navbar.pricing' | translate }}</a>
+      <a routerLink="/comparison" routerLinkActive="active">{{ 'navbar.compare' | translate }}</a>
       <a routerLink="/gallery" routerLinkActive="active">{{ 'navbar.gallery' | translate }}</a>
       <a routerLink="/docs" routerLinkActive="active">{{ 'navbar.docs' | translate }}</a>
       <a routerLink="/downloads" routerLinkActive="active">{{ 'navbar.downloads' | translate }}</a>
@@ -17,6 +18,9 @@
 
     <div class="navbar-actions">
       <app-language-selector></app-language-selector>
+      <a routerLink="/sandbox">
+        <p-button [label]="'navbar.demoLive' | translate" icon="pi pi-play" size="small" severity="secondary" [outlined]="true" />
+      </a>
       <a routerLink="/downloads">
         <p-button [label]="'navbar.download' | translate" icon="pi pi-download" size="small" />
       </a>

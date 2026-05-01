@@ -84,6 +84,34 @@
   </div>
 </section>
 
+<!-- Latest engineering blog posts -->
+@if (latestPosts().length > 0) {
+  <section class="section blog-section">
+    <div class="container">
+      <h2 class="section-title">{{ 'home.blog.sectionTitle' | translate }}</h2>
+      <p class="section-subtitle">{{ 'home.blog.sectionSubtitle' | translate }}</p>
+      <div class="blog-grid">
+        @for (p of latestPosts(); track p.slug) {
+          <a [routerLink]="['/blog', p.slug]" class="blog-card">
+            <div class="blog-card-meta">
+              <time>{{ p.date | date:'longDate':'UTC':'en-US' }}</time>
+              <span>·</span>
+              <span>{{ p.readingMinutes }} min read</span>
+            </div>
+            <h3 class="blog-card-title">{{ p.title }}</h3>
+            <p class="blog-card-desc">{{ p.description }}</p>
+          </a>
+        }
+      </div>
+      <div class="blog-cta-row">
+        <a routerLink="/blog">
+          <p-button [label]="'home.blog.cta' | translate" icon="pi pi-arrow-right" severity="secondary" [outlined]="true" />
+        </a>
+      </div>
+    </div>
+  </section>
+}
+
 <!-- Community -->
 <section class="section community-section">
   <div class="container community-inner">

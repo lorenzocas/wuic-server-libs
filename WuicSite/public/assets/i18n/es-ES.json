@@ -3,6 +3,7 @@
     "home": "Inicio",
     "features": "Características",
     "pricing": "Precios",
+    "compare": "Comparar",
     "gallery": "Galería",
     "docs": "Docs",
     "downloads": "Descargas",
@@ -11,6 +12,11 @@
     "download": "Descargar"
   },
   "home": {
+    "blog": {
+      "sectionTitle": "Del blog técnico",
+      "sectionSubtitle": "Análisis profundos del framework — metadatos, RAG, designer, layout mobile, motor de workflow.",
+      "cta": "Leer todos los artículos"
+    },
     "hero": {
       "title1": "El framework",
       "accent": "metadata-driven",
@@ -378,7 +384,23 @@
     "pageSubtitle": "Animaciones reales de las principales características WUIC. Clic en cualquier demo para ampliar; ve a la documentación de la característica desde el enlace de la tarjeta.",
     "loading": "Cargando demos...",
     "empty": "No hay demos disponibles.",
-    "openDocs": "Abrir documentación"
+    "openDocs": "Abrir documentación",
+    "featured": {
+      "sectionTitle": "Demos destacadas",
+      "sectionLede": "Recorridos seleccionados de las funcionalidades WUIC más solicitadas. Haz clic en una miniatura para reproducirla a pantalla completa.",
+      "badge": "Seleccionadas",
+      "designer": { "title": "Diseñador de paneles",       "blurb": "Suelta un widget en el canvas, vincula una ruta, guarda — el dashboard ya está en vivo." },
+      "kanban":   { "title": "Tablero Kanban",              "blurb": "Columnas y tarjetas drag-and-drop, configurables desde los metadatos, sin código adicional." },
+      "chart":    { "title": "Gráficos filtrables en vivo", "blurb": "Gráficos interactivos que responden a los filtros de la cuadrícula en tiempo real." },
+      "carousel": { "title": "Carrusel de imágenes",        "blurb": "Carrusel multimedia integrado en cualquier lista o página de detalle." },
+      "editForm": { "title": "Formulario de edición",       "blurb": "Edición inline con validación, campos lookup y guardado progresivo." },
+      "listGrid": { "title": "Cuadrícula de lista",         "blurb": "Lista CRUD completa con orden, filtro, agrupación y edición inline lista para usar." },
+      "map":      { "title": "Vista mapa",                  "blurb": "Datos geo en mapa interactivo con marcadores, polígonos y filtros en vivo." },
+      "workflow":    { "title": "Motor de workflow",        "blurb": "Workflows de negocio multi-paso con ramas condicionales, configurados desde metadatos." },
+      "spreadsheet": { "title": "Vista hoja de cálculo",    "blurb": "Cuadrícula tipo Excel con fórmulas, filas fijas y pegado masivo, sobre cualquier lista." },
+      "tree":        { "title": "Vista árbol",              "blurb": "Datos jerárquicos con drag-and-drop, expandir/contraer y acciones contextuales." },
+      "themes":      { "title": "Selector de tema",         "blurb": "Cambio en vivo claro/oscuro y paleta en toda la UI sin recargar." }
+    }
   },
   "docs": {
     "loading": "Cargando documentación...",
@@ -388,7 +410,10 @@
   },
   "footer": {
     "features": "Funcionalidades",
+    "compare": "Comparar",
+    "sandbox": "Demo en vivo",
     "docs": "Documentación",
+    "blog": "Blog",
     "downloads": "Descargas",
     "community": "Comunidad",
     "privacy": "Privacidad",

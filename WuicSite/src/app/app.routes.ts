@@ -62,35 +62,21 @@ export const routes: Routes = [
     path: 'comparison',
     loadComponent: () => import('./pages/comparison/comparison').then(m => m.Comparison),
   },
+  // Blog — soft-launch / draft mode: routes registered, components are
+  // real, but pages emit `noindex` and are NOT in the sitemap. Direct
+  // URLs work for review; once the content is approved, flip noindex
+  // to false in BlogList + BlogPost and add the slugs to the sitemap.
   {
     path: 'blog',
-    data: {
-      title: 'WUIC Engineering Blog',
-      subtitle: 'Deep dives on metadata-driven Angular, RAG over codebases, embeddable workflow engines, and what we have learned shipping enterprise apps with this stack.',
-      path: '/blog',
-      eta: 'Sprint 3 (4–6 weeks)',
-    },
-    loadComponent: () => import('./pages/_placeholder/coming-soon').then(m => m.ComingSoon),
+    loadComponent: () => import('./pages/blog/blog-list').then(m => m.BlogList),
   },
   {
     path: 'blog/:slug',
-    data: {
-      title: 'Article — WUIC Engineering Blog',
-      subtitle: 'This article is not published yet. The blog goes live in Sprint 3.',
-      path: '/blog',
-      eta: 'Sprint 3 (4–6 weeks)',
-    },
-    loadComponent: () => import('./pages/_placeholder/coming-soon').then(m => m.ComingSoon),
+    loadComponent: () => import('./pages/blog/blog-post').then(m => m.BlogPost),
   },
   {
     path: 'sandbox',
-    data: {
-      title: 'Try WUIC in your browser',
-      subtitle: 'A hosted demo instance with seeded data, reset every 24 hours. No installation, no signup. Coming alongside the comparison page.',
-      path: '/sandbox',
-      eta: 'Sprint 2 (2–3 weeks)',
-    },
-    loadComponent: () => import('./pages/_placeholder/coming-soon').then(m => m.ComingSoon),
+    loadComponent: () => import('./pages/sandbox/sandbox').then(m => m.Sandbox),
   },
   {
     path: 'start',

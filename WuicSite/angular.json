@@ -53,6 +53,11 @@
                 "input": "public"
               },
               {
+                "glob": "**/*.md",
+                "input": "src/assets/blog",
+                "output": "/assets/blog/"
+              },
+              {
                 "glob": "{it,gb,fr,es,de}.svg",
                 "input": "node_modules/flag-icons/flags/4x3",
                 "output": "/flags/4x3/"

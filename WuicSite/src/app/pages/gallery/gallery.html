@@ -6,6 +6,38 @@
 </section>
 
 <div class="container gallery-container">
+  <!--
+    Featured demos sit above the auto-generated docs gallery. Same
+    <p-image> pattern (lightbox on click, GIF lazy-loaded) so the UX
+    is consistent — only the source list is hand-picked instead of
+    derived from docs-content.json.
+  -->
+  <section class="gallery-group gallery-featured">
+    <header class="group-header">
+      <h2>{{ 'gallery.featured.sectionTitle' | translate }}</h2>
+      <span class="featured-badge">{{ 'gallery.featured.badge' | translate }}</span>
+    </header>
+    <p class="featured-lede">{{ 'gallery.featured.sectionLede' | translate }}</p>
+    <div class="gallery-grid">
+      @for (demo of featuredDemos; track demo.id) {
+        <figure class="gallery-card">
+          <p-image
+            [preview]="true"
+            [src]="demo.posterPath"
+            [previewImageSrc]="demo.gifPath"
+            [alt]="demo.titleKey | translate" />
+          <figcaption>
+            <span class="caption">
+              {{ demo.titleKey | translate }}
+              <i class="pi pi-play-circle play-badge" aria-hidden="true"></i>
+            </span>
+            <span class="meta">{{ demo.blurbKey | translate }}</span>
+          </figcaption>
+        </figure>
+      }
+    </div>
+  </section>
+
   @if (loading()) {
     <div class="gallery-loading">
       <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>

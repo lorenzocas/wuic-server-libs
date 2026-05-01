@@ -14,7 +14,7 @@
 // To add a new route: append an entry to `ROUTES` below. The script auto-
 // derives <loc>, computes <lastmod> from filesystem, and writes the file.
 
-import { readdirSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
@@ -40,14 +40,46 @@ export const ROUTES = [
   { path: '/',           dir: 'home',      changefreq: 'weekly',  priority: 1.0 },
   { path: '/features',   dir: 'features',  changefreq: 'monthly', priority: 0.9 },
   { path: '/pricing',    dir: 'pricing',   changefreq: 'monthly', priority: 0.9 },
+  { path: '/comparison', dir: 'comparison', changefreq: 'monthly', priority: 0.8 },
   { path: '/gallery',    dir: 'gallery',   changefreq: 'monthly', priority: 0.7 },
   { path: '/docs',       dir: 'docs',      changefreq: 'weekly',  priority: 0.8 },
+  { path: '/blog',       dir: 'blog',      changefreq: 'weekly',  priority: 0.8 },
   { path: '/downloads',  dir: 'downloads', changefreq: 'weekly',  priority: 0.8 },
+  { path: '/sandbox',    dir: 'sandbox',   changefreq: 'monthly', priority: 0.6 },
   { path: '/legal',      dir: 'legal',     changefreq: 'yearly',  priority: 0.3 },
   { path: '/privacy',    dir: 'privacy',   changefreq: 'yearly',  priority: 0.3 },
   { path: '/cookies',    dir: 'cookies',   changefreq: 'yearly',  priority: 0.3 },
   { path: '/terms',      dir: 'terms',     changefreq: 'yearly',  priority: 0.3 },
 ];
+
+/**
+ * Read the blog manifest (produced by generate-blog-manifest.mjs in the
+ * same prebuild chain) and emit one ROUTES entry per published post.
+ * `lastmod` per post is the article's `date` field — that's the
+ * authoritative publication date the author put in the frontmatter,
+ * which is what Google wants to see in a blog sitemap (filesystem mtime
+ * would shift on every formatter pass and make every old post look
+ * "freshly updated", which Google penalizes as low-trust signal).
+ *
+ * Returns [] when the manifest is missing — keeps the build deterministic
+ * if someone runs `node generate-sitemap.mjs` standalone before the blog
+ * generator has run. The next pre-build will pick the posts up.
+ */
+function blogPostEntries() {
+  const manifestPath = resolve(REPO_ROOT, 'public/blog-manifest.json');
+  if (!existsSync(manifestPath)) return [];
+  try {
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+    return (manifest.posts ?? []).map(post => ({
+      loc: `${BASE_URL}/blog/${post.slug}`,
+      lastmod: post.date,
+      changefreq: 'monthly',
+      priority: 0.7,
+    }));
+  } catch {
+    return [];
+  }
+}
 
 /**
  * Returns ISO timestamp (ms since epoch) of the most recent git commit that
@@ -114,7 +146,7 @@ export function lastModifiedMs(dir) {
  */
 export function buildSitemapEntries() {
   const todayIso = new Date().toISOString().slice(0, 10);
-  return ROUTES.map(({ path, dir, changefreq, priority }) => {
+  const staticEntries = ROUTES.map(({ path, dir, changefreq, priority }) => {
     const folder = join(SRC_PAGES, dir);
     const ts = lastModifiedMs(folder);
     // Fallback to today if both git and fs lookups failed (e.g. route added
@@ -124,6 +156,9 @@ export function buildSitemapEntries() {
       : todayIso;
     return { loc: `${BASE_URL}${path}`, lastmod, changefreq, priority };
   });
+  // Concat one entry per blog post — discovered from the manifest so this
+  // script doesn't need to be edited every time an article is published.
+  return [...staticEntries, ...blogPostEntries()];
 }
 
 /** Pure: serialize entries to the canonical sitemap XML string. */

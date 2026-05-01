@@ -215,6 +215,18 @@ if (-not $SkipBuild) {
             }
         }
 
+        # Run the same generators package.json wires up as `prebuild`. We
+        # invoke ng directly (not `npm run build`) for performance reasons
+        # — but that also skips npm's pre/postbuild hooks, so we have to
+        # call the scripts ourselves to keep public/sitemap.xml and
+        # public/blog-manifest.json fresh at each deploy. Skipping these
+        # ships stale artifacts (e.g. last week's blog post list).
+        Write-Sub "prebuild: regenerating sitemap.xml + blog-manifest.json"
+        & node 'scripts/generate-sitemap.mjs'
+        if ($LASTEXITCODE -ne 0) { throw "generate-sitemap.mjs failed (exit $LASTEXITCODE)" }
+        & node 'scripts/generate-blog-manifest.mjs'
+        if ($LASTEXITCODE -ne 0) { throw "generate-blog-manifest.mjs failed (exit $LASTEXITCODE)" }
+
         Write-Sub "exec: $ngCmd build --configuration=production"
         & $ngCmd build --configuration=production
         if ($LASTEXITCODE -ne 0) { throw "ng build failed (exit $LASTEXITCODE)" }

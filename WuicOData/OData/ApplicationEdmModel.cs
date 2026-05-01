@@ -4,7 +4,6 @@ using Microsoft.OData.Edm;
 using Microsoft.OData.ModelBuilder;
 using Microsoft.Spatial;
 
-using WuicCore.Server.Database.Models;
 using System.Reflection;
 using System.Linq;
 using System;

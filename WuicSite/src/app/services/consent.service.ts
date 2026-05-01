@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { afterNextRender, Injectable, signal } from '@angular/core';
 
 /**
  * Consent model — one boolean per cookie category.
@@ -34,8 +34,27 @@ const DEFAULT_STATE: ConsentState = {
 export class ConsentService {
   private readonly SIX_MONTHS_MS = 1000 * 60 * 60 * 24 * 30 * 6;
 
-  readonly state = signal<ConsentState>(this.load());
-  readonly bannerVisible = signal<boolean>(this.needsDecision());
+  // SSR safety: the constructor runs both during prerender (no `window`)
+  // and in the browser. Initialise to defaults so server-side rendering
+  // produces a valid HTML, then re-hydrate from localStorage on the
+  // client right after the first render. Without this, the prerendered
+  // HTML always carries `bannerVisible=true` (no decision was ever made
+  // server-side, because there's no localStorage there) and the banner
+  // pops open on every visit even after the user accepted on a previous
+  // session.
+  readonly state = signal<ConsentState>({ ...DEFAULT_STATE });
+  readonly bannerVisible = signal<boolean>(true);
+
+  constructor() {
+    // afterNextRender is browser-only — Angular guarantees this callback
+    // never runs during SSR / prerender, so we can safely touch
+    // localStorage without an isPlatformBrowser guard.
+    afterNextRender(() => {
+      const fresh = this.load();
+      this.state.set(fresh);
+      this.bannerVisible.set(this.needsDecision());
+    });
+  }
 
   /** True when marketing cookies (PayPal SDK) are allowed. */
   canLoadMarketing(): boolean {

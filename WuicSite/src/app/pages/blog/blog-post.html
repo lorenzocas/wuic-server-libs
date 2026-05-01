@@ -1,0 +1,46 @@
+@if (loading()) {
+  <div class="container blog-loading">
+    <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+    <p>Loading article…</p>
+  </div>
+} @else if (error()) {
+  <div class="container blog-error">
+    <i class="pi pi-exclamation-triangle" style="font-size: 2rem; color: #ef4444"></i>
+    <p>Could not load this article: {{ error() }}</p>
+    <a routerLink="/blog" class="back-link">Back to blog</a>
+  </div>
+} @else if (notFound()) {
+  <div class="container blog-empty">
+    <i class="pi pi-question-circle" style="font-size: 3rem; color: #cbd5e1"></i>
+    <p>This article doesn't exist (yet).</p>
+    <a routerLink="/blog" class="back-link">Back to blog</a>
+  </div>
+} @else if (meta(); as m) {
+  <article class="blog-article">
+    <header class="blog-article-header">
+      <div class="container">
+        <a routerLink="/blog" class="back-link">← All posts</a>
+        <h1>{{ m.title }}</h1>
+        <p class="blog-article-desc">{{ m.description }}</p>
+        <div class="blog-article-meta">
+          <span class="meta-author">{{ m.author }}</span>
+          <span class="meta-sep">·</span>
+          <time>{{ m.date | date:'longDate':'UTC':'en-US' }}</time>
+          <span class="meta-sep">·</span>
+          <span>{{ m.readingMinutes }} min read</span>
+        </div>
+        <div class="blog-article-tags">
+          @for (t of m.tags; track t) {
+            <span class="blog-tag">{{ t }}</span>
+          }
+        </div>
+      </div>
+    </header>
+
+    <div class="container blog-article-body" [innerHTML]="bodyHtml()"></div>
+
+    <footer class="container blog-article-footer">
+      <a routerLink="/blog" class="back-link">← All posts</a>
+    </footer>
+  </article>
+}

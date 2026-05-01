@@ -155,3 +155,41 @@
     }
   }
 }
+
+// Featured demos — first row of /gallery, hand-picked from public/gifs/.
+// Same card shape as the docs gallery; just a subtle accent on the
+// section header so the visitor understands these are curated, not
+// auto-generated. We keep .meta lowercase here (it's a sentence blurb,
+// not a page-name tag) to differentiate from the docs cards visually.
+.gallery-featured {
+  .group-header {
+    align-items: center;
+    gap: 12px;
+  }
+
+  .featured-badge {
+    background: #6366f1;
+    color: #fff;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .featured-lede {
+    margin: -4px 0 22px;
+    color: #475569;
+    font-size: 0.98rem;
+    line-height: 1.6;
+    max-width: 680px;
+  }
+
+  .gallery-card .meta {
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 0.82rem;
+    color: #475569;
+  }
+}

@@ -3,6 +3,7 @@
     "home": "Start",
     "features": "Funktionen",
     "pricing": "Preise",
+    "compare": "Vergleich",
     "gallery": "Galerie",
     "docs": "Docs",
     "downloads": "Download",
@@ -11,6 +12,11 @@
     "download": "Herunterladen"
   },
   "home": {
+    "blog": {
+      "sectionTitle": "Aus dem Engineering-Blog",
+      "sectionSubtitle": "Deep Dives ins Framework — Metadaten, RAG, Designer, Mobile-Layout, Workflow-Engine.",
+      "cta": "Alle Artikel lesen"
+    },
     "hero": {
       "title1": "Das",
       "accent": "metadaten-basierte",
@@ -378,7 +384,23 @@
     "pageSubtitle": "Echte Animationen der wichtigsten WUIC-Funktionen. Klick auf eine Demo zum Vergrößern; über den Karten-Link zur Funktionsdokumentation.",
     "loading": "Demos werden geladen...",
     "empty": "Keine Demos verfügbar.",
-    "openDocs": "Dokumentation öffnen"
+    "openDocs": "Dokumentation öffnen",
+    "featured": {
+      "sectionTitle": "Empfohlene Demos",
+      "sectionLede": "Handverlesene Walkthroughs der gefragtesten WUIC-Funktionen. Klick auf eine Miniatur für die Vollbild-Wiedergabe.",
+      "badge": "Ausgewählt",
+      "designer": { "title": "Dashboard-Designer",       "blurb": "Widget aufs Canvas ziehen, Route binden, speichern — dein Dashboard ist live." },
+      "kanban":   { "title": "Kanban-Board",              "blurb": "Drag-and-drop-Spalten und -Karten, aus Metadaten konfiguriert, ohne extra Code." },
+      "chart":    { "title": "Live-gefilterte Charts",    "blurb": "Interaktive Charts, die in Echtzeit auf Grid-Filter reagieren." },
+      "carousel": { "title": "Bild-Carousel",             "blurb": "Eingebauter Carousel für Mediengalerien in Listen oder Detailseiten." },
+      "editForm": { "title": "Bearbeitungsformular",      "blurb": "Inline-Bearbeitung mit Validierung, Lookup-Feldern und progressivem Speichern." },
+      "listGrid": { "title": "Listen-Grid",               "blurb": "Vollständige CRUD-Liste mit Sortierung, Filter, Gruppierung und Inline-Bearbeitung out-of-the-box." },
+      "map":      { "title": "Kartenansicht",             "blurb": "Geodaten auf interaktiver Karte mit Markern, Polygonen und Live-Filtern." },
+      "workflow":    { "title": "Workflow-Engine",         "blurb": "Multi-Step-Geschäftsworkflows mit bedingten Verzweigungen, aus Metadaten konfiguriert." },
+      "spreadsheet": { "title": "Spreadsheet-Ansicht",     "blurb": "Excel-ähnliches Grid mit Formeln, fixierten Zeilen und Bulk-Paste, auf jeder Liste." },
+      "tree":        { "title": "Baumansicht",             "blurb": "Hierarchische Daten mit Drag-and-Drop, Aufklappen/Zuklappen und Kontextaktionen." },
+      "themes":      { "title": "Theme-Wechsler",          "blurb": "Live-Wechsel hell/dunkel und Palette in der gesamten UI ohne Neuladen." }
+    }
   },
   "docs": {
     "loading": "Dokumentation wird geladen...",
@@ -388,7 +410,10 @@
   },
   "footer": {
     "features": "Funktionen",
+    "compare": "Vergleich",
+    "sandbox": "Live-Demo",
     "docs": "Dokumentation",
+    "blog": "Blog",
     "downloads": "Downloads",
     "community": "Community",
     "privacy": "Datenschutz",

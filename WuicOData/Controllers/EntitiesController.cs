@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.OData.Query;
 using Microsoft.AspNetCore.OData.Routing.Controllers;
 using Microsoft.AspNetCore.OData.Routing;
 using WuicCore.Server.Database;
-using WuicCore.Server.Database.Models;
 using Microsoft.AspNetCore.OData.Results;
 using WuicCore.Server.Api.Infrastructure.Exceptions;
 using WuicCore.Server.Api.Infrastructure.Errors;
@@ -481,7 +480,8 @@ namespace WuicCore.Controllers
 
             var navs = rawExpand
                 .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Select(s => {
+                .Select(s =>
+                {
                     var parenIdx = s.IndexOf('(');
                     var name = parenIdx >= 0 ? s.Substring(0, parenIdx).Trim() : s.Trim();
                     // Slash-separated nested expand in OData sintassi: lo passo

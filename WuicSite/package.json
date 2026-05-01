@@ -7,7 +7,8 @@
     "serve:dev": "ng serve",
     "sitemap": "node scripts/generate-sitemap.mjs",
     "sitemap:check": "node scripts/check-sitemap.mjs",
-    "prebuild": "node scripts/generate-sitemap.mjs",
+    "blog:manifest": "node scripts/generate-blog-manifest.mjs",
+    "prebuild": "node scripts/generate-sitemap.mjs && node scripts/generate-blog-manifest.mjs",
     "build": "ng build",
     "postbuild": "node scripts/check-sitemap.mjs",
     "watch": "ng build --watch --configuration development",
@@ -27,6 +28,8 @@
     "@ngx-translate/http-loader": "^17.0.0",
     "@primeng/themes": "^21.0.4",
     "flag-icons": "^7.5.0",
+    "highlight.js": "^11.11.1",
+    "marked": "^18.0.3",
     "primeicons": "^7.0.0",
     "primeng": "^21.1.5",
     "rxjs": "~7.8.0",
@@ -38,6 +41,7 @@
     "@angular/compiler-cli": "^21.2.0",
     "@angular/platform-server": "^21.2.11",
     "@angular/ssr": "^21.2.9",
+    "@types/node": "^25.6.0",
     "prettier": "^3.8.1",
     "typescript": "~5.9.2"
   }

@@ -1,0 +1,49 @@
+<section class="blog-hero">
+  <div class="container">
+    <span class="blog-eyebrow">Engineering blog</span>
+    <h1>Notes from building a metadata-driven framework</h1>
+    <p class="blog-lede">
+      Deep dives on Angular, .NET, metadata, RAG over codebases, workflow
+      engines and the architectural choices behind WUIC. Long form, no fluff.
+    </p>
+  </div>
+</section>
+
+<div class="container blog-list-container">
+  @if (loading()) {
+    <div class="blog-loading">
+      <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+      <p>Loading posts…</p>
+    </div>
+  } @else if (error()) {
+    <div class="blog-error">
+      <i class="pi pi-exclamation-triangle" style="font-size: 2rem; color: #ef4444"></i>
+      <p>Could not load the blog index: {{ error() }}</p>
+    </div>
+  } @else if (!hasPosts()) {
+    <div class="blog-empty">
+      <i class="pi pi-pencil" style="font-size: 3rem; color: #cbd5e1"></i>
+      <p>No articles published yet. Come back soon.</p>
+    </div>
+  } @else {
+    <ul class="blog-list">
+      @for (p of posts(); track p.slug) {
+        <li class="blog-card">
+          <a [routerLink]="['/blog', p.slug]" class="blog-card-link">
+            <div class="blog-card-meta">
+              <time>{{ p.date | date:'longDate':'UTC':'en-US' }}</time>
+              <span class="blog-card-reading">{{ p.readingMinutes }} min read</span>
+            </div>
+            <h2 class="blog-card-title">{{ p.title }}</h2>
+            <p class="blog-card-desc">{{ p.description }}</p>
+            <div class="blog-card-tags">
+              @for (t of p.tags; track t) {
+                <span class="blog-tag">{{ t }}</span>
+              }
+            </div>
+          </a>
+        </li>
+      }
+    </ul>
+  }
+</div>

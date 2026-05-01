@@ -253,3 +253,68 @@
   justify-content: center;
   gap: 16px;
 }
+
+// ─── Latest engineering blog posts ────────────────────────────────
+.blog-section {
+  background: #f8fafc;
+}
+
+.blog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px;
+  margin-bottom: 28px;
+}
+
+.blog-card {
+  display: block;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 22px 24px;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    border-color: #c7d2fe;
+    box-shadow: 0 8px 22px -10px rgba(99, 102, 241, 0.25);
+  }
+}
+
+.blog-card-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-bottom: 8px;
+
+  span:first-of-type { color: #cbd5e1; }
+}
+
+.blog-card-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 8px;
+  line-height: 1.35;
+}
+
+.blog-card-desc {
+  margin: 0;
+  color: #475569;
+  font-size: 0.93rem;
+  line-height: 1.6;
+  // Clamp at 3 lines so cards stay equal-height in the grid.
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.blog-cta-row {
+  display: flex;
+  justify-content: center;
+}

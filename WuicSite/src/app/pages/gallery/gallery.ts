@@ -23,6 +23,26 @@ interface GalleryItem {
   path: string; // assets/wuic-framework-docs/screenshots/<file>.gif
 }
 
+/**
+ * Hand-picked featured GIFs with pre-rendered poster thumbnails. Lighter
+ * than the auto-generated docs gallery (these are curated for marketing,
+ * each ~200KB-2.5MB) and shown as a dedicated row at the top of /gallery
+ * — they're the first thing a visitor sees, so we want quality over
+ * quantity. The poster column is critical for performance: it lets us
+ * lazy-load the GIF only on click, keeping the page weight at ~250KB
+ * instead of ~6MB on first paint. Pure click-to-play, no autoplay.
+ */
+interface FeaturedDemo {
+  /** Section caption shown under the thumbnail. i18n key resolved at render. */
+  titleKey: string;
+  /** One-line description, also i18n. */
+  blurbKey: string;
+  /** Public path to the animated GIF. */
+  gifPath: string;
+  /** Public path to the static thumbnail / poster (JPG or PNG). */
+  posterPath: string;
+}
+
 @Component({
   selector: 'app-gallery',
   standalone: true,
@@ -40,19 +60,57 @@ export class Gallery implements OnInit {
   loading = signal(true);
   items = signal<GalleryItem[]>([]);
 
-  // Group items by page slug for better UX (clicking "Back to page" routes to docs)
+  /**
+   * Hand-picked featured demos shown at the top of the gallery. We point
+   * at the *-demo.gif files emitted by the docs build (each has a
+   * `.thumb.jpg` sibling already cropped + colour-graded by the docs
+   * pipeline — much higher quality than auto-extracting frame 1 of an
+   * arbitrary GIF). The matching docs gallery items are filtered out
+   * below in `itemsByPage()` so a visitor doesn't see the same demo
+   * twice on the page.
+   *
+   * The earlier `gifs/<name>.gif` files in public/gifs/ are different
+   * (older) recordings of the same features — kept around as orphan
+   * assets for now in case some legacy doc page still links them.
+   */
+  readonly featuredDemos: (FeaturedDemo & { id: string })[] = [
+    { id: 'designer',    titleKey: 'gallery.featured.designer.title',    blurbKey: 'gallery.featured.designer.blurb',    gifPath: 'assets/wuic-framework-docs/screenshots/designer__designer-advanced__desktop.gif',         posterPath: 'assets/wuic-framework-docs/screenshots/designer__designer-advanced__desktop.thumb.jpg' },
+    { id: 'kanban',      titleKey: 'gallery.featured.kanban.title',      blurbKey: 'gallery.featured.kanban.blurb',      gifPath: 'assets/wuic-framework-docs/screenshots/kanban-list__kanban-base__desktop.gif',            posterPath: 'assets/wuic-framework-docs/screenshots/kanban-list__kanban-base__desktop.thumb.jpg' },
+    { id: 'chart',       titleKey: 'gallery.featured.chart.title',       blurbKey: 'gallery.featured.chart.blurb',       gifPath: 'assets/wuic-framework-docs/screenshots/chart-list__chart-filter__desktop.gif',            posterPath: 'assets/wuic-framework-docs/screenshots/chart-list__chart-filter__desktop.thumb.jpg' },
+    { id: 'carousel',    titleKey: 'gallery.featured.carousel.title',    blurbKey: 'gallery.featured.carousel.blurb',    gifPath: 'assets/wuic-framework-docs/screenshots/carousel-list__carousel-animation__desktop.gif',   posterPath: 'assets/wuic-framework-docs/screenshots/carousel-list__carousel-animation__desktop.thumb.jpg' },
+    { id: 'edit-form',   titleKey: 'gallery.featured.editForm.title',    blurbKey: 'gallery.featured.editForm.blurb',    gifPath: 'assets/wuic-framework-docs/screenshots/edit-form-demo.gif',                                posterPath: 'assets/wuic-framework-docs/screenshots/edit-form-demo.thumb.jpg' },
+    { id: 'list-grid',   titleKey: 'gallery.featured.listGrid.title',    blurbKey: 'gallery.featured.listGrid.blurb',    gifPath: 'assets/wuic-framework-docs/screenshots/list-grid__list-grid-base__desktop.gif',           posterPath: 'assets/wuic-framework-docs/screenshots/list-grid__list-grid-base__desktop.thumb.jpg' },
+    { id: 'map',         titleKey: 'gallery.featured.map.title',         blurbKey: 'gallery.featured.map.blurb',         gifPath: 'assets/wuic-framework-docs/screenshots/map-list__map-marker__desktop.gif',                posterPath: 'assets/wuic-framework-docs/screenshots/map-list__map-marker__desktop.thumb.jpg' },
+    { id: 'workflow',    titleKey: 'gallery.featured.workflow.title',    blurbKey: 'gallery.featured.workflow.blurb',    gifPath: 'assets/wuic-framework-docs/screenshots/workflow-designer__workflow-designer-demo__desktop.gif', posterPath: 'assets/wuic-framework-docs/screenshots/workflow-designer__workflow-designer-demo__desktop.thumb.jpg' },
+    { id: 'spreadsheet', titleKey: 'gallery.featured.spreadsheet.title', blurbKey: 'gallery.featured.spreadsheet.blurb', gifPath: 'assets/wuic-framework-docs/screenshots/spreadsheet-list__spreadsheet-animation__desktop.gif', posterPath: 'assets/wuic-framework-docs/screenshots/spreadsheet-list__spreadsheet-animation__desktop.thumb.jpg' },
+    { id: 'tree',        titleKey: 'gallery.featured.tree.title',        blurbKey: 'gallery.featured.tree.blurb',        gifPath: 'assets/wuic-framework-docs/screenshots/tree-demo.gif',                                     posterPath: 'assets/wuic-framework-docs/screenshots/tree-demo.thumb.jpg' },
+    { id: 'themes',      titleKey: 'gallery.featured.themes.title',      blurbKey: 'gallery.featured.themes.blurb',      gifPath: 'assets/wuic-framework-docs/screenshots/themes__themes-switch__desktop.gif',               posterPath: 'assets/wuic-framework-docs/screenshots/themes__themes-switch__desktop.thumb.jpg' },
+  ];
+
+  /** Set of GIF paths promoted to the Featured row — used to filter them out of the docs section below. */
+  private get featuredPathSet(): Set<string> {
+    return new Set(this.featuredDemos.map(d => d.gifPath));
+  }
+
+  // Group items by page slug for better UX (clicking "Back to page" routes to docs).
+  // Skip items whose path is already shown in the Featured row above so a visitor
+  // never sees the same demo twice on the page.
   itemsByPage = computed(() => {
+    const featured = this.featuredPathSet;
     const grouped = new Map<string, GalleryItem[]>();
     for (const item of this.items()) {
+      if (featured.has(item.path)) continue;
       const bucket = grouped.get(item.pageSlug) || [];
       bucket.push(item);
       grouped.set(item.pageSlug, bucket);
     }
-    return Array.from(grouped.entries()).map(([slug, items]) => ({
-      slug,
-      title: items[0].pageTitle,
-      items
-    }));
+    return Array.from(grouped.entries())
+      .filter(([_, items]) => items.length > 0)
+      .map(([slug, items]) => ({
+        slug,
+        title: items[0].pageTitle,
+        items,
+      }));
   });
 
   async ngOnInit() {

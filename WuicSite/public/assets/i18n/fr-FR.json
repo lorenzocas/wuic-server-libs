@@ -3,6 +3,7 @@
     "home": "Accueil",
     "features": "Fonctionnalités",
     "pricing": "Tarifs",
+    "compare": "Comparer",
     "gallery": "Galerie",
     "docs": "Docs",
     "downloads": "Téléchargement",
@@ -11,6 +12,11 @@
     "download": "Télécharger"
   },
   "home": {
+    "blog": {
+      "sectionTitle": "Depuis le blog technique",
+      "sectionSubtitle": "Plongées techniques sur le framework — métadonnées, RAG, designer, mise en page mobile, moteur de workflow.",
+      "cta": "Lire tous les articles"
+    },
     "hero": {
       "title1": "Le framework",
       "accent": "métadonnées-driven",
@@ -378,7 +384,23 @@
     "pageSubtitle": "Animations réelles des principales fonctionnalités WUIC. Cliquez sur n'importe quelle démo pour agrandir ; accédez à la documentation de la fonctionnalité via le lien sur la carte.",
     "loading": "Chargement des démos...",
     "empty": "Aucune démo disponible.",
-    "openDocs": "Ouvrir la documentation"
+    "openDocs": "Ouvrir la documentation",
+    "featured": {
+      "sectionTitle": "Démos en vedette",
+      "sectionLede": "Démonstrations sélectionnées des fonctionnalités WUIC les plus demandées. Cliquez sur une miniature pour la lire en plein écran.",
+      "badge": "Sélection",
+      "designer": { "title": "Designer de tableaux de bord", "blurb": "Déposez un widget, liez une route, sauvegardez — votre dashboard est en ligne." },
+      "kanban":   { "title": "Tableau Kanban",                "blurb": "Colonnes et cartes drag-and-drop, configurables depuis les métadonnées, sans code supplémentaire." },
+      "chart":    { "title": "Graphiques filtrables en direct", "blurb": "Graphiques interactifs qui réagissent aux filtres de la grille en temps réel." },
+      "carousel": { "title": "Carrousel d'images",            "blurb": "Carrousel intégré pour galeries média dans toute liste ou page de détail." },
+      "editForm": { "title": "Formulaire d'édition",          "blurb": "Édition inline avec validation, champs lookup et sauvegarde au fil de l'eau." },
+      "listGrid": { "title": "Grille de liste",               "blurb": "Liste CRUD complète avec tri, filtre, groupe et édition inline prêts à l'emploi." },
+      "map":      { "title": "Vue carte",                     "blurb": "Données géo sur carte interactive avec marqueurs, polygones et filtres en direct." },
+      "workflow":    { "title": "Moteur de workflow",         "blurb": "Workflows métier multi-étapes avec branches conditionnelles, configurés depuis les métadonnées." },
+      "spreadsheet": { "title": "Vue tableur",                "blurb": "Grille style Excel avec formules, lignes figées et collage en masse, sur toute liste." },
+      "tree":        { "title": "Vue arbre",                  "blurb": "Données hiérarchiques avec drag-and-drop, déplier/replier et actions contextuelles." },
+      "themes":      { "title": "Sélecteur de thème",         "blurb": "Bascule live clair/sombre et palette dans toute l'UI sans rechargement." }
+    }
   },
   "docs": {
     "loading": "Chargement de la documentation...",
@@ -388,7 +410,10 @@
   },
   "footer": {
     "features": "Fonctionnalités",
+    "compare": "Comparer",
+    "sandbox": "Démo en direct",
     "docs": "Documentation",
+    "blog": "Blog",
     "downloads": "Téléchargements",
     "community": "Communauté",
     "privacy": "Confidentialité",

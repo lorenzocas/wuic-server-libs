@@ -1,0 +1,117 @@
+<!-- Hero -->
+<section class="sb-hero">
+  <div class="container">
+    <span class="sb-eyebrow">Live demo · resets daily</span>
+    <h1>Try WUIC in your browser</h1>
+    <p class="sb-lede">
+      A hosted instance of WUIC running on real .NET 10 + Angular 21 + SQL Server,
+      seeded with a sample CRM dataset. No installation, no signup. Edits roll back
+      every day at 04:00 UTC so the next visitor gets a clean slate.
+    </p>
+
+    <div class="sb-credentials">
+      <div class="sb-credentials-label">Login with</div>
+      <div class="sb-credentials-row">
+        <span class="sb-credentials-key">username</span>
+        <code>wuic-demo</code>
+      </div>
+      <div class="sb-credentials-row">
+        <span class="sb-credentials-key">password</span>
+        <code>WuicDemo2026!</code>
+      </div>
+    </div>
+
+    <div class="sb-actions">
+      <a [href]="demoUrl" target="_blank" rel="noopener">
+        <p-button label="Open the live sandbox" icon="pi pi-external-link" size="large" />
+      </a>
+      <a routerLink="/start">
+        <p-button label="Prefer a guided demo?" icon="pi pi-arrow-right" severity="secondary" [outlined]="true" size="large" />
+      </a>
+    </div>
+    <p class="sb-note">Opens in a new tab. Full screen recommended.</p>
+  </div>
+</section>
+
+<!-- Things to try -->
+<section class="sb-section">
+  <div class="container">
+    <h2 class="sb-section-title">What to try in 60 seconds</h2>
+    <p class="sb-section-lede">
+      Skip past the login (we auto-fill a demo user) and start here.
+    </p>
+
+    <div class="sb-things-grid">
+      @for (t of things; track t.title) {
+        <article class="sb-thing-card">
+          <i [class]="t.icon + ' sb-thing-icon'"></i>
+          <h3>{{ t.title }}</h3>
+          <p>{{ t.description }}</p>
+        </article>
+      }
+    </div>
+  </div>
+</section>
+
+<!-- House rules -->
+<section class="sb-section sb-section-alt">
+  <div class="container">
+    <h2 class="sb-section-title">House rules</h2>
+    <p class="sb-section-lede">
+      The demo is shared. Three guardrails keep it usable for everyone.
+    </p>
+
+    <div class="sb-rules-grid">
+      <article class="sb-rule">
+        <div class="sb-rule-num">1</div>
+        <h3>System tables are read-only</h3>
+        <p>Metadata, users, license, scaffolding endpoints all return HTTP 403 when you try to write. Demo CRM data (contacts, deals, dashboards you create) is fully editable.</p>
+      </article>
+      <article class="sb-rule">
+        <div class="sb-rule-num">2</div>
+        <h3>Rate limited per IP</h3>
+        <p>60 mutations / minute, 600 reads / minute per IP. A curl loop hits 429 instead of bringing the box down. The browser UI never gets close to the cap.</p>
+      </article>
+      <article class="sb-rule">
+        <div class="sb-rule-num">3</div>
+        <h3>Daily reset at 04:00 UTC</h3>
+        <p>Whatever you (or anyone else) created or deleted is rolled back overnight. Treat the sandbox like a shared whiteboard, not your evaluation environment.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="sb-section">
+  <div class="container">
+    <h2 class="sb-section-title">Frequently asked</h2>
+    <p class="sb-section-lede">
+      Read this if anything in the sandbox surprises you.
+    </p>
+
+    <div class="sb-faq-list">
+      @for (f of faqs; track f.q) {
+        <details class="sb-faq-item">
+          <summary>{{ f.q }}</summary>
+          <p>{{ f.a }}</p>
+        </details>
+      }
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="sb-section sb-cta-section">
+  <div class="container sb-cta-inner">
+    <h2>Ready to take it for a spin?</h2>
+    <p>Two ways in: poke at the live sandbox by yourself, or have us walk you through it.</p>
+    <div class="sb-cta-actions">
+      <a [href]="demoUrl" target="_blank" rel="noopener">
+        <p-button label="Open the live sandbox" icon="pi pi-external-link" size="large" />
+      </a>
+      <a routerLink="/comparison">
+        <p-button label="Compare WUIC vs Retool, Refine, …" icon="pi pi-arrow-right" severity="secondary" [outlined]="true" size="large" />
+      </a>
+    </div>
+  </div>
+</section>

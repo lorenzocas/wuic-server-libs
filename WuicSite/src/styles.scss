@@ -1,4 +1,11 @@
 @use 'primeicons/primeicons.css';
+// Code-block syntax highlighting for the engineering blog. Imported
+// globally so prerender ships the styles server-side: the markup is
+// already there at first paint, only the per-token spans get coloured
+// after hydration when blog-post.ts calls hljs.highlightElement().
+// Theme picked: github-light — neutral, matches the WUIC palette,
+// readable on the white-ish article background.
+@use 'highlight.js/styles/github.css';
 // Country flag SVGs — used by the language selector.
 // We render them ourselves (background-image on a span) because Windows 10
 // does not render flag emojis natively (falls back to 2-letter region

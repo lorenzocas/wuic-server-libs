@@ -1,0 +1,342 @@
+// ─── Hero (list page) ─────────────────────────────────────────────
+.blog-hero {
+  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 50%, #c7d2fe 100%);
+  padding: 80px 0 64px;
+  text-align: center;
+}
+
+.blog-eyebrow {
+  display: inline-block;
+  background: #6366f1;
+  color: #fff;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+
+.blog-hero h1 {
+  font-size: 2.4rem;
+  font-weight: 800;
+  line-height: 1.2;
+  color: #0f172a;
+  margin: 0 auto 18px;
+  max-width: 780px;
+}
+
+.blog-lede {
+  font-size: 1.05rem;
+  color: #475569;
+  max-width: 680px;
+  margin: 0 auto;
+  line-height: 1.7;
+}
+
+// ─── Layout ──────────────────────────────────────────────────────
+.blog-list-container {
+  padding: 56px 24px 96px;
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+.blog-loading,
+.blog-error,
+.blog-empty {
+  text-align: center;
+  padding: 80px 16px;
+  color: #475569;
+
+  p { margin: 12px 0 0; }
+}
+
+// ─── List cards ──────────────────────────────────────────────────
+.blog-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.blog-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: #c7d2fe;
+    box-shadow: 0 6px 18px -8px rgba(99, 102, 241, 0.25);
+  }
+}
+
+.blog-card-link {
+  display: block;
+  padding: 24px 28px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.blog-card-meta {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-size: 0.82rem;
+  color: #64748b;
+  margin-bottom: 8px;
+
+  .blog-card-reading::before {
+    content: '·';
+    margin-right: 12px;
+    color: #cbd5e1;
+  }
+}
+
+.blog-card-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 8px;
+  line-height: 1.3;
+}
+
+.blog-card-desc {
+  margin: 0 0 12px;
+  color: #475569;
+  font-size: 0.98rem;
+  line-height: 1.6;
+}
+
+.blog-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.blog-tag {
+  background: #eef2ff;
+  color: #4338ca;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+// ─── Article page ───────────────────────────────────────────────
+.blog-article {
+  padding-bottom: 96px;
+}
+
+.blog-article-header {
+  background: linear-gradient(135deg, #eef2ff 0%, #fafbff 100%);
+  padding: 56px 0 40px;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 40px;
+
+  .container {
+    max-width: 760px;
+  }
+
+  h1 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    line-height: 1.2;
+    color: #0f172a;
+    margin: 16px 0 14px;
+  }
+}
+
+.back-link {
+  display: inline-block;
+  color: #6366f1;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+
+  &:hover { text-decoration: underline; }
+}
+
+.blog-article-desc {
+  color: #475569;
+  font-size: 1.05rem;
+  line-height: 1.7;
+  margin: 0 0 20px;
+}
+
+.blog-article-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.92rem;
+  color: #64748b;
+  margin-bottom: 12px;
+
+  .meta-author { color: #0f172a; font-weight: 600; }
+  .meta-sep    { color: #cbd5e1; }
+}
+
+.blog-article-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+// ─── Article body (markdown rendered HTML) ──────────────────────
+// Everything inside `.blog-article-body` is injected via
+// [innerHTML]="bodyHtml()" — content rendered by `marked` from the
+// .md source. That bypasses Angular view encapsulation, so the HTML
+// receives no `_ngcontent-…` attributes and component-scoped selectors
+// (h1, p, code, table, …) would not match. We pierce encapsulation
+// once, at the wrapper level, with `::ng-deep` — same approach
+// docs.scss uses (`:deep(...)`) to keep its markdown render styled.
+// The `::ng-deep` block is itself scoped to `.blog-article-body`, so
+// nothing leaks to other components.
+.blog-article-body {
+  max-width: 760px;
+  font-size: 1.05rem;
+  line-height: 1.8;
+  color: #1e293b;
+
+  ::ng-deep {
+    h1, h2, h3, h4 {
+      color: #0f172a;
+      margin: 36px 0 14px;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+    h2 { font-size: 1.7rem; padding-bottom: 6px; border-bottom: 1px solid #e2e8f0; }
+    h3 { font-size: 1.3rem; }
+    h4 { font-size: 1.1rem; }
+
+    p { margin: 0 0 18px; }
+
+    a {
+      color: #4338ca;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+
+      &:hover { text-decoration-thickness: 2px; }
+    }
+
+    ul, ol {
+      margin: 0 0 18px;
+      padding-left: 28px;
+    }
+    li { margin: 0 0 6px; }
+
+    blockquote {
+      margin: 24px 0;
+      padding: 12px 18px;
+      border-left: 3px solid #6366f1;
+      background: #f8fafc;
+      color: #475569;
+      font-style: italic;
+    }
+
+    // Inline code (single backticks). Matches the docs page style so
+    // a reader switching between /docs and /blog sees the same visual
+    // contract for inline tokens.
+    code {
+      background: #f1f5f9;
+      color: #0f172a;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    }
+
+    // Code blocks (triple backticks) — same look as the docs renderer:
+    // light slate background, generous padding, custom-coloured
+    // scrollbar (default Chrome/Edge thumb is nearly invisible on
+    // #f1f5f9 in HiDPI light themes). The .hljs class is added by
+    // highlight.js after hydration; even before that the block already
+    // looks correct because the `<pre>` wrapper carries the styling
+    // and `<code>` inside just colours individual tokens.
+    pre {
+      margin: 18px 0;
+      background: #f1f5f9;
+      padding: 14px 18px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: #0f172a;
+
+      scrollbar-width: thin;
+      scrollbar-color: #94a3b8 #e2e8f0;
+
+      &::-webkit-scrollbar { height: 10px; }
+      &::-webkit-scrollbar-track {
+        background: #e2e8f0;
+        border-radius: 4px;
+      }
+      &::-webkit-scrollbar-thumb {
+        background: #94a3b8;
+        border-radius: 4px;
+        border: 2px solid #e2e8f0;
+        &:hover { background: #64748b; }
+      }
+
+      code {
+        background: transparent;
+        color: inherit;
+        padding: 0;
+        font-size: inherit;
+        font-family: inherit;
+        display: block;
+        white-space: pre;
+      }
+    }
+    pre code.hljs {
+      padding: 0;
+      background: transparent;
+    }
+
+    img {
+      max-width: 100%;
+      border-radius: 8px;
+      margin: 18px 0;
+      box-shadow: 0 4px 16px -8px rgba(15, 23, 42, 0.18);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 0.95rem;
+
+      th, td {
+        padding: 10px 14px;
+        border-bottom: 1px solid #e2e8f0;
+        text-align: left;
+      }
+      th { background: #f8fafc; font-weight: 600; color: #0f172a; }
+    }
+
+    strong { font-weight: 600; color: #0f172a; }
+    em     { font-style: italic; }
+    hr     { margin: 28px 0; border: 0; border-top: 1px solid #e2e8f0; }
+  }
+}
+
+.blog-article-footer {
+  max-width: 760px;
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid #e2e8f0;
+}
+
+@media (max-width: 720px) {
+  .blog-hero { padding: 56px 0 44px; }
+  .blog-hero h1 { font-size: 1.8rem; }
+  .blog-article-header { padding: 40px 0 28px; }
+  .blog-article-header h1 { font-size: 1.6rem; }
+  .blog-article-body { font-size: 1rem; }
+}
