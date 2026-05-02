@@ -9,6 +9,7 @@ import { ButtonModule } from 'primeng/button';
 import { MessageModule } from 'primeng/message';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { ReleaseEntry, ReleasesManifest, DownloadFile } from './downloads';
+import { LanguageService } from '../../services/language.service';
 
 /**
  * Pagina "Versioni precedenti" mostra le release storiche (dalla 2° alla 5°).
@@ -33,6 +34,7 @@ import type { ReleaseEntry, ReleasesManifest, DownloadFile } from './downloads';
 })
 export class OlderDownloads implements OnInit {
   private readonly http = inject(HttpClient);
+  private readonly languageService = inject(LanguageService);
 
   // Signals: l'app e' zoneless, assegnazioni plain dopo subscribe() HTTP non
   // triggerano change detection — senza signal la UI resta su "Caricamento..."
@@ -64,6 +66,27 @@ export class OlderDownloads implements OnInit {
    */
   getDownloadUrl(file: DownloadFile): string {
     return file.archiveUrl || file.url;
+  }
+
+  /**
+   * Risolve la URL release notes per la release indicata, scegliendo la lingua
+   * corrente del sito con fallback in priorita': lingua attiva -> it-IT ->
+   * en-US -> prima locale disponibile -> backward-compat `releaseNotesUrl`.
+   * Stessa logica di Downloads.pickReleaseNotesUrl(): replicata qui per non
+   * forzare l'import della classe Downloads in OlderDownloads.
+   */
+  pickReleaseNotesUrl(rel: ReleaseEntry | null | undefined): string | null {
+    if (!rel) return null;
+    const map = rel.releaseNotesUrls;
+    if (map && typeof map === 'object') {
+      const current = this.languageService.current();
+      if (current && map[current]) return map[current];
+      if (map['it-IT']) return map['it-IT'];
+      if (map['en-US']) return map['en-US'];
+      const keys = Object.keys(map);
+      if (keys.length > 0) return map[keys[0]];
+    }
+    return rel.releaseNotesUrl ?? null;
   }
 
   private extractErrorMessage(err: unknown): string {

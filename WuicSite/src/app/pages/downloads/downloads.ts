@@ -9,6 +9,7 @@ import { CardModule } from 'primeng/card';
 import { MessageModule } from 'primeng/message';
 import { TranslatePipe } from '@ngx-translate/core';
 import { SeoService } from '../../services/seo.service';
+import { LanguageService } from '../../services/language.service';
 
 /**
  * Singolo file (ZIP) di una release. Shape allineata a deploy-site.ps1 che
@@ -35,6 +36,16 @@ export interface ReleaseEntry {
   date: string;                // "YYYY-MM-DD"
   timestampUtc?: string;
   files: DownloadFile[];
+  /** Backward-compat: URL della release notes it-IT (o prima locale
+   *  disponibile) per client che non sanno gestire la mappa multi-locale.
+   *  Nuovo client: usa `releaseNotesUrls` (mappa) + `pickReleaseNotesUrl()`. */
+  releaseNotesUrl?: string | null;
+  /** Mappa locale -> URL del file release notes HTML, popolata da
+   *  deploy-site.ps1 per ogni `release-notes-<key>.<locale>.md` trovato in
+   *  WuicSite/release-notes/. Il client risolve la URL appropriata in base
+   *  alla lingua corrente (`LanguageService.current()`), con fallback a
+   *  it-IT > en-US > prima locale disponibile. */
+  releaseNotesUrls?: Record<string, string> | null;
 }
 
 /** Manifest /downloads/releases.json */
@@ -61,6 +72,7 @@ export interface ReleasesManifest {
 })
 export class Downloads implements OnInit {
   private readonly http = inject(HttpClient);
+  private readonly languageService = inject(LanguageService);
 
   constructor() {
     inject(SeoService).set({ titleKey: 'seo.downloads.title', descriptionKey: 'seo.downloads.description', path: '/downloads' });
@@ -101,6 +113,26 @@ export class Downloads implements OnInit {
    */
   getDownloadUrl(entry: DownloadFile): string {
     return entry.url;
+  }
+
+  /**
+   * Risolve la URL del file release notes per la release indicata, scegliendo
+   * la lingua corrente del sito con fallback in priorita': lingua attiva ->
+   * it-IT -> en-US -> prima locale disponibile -> backward-compat
+   * `releaseNotesUrl` (singolare). Ritorna `null` se non c'e' nessun link.
+   */
+  pickReleaseNotesUrl(rel: ReleaseEntry | null | undefined): string | null {
+    if (!rel) return null;
+    const map = rel.releaseNotesUrls;
+    if (map && typeof map === 'object') {
+      const current = this.languageService.current();
+      if (current && map[current]) return map[current];
+      if (map['it-IT']) return map['it-IT'];
+      if (map['en-US']) return map['en-US'];
+      const keys = Object.keys(map);
+      if (keys.length > 0) return map[keys[0]];
+    }
+    return rel.releaseNotesUrl ?? null;
   }
 
   private extractErrorMessage(err: unknown): string {

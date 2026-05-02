@@ -52,6 +52,36 @@
   Cartella locale dove trovare il tarball linux. Default:
   ../KonvergenceCore/artifacts/release/linux/
 
+.PARAMETER ReleaseNotesDir
+  Cartella locale che contiene i file di release notes per ogni versione,
+  multi-locale con naming convention
+  `release-notes-v<server>_<client>.<localeCode>.md` dove <localeCode> e' uno
+  dei codici supportati dal sito: `it-IT`, `en-US`, `de-DE`, `es-ES`, `fr-FR`
+  (vedi src/app/services/language.service.ts). Esempi:
+  `release-notes-v1.0.19_1.0.19.it-IT.md`, `release-notes-v1.0.19_1.0.19.en-US.md`.
+  Per ogni locale trovata, lo script converte il .md in .html (con lang
+  attribute + back-link tradotti) e lo carica sotto
+  `<SitePath>\downloads\release-notes\release-notes-<key>.<locale>.html`.
+  La release entry in `releases.json` riceve `releaseNotesUrls` (mappa
+  locale -> url) + `releaseNotesUrl` (singolare, backward-compat = it-IT URL
+  se presente, altrimenti prima locale disponibile).
+  Backward-compat: il file legacy senza suffisso locale (`release-notes-<key>.md`)
+  e' accettato come variante it-IT. Se nessuna locale viene trovata per
+  la `releaseKey` corrente, emette warning ma non fallisce. Skippato se
+  `-SkipZip`. Default: `release-notes/` accanto a questo script.
+
+.PARAMETER LocalOnly
+  Modalita' DRY-RUN per dev preview: NON tocca il server remoto, NON fa
+  SCP/SSH/UNC/iisreset/maintenance swap. Esegue SOLO la logica di
+  composizione `releases.json` + lookup release notes, e scrive il risultato
+  sotto `public/downloads/` del repo WuicSite cosi' il dev server (`ng serve`
+  su port 4300) puo' visualizzare la nuova release nella pagina /downloads.
+  Skip totale degli step Build, Site upload, Linux tarball. Lo step ZIP
+  legge gli stessi ZIP da `$ZipSourceDir` e fa merge con il
+  `public/downloads/releases.json` esistente (rotation simulata localmente,
+  max 5 release). Use case: previsualizzare il rendering prima di
+  deployare in produzione.
+
 .EXAMPLE
   pwsh deploy-site.ps1 -Server vps123.contabo.de
   pwsh deploy-site.ps1 -Server vps123.contabo.de -SkipBuild -SkipZip
@@ -59,8 +89,7 @@
   pwsh deploy-site.ps1 -Server vps123.contabo.de -SkipApi              # solo sito statico
 #>
 param(
-    [Parameter(Mandatory = $true)]
-    [string]$Server,
+    [string]$Server = '',
     [string]$User = 'Administrator',
     [string]$SitePath = 'C:\inetpub\wwwroot\WuicSite',
     [string]$ZipSourceDir = '',
@@ -71,8 +100,16 @@ param(
     [switch]$SkipMaintenancePage,
     [switch]$SkipApi,
     [switch]$SkipLinuxTarball,
-    [string]$LinuxTarballSourceDir = ''
+    [string]$LinuxTarballSourceDir = '',
+    [string]$ReleaseNotesDir = '',
+    [string]$InstallScriptPath = '',
+    [switch]$LocalOnly
 )
+
+# Validate Server requirement (mandatory unless LocalOnly)
+if (-not $LocalOnly -and -not $Server) {
+    throw "Parameter -Server is required (omit only when -LocalOnly is set)."
+}
 
 $ErrorActionPreference = 'Stop'
 $scriptDir = $PSScriptRoot
@@ -84,6 +121,12 @@ if (-not $ZipSourceDir) {
 }
 if (-not $LinuxTarballSourceDir) {
     $LinuxTarballSourceDir = Join-Path $scriptDir '..\KonvergenceCore\artifacts\release\linux'
+}
+if (-not $ReleaseNotesDir) {
+    $ReleaseNotesDir = Join-Path $scriptDir 'release-notes'
+}
+if (-not $InstallScriptPath) {
+    $InstallScriptPath = Join-Path $scriptDir '..\KonvergenceCore\scripts\install.sh'
 }
 $distDir = Join-Path $scriptDir 'dist\WuicSite\browser'
 
@@ -179,6 +222,10 @@ function Get-HealthCheckUrl {
 }
 
 # ── step 1: build ────────────────────────────────────────────────────
+# In LocalOnly mode forziamo SkipBuild (la build Angular non serve per
+# popolare public/downloads/ — il dev server gia' compila al volo).
+if ($LocalOnly) { $SkipBuild = $true }
+
 
 if (-not $SkipBuild) {
     Write-Step "1/3 Build Angular"
@@ -241,6 +288,12 @@ if (-not (Test-Path $distDir)) {
 }
 
 # ── step 2: upload site ──────────────────────────────────────────────
+
+# LocalOnly: skip dell'intero step 2 (upload sito + maintenance) — non
+# tocchiamo niente di remoto in dry-run dev.
+if ($LocalOnly) {
+    Write-Step "2/3 Upload sito promozionale [SKIP — LocalOnly mode]"
+} else {
 #
 # ZERO-DOWNTIME MAINTENANCE STRATEGY
 #
@@ -597,6 +650,8 @@ if (-not $SkipApi) {
     }
 }
 
+} # end of LocalOnly skip for step 2
+
 # ── step 3: upload ZIP artifacts ─────────────────────────────────────
 
 if (-not $SkipZip) {
@@ -637,6 +692,13 @@ if (-not $SkipZip) {
         # OpenSSH sul server IIS usa PowerShell come shell di default
         # (verificato: i comandi remoti emettono CLIXML). Usiamo Invoke-RemotePwsh
         # che manda il codice via -EncodedCommand a powershell.exe.
+        # LocalOnly: salta TUTTA la prep + upload remota. Procediamo dritti
+        # alla composizione manifest letta dal mirror locale.
+        if ($LocalOnly) {
+            Write-Sub "[LocalOnly] skip prep archive remoto + upload ZIP"
+            $useUnc = $false
+        }
+        else {
         $useUnc = [bool](Test-Path $uncDownloads -ErrorAction SilentlyContinue)
         $remoteDownloadsPath = "${User}@${Server}:${remoteDownloads}"
         $remoteArchiveDir = Join-Path $remoteDownloads 'archive'
@@ -708,9 +770,43 @@ Get-ChildItem -LiteralPath `$archiveRoot -Directory -ErrorAction SilentlyContinu
     })
     if (`$files.Count -gt 0) {
         `$mostRecent = (`$files | ForEach-Object { [datetime]`$_.modified } | Sort-Object -Descending)[0]
+        # Multi-locale: enumera tutti i file release-notes-<key>.*.{html,md}
+        # presenti sotto /downloads/release-notes/ e popola la mappa
+        # `releaseNotesUrls` (locale -> url). `releaseNotesUrl` (singolare)
+        # e' backward-compat con priorita' it-IT, altrimenti prima locale
+        # disponibile, altrimenti formato legacy single-locale.
+        `$rnDir = Join-Path `$downloads 'release-notes'
+        `$rnUrls = [ordered]@{}
+        `$rnUrl = `$null
+        if (Test-Path -LiteralPath `$rnDir) {
+            `$kName = `$keyDir.Name
+            Get-ChildItem -Path `$rnDir -Filter "release-notes-`$kName.*" -File -ErrorAction SilentlyContinue |
+                Where-Object { `$_.Extension -in '.html','.md' } |
+                ForEach-Object {
+                    # Estrai locale dal nome: release-notes-<key>.<locale>.<ext>
+                    `$base = `$_.BaseName  # release-notes-<key>.<locale> oppure release-notes-<key>
+                    `$prefix = "release-notes-`$kName"
+                    if (`$base -eq `$prefix) {
+                        # Legacy single-locale (no locale suffix) -> it-IT
+                        if (-not `$rnUrls.Contains('it-IT')) {
+                            `$rnUrls['it-IT'] = "/downloads/release-notes/`$(`$_.Name)"
+                        }
+                    } elseif (`$base.StartsWith("`$prefix.")) {
+                        `$loc = `$base.Substring(`$prefix.Length + 1)
+                        # Preferisci .html su .md se entrambi presenti per la stessa locale
+                        if (-not `$rnUrls.Contains(`$loc) -or `$_.Extension -eq '.html') {
+                            `$rnUrls[`$loc] = "/downloads/release-notes/`$(`$_.Name)"
+                        }
+                    }
+                }
+            if (`$rnUrls.Contains('it-IT')) { `$rnUrl = `$rnUrls['it-IT'] }
+            elseif (`$rnUrls.Count -gt 0)   { `$rnUrl = (`$rnUrls.Values | Select-Object -First 1) }
+        }
         `$state[`$keyDir.Name] = [ordered]@{
-            files = `$files
-            date  = `$mostRecent.ToString('yyyy-MM-dd')
+            files            = `$files
+            date             = `$mostRecent.ToString('yyyy-MM-dd')
+            releaseNotesUrl  = `$rnUrl
+            releaseNotesUrls = if (`$rnUrls.Count -gt 0) { `$rnUrls } else { `$null }
         }
     }
 }
@@ -721,21 +817,210 @@ Write-Host "  archive snapshot scritto: `$stateFile (keys: `$(`$state.Keys.Count
             if ($code -ne 0) { throw "step 3: prep archive remoto fallita (exit $code)" }
         }
 
+        } # end of !LocalOnly remote prep block
+
+        # ── Release notes lookup + Markdown -> HTML conversion ─────
+        # MULTI-LOCALE: lo script cerca un file .md per OGNI locale supportato
+        # dal sito (vedi src/app/services/language.service.ts).
+        # Convenzione naming sorgente: release-notes-<releaseKey>.<locale>.md
+        # (es. release-notes-v1.0.19_1.0.19.it-IT.md, .en-US.md, .de-DE.md,
+        # .es-ES.md, .fr-FR.md).
+        # Backward compat: se manca la variante .it-IT.md, lo script accetta
+        # anche `release-notes-<releaseKey>.md` (formato legacy single-locale)
+        # come traduzione italiana.
+        # Per ogni .md trovato, lo script:
+        #   1. converte in .html con `ConvertFrom-Markdown` (built-in PS 6+)
+        #      wrappando l'output in un layout HTML minimale con
+        #      <meta charset="utf-8"> + CSS leggibile + back-link a /downloads
+        #      tradotto nella lingua del file
+        #   2. carica il .html sul server (NON il .md)
+        # Il file .html ha 2 vantaggi rispetto al raw .md:
+        #   a) charset utf-8 dichiarato nel <head> -> encoding garantito su
+        #      tutti i browser, niente piu' "ðŸ›¡ï¸" al posto di "🛡️"
+        #   b) markdown renderizzato (h1/h2, tabelle, code blocks, ecc.) =
+        #      esperienza utente decente.
+        # Naming output: release-notes-<releaseKey>.<locale>.html → rotation
+        # cleanup matcha lo stesso pattern (esteso a tutte le locale).
+        # Manifest: campo `releaseNotesUrls` (mappa { locale -> url }), piu'
+        # `releaseNotesUrl` (string) come backward-compat = it-IT URL se
+        # disponibile, altrimenti prima locale trovata.
+        $supportedLocales = @(
+            @{ code = 'it-IT'; lang = 'it'; backLabel = '&larr; Torna ai download' },
+            @{ code = 'en-US'; lang = 'en'; backLabel = '&larr; Back to downloads' },
+            @{ code = 'de-DE'; lang = 'de'; backLabel = '&larr; Zur&uuml;ck zu den Downloads' },
+            @{ code = 'es-ES'; lang = 'es'; backLabel = '&larr; Volver a las descargas' },
+            @{ code = 'fr-FR'; lang = 'fr'; backLabel = '&larr; Retour aux t&eacute;l&eacute;chargements' }
+        )
+        $releaseNotesUrls = [ordered]@{}    # locale -> url
+        $releaseNotesHtmlFiles = @()        # lista FileInfo per upload/mirror
+        $releaseNotesUrl = $null            # backward-compat (it-IT URL)
+        if (Test-Path $ReleaseNotesDir) {
+            foreach ($loc in $supportedLocales) {
+                $localeCode = $loc.code
+                $sourceFileName = "release-notes-$releaseKey.$localeCode.md"
+                $candidate = Join-Path $ReleaseNotesDir $sourceFileName
+                # Backward-compat: accetta `release-notes-<key>.md` come it-IT
+                if ($localeCode -eq 'it-IT' -and -not (Test-Path $candidate)) {
+                    $legacyCandidate = Join-Path $ReleaseNotesDir "release-notes-$releaseKey.md"
+                    if (Test-Path $legacyCandidate) {
+                        $candidate = $legacyCandidate
+                        $sourceFileName = "release-notes-$releaseKey.md"
+                    }
+                }
+                if (-not (Test-Path $candidate)) {
+                    Write-Sub "[$localeCode] release notes non trovate (atteso $sourceFileName) — skip"
+                    continue
+                }
+                $htmlFileName = "release-notes-$releaseKey.$localeCode.html"
+                $sourceFile = Get-Item $candidate
+                Write-Sub "[$localeCode] sorgente: $sourceFileName ($([math]::Round($sourceFile.Length / 1KB, 1)) KB)"
+                # Convert markdown -> HTML
+                try {
+                    $mdContent = Get-Content $candidate -Raw -Encoding UTF8
+                    $rendered = (ConvertFrom-Markdown -InputObject $mdContent).Html
+                    $htmlLang = $loc.lang
+                    $backLabel = $loc.backLabel
+                    $titleEsc = "Release Notes $releaseKey - WUIC Framework"
+                    # Stylesheet allineato al WuicSite (palette indigo `#6366f1`,
+                    # font system stack identico a `src/styles.scss`, header
+                    # bianco con bordo `#e2e8f0`, max-width 1200px container).
+                    # Light mode only: il sito principale e' light-only, non
+                    # vogliamo dark-mode discrepanza fra navbar bianca site-wide
+                    # e release notes scure. Niente `prefers-color-scheme`.
+                    $htmlBody = @"
+<!DOCTYPE html>
+<html lang="$htmlLang">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>$titleEsc</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; color: #1e293b; background: #ffffff; line-height: 1.6; overflow-wrap: anywhere; word-wrap: break-word; }
+a { color: #6366f1; text-decoration: none; }
+a:hover { color: #4f46e5; text-decoration: underline; }
+
+/* Site-style header (mini-navbar) */
+.rn-header { background: rgba(255, 255, 255, 0.95); border-bottom: 1px solid #e2e8f0; backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 10; }
+.rn-header-inner { max-width: 1200px; margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.rn-brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: #0f172a; font-size: 1.15rem; }
+.rn-brand-bolt { display: inline-block; width: 24px; height: 24px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M13 2L3 14h7l-1 8 10-12h-7l1-8z'/></svg>") center/contain no-repeat; mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M13 2L3 14h7l-1 8 10-12h-7l1-8z'/></svg>") center/contain no-repeat; }
+.rn-back { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border: 1px solid #c7d2fe; border-radius: 6px; color: #4f46e5; background: #eef2ff; font-size: 0.9rem; transition: background 0.15s, border-color 0.15s; }
+.rn-back:hover { background: #e0e7ff; border-color: #a5b4fc; text-decoration: none; }
+
+/* Article container: same width as Site .container */
+.rn-article { max-width: 880px; margin: 0 auto; padding: 48px 24px 80px; }
+
+/* Headings: site palette */
+h1, h2, h3, h4 { color: #0f172a; line-height: 1.25; font-weight: 700; }
+h1 { font-size: 2rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; margin-bottom: 1.25rem; }
+h2 { font-size: 1.4rem; margin-top: 2.25rem; margin-bottom: 0.75rem; }
+h3 { font-size: 1.125rem; margin-top: 1.5rem; margin-bottom: 0.5rem; color: #334155; }
+
+p { margin: 0.75rem 0; color: #334155; }
+strong { color: #0f172a; font-weight: 600; }
+
+ul, ol { padding-left: 1.4rem; margin: 0.75rem 0; }
+li { margin: 0.25rem 0; color: #334155; }
+
+hr { border: 0; border-top: 1px solid #e2e8f0; margin: 2.5rem 0; }
+
+/* Inline code: tinta indigo che richiama il brand */
+code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.9em; }
+code { background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; padding: 0.1em 0.4em; border-radius: 4px; word-break: break-word; }
+pre { background: #f8fafc; border: 1px solid #e2e8f0; padding: 1rem 1.25rem; border-radius: 8px; overflow-x: auto; max-width: 100%; margin: 1rem 0; }
+pre code { background: transparent; color: #1e293b; border: 0; padding: 0; word-break: normal; }
+
+/* Tables: scrollabili, header indigo-tint */
+.table-wrap { overflow-x: auto; max-width: 100%; margin: 1.25rem 0; border: 1px solid #e2e8f0; border-radius: 8px; }
+table { border-collapse: collapse; width: max-content; min-width: 100%; background: #ffffff; }
+th, td { border-bottom: 1px solid #e2e8f0; padding: 0.65rem 0.95rem; text-align: left; vertical-align: top; font-size: 0.95rem; }
+th { background: #f8fafc; color: #0f172a; font-weight: 600; border-bottom-color: #cbd5e1; }
+tr:last-child td { border-bottom: 0; }
+td { color: #334155; }
+
+/* Blockquote: brand accent */
+blockquote { border-left: 3px solid #6366f1; margin: 1.25rem 0; padding: 0.6rem 1.1rem; color: #475569; background: #eef2ff; border-radius: 0 6px 6px 0; }
+blockquote p { color: #475569; }
+
+img { max-width: 100%; height: auto; border-radius: 6px; }
+</style>
+<script>
+// Wrap tables post-render in scroll container (markdown converter emits raw <table>).
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('table').forEach(t => {
+    if (t.parentElement && t.parentElement.classList.contains('table-wrap')) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+});
+</script>
+</head>
+<body>
+<header class="rn-header">
+  <div class="rn-header-inner">
+    <a href="/" class="rn-brand"><span class="rn-brand-bolt"></span><span>WUIC</span></a>
+    <a href="/downloads" class="rn-back">$backLabel</a>
+  </div>
+</header>
+<article class="rn-article">
+$rendered
+</article>
+</body>
+</html>
+"@
+                    $tmpHtml = New-TemporaryFile
+                    $tmpHtmlPath = "$($tmpHtml.FullName).$localeCode.html"
+                    Move-Item $tmpHtml.FullName $tmpHtmlPath -Force
+                    Set-Content -Path $tmpHtmlPath -Value $htmlBody -Encoding UTF8
+                    $htmlFile = Get-Item $tmpHtmlPath
+                    $publicUrl = "/downloads/release-notes/$htmlFileName"
+                    $releaseNotesUrls[$localeCode] = $publicUrl
+                    $releaseNotesHtmlFiles += [pscustomobject]@{
+                        Locale       = $localeCode
+                        FileInfo     = $htmlFile
+                        HtmlFileName = $htmlFileName
+                    }
+                    if ($localeCode -eq 'it-IT') { $releaseNotesUrl = $publicUrl }
+                    Write-Sub "[$localeCode] convertito -> $htmlFileName ($([math]::Round($htmlFile.Length / 1KB, 1)) KB)"
+                } catch {
+                    Write-Sub "[$localeCode] [warn] conversione markdown fallita: $($_.Exception.Message) — skip"
+                }
+            }
+            # Backward-compat fallback singolare: se mancano release notes it-IT
+            # ma esistono in altre lingue, popola releaseNotesUrl con la prima
+            # disponibile cosi' i client legacy non hanno link rotto.
+            if (-not $releaseNotesUrl -and $releaseNotesUrls.Count -gt 0) {
+                $releaseNotesUrl = $releaseNotesUrls.Values | Select-Object -First 1
+            }
+            if ($releaseNotesUrls.Count -eq 0) {
+                Write-Sub "[warn] nessuna release notes trovata per $releaseKey in $ReleaseNotesDir"
+            }
+        } else {
+            Write-Sub "[warn] cartella release notes non esiste: $ReleaseNotesDir — skip linkage"
+        }
+
         # Upload nuovi ZIP in /downloads/ root (latest). La copia "archive" della
         # release corrente NON si carica qui: al prossimo deploy questi stessi
         # file verranno spostati da /downloads/ a /archive/<releaseKey>/ dallo
         # step di move sopra, senza ri-trasferire byte via rete.
-        Write-Sub "upload ZIP -> /downloads/ (latest)"
-        if ($useUnc) {
-            foreach ($z in $zipFiles) {
-                Write-Sub "  $($z.Name) ($([math]::Round($z.Length/1MB,1)) MB)"
-                Copy-Item $z.FullName (Join-Path $uncDownloads $z.Name) -Force
-            }
-        } else {
-            foreach ($z in $zipFiles) {
-                Write-Sub "  $($z.Name) ($([math]::Round($z.Length/1MB,1)) MB)"
-                scp $z.FullName "${remoteDownloadsPath}/$($z.Name)"
-                if ($LASTEXITCODE -ne 0) { throw "scp /downloads/$($z.Name) fallita (exit $LASTEXITCODE)" }
+        if (-not $LocalOnly) {
+            Write-Sub "upload ZIP -> /downloads/ (latest)"
+            if ($useUnc) {
+                foreach ($z in $zipFiles) {
+                    Write-Sub "  $($z.Name) ($([math]::Round($z.Length/1MB,1)) MB)"
+                    Copy-Item $z.FullName (Join-Path $uncDownloads $z.Name) -Force
+                }
+            } else {
+                foreach ($z in $zipFiles) {
+                    Write-Sub "  $($z.Name) ($([math]::Round($z.Length/1MB,1)) MB)"
+                    scp $z.FullName "${remoteDownloadsPath}/$($z.Name)"
+                    if ($LASTEXITCODE -ne 0) { throw "scp /downloads/$($z.Name) fallita (exit $LASTEXITCODE)" }
+                }
             }
         }
 
@@ -760,13 +1045,42 @@ Write-Host "  archive snapshot scritto: `$stateFile (keys: `$(`$state.Keys.Count
             }
         }
 
+        # Upload release notes HTML (uno per locale) sotto /downloads/release-notes/.
+        # Eseguito dopo gli ZIP cosi' se il file e' grosso non blocchiamo
+        # l'upload primario. SCP idempotente: ri-deploy della stessa versione
+        # sovrascrive il file con eventuali edit successivi alle release notes.
+        if ($releaseNotesHtmlFiles.Count -gt 0 -and -not $LocalOnly) {
+            $remoteReleaseNotesDir = Join-Path $remoteDownloads 'release-notes'
+            if ($useUnc) {
+                $uncReleaseNotesDir = Join-Path $uncDownloads 'release-notes'
+                if (-not (Test-Path $uncReleaseNotesDir)) {
+                    New-Item -ItemType Directory -Path $uncReleaseNotesDir -Force | Out-Null
+                }
+                foreach ($rn in $releaseNotesHtmlFiles) {
+                    Copy-Item $rn.FileInfo.FullName (Join-Path $uncReleaseNotesDir $rn.HtmlFileName) -Force
+                    Write-Sub "  [$($rn.Locale)] -> /downloads/release-notes/$($rn.HtmlFileName) (UNC)"
+                }
+            } else {
+                # Assicura che la directory remota esista (un solo SSH roundtrip)
+                $mkdirScript = "New-Item -ItemType Directory -Force -Path '$remoteReleaseNotesDir' | Out-Null"
+                Invoke-RemotePwsh -RemoteUserHost $remoteUserHost -Script $mkdirScript | Out-Null
+                foreach ($rn in $releaseNotesHtmlFiles) {
+                    scp $rn.FileInfo.FullName "${remoteDownloadsPath}/release-notes/$($rn.HtmlFileName)"
+                    if ($LASTEXITCODE -ne 0) { throw "scp release-notes/$($rn.HtmlFileName) fallita (exit $LASTEXITCODE)" }
+                    Write-Sub "  [$($rn.Locale)] -> /downloads/release-notes/$($rn.HtmlFileName)"
+                }
+            }
+        }
+
         $newRelease = [ordered]@{
-            key            = $releaseKey
-            server         = $serverVersion
-            client         = $clientVersion
-            date           = (Get-Date -Format 'yyyy-MM-dd')
-            timestampUtc   = (Get-Date).ToUniversalTime().ToString('o')
-            files          = $filesMeta
+            key              = $releaseKey
+            server           = $serverVersion
+            client           = $clientVersion
+            date             = (Get-Date -Format 'yyyy-MM-dd')
+            timestampUtc     = (Get-Date).ToUniversalTime().ToString('o')
+            files            = $filesMeta
+            releaseNotesUrl  = $releaseNotesUrl                                    # backward-compat
+            releaseNotesUrls = if ($releaseNotesUrls.Count -gt 0) { $releaseNotesUrls } else { $null }  # multi-locale
         }
 
         # Merge con releases.json remoto esistente (se c'e'). Facciamo mirror
@@ -777,7 +1091,21 @@ Write-Host "  archive snapshot scritto: `$stateFile (keys: `$(`$state.Keys.Count
         $localReleasesJson = Join-Path $tmpDir 'releases.json'
 
         $existingReleases = @()
-        if ($useUnc) {
+        # LocalOnly: read-existing dal mirror locale public/downloads/releases.json
+        # cosi' iterazioni successive accumulano la storia (rotation simulata).
+        if ($LocalOnly) {
+            $localPublicReleasesJson = Join-Path $scriptDir 'public\downloads\releases.json'
+            if (Test-Path $localPublicReleasesJson) {
+                try {
+                    $existingReleases = (Get-Content $localPublicReleasesJson -Raw | ConvertFrom-Json).releases
+                    if ($null -eq $existingReleases) { $existingReleases = @() }
+                    Write-Sub "[LocalOnly] read $($existingReleases.Count) release(s) da public/downloads/releases.json"
+                } catch { Write-Host "  [warn] public/downloads/releases.json malformato, ricostruisco da zero" -ForegroundColor Yellow }
+            } else {
+                Write-Sub "[LocalOnly] nessun public/downloads/releases.json esistente, partiamo da zero"
+            }
+        }
+        elseif ($useUnc) {
             $uncReleasesJson = Join-Path $uncDownloads 'releases.json'
             if (Test-Path $uncReleasesJson) {
                 try {
@@ -808,7 +1136,7 @@ Write-Host "  archive snapshot scritto: `$stateFile (keys: `$(`$state.Keys.Count
         # ha trovato in /archive/ ma che mancano da releases.json remoto. Questo
         # copre il caso in cui releases.json era vuoto/stale (es. primo deploy
         # dopo il fix pipeline): il filesystem server e' l'authoritative source.
-        if (-not $useUnc) {
+        if (-not $useUnc -and -not $LocalOnly) {
             $localArchiveState = Join-Path $tmpDir 'archive-state.json'
             $remoteArchiveStateFileScp = ConvertTo-ScpRemotePath $remoteArchiveStateFile
             & scp "${User}@${Server}:${remoteArchiveStateFileScp}" $localArchiveState 2>$null | Out-Null
@@ -845,13 +1173,31 @@ Write-Host "  archive snapshot scritto: `$stateFile (keys: `$(`$state.Keys.Count
                             }
                         }
                         if ($syntheticFiles.Count -eq 0) { continue }
+                        # Ripristina link release notes dallo snapshot archive-state:
+                        # ora il prep script remoto enumera tutte le locale presenti
+                        # in /downloads/release-notes/ per la key e popola
+                        # `releaseNotesUrls` (mappa) + `releaseNotesUrl` (it-IT
+                        # backward-compat).
+                        $syntheticReleaseNotesUrl = $null
+                        $syntheticReleaseNotesUrls = $null
+                        if ($entry.PSObject.Properties.Name -contains 'releaseNotesUrls' -and $entry.releaseNotesUrls) {
+                            $syntheticReleaseNotesUrls = [ordered]@{}
+                            foreach ($prop2 in $entry.releaseNotesUrls.PSObject.Properties) {
+                                $syntheticReleaseNotesUrls[$prop2.Name] = [string]$prop2.Value
+                            }
+                        }
+                        if ($entry.PSObject.Properties.Name -contains 'releaseNotesUrl' -and $entry.releaseNotesUrl) {
+                            $syntheticReleaseNotesUrl = [string]$entry.releaseNotesUrl
+                        }
                         $existingReleases += [ordered]@{
-                            key          = $oldKey
-                            server       = $sVer
-                            client       = $cVer
-                            date         = if ($entry.date) { $entry.date } else { (Get-Date -Format 'yyyy-MM-dd') }
-                            timestampUtc = (Get-Date).ToUniversalTime().ToString('o')
-                            files        = $syntheticFiles
+                            key              = $oldKey
+                            server           = $sVer
+                            client           = $cVer
+                            date             = if ($entry.date) { $entry.date } else { (Get-Date -Format 'yyyy-MM-dd') }
+                            timestampUtc     = (Get-Date).ToUniversalTime().ToString('o')
+                            files            = $syntheticFiles
+                            releaseNotesUrl  = $syntheticReleaseNotesUrl
+                            releaseNotesUrls = $syntheticReleaseNotesUrls
                         }
                         $existingKeys[$oldKey] = $true
                         $synthesized++
@@ -875,20 +1221,34 @@ Write-Host "  archive snapshot scritto: `$stateFile (keys: `$(`$state.Keys.Count
 
         # Cleanup archivio: cancella le release "drop" dal server.
         # Come sopra, OpenSSH usa PowerShell, non CMD → Remove-Item invece di rmdir.
-        if ($drop.Count -gt 0) {
+        # Eliminiamo anche eventuali release notes (release-notes-<key>.md) sotto
+        # /downloads/release-notes/ — il manifest non le referenzia piu', tenerle
+        # sarebbe orphan storage.
+        # LocalOnly: skip cleanup remoto (in dev tutto vive in public/downloads/).
+        if ($drop.Count -gt 0 -and -not $LocalOnly) {
             Write-Sub "rotation: elimino $($drop.Count) release obsolete"
             $dropKeys = @($drop | ForEach-Object { if ($_.key) { $_.key } else { "v$($_.server)_$($_.client)" } })
             foreach ($k in $dropKeys) { Write-Sub "  - $k" }
             if ($useUnc) {
+                $uncReleaseNotesDir = Join-Path $uncDownloads 'release-notes'
                 foreach ($k in $dropKeys) {
                     $dir = Join-Path $uncDownloads "archive\$k"
                     if (Test-Path $dir) { Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue }
+                    # Cancella TUTTE le varianti locale (release-notes-<k>.*.{html,md})
+                    # piu' il formato legacy single-locale (release-notes-<k>.{html,md}).
+                    if (Test-Path $uncReleaseNotesDir) {
+                        Get-ChildItem -Path $uncReleaseNotesDir -Filter "release-notes-$k.*" -File -ErrorAction SilentlyContinue |
+                            Where-Object { $_.Extension -in '.html','.md' } |
+                            Remove-Item -Force -ErrorAction SilentlyContinue
+                    }
                 }
             } else {
                 $dropLiteral = ($dropKeys | ForEach-Object { "'" + ($_ -replace "'", "''") + "'" }) -join ','
                 if (-not $dropLiteral) { $dropLiteral = "''" }
+                $remoteReleaseNotesDirInner = Join-Path $remoteDownloads 'release-notes'
                 $rotScript = @"
-`$archiveRoot = '$remoteArchiveDir'
+`$archiveRoot     = '$remoteArchiveDir'
+`$releaseNotesDir = '$remoteReleaseNotesDirInner'
 `$keys = @($dropLiteral)
 foreach (`$k in `$keys) {
     if (-not `$k) { continue }
@@ -896,6 +1256,14 @@ foreach (`$k in `$keys) {
     if (Test-Path -LiteralPath `$dir) {
         Remove-Item -LiteralPath `$dir -Recurse -Force -ErrorAction SilentlyContinue
         Write-Host "  deleted archive/`$k/"
+    }
+    if (Test-Path -LiteralPath `$releaseNotesDir) {
+        Get-ChildItem -Path `$releaseNotesDir -Filter "release-notes-`$k.*" -File -ErrorAction SilentlyContinue |
+            Where-Object { `$_.Extension -in '.html','.md' } |
+            ForEach-Object {
+                Remove-Item -LiteralPath `$_.FullName -Force -ErrorAction SilentlyContinue
+                Write-Host "  deleted release-notes/`$(`$_.Name)"
+            }
     }
 }
 "@
@@ -912,11 +1280,37 @@ foreach (`$k in `$keys) {
         $manifestJson = $manifest | ConvertTo-Json -Depth 6
         Set-Content -Path $localReleasesJson -Value $manifestJson -Encoding UTF8
 
-        # Upload releases.json
-        if ($useUnc) {
-            Copy-Item $localReleasesJson (Join-Path $uncDownloads 'releases.json') -Force
-        } else {
-            scp $localReleasesJson "${remoteDownloadsPath}/releases.json"
+        # Upload releases.json (skip remoto in LocalOnly)
+        if (-not $LocalOnly) {
+            if ($useUnc) {
+                Copy-Item $localReleasesJson (Join-Path $uncDownloads 'releases.json') -Force
+            } else {
+                scp $localReleasesJson "${remoteDownloadsPath}/releases.json"
+            }
+        }
+
+        # Mirror locale per dev (`ng serve` su port 4300): scrivi lo stesso
+        # releases.json + il file release notes (se presente) sotto
+        # `public/downloads/` del repo WuicSite. Cosi' lavorando in locale sulla
+        # pagina /downloads (e /downloads/older) il dev server vede gli stessi
+        # dati che vede produzione, senza dover montare il filesystem remoto.
+        # Snapshot at deploy time: dopo deploy successivi il mirror diverge dal
+        # server (quello e' authoritative). Per ri-allineare basta ri-deployare.
+        $localPublicDownloads = Join-Path $scriptDir 'public\downloads'
+        if (-not (Test-Path $localPublicDownloads)) {
+            New-Item -ItemType Directory -Path $localPublicDownloads -Force | Out-Null
+        }
+        Copy-Item $localReleasesJson (Join-Path $localPublicDownloads 'releases.json') -Force
+        Write-Sub "mirror locale: public/downloads/releases.json"
+        if ($releaseNotesHtmlFiles.Count -gt 0) {
+            $localPublicReleaseNotes = Join-Path $localPublicDownloads 'release-notes'
+            if (-not (Test-Path $localPublicReleaseNotes)) {
+                New-Item -ItemType Directory -Path $localPublicReleaseNotes -Force | Out-Null
+            }
+            foreach ($rn in $releaseNotesHtmlFiles) {
+                Copy-Item $rn.FileInfo.FullName (Join-Path $localPublicReleaseNotes $rn.HtmlFileName) -Force
+                Write-Sub "mirror locale: public/downloads/release-notes/$($rn.HtmlFileName)"
+            }
         }
 
         # Backward-compat: scrivi anche latest.json (vecchio formato, pagina
@@ -930,10 +1324,12 @@ foreach (`$k in `$keys) {
         $legacyJson = $legacy | ConvertTo-Json -Depth 3
         $localLatestJson = Join-Path $tmpDir 'latest.json'
         Set-Content -Path $localLatestJson -Value $legacyJson -Encoding UTF8
-        if ($useUnc) {
-            Copy-Item $localLatestJson (Join-Path $uncDownloads 'latest.json') -Force
-        } else {
-            scp $localLatestJson "${remoteDownloadsPath}/latest.json"
+        if (-not $LocalOnly) {
+            if ($useUnc) {
+                Copy-Item $localLatestJson (Join-Path $uncDownloads 'latest.json') -Force
+            } else {
+                scp $localLatestJson "${remoteDownloadsPath}/latest.json"
+            }
         }
 
         # Cleanup temp
@@ -946,6 +1342,9 @@ foreach (`$k in `$keys) {
 }
 
 # ── step 4: upload Linux tarball (hidden asset) ──────────────────────
+# LocalOnly: il tarball Linux non e' parte del dev preview, skip totale.
+if ($LocalOnly) { $SkipLinuxTarball = $true }
+
 #
 # Il tarball linux-x64 e' generato da deploy-release.ps1 -GenerateLinuxTarball
 # e finisce in artifacts\release\linux\wuic-framework-vX.Y.Z-linux-x64.tar.gz
@@ -1065,6 +1464,52 @@ foreach (`$d in `$dirs) {
     }
 } else {
     Write-Step "4/4 Upload tarball Linux [SKIP]"
+}
+
+# ── step 5: upload install.sh (linux one-liner installer) ────────────
+# install.sh e' lo script bash hosted a https://wuic-framework.com/install.sh
+# che gli utenti Linux invocano via:
+#   curl -fsSL https://wuic-framework.com/install.sh | sudo bash -s -- ...
+# Lo script scarica il tarball latest da /releases/latest/, lo verifica via
+# sha256, lo estrae e invoca scripts/linux/install-all.sh.
+#
+# A differenza del tarball (asset nascosto), install.sh E' linkato dalla
+# pagina /downloads (sezione "Installazione Linux") cosi' gli utenti possono
+# vedere/copiare il comando ed eventualmente scaricare lo script per
+# ispezionarlo prima di lanciarlo.
+#
+# Sorgente: KonvergenceCore/scripts/install.sh (default $InstallScriptPath).
+# Destinazione server: <SitePath>/install.sh (root del sito, non /downloads/).
+# Mirror locale: public/install.sh per dev preview (anche in LocalOnly).
+# Non c'e' uno SkipInstallScript flag: lo script e' tiny (~10 KB), idempotente,
+# va sempre allineato.
+
+Write-Step "5/5 Upload install.sh (linux one-liner)"
+if (Test-Path $InstallScriptPath) {
+    $installFile = Get-Item $InstallScriptPath
+    Write-Sub "sorgente: $InstallScriptPath ($([math]::Round($installFile.Length / 1KB, 1)) KB)"
+
+    # Mirror locale per dev preview — sempre, anche LocalOnly
+    $localPublicInstall = Join-Path $scriptDir 'public\install.sh'
+    Copy-Item $installFile.FullName $localPublicInstall -Force
+    Write-Sub "mirror locale: public/install.sh"
+
+    if (-not $LocalOnly) {
+        $remoteInstallPath = Join-Path $SitePath 'install.sh'
+        if ($useUnc) {
+            $uncSiteRoot = "\\${Server}\$($SitePath -replace ':', '$')"
+            Copy-Item $installFile.FullName (Join-Path $uncSiteRoot 'install.sh') -Force
+            Write-Sub "install.sh -> $remoteInstallPath (UNC)"
+        } else {
+            $remoteInstallPathScp = ConvertTo-ScpRemotePath $remoteInstallPath
+            scp $installFile.FullName "${User}@${Server}:${remoteInstallPathScp}"
+            if ($LASTEXITCODE -ne 0) { throw "scp install.sh fallita (exit $LASTEXITCODE)" }
+            Write-Sub "install.sh -> $remoteInstallPath"
+        }
+        Write-Host "  [ok] install.sh pubblicato su https://${Server}/install.sh" -ForegroundColor Green
+    }
+} else {
+    Write-Host "  [warn] install.sh non trovato: $InstallScriptPath — skip" -ForegroundColor Yellow
 }
 
 # ── done ─────────────────────────────────────────────────────────────

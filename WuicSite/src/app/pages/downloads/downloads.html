@@ -16,6 +16,17 @@
         <p-tag value="Server {{ latest()!.server }}" severity="info" />
         <p-tag value="Client {{ latest()!.client }}" severity="info" />
         <span class="release-date">{{ latest()!.date }}</span>
+        @if (pickReleaseNotesUrl(latest()); as rnUrl) {
+          <a [href]="rnUrl" class="release-notes-link">
+            <p-button
+              [label]="'downloads.releaseNotes' | translate"
+              icon="pi pi-file"
+              severity="secondary"
+              [outlined]="true"
+              size="small">
+            </p-button>
+          </a>
+        }
       </div>
 
       <p-table [value]="latest()!.files" styleClass="p-datatable-striped" [tableStyle]="{'min-width': '50rem'}">
@@ -67,6 +78,26 @@
         </div>
       }
     }
+
+    <div class="linux-install-block">
+      <h2><i class="pi pi-desktop"></i> {{ 'downloads.linuxInstall.title' | translate }}</h2>
+      <p class="linux-install-subtitle">{{ 'downloads.linuxInstall.subtitle' | translate }}</p>
+      <p class="linux-install-copy-hint">{{ 'downloads.linuxInstall.copyHint' | translate }}</p>
+      <pre class="linux-install-cmd"><code>curl -fsSL https://wuic-framework.com/install.sh | sudo bash -s -- \
+  --dbms mssql --admin-password 'MyS3cret!' --hostname app.example.com</code></pre>
+      <div class="linux-install-actions">
+        <a href="/install.sh" target="_blank" rel="noopener">
+          <p-button
+            [label]="'downloads.linuxInstall.viewScript' | translate"
+            icon="pi pi-external-link"
+            severity="secondary"
+            [outlined]="true"
+            size="small">
+          </p-button>
+        </a>
+        <small class="linux-install-tarball-note">{{ 'downloads.linuxInstall.tarballNote' | translate }}</small>
+      </div>
+    </div>
 
     <div class="info-cards">
       <p-card>

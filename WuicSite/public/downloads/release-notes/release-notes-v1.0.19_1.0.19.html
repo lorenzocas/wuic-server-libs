@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Release Notes v1.0.19_1.0.19 - WUIC Framework</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; color: #1e293b; background: #ffffff; line-height: 1.6; overflow-wrap: anywhere; word-wrap: break-word; }
+a { color: #6366f1; text-decoration: none; }
+a:hover { color: #4f46e5; text-decoration: underline; }
+
+/* Site-style header (mini-navbar) */
+.rn-header { background: rgba(255, 255, 255, 0.95); border-bottom: 1px solid #e2e8f0; backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 10; }
+.rn-header-inner { max-width: 1200px; margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.rn-brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: #0f172a; font-size: 1.15rem; }
+.rn-brand-bolt { display: inline-block; width: 24px; height: 24px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M13 2L3 14h7l-1 8 10-12h-7l1-8z'/></svg>") center/contain no-repeat; mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M13 2L3 14h7l-1 8 10-12h-7l1-8z'/></svg>") center/contain no-repeat; }
+.rn-back { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border: 1px solid #c7d2fe; border-radius: 6px; color: #4f46e5; background: #eef2ff; font-size: 0.9rem; transition: background 0.15s, border-color 0.15s; }
+.rn-back:hover { background: #e0e7ff; border-color: #a5b4fc; text-decoration: none; }
+
+/* Article container: same width as Site .container */
+.rn-article { max-width: 880px; margin: 0 auto; padding: 48px 24px 80px; }
+
+/* Headings: site palette */
+h1, h2, h3, h4 { color: #0f172a; line-height: 1.25; font-weight: 700; }
+h1 { font-size: 2rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; margin-bottom: 1.25rem; }
+h2 { font-size: 1.4rem; margin-top: 2.25rem; margin-bottom: 0.75rem; }
+h3 { font-size: 1.125rem; margin-top: 1.5rem; margin-bottom: 0.5rem; color: #334155; }
+
+p { margin: 0.75rem 0; color: #334155; }
+strong { color: #0f172a; font-weight: 600; }
+
+ul, ol { padding-left: 1.4rem; margin: 0.75rem 0; }
+li { margin: 0.25rem 0; color: #334155; }
+
+hr { border: 0; border-top: 1px solid #e2e8f0; margin: 2.5rem 0; }
+
+/* Inline code: tinta indigo che richiama il brand */
+code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.9em; }
+code { background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; padding: 0.1em 0.4em; border-radius: 4px; word-break: break-word; }
+pre { background: #f8fafc; border: 1px solid #e2e8f0; padding: 1rem 1.25rem; border-radius: 8px; overflow-x: auto; max-width: 100%; margin: 1rem 0; }
+pre code { background: transparent; color: #1e293b; border: 0; padding: 0; word-break: normal; }
+
+/* Tables: scrollabili, header indigo-tint */
+.table-wrap { overflow-x: auto; max-width: 100%; margin: 1.25rem 0; border: 1px solid #e2e8f0; border-radius: 8px; }
+table { border-collapse: collapse; width: max-content; min-width: 100%; background: #ffffff; }
+th, td { border-bottom: 1px solid #e2e8f0; padding: 0.65rem 0.95rem; text-align: left; vertical-align: top; font-size: 0.95rem; }
+th { background: #f8fafc; color: #0f172a; font-weight: 600; border-bottom-color: #cbd5e1; }
+tr:last-child td { border-bottom: 0; }
+td { color: #334155; }
+
+/* Blockquote: brand accent */
+blockquote { border-left: 3px solid #6366f1; margin: 1.25rem 0; padding: 0.6rem 1.1rem; color: #475569; background: #eef2ff; border-radius: 0 6px 6px 0; }
+blockquote p { color: #475569; }
+
+img { max-width: 100%; height: auto; border-radius: 6px; }
+</style>
+<script>
+// Wrap tables post-render in scroll container (markdown converter emits raw <table>).
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('table').forEach(t => {
+    if (t.parentElement && t.parentElement.classList.contains('table-wrap')) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+});
+</script>
+</head>
+<body>
+<header class="rn-header">
+  <div class="rn-header-inner">
+    <a href="/" class="rn-brand"><span class="rn-brand-bolt"></span><span>WUIC</span></a>
+    <a href="/downloads" class="rn-back">&larr; Torna ai download</a>
+  </div>
+</header>
+<article class="rn-article">
+<h1 id="release-notes-wuic-framework-v1.0.19">Release Notes — WUIC Framework v1.0.19</h1>
+<p><strong>Data</strong>: 2 maggio 2026
+<strong>Versione precedente pubblicata</strong>: 1.0.7 (26 aprile 2026)
+<strong>Backend</strong>: .NET 10 + IIS / Linux nginx
+<strong>Frontend</strong>: Angular 21</p>
+<hr />
+<p>In sei giorni di sviluppo intenso, WUIC compie un salto significativo: dal singolo deploy IIS Windows a una <strong>piattaforma multi-runtime</strong> (Windows + Linux nativo), con un sistema unificato di <strong>gestione errori tipizzati</strong>, <strong>crash reporting</strong> centralizzato, <strong>autenticazione LDAP</strong>, e un giro di <strong>hardening best-effort</strong> sulla superficie applicativa.</p>
+<hr />
+<h2 id="sicurezza">🛡️ Sicurezza</h2>
+<p>Best-effort hardening su tutta la superficie applicativa: throttling autenticazione, rinforzo headers HTTP standard (HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy), gestione environment-aware di CORS e Swagger, riduzione info disclosure nelle response di errore, gating granulare degli endpoint amministrativi, controlli aggiuntivi sul path SQL runtime. Le configurazioni di default sono ora più conservative anche per deploy demo/staging, con override esplicito disponibile via <code>AppSettings</code>.</p>
+<hr />
+<h2 id="crash-reporting-end-to-end">🚨 Crash Reporting (end-to-end)</h2>
+<p>Nuovo sistema di crash reporting auto-installato che invia stack trace .NET + JavaScript a un receiver self-hosted.</p>
+<ul>
+<li><strong>Cattura passiva</strong>: le eccezioni unhandled vengono raccolte automaticamente, deduplicate via stack canonicalization e accodate async — nessun impatto sulla latency delle request.</li>
+<li><strong>Receiver privato</strong>: <code>errors.wuic-framework.com</code> accetta upload firmati con RSA license signature (zero API keys da gestire).</li>
+<li><strong>GDPR consent</strong>: opt-in esplicito gestito in <code>AppSettings</code>, configurabile dall'editor settings.</li>
+<li><strong>Attivazione</strong>: <code>CrashReporting:Enabled=true</code> in <code>appsettings.json</code> + consent GDPR via UI.</li>
+</ul>
+<hr />
+<h2 id="linux-deployment-nuovo">🐧 Linux deployment (nuovo)</h2>
+<p>WUIC è ora installabile su <strong>Ubuntu/Debian</strong> completamente automatizzato, con stack supportato:</p>
+<ul>
+<li>.NET runtime + MSSQL Server o MySQL/MariaDB.</li>
+<li>Python 3.12 + RAG environment.</li>
+<li>Segreti via systemd credentials.</li>
+<li>nginx reverse proxy con TLS Let's Encrypt.</li>
+<li>Smoke test post-install che valida backend, RAG e proxy.</li>
+</ul>
+<p>Il tarball Linux include <code>appsettings.linux.mssql.json</code> e <code>appsettings.linux.mysql.json</code> preconfigurati per i due stack supportati, più un README con la procedura passo-passo.</p>
+<hr />
+<h2 id="ldap-authentication">🔐 LDAP Authentication</h2>
+<p>Login WUIC ora supporta <strong>bind LDAP</strong> in alternativa al DB:</p>
+<ul>
+<li>Configurazione tramite la sezione <code>Authentication:Ldap:*</code> in <code>appsettings.json</code> (server, base DN, bind template).</li>
+<li>Auto-provisioning utenti: la riga locale viene creata/aggiornata al primo login con dati da LDAP.</li>
+<li>Fallback DB: se LDAP è unreachable e <code>Authentication:Ldap:FallbackToDbOnFailure=true</code>, il login ricade sul DB tradizionale (admin/admin resta sempre raggiungibile per recovery).</li>
+</ul>
+<p>Compatibile con Active Directory, OpenLDAP e directory Novell.</p>
+<hr />
+<h2 id="provider-mysql-wuic.mysqlprovider-0.8.3">🗄️ Provider MySQL (Wuic.MySqlProvider 0.8.3)</h2>
+<p>Esteso supporto MySQL/MariaDB a paritá col primary MSSQL:</p>
+<ul>
+<li>Coverage completo dei test funzionali (audit, CRUD client-side, concurrency, conditional styling, import-export, OData, retry, stored procedures, translations, validations).</li>
+<li>Fix bug specifici Linux: collation default, <code>JSON_TYPE</code> quirks, paging hints.</li>
+</ul>
+<hr />
+<h2 id="sistema-unificato-di-errori-typed-exceptions">🚦 Sistema unificato di errori (typed exceptions)</h2>
+<p>Refactor completo della gestione errori applicativi:</p>
+<ul>
+<li><strong><code>WuicException</code></strong> come base type per tutte le eccezioni applicative tipizzate (parte della public API del framework).</li>
+<li><strong><code>WuicErrorCodes</code></strong>: catalogo di 27 codici stabili (<code>errors.auth.unauthenticated</code>, <code>errors.metadata.props_bag.malformed</code>, <code>errors.db.sql_exception</code>, <code>errors.report.render_failed</code>, ecc.).</li>
+<li><strong>JSON envelope stabile</strong> per tutte le risposte di errore: <code>{ ok, errorCode, args, traceId, fallbackMessage }</code>. Permette al client di mostrare messaggi localizzati invece di stack trace tecnici.</li>
+<li><strong>Traduzioni built-in</strong> IT/EN/DE/ES/FR/JA per tutti i codici noti.</li>
+<li><strong>Mapping automatico</strong> delle eccezioni runtime conosciute (<code>SqlException</code>, <code>AuthenticationException</code>, <code>JsonException</code>, ecc.) ai codici tipizzati.</li>
+</ul>
+<hr />
+<h2 id="bug-fix-degni-di-nota">🐛 Bug fix degni di nota</h2>
+<ul>
+<li><strong><code>isSuperAdmin</code> gating</strong>: corretta verifica permessi in più endpoint che precedentemente confondevano <code>isAdmin</code> (ruolo per-user) con <code>isSuperAdmin</code> (ruolo source of truth).</li>
+<li><strong>OData CRUD</strong>: corrette serializzazioni edge case (Decimal→string, DateTime UTC roundtrip, navigation properties).</li>
+<li><strong>First-run wizard</strong>: bootstrap iniziale ora consume correttamente <code>IConfiguration</code> (non più dipendenza da <code>app.config</code> legacy).</li>
+<li><strong>Crash reporting forwarding</strong>: bug 2026-04-28 risolto — le eccezioni MVC handled non bypassano più il middleware crash reporter.</li>
+</ul>
+<hr />
+<h2 id="pacchetti-aggiornati">📦 Pacchetti aggiornati</h2>
+<table>
+<thead>
+<tr>
+<th>Package</th>
+<th>Da</th>
+<th>A</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WuicCore</td>
+<td>1.0.13</td>
+<td>1.0.19</td>
+</tr>
+<tr>
+<td>Wuic.Webcore</td>
+<td>1.0.13</td>
+<td>1.0.19</td>
+</tr>
+<tr>
+<td>WuicOData</td>
+<td>1.0.13</td>
+<td>1.0.19</td>
+</tr>
+<tr>
+<td>RuntimeEfCore</td>
+<td>1.0.13</td>
+<td>1.0.19</td>
+</tr>
+<tr>
+<td>Wuic.MySqlProvider</td>
+<td>0.7.x</td>
+<td>0.8.3</td>
+</tr>
+<tr>
+<td>wuic-framework-lib (NPM)</td>
+<td>1.0.11</td>
+<td>1.0.19</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="aggiornamenti-operativi-raccomandati-per-chi-aggiorna">🔧 Aggiornamenti operativi raccomandati per chi aggiorna</h2>
+<ol>
+<li>Eseguire <code>dotnet ef database update</code> se si è su EF migrations.</li>
+<li>Verificare <code>appsettings.json</code>: il sistema legge ora anche <code>AppSettings:AllowedOrigins</code> (array string) e <code>AppSettings:registrationEnabled</code> (boolean kill-switch). Default sicuri se non specificati.</li>
+<li>Se si usa LDAP, configurare la sezione <code>Authentication:Ldap:*</code> in <code>appsettings.json</code>.</li>
+<li>Per deploy Linux: usare il tarball dedicato e seguire il README incluso.</li>
+<li>Per attivare crash reporting outgoing: settare <code>CrashReporting:Enabled=true</code> in <code>appsettings.json</code> + accettare consent GDPR via UI.</li>
+</ol>
+
+</article>
+</body>
+</html>

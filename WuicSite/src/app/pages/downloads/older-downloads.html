@@ -36,6 +36,19 @@
               </div>
             </p-accordion-header>
             <p-accordion-content>
+              @if (pickReleaseNotesUrl(rel); as rnUrl) {
+                <div class="release-notes-row">
+                  <a [href]="rnUrl">
+                    <p-button
+                      [label]="'downloads.releaseNotes' | translate"
+                      icon="pi pi-file"
+                      severity="secondary"
+                      [outlined]="true"
+                      size="small">
+                    </p-button>
+                  </a>
+                </div>
+              }
               <p-table [value]="rel.files" styleClass="p-datatable-sm" [tableStyle]="{'min-width': '50rem'}">
                 <ng-template #header>
                   <tr>

@@ -343,6 +343,14 @@
     "loading": "Pakete werden geladen...",
     "noRelease": "Noch keine Pakete veröffentlicht. Schauen Sie später vorbei.",
     "olderVersions": "Ältere Versionen",
+    "releaseNotes": "Release Notes",
+    "linuxInstall": {
+      "title": "Linux-Installation (Ubuntu/Debian)",
+      "subtitle": "One-Liner-Installer. Das Skript lädt automatisch das neueste Tarball herunter, verifiziert es mit sha256 und führt das komplette Setup aus.",
+      "copyHint": "In einem Terminal kopieren und ausführen:",
+      "viewScript": "install.sh und alle Flags ansehen",
+      "tarballNote": "Das linux-x64 Tarball wird automatisch vom Skript heruntergeladen — kein manueller Download nötig. Die vollständige Dokumentation aller Flags (--admin-password, --dbms, --with-tls, --with-e2e-tests, --anthropic-api-key, usw.) steht im Header der install.sh-Datei."
+    },
     "table": {
       "package": "Paket",
       "type": "Typ",
