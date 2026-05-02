@@ -346,10 +346,16 @@
     "releaseNotes": "Notas de la versión",
     "linuxInstall": {
       "title": "Instalación Linux (Ubuntu/Debian)",
-      "subtitle": "Instalador one-liner. El script descarga automáticamente el último tarball, lo verifica con sha256 y ejecuta el setup completo.",
+      "subtitle": "Instalador one-liner. El script descarga automáticamente los tarballs necesarios (runtime y/o fuentes), los verifica con sha256 y ejecuta el setup completo. Tres modos según el público.",
       "copyHint": "Copia y ejecuta en una terminal:",
+      "modeOperatorTitle": "Modo operador (solo runtime)",
+      "modeOperatorDesc": "Para usuarios que solo quieren ejecutar WUIC como servicio Linux: app .NET pre-compilada bajo /opt/wuiccore/app/, nginx como reverse-proxy en :80, units systemd wuic-core.service + wuic-rag.service, base de datos con el tutorial completo.",
+      "modeDeveloperTitle": "Modo desarrollador (solo fuentes)",
+      "modeDeveloperDesc": "Para usuarios que quieren clonar y recompilar el framework desde las fuentes: árbol de fuentes bajo /opt/wuic-src/ (propietario = el usuario que invoca sudo), MSSQL y/o MySQL instalados solo con minimal-metadata. Sin nginx, sin systemd. El desarrollador ejecuta 'dotnet run' directamente. Añade --with-db para el seed tutorial completo.",
+      "modeBothTitle": "Modo completo (runtime + fuentes)",
+      "modeBothDesc": "Predeterminado cuando ni --demo-only ni --src-only se pasa: descarga ambos tarballs, instala el servicio del sistema Y deposita el árbol de fuentes para ediciones en vivo. Compatible con --with-e2e-tests (provisiona los usuarios e2e Playwright) y --anthropic-api-key (habilita las respuestas LLM del chatbot RAG).",
       "viewScript": "Ver install.sh y todas las flags",
-      "tarballNote": "El tarball linux-x64 se descarga automáticamente por el script — no es necesario obtenerlo manualmente. La documentación completa de todas las flags (--admin-password, --dbms, --with-tls, --with-e2e-tests, --anthropic-api-key, etc.) está en la cabecera del archivo install.sh."
+      "tarballNote": "Los tarballs (wuic-framework-vX.Y.Z-linux-x64.tar.gz para el runtime, wuic-framework-vX.Y.Z-linux-x64-src.tar.gz para las fuentes) se descargan automáticamente según las flags. La documentación completa de todas las flags (--admin-password, --dbms mssql|mysql|both, --demo-only, --src-only, --with-db, --src-dir, --src-owner, --with-tls, --with-e2e-tests, --anthropic-api-key, etc.) está en la cabecera del archivo install.sh."
     },
     "table": {
       "package": "Paquete",

@@ -280,6 +280,21 @@ public class UtilityHost : IUtilityHost
         return false;
     }
 
+    public DocumentFormat.OpenXml.Spreadsheet.Cell customizeExcelFieldCell(
+        string fieldName,
+        string routeName,
+        string type,
+        dynamic metaInfo,
+        uint columnIndex,
+        uint rowIndex,
+        object value,
+        uint defaultStyleIndex)
+    {
+        // Fallback host: nessuna customizzazione cell route-level. Ritorna null
+        // per delegare al chiamante il rendering default sul fast streaming path.
+        return null;
+    }
+
     public void customizeRowImport(
         string routeName,
         dynamic metaInfo,

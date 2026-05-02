@@ -346,10 +346,16 @@
     "releaseNotes": "Release notes",
     "linuxInstall": {
       "title": "Linux installation (Ubuntu/Debian)",
-      "subtitle": "One-liner installer. The script automatically downloads the latest tarball, verifies it with sha256 and runs the full setup.",
+      "subtitle": "One-liner installer. The script automatically downloads the required tarballs (runtime and/or source), verifies them with sha256 and runs the full setup. Three modes depending on your audience.",
       "copyHint": "Copy and run in a terminal:",
+      "modeOperatorTitle": "Operator mode (runtime only)",
+      "modeOperatorDesc": "For users who just want to run WUIC as a Linux service: pre-compiled .NET app under /opt/wuiccore/app/, nginx reverse-proxy on :80, systemd units wuic-core.service + wuic-rag.service, DB seeded with the full tutorial.",
+      "modeDeveloperTitle": "Developer mode (source only)",
+      "modeDeveloperDesc": "For users who want to clone and rebuild the framework from source: source tree under /opt/wuic-src/ (owner = the user who invoked sudo), MSSQL and/or MySQL installed with minimal-metadata only. No nginx, no systemd. The developer runs 'dotnet run' directly. Add --with-db for the full tutorial seed.",
+      "modeBothTitle": "Full mode (runtime + source)",
+      "modeBothDesc": "Default when neither --demo-only nor --src-only is passed: downloads both tarballs, installs the system service AND drops the source tree for live edits. Compatible with --with-e2e-tests (provisions Playwright e2e users) and --anthropic-api-key (enables LLM answers in the RAG chatbot).",
       "viewScript": "View install.sh and all flags",
-      "tarballNote": "The linux-x64 tarball is downloaded automatically by the script — no need to grab it by hand. Full documentation for every flag (--admin-password, --dbms, --with-tls, --with-e2e-tests, --anthropic-api-key, etc.) is in the install.sh file header."
+      "tarballNote": "Tarballs (wuic-framework-vX.Y.Z-linux-x64.tar.gz for runtime, wuic-framework-vX.Y.Z-linux-x64-src.tar.gz for source) are downloaded automatically based on flags. Full documentation for every flag (--admin-password, --dbms mssql|mysql|both, --demo-only, --src-only, --with-db, --src-dir, --src-owner, --with-tls, --with-e2e-tests, --anthropic-api-key, etc.) is in the install.sh file header."
     },
     "table": {
       "package": "Package",

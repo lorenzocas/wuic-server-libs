@@ -1346,77 +1346,150 @@ foreach (`$k in `$keys) {
 if ($LocalOnly) { $SkipLinuxTarball = $true }
 
 #
-# Il tarball linux-x64 e' generato da deploy-release.ps1 -GenerateLinuxTarball
-# e finisce in artifacts\release\linux\wuic-framework-vX.Y.Z-linux-x64.tar.gz
-# (+ relativo .sha256 sidecar). Lo carichiamo come ASSET NASCOSTO sotto
+# I tarball linux-x64 sono generati da deploy-release.ps1 -GenerateLinuxTarball
+# e finiscono in artifacts\release\linux\:
+#   wuic-framework-vX.Y.Z-linux-x64.tar.gz       (runtime — pre-compilato, ~675 MB)
+#   wuic-framework-vX.Y.Z-linux-x64-src.tar.gz   (source tree — per dev, ~50-100 MB)
+# Entrambi con .sha256 sidecar. Li carichiamo come ASSET NASCOSTI sotto
 # <SitePath>\releases\:
 #
-#   /releases/v<version>/wuic-framework-v<version>-linux-x64.tar.gz   (+ .sha256)
-#   /releases/latest/wuic-framework-linux-x64.tar.gz                   (+ .sha256)
+#   /releases/v<version>/wuic-framework-v<version>-linux-x64.tar.gz       (+ .sha256)
+#   /releases/v<version>/wuic-framework-v<version>-linux-x64-src.tar.gz   (+ .sha256)
+#   /releases/latest/wuic-framework-linux-x64.tar.gz                       (+ .sha256)
+#   /releases/latest/wuic-framework-linux-x64-src.tar.gz                   (+ .sha256)
 #
-# La copia "latest" usa un nome senza versione cosi' install.sh puo' fare
+# Le copie "latest" usano nomi senza versione cosi' install.sh puo' fare:
 #   curl -fsSL https://wuic-framework.com/releases/latest/wuic-framework-linux-x64.tar.gz
-# senza dover prima risolvere il numero di versione corrente. La versione
-# specifica resta accessibile sotto /releases/v<version>/ per pinning.
+#   curl -fsSL https://wuic-framework.com/releases/latest/wuic-framework-linux-x64-src.tar.gz
+# senza dover prima risolvere il numero di versione corrente. Le versioni
+# specifiche restano accessibili sotto /releases/v<version>/ per pinning.
 #
-# QUESTO ASSET NON VIENE LINKATO DAL SITO PROMOZIONALE: niente entry in
-# releases.json/latest.json, niente menzione nelle pagine pubbliche. E'
-# scaricabile solo via URL diretto, dal one-liner bash ospitato a /install.sh.
+# QUESTI ASSET NON SONO LINKATI DAL SITO PROMOZIONALE: niente entry in
+# releases.json/latest.json, niente menzione nelle pagine pubbliche. Sono
+# scaricabili solo via URL diretto, dal one-liner bash ospitato a /install.sh.
+# La pagina /downloads mostra solo il comando curl (ma non un link <a href>
+# diretto al tarball — l'utente vede il comando, lo copia, e curl scarica).
+
+# Helper: pubblica un singolo tarball + sha256, sia su latest sia su versione specifica.
+# Usato 2 volte sotto (runtime + src). Centralizza la logica UNC vs SCP per evitare drift.
+function Publish-LinuxTarball {
+    param(
+        [Parameter(Mandatory)][System.IO.FileInfo]$Tarball,
+        [Parameter(Mandatory)][string]$VersionName,            # es. "1.0.19"
+        [Parameter(Mandatory)][string]$LatestName,             # es. "wuic-framework-linux-x64.tar.gz"
+        [Parameter(Mandatory)][string]$RemoteVersionDir,
+        [Parameter(Mandatory)][string]$RemoteLatestDir,
+        [Parameter(Mandatory)][bool]$UseUnc,
+        [Parameter(Mandatory)][string]$RemoteUserHost,
+        [string]$User,
+        [string]$Server
+    )
+    $sha256 = "$($Tarball.FullName).sha256"
+    if (-not (Test-Path $sha256)) {
+        Write-Host "  [warn] sha256 sidecar mancante per $($Tarball.Name) — install.sh non potra' verificare l'integrita'" -ForegroundColor Yellow
+    }
+
+    if ($UseUnc) {
+        $uncVersionDir = "\\${Server}\$($RemoteVersionDir -replace ':', '$')"
+        $uncLatestDir  = "\\${Server}\$($RemoteLatestDir  -replace ':', '$')"
+        foreach ($d in @($uncVersionDir, $uncLatestDir)) {
+            if (-not (Test-Path $d)) { New-Item -ItemType Directory -Force -Path $d | Out-Null }
+        }
+        Copy-Item -Path $Tarball.FullName -Destination (Join-Path $uncVersionDir $Tarball.Name) -Force
+        if (Test-Path $sha256) {
+            Copy-Item -Path $sha256 -Destination (Join-Path $uncVersionDir "$($Tarball.Name).sha256") -Force
+        }
+        Copy-Item -Path $Tarball.FullName -Destination (Join-Path $uncLatestDir $LatestName) -Force
+        if (Test-Path $sha256) {
+            $shaHashLine = (Get-Content $sha256 -Raw).Trim()
+            $shaHash = ($shaHashLine -split '\s+')[0]
+            Set-Content -Path (Join-Path $uncLatestDir "$LatestName.sha256") -Value "$shaHash  $LatestName" -Encoding ascii
+        }
+    } else {
+        $remoteVersionDirScp = ConvertTo-ScpRemotePath $RemoteVersionDir
+        $remoteLatestDirScp  = ConvertTo-ScpRemotePath $RemoteLatestDir
+
+        Write-Sub "scp -> $RemoteVersionDir/$($Tarball.Name)"
+        scp $Tarball.FullName "${User}@${Server}:${remoteVersionDirScp}/$($Tarball.Name)"
+        if ($LASTEXITCODE -ne 0) { throw "scp $($Tarball.Name) -> /releases/v$VersionName/ fallita (exit $LASTEXITCODE)" }
+        if (Test-Path $sha256) {
+            scp $sha256 "${User}@${Server}:${remoteVersionDirScp}/$($Tarball.Name).sha256"
+            if ($LASTEXITCODE -ne 0) { Write-Host "  [warn] scp .sha256 fallita per $($Tarball.Name)" -ForegroundColor Yellow }
+        }
+
+        Write-Sub "scp -> $RemoteLatestDir/$LatestName"
+        scp $Tarball.FullName "${User}@${Server}:${remoteLatestDirScp}/$LatestName"
+        if ($LASTEXITCODE -ne 0) { throw "scp $($Tarball.Name) -> /releases/latest/ fallita (exit $LASTEXITCODE)" }
+        if (Test-Path $sha256) {
+            $shaHashLine = (Get-Content $sha256 -Raw).Trim()
+            $shaHash = ($shaHashLine -split '\s+')[0]
+            $tmpSha = Join-Path $env:TEMP "wuic-linux-latest-$([guid]::NewGuid().ToString('N').Substring(0,8)).sha256"
+            Set-Content -Path $tmpSha -Value "$shaHash  $LatestName" -Encoding ascii
+            scp $tmpSha "${User}@${Server}:${remoteLatestDirScp}/$LatestName.sha256"
+            Remove-Item -Path $tmpSha -Force -ErrorAction SilentlyContinue
+            if ($LASTEXITCODE -ne 0) { Write-Host "  [warn] scp .sha256 latest fallita per $LatestName" -ForegroundColor Yellow }
+        }
+    }
+}
 
 if (-not $SkipLinuxTarball) {
-    Write-Step "4/4 Upload tarball Linux (hidden asset)"
-    $tarballs = @()
+    Write-Step "4/4 Upload tarball Linux (runtime + src, hidden assets)"
+
+    # Two flavors. Glob is exact-suffix to avoid runtime catching src and vice-versa.
+    $runtimeTarballs = @()
+    $srcTarballs = @()
     if (Test-Path $LinuxTarballSourceDir) {
-        $tarballs = Get-ChildItem -Path $LinuxTarballSourceDir -Filter 'wuic-framework-v*-linux-x64.tar.gz' -File -ErrorAction SilentlyContinue
+        # Runtime: ends in `-linux-x64.tar.gz` BUT NOT `-linux-x64-src.tar.gz`.
+        # Glob alone cannot express "X but not Y" — filter explicitly.
+        $allLinuxX64 = Get-ChildItem -Path $LinuxTarballSourceDir -Filter 'wuic-framework-v*-linux-x64*.tar.gz' -File -ErrorAction SilentlyContinue
+        $runtimeTarballs = @($allLinuxX64 | Where-Object { $_.Name -notmatch '-linux-x64-src\.tar\.gz$' })
+        $srcTarballs     = @($allLinuxX64 | Where-Object { $_.Name -match    '-linux-x64-src\.tar\.gz$' })
     }
-    if ($tarballs.Count -eq 0) {
+
+    if ($runtimeTarballs.Count -eq 0 -and $srcTarballs.Count -eq 0) {
         Write-Host "  [skip] Nessun tarball trovato in $LinuxTarballSourceDir" -ForegroundColor Yellow
-        Write-Host "         (usa: pwsh deploy-release.ps1 -GenerateLinuxTarball per produrlo)" -ForegroundColor DarkGray
+        Write-Host "         (usa: pwsh deploy-release.ps1 -GenerateLinuxTarball per produrli)" -ForegroundColor DarkGray
     } else {
-        # In caso di piu' file, prendi il piu' recente (timestamp).
-        $tarball = $tarballs | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-        $sha256 = "$($tarball.FullName).sha256"
-        if (-not (Test-Path $sha256)) {
-            Write-Host "  [warn] sha256 sidecar mancante per $($tarball.Name) — install.sh non potra' verificare l'integrita'" -ForegroundColor Yellow
+        # In caso di piu' file per flavor, prendi il piu' recente (timestamp).
+        $runtimeTarball = if ($runtimeTarballs.Count -gt 0) {
+            $runtimeTarballs | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+        } else { $null }
+        $srcTarball = if ($srcTarballs.Count -gt 0) {
+            $srcTarballs | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+        } else { $null }
+
+        # Estrai versione dal nome del runtime tarball (preferito, spec come nome canonico).
+        # Se manca runtime ma c'e' src, falla dal src.
+        $tarballVersion = $null
+        $referenceTarball = if ($runtimeTarball) { $runtimeTarball } else { $srcTarball }
+        if ($referenceTarball.Name -match 'wuic-framework-v(.+)-linux-x64(-src)?\.tar\.gz$') {
+            $tarballVersion = $Matches[1]
+        } else {
+            throw "Nome tarball non parsabile: $($referenceTarball.Name)"
         }
-        # Estrai versione dal nome file: wuic-framework-vX.Y.Z-linux-x64.tar.gz
-        if ($tarball.Name -notmatch 'wuic-framework-v(.+)-linux-x64\.tar\.gz$') {
-            throw "Nome tarball non parsabile: $($tarball.Name)"
+
+        if ($runtimeTarball) {
+            $sizeMB = [math]::Round($runtimeTarball.Length / 1MB, 1)
+            Write-Host "  runtime tarball: $($runtimeTarball.Name) ($sizeMB MB, version $tarballVersion)" -ForegroundColor DarkGray
+        } else {
+            Write-Host "  [warn] runtime tarball mancante — install.sh --demo-only / default falliranno fino al prossimo deploy" -ForegroundColor Yellow
         }
-        $tarballVersion = $Matches[1]
-        $tarballSizeMB = [math]::Round($tarball.Length / 1MB, 1)
-        Write-Host "  tarball: $($tarball.Name) ($tarballSizeMB MB, version $tarballVersion)" -ForegroundColor DarkGray
+        if ($srcTarball) {
+            $sizeMB = [math]::Round($srcTarball.Length / 1MB, 1)
+            Write-Host "  src tarball:     $($srcTarball.Name) ($sizeMB MB, version $tarballVersion)" -ForegroundColor DarkGray
+        } else {
+            Write-Host "  [warn] src tarball mancante — install.sh --src-only / default falliranno fino al prossimo deploy" -ForegroundColor Yellow
+        }
 
         $remoteReleasesRoot   = Join-Path $SitePath 'releases'
         $remoteVersionDir     = Join-Path $remoteReleasesRoot "v$tarballVersion"
         $remoteLatestDir      = Join-Path $remoteReleasesRoot 'latest'
-
-        $latestTarballName = 'wuic-framework-linux-x64.tar.gz'
 
         $uncReleasesRoot = "\\${Server}\$($remoteReleasesRoot -replace ':', '$')"
         $useUnc = [bool](Test-Path $uncReleasesRoot -ErrorAction SilentlyContinue)
 
         if ($useUnc) {
             Write-Sub "modalita' UNC: $uncReleasesRoot"
-            $uncVersionDir = Join-Path $uncReleasesRoot "v$tarballVersion"
-            $uncLatestDir  = Join-Path $uncReleasesRoot 'latest'
-            foreach ($d in @($uncReleasesRoot, $uncVersionDir, $uncLatestDir)) {
-                if (-not (Test-Path $d)) { New-Item -ItemType Directory -Force -Path $d | Out-Null }
-            }
-            # /releases/v<version>/ — keep the original filename so users who
-            # pin a version can grab it as-is.
-            Copy-Item -Path $tarball.FullName -Destination (Join-Path $uncVersionDir $tarball.Name) -Force
-            if (Test-Path $sha256) {
-                Copy-Item -Path $sha256 -Destination (Join-Path $uncVersionDir "$($tarball.Name).sha256") -Force
-            }
-            # /releases/latest/ — versionless filename for install.sh.
-            Copy-Item -Path $tarball.FullName -Destination (Join-Path $uncLatestDir $latestTarballName) -Force
-            if (Test-Path $sha256) {
-                # The sha256 sidecar references the original filename; rewrite to use $latestTarballName.
-                $shaHashLine = (Get-Content $sha256 -Raw).Trim()
-                $shaHash = ($shaHashLine -split '\s+')[0]
-                Set-Content -Path (Join-Path $uncLatestDir "$latestTarballName.sha256") -Value "$shaHash  $latestTarballName" -Encoding ascii
-            }
         } else {
             Write-Sub "modalita' SCP"
             # Crea le 3 cartelle remote in un solo roundtrip ssh.
@@ -1428,39 +1501,42 @@ foreach (`$d in `$dirs) {
 "@
             $code = Invoke-RemotePwsh -RemoteUserHost $remoteUserHost -Script $mkScript
             if ($code -ne 0) { throw "step 4: prep cartelle remote fallita (exit $code)" }
-
-            $remoteVersionDirScp = ConvertTo-ScpRemotePath $remoteVersionDir
-            $remoteLatestDirScp  = ConvertTo-ScpRemotePath $remoteLatestDir
-
-            # /releases/v<version>/<filename>.tar.gz (+ .sha256)
-            Write-Sub "scp -> $remoteVersionDir/$($tarball.Name)"
-            scp $tarball.FullName "${User}@${Server}:${remoteVersionDirScp}/$($tarball.Name)"
-            if ($LASTEXITCODE -ne 0) { throw "scp tarball -> /releases/v$tarballVersion/ fallita (exit $LASTEXITCODE)" }
-            if (Test-Path $sha256) {
-                scp $sha256 "${User}@${Server}:${remoteVersionDirScp}/$($tarball.Name).sha256"
-                if ($LASTEXITCODE -ne 0) { Write-Host "  [warn] scp .sha256 fallita" -ForegroundColor Yellow }
-            }
-
-            # /releases/latest/wuic-framework-linux-x64.tar.gz (+ .sha256)
-            Write-Sub "scp -> $remoteLatestDir/$latestTarballName"
-            scp $tarball.FullName "${User}@${Server}:${remoteLatestDirScp}/$latestTarballName"
-            if ($LASTEXITCODE -ne 0) { throw "scp tarball -> /releases/latest/ fallita (exit $LASTEXITCODE)" }
-            if (Test-Path $sha256) {
-                # Rewrite the sha256 sidecar so its filename column matches the renamed tarball.
-                $shaHashLine = (Get-Content $sha256 -Raw).Trim()
-                $shaHash = ($shaHashLine -split '\s+')[0]
-                $tmpSha = Join-Path $env:TEMP "wuic-linux-latest-$([guid]::NewGuid().ToString('N').Substring(0,8)).sha256"
-                Set-Content -Path $tmpSha -Value "$shaHash  $latestTarballName" -Encoding ascii
-                scp $tmpSha "${User}@${Server}:${remoteLatestDirScp}/$latestTarballName.sha256"
-                Remove-Item -Path $tmpSha -Force -ErrorAction SilentlyContinue
-                if ($LASTEXITCODE -ne 0) { Write-Host "  [warn] scp .sha256 latest fallita" -ForegroundColor Yellow }
-            }
         }
 
-        Write-Host "  [ok] Tarball pubblicato come asset NASCOSTO su $Server" -ForegroundColor Green
-        Write-Host "         /releases/v$tarballVersion/$($tarball.Name)"      -ForegroundColor DarkGray
-        Write-Host "         /releases/latest/$latestTarballName"               -ForegroundColor DarkGray
-        Write-Host "       Consumato da: https://wuic-framework.com/install.sh" -ForegroundColor DarkGray
+        # Pubblica runtime tarball (latest filename = wuic-framework-linux-x64.tar.gz)
+        if ($runtimeTarball) {
+            Publish-LinuxTarball -Tarball $runtimeTarball `
+                -VersionName $tarballVersion `
+                -LatestName 'wuic-framework-linux-x64.tar.gz' `
+                -RemoteVersionDir $remoteVersionDir `
+                -RemoteLatestDir $remoteLatestDir `
+                -UseUnc $useUnc `
+                -RemoteUserHost $remoteUserHost `
+                -User $User -Server $Server
+        }
+
+        # Pubblica src tarball (latest filename = wuic-framework-linux-x64-src.tar.gz)
+        if ($srcTarball) {
+            Publish-LinuxTarball -Tarball $srcTarball `
+                -VersionName $tarballVersion `
+                -LatestName 'wuic-framework-linux-x64-src.tar.gz' `
+                -RemoteVersionDir $remoteVersionDir `
+                -RemoteLatestDir $remoteLatestDir `
+                -UseUnc $useUnc `
+                -RemoteUserHost $remoteUserHost `
+                -User $User -Server $Server
+        }
+
+        Write-Host "  [ok] Tarball pubblicati come asset NASCOSTI su $Server" -ForegroundColor Green
+        if ($runtimeTarball) {
+            Write-Host "         /releases/v$tarballVersion/$($runtimeTarball.Name)"      -ForegroundColor DarkGray
+            Write-Host "         /releases/latest/wuic-framework-linux-x64.tar.gz"        -ForegroundColor DarkGray
+        }
+        if ($srcTarball) {
+            Write-Host "         /releases/v$tarballVersion/$($srcTarball.Name)"          -ForegroundColor DarkGray
+            Write-Host "         /releases/latest/wuic-framework-linux-x64-src.tar.gz"    -ForegroundColor DarkGray
+        }
+        Write-Host "       Consumati da: https://wuic-framework.com/install.sh" -ForegroundColor DarkGray
     }
 } else {
     Write-Step "4/4 Upload tarball Linux [SKIP]"

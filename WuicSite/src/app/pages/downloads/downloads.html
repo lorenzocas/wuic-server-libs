@@ -82,9 +82,23 @@
     <div class="linux-install-block">
       <h2><i class="pi pi-desktop"></i> {{ 'downloads.linuxInstall.title' | translate }}</h2>
       <p class="linux-install-subtitle">{{ 'downloads.linuxInstall.subtitle' | translate }}</p>
+
+      <h3 class="linux-install-mode-title">{{ 'downloads.linuxInstall.modeOperatorTitle' | translate }}</h3>
+      <p class="linux-install-mode-desc">{{ 'downloads.linuxInstall.modeOperatorDesc' | translate }}</p>
       <p class="linux-install-copy-hint">{{ 'downloads.linuxInstall.copyHint' | translate }}</p>
       <pre class="linux-install-cmd"><code>curl -fsSL https://wuic-framework.com/install.sh | sudo bash -s -- \
-  --dbms mssql --admin-password 'MyS3cret!' --hostname app.example.com</code></pre>
+  --demo-only --dbms mssql --admin-password 'MyS3cret!' --hostname app.example.com</code></pre>
+
+      <h3 class="linux-install-mode-title">{{ 'downloads.linuxInstall.modeDeveloperTitle' | translate }}</h3>
+      <p class="linux-install-mode-desc">{{ 'downloads.linuxInstall.modeDeveloperDesc' | translate }}</p>
+      <pre class="linux-install-cmd"><code>curl -fsSL https://wuic-framework.com/install.sh | sudo bash -s -- \
+  --src-only --dbms both --admin-password 'DevPwd123!' --src-owner $USER</code></pre>
+
+      <h3 class="linux-install-mode-title">{{ 'downloads.linuxInstall.modeBothTitle' | translate }}</h3>
+      <p class="linux-install-mode-desc">{{ 'downloads.linuxInstall.modeBothDesc' | translate }}</p>
+      <pre class="linux-install-cmd"><code>curl -fsSL https://wuic-framework.com/install.sh | sudo bash -s -- \
+  --dbms mssql --admin-password 'MyS3cret!' --with-e2e-tests --anthropic-api-key 'sk-ant-api03-...'</code></pre>
+
       <div class="linux-install-actions">
         <a href="/install.sh" target="_blank" rel="noopener">
           <p-button
