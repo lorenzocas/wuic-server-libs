@@ -3,6 +3,8 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
+using System.Threading.RateLimiting;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
@@ -28,7 +30,12 @@ using MimeKit;
 //     "Sandbox": { "ClientId": "...", "ClientSecret": "..." },
 //     "Live":    { "ClientId": "...", "ClientSecret": "..." }
 //   }
-//   "AllowedOrigins": [ "https://wuic-framework.com", "http://localhost:4200" ]
+//   "AllowedOrigins": [ "https://wuic-framework.com" ]
+//
+//  Production CORS allows ONLY the public site (audit 2026-05-02 · L-01).
+//  For local Angular dev (`ng serve` on :4200), appsettings.Development.json
+//  adds `http://localhost:4200` to AllowedOrigins; that file is gitignored
+//  and never deployed.
 //
 //  The repo ships a placeholder appsettings.json. The deploy script
 //  EXCLUDES it from upload, so the server-managed file with real secrets
@@ -48,19 +55,54 @@ builder.Services.Configure<JsonSerializerOptions>(o =>
     o.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
 });
 
-// CORS: allow the public site origin (and localhost during dev).
+// CORS: production whitelists only the public site origin. Local dev adds
+// http://localhost:4200 via appsettings.Development.json (gitignored on
+// purpose — security audit 2026-05-02 · L-01). The fallback below is
+// production-safe so a misdeploy without an AllowedOrigins section can't
+// silently re-enable the dev origin.
 builder.Services.AddCors(o =>
 {
     var origins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>()
-                  ?? new[] { "https://wuic-framework.com", "http://localhost:4200" };
+                  ?? new[] { "https://wuic-framework.com" };
     o.AddDefaultPolicy(p => p
         .WithOrigins(origins)
         .AllowAnyHeader()
         .AllowAnyMethod());
 });
 
+// Rate limit on /paypal/create-order and /paypal/capture-order so a hostile
+// caller can't burn through PayPal API quota or generate spurious traffic
+// against the merchant account (audit 2026-05-02 · M-02). 10 req/min/IP is
+// well above legitimate buyer traffic (a normal checkout is 1 create + 1
+// capture) but tight enough to make abuse expensive.
+builder.Services.AddRateLimiter(opt =>
+{
+    opt.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    opt.AddPolicy("paypal-fixed", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true,
+            }));
+});
+
 var app = builder.Build();
 app.UseCors();
+app.UseRateLimiter();
+
+// Security response headers are emitted by IIS at the parent scope via
+// WuicSite/web.config <httpProtocol><customHeaders>. Live verification on
+// 2026-05-02 confirmed those headers (HSTS, X-Content-Type-Options,
+// X-Frame-Options, Referrer-Policy, COOP, CORP, CSP, Permissions-Policy)
+// reach /api/* responses too — IIS applies <httpProtocol> outbound at the
+// site level, regardless of `inheritInChildApplications="false"` on the
+// sub-app's <location>. Adding the same headers from C# middleware here
+// just produced duplicate headers in the wire response, so we leave it to
+// the parent IIS layer.
 
 // Public PayPal config — propagates ClientId + Mode + Currency to the
 // browser SDK at runtime so that switching sandbox <-> live is a
@@ -140,10 +182,16 @@ app.MapPost("/paypal/create-order",
     }
     catch (Exception ex)
     {
-        log.LogError(ex, "PayPal create-order failed");
-        return Results.Problem("create-order failed: " + ex.Message, statusCode: 502);
+        // Don't leak PayPal API internals (debug_id, raw error JSON) to the
+        // client — security audit 2026-05-02 · M-01. Full body is in the
+        // server log for troubleshooting.
+        log.LogError(ex, "PayPal create-order failed sku={Sku}", req.Sku);
+        return Results.Problem(
+            statusCode: 502,
+            title: "payment provider unavailable",
+            detail: "Unable to create the order. Please retry or contact support.");
     }
-});
+}).RequireRateLimiting("paypal-fixed");
 
 // ─── Capture order ─────────────────────────────────────────────────────────
 // Called from the frontend `onApprove` callback. Captures the funds, then
@@ -179,10 +227,16 @@ app.MapPost("/paypal/capture-order",
     }
     catch (Exception ex)
     {
+        // Don't leak PayPal API internals (debug_id, raw error JSON) to the
+        // client — security audit 2026-05-02 · M-01. Full body is in the
+        // server log for troubleshooting.
         log.LogError(ex, "PayPal capture-order failed orderId={OrderId}", req.OrderId);
-        return Results.Problem("capture failed: " + ex.Message, statusCode: 502);
+        return Results.Problem(
+            statusCode: 502,
+            title: "payment provider unavailable",
+            detail: "Unable to capture this payment. Please retry or contact support.");
     }
-});
+}).RequireRateLimiting("paypal-fixed");
 
 app.Run();
 
@@ -468,6 +522,32 @@ public sealed class EmailSender
     private readonly IConfiguration _cfg;
     private readonly ILogger<EmailSender> _log;
 
+    // Strict RFC-5321ish guard: the framework's MailboxAddress.Parse already
+    // rejects most CRLF tricks, but a defense-in-depth regex keeps oddities
+    // (parsed-but-weird display names with embedded LF) out of headers.
+    // Audit 2026-05-02 · M-04.
+    private static readonly Regex StrictEmailRegex =
+        new(@"^[^@\s\r\n]+@[^@\s\r\n]+\.[^@\s\r\n]+$",
+            RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    /// <summary>
+    /// Strip CR/LF/NUL from values that flow into the email body or headers
+    /// to neutralize header-injection attempts via invoicing form fields
+    /// (audit 2026-05-02 · M-04 / CWE-93). Buyer-controlled fields like
+    /// `InvoicingCompanyName` go straight into the StringBuilder body — without
+    /// stripping CRLF an attacker could inject `Bcc:` headers or extra
+    /// pseudo-records into the receipt.
+    /// </summary>
+    private static string SanitizeForEmailBody(string? input, int maxLen = 200)
+    {
+        if (string.IsNullOrEmpty(input)) return string.Empty;
+        var clean = input
+            .Replace("\r", " ")
+            .Replace("\n", " ")
+            .Replace("\0", " ");
+        return clean.Length > maxLen ? clean.Substring(0, maxLen) : clean;
+    }
+
     public EmailSender(IConfiguration cfg, ILogger<EmailSender> log)
     {
         _cfg = cfg;
@@ -491,37 +571,49 @@ public sealed class EmailSender
         var fromName = _cfg["Smtp:FromName"] ?? "WUIC Framework";
         var toEmail = _cfg["Smtp:ToEmail"] ?? "lorenzo.castrico@ditta.cloud";
 
-        var subject = $"[WUIC] Pagamento ricevuto: {capture.ProductLabel} — Order {capture.OrderId}";
+        // Sanitize buyer-controlled fields before they hit headers / body
+        // (audit 2026-05-02 · M-04 / CWE-93).
+        var safeBuyerEmail   = SanitizeForEmailBody(buyer.Email, 254);
+        var safeFingerprint  = SanitizeForEmailBody(buyer.MachineFingerprint, 256);
+        var safeCompany      = SanitizeForEmailBody(buyer.InvoicingCompanyName, 200);
+        var safeVat          = SanitizeForEmailBody(buyer.InvoicingVatNumber, 50);
+        var safeSdi          = SanitizeForEmailBody(buyer.InvoicingSdiCode, 50);
+        var safeAddress      = SanitizeForEmailBody(buyer.InvoicingAddress, 400);
+        // PayerEmail comes from PayPal's response (not buyer-controlled in
+        // theory, but defense in depth — Subject header sees this value).
+        var safePayerEmail   = SanitizeForEmailBody(capture.PayerEmail, 254);
+
+        var subject = $"[WUIC] Pagamento ricevuto: {SanitizeForEmailBody(capture.ProductLabel, 200)} — Order {capture.OrderId}";
 
         var sb = new StringBuilder();
         sb.AppendLine("Nuovo pagamento ricevuto su wuic-framework.com.");
         sb.AppendLine();
         sb.AppendLine("=== Pagamento ===");
-        sb.AppendLine($"Prodotto:        {capture.ProductLabel}");
+        sb.AppendLine($"Prodotto:        {SanitizeForEmailBody(capture.ProductLabel, 200)}");
         sb.AppendLine($"Importo:         {capture.Amount} {capture.Currency}");
         sb.AppendLine($"PayPal Order ID: {capture.OrderId}");
         sb.AppendLine($"Capture ID:      {capture.CaptureId}");
         sb.AppendLine($"Status:          {capture.Status}");
         sb.AppendLine();
         sb.AppendLine("=== Cliente ===");
-        sb.AppendLine($"Email PayPal:    {capture.PayerEmail}");
-        sb.AppendLine($"Email licenza:   {(string.IsNullOrWhiteSpace(buyer.Email) ? "(non fornita — usa email PayPal)" : buyer.Email)}");
-        sb.AppendLine($"Fingerprint:     {(string.IsNullOrWhiteSpace(buyer.MachineFingerprint) ? "(da inviare dopo installazione WUIC)" : buyer.MachineFingerprint)}");
+        sb.AppendLine($"Email PayPal:    {safePayerEmail}");
+        sb.AppendLine($"Email licenza:   {(string.IsNullOrEmpty(safeBuyerEmail) ? "(non fornita — usa email PayPal)" : safeBuyerEmail)}");
+        sb.AppendLine($"Fingerprint:     {(string.IsNullOrEmpty(safeFingerprint) ? "(da inviare dopo installazione WUIC)" : safeFingerprint)}");
         sb.AppendLine();
 
         var hasInvoicing =
-            !string.IsNullOrWhiteSpace(buyer.InvoicingCompanyName)
-            || !string.IsNullOrWhiteSpace(buyer.InvoicingVatNumber)
-            || !string.IsNullOrWhiteSpace(buyer.InvoicingSdiCode)
-            || !string.IsNullOrWhiteSpace(buyer.InvoicingAddress);
+            !string.IsNullOrEmpty(safeCompany)
+            || !string.IsNullOrEmpty(safeVat)
+            || !string.IsNullOrEmpty(safeSdi)
+            || !string.IsNullOrEmpty(safeAddress);
 
         if (hasInvoicing)
         {
             sb.AppendLine("=== Dati per fattura elettronica ===");
-            if (!string.IsNullOrWhiteSpace(buyer.InvoicingCompanyName)) sb.AppendLine($"Ragione sociale: {buyer.InvoicingCompanyName}");
-            if (!string.IsNullOrWhiteSpace(buyer.InvoicingVatNumber))   sb.AppendLine($"P.IVA / CF:      {buyer.InvoicingVatNumber}");
-            if (!string.IsNullOrWhiteSpace(buyer.InvoicingSdiCode))     sb.AppendLine($"Cod. SdI / PEC:  {buyer.InvoicingSdiCode}");
-            if (!string.IsNullOrWhiteSpace(buyer.InvoicingAddress))     sb.AppendLine($"Indirizzo:       {buyer.InvoicingAddress}");
+            if (!string.IsNullOrEmpty(safeCompany)) sb.AppendLine($"Ragione sociale: {safeCompany}");
+            if (!string.IsNullOrEmpty(safeVat))     sb.AppendLine($"P.IVA / CF:      {safeVat}");
+            if (!string.IsNullOrEmpty(safeSdi))     sb.AppendLine($"Cod. SdI / PEC:  {safeSdi}");
+            if (!string.IsNullOrEmpty(safeAddress)) sb.AppendLine($"Indirizzo:       {safeAddress}");
             sb.AppendLine();
         }
         else
@@ -537,10 +629,15 @@ public sealed class EmailSender
         var msg = new MimeMessage();
         msg.From.Add(new MailboxAddress(fromName, fromEmail));
         msg.To.Add(MailboxAddress.Parse(toEmail));
-        // Reply-To = email PayPal del payer cosi' rispondendo si scrive direttamente al cliente
-        if (!string.IsNullOrWhiteSpace(capture.PayerEmail))
+        // Reply-To = email PayPal del payer cosi' rispondendo si scrive direttamente
+        // al cliente. Strict regex check before adding to the header — if PayPal
+        // ever returns a malformed value, we drop the Reply-To rather than risk
+        // header injection (audit 2026-05-02 · M-04).
+        if (!string.IsNullOrWhiteSpace(capture.PayerEmail)
+            && StrictEmailRegex.IsMatch(capture.PayerEmail)
+            && MailboxAddress.TryParse(capture.PayerEmail, out var replyAddr))
         {
-            try { msg.ReplyTo.Add(MailboxAddress.Parse(capture.PayerEmail)); } catch { /* ignore malformed */ }
+            msg.ReplyTo.Add(replyAddr);
         }
         msg.Subject = subject;
         msg.Body = new TextPart("plain") { Text = sb.ToString() };
