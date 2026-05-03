@@ -117,6 +117,12 @@
     // ── Misc ────────────────────────────────────────────────────
     "sarif-viewer.connectToGithubCodeScanning": "off",
     "chat.imageCarousel.enabled": true
+    // [removed 2026-05-03] "sonarlint.connectedMode.project" workspace-level
+    // binding — su multi-root workspace SonarLint non riesce a determinare a
+    // quale folder applicare il binding (tenta match euristico tra 13 folder
+    // e fallisce con "couldn't match server project ..."). Il binding e' ora
+    // dichiarato a livello FOLDER nel KonvergenceCore/.vscode/settings.json,
+    // dove la mappatura e' deterministica (1 progetto sonar = 1 folder).
   },
   // ── Disable extensions not needed in this workspace ───────────
   // These extensions stay installed globally but won't activate here,
