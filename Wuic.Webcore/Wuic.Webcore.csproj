@@ -4,7 +4,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <PackageId>Wuic.Webcore</PackageId>
-    <Version>0.1.0</Version>
+    <Version>1.0.19</Version>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="Dapper\**" />

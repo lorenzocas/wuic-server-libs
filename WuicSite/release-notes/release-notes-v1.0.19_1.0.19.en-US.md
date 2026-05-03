@@ -75,6 +75,19 @@ Complete refactor of application error handling:
 
 ---
 
+## 📊 Excel export
+
+Bulk `.xlsx` export rewritten on a producer/consumer pipeline and `OpenXmlWriter` streaming. Impact is mainly on large datasets (tens of thousands of rows and up).
+
+- Streaming OpenXML instead of incremental DOM-build: typically 50× faster on bulk exports, memory footprint stays bounded even past one million rows.
+- Pipelined DB-read / xlsx-write on a bounded buffer: DB reads no longer block on sheet compression time.
+- Aggregated progress notifications over a dedicated channel: no more one task per update, no more WebSocket storm during long exports.
+- Automatic multi-sheet split when the Excel per-sheet limit of 1,048,576 rows is exceeded. The completion message reports the number of sheets generated.
+
+No action required: the path is active by default for all `.xlsx` exports triggered from the list-grid toolbar (Export XLS) and from server-side APIs.
+
+---
+
 ## 🐛 Notable bug fixes
 
 - **`isSuperAdmin` gating**: corrected permission check on multiple endpoints that previously confused `isAdmin` (per-user role) with `isSuperAdmin` (source-of-truth role).

@@ -335,7 +335,7 @@ if [[ $INSTALL_SRC -eq 1 ]]; then
   chown -R "${SRC_OWNER}:${SRC_OWNER}" "$SRC_DIR"
   chmod 0755 "$SRC_DIR"
 
-  SRC_LINUX_DIR="$SRC_DIR/wuicCore/scripts/linux"
+  SRC_LINUX_DIR="$SRC_DIR/scripts/linux"
   if [[ -d "$SRC_LINUX_DIR" ]]; then
     find "$SRC_LINUX_DIR" -maxdepth 1 -name '*.sh' -type f -exec chmod +x {} \; 2>/dev/null || true
   fi
@@ -446,10 +446,11 @@ fi
 if [[ $INSTALL_SRC -eq 1 ]]; then
   echo
   echo " [developer source tree]"
-  echo "   Path:   $SRC_DIR/ (owner: $SRC_OWNER)"
-  echo "   Build:  cd $SRC_DIR/wuicCore && dotnet build -c Release"
-  echo "   Run:    cd $SRC_DIR/wuicCore && ASPNETCORE_ENVIRONMENT=Development dotnet run"
-  echo "   Docs:   cat $SRC_DIR/README.linux-src.md"
+  echo "   Path:    $SRC_DIR/ (owner: $SRC_OWNER)"
+  echo "   Build:   cd $SRC_DIR/WuicTest && dotnet restore && dotnet build -c Release"
+  echo "   Run:     cd $SRC_DIR/WuicTest && ASPNETCORE_ENVIRONMENT=Development dotnet run"
+  echo "   Angular: cd $SRC_DIR/WuicTest/wwwroot && npm install && ng build"
+  echo "   Docs:    cat $SRC_DIR/README.linux-src.md"
   if [[ $INSTALL_DEMO -eq 1 ]]; then
     echo
     echo "   NOTE: the demo wuic-core.service is bound to port 5000."
@@ -463,7 +464,7 @@ if [[ $INSTALL_SRC -eq 1 ]]; then
     [[ "$DBMS" == "mysql" || "$DBMS" == "both" ]] && \
       echo "     /etc/wuiccore/appsettings.mysql.json"
     echo "   Copy the desired one into your dev tree before \`dotnet run\`:"
-    echo "     cp /etc/wuiccore/appsettings.mssql.json $SRC_DIR/wuicCore/appsettings.Development.json"
+    echo "     cp /etc/wuiccore/appsettings.mssql.json $SRC_DIR/WuicTest/appsettings.Development.json"
   fi
 fi
 echo "================================================================="

@@ -75,6 +75,19 @@ Refactor complet de la gestion des erreurs applicatives:
 
 ---
 
+## 📊 Export Excel
+
+Réécriture du path d'export bulk au format `.xlsx` sur pipeline producer/consumer et `OpenXmlWriter` streaming. L'impact concerne surtout les datasets volumineux (dizaines de milliers de lignes et plus).
+
+- Streaming OpenXML à la place du DOM-build incrémental : typiquement 50× plus rapide sur les exports bulk, footprint mémoire contenu même au-delà d'un million de lignes.
+- Pipelining DB-read / xlsx-write sur buffer borné : les lectures DB ne sont plus bloquées par le temps de compression de la feuille.
+- Notifications de progress agrégées via un canal dédié : plus une task par update, fini le storm WebSocket pendant les exports longs.
+- Split automatique sur plusieurs feuilles quand la limite Excel de 1 048 576 lignes par feuille est dépassée. Le message de fin indique le nombre de feuilles générées.
+
+Aucune action requise : le path est actif par défaut pour tous les exports `.xlsx` déclenchés depuis la toolbar de list-grid (Export XLS) et depuis les API server-side.
+
+---
+
 ## 🐛 Bug fix notables
 
 - **Gating `isSuperAdmin`**: corrigée la vérification des permissions sur plusieurs endpoints qui confondaient précédemment `isAdmin` (rôle per-user) avec `isSuperAdmin` (rôle source of truth).

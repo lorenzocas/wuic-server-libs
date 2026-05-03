@@ -75,6 +75,19 @@ Vollständiges Refactoring der Anwendungsfehlerbehandlung:
 
 ---
 
+## 📊 Excel-Export
+
+Bulk-Export im `.xlsx`-Format wurde auf eine Producer/Consumer-Pipeline und `OpenXmlWriter` Streaming umgeschrieben. Die Auswirkungen betreffen vor allem große Datasets (ab Zehntausenden Zeilen).
+
+- Streaming OpenXML statt inkrementellem DOM-Build: typischerweise 50× schneller bei Bulk-Exporten, Memory-Footprint bleibt auch jenseits einer Million Zeilen begrenzt.
+- Pipelined DB-Read / xlsx-Write über einen bounded Buffer: DB-Reads blockieren nicht mehr auf der Sheet-Kompressionszeit.
+- Aggregierte Progress-Notifications über einen dedizierten Channel: keine Task pro Update mehr, kein WebSocket-Storm während langer Exporte.
+- Automatischer Multi-Sheet-Split, wenn das Excel-Limit von 1.048.576 Zeilen pro Sheet überschritten wird. Die Abschluss-Meldung enthält die Anzahl der erzeugten Sheets.
+
+Keine Aktion erforderlich: der Pfad ist standardmäßig aktiv für alle `.xlsx`-Exporte aus der List-Grid-Toolbar (Export XLS) und aus Server-side APIs.
+
+---
+
 ## 🐛 Erwähnenswerte Bug-Fixes
 
 - **`isSuperAdmin`-Gating**: Korrigierte Berechtigungsprüfung an mehreren Endpunkten, die zuvor `isAdmin` (per-User-Rolle) mit `isSuperAdmin` (Source-of-Truth-Rolle) verwechselten.
