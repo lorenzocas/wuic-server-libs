@@ -21,7 +21,7 @@
       "title1": "El framework",
       "accent": "metadata-driven",
       "title2": "para aplicaciones de negocio",
-      "subtitle": "WUIC convierte metadatos en interfaces completas: CRUD, dashboards, workflows, informes y chatbots IA. Menos código, más funcionalidad.",
+      "subtitle": "Define una tabla, obtén la UI: listas, dashboards, workflows e informes generados desde metadatos. Sin boilerplate.",
       "ctaDownload": "Descargar gratis",
       "ctaDemo": "Probar la demo"
     },
@@ -50,7 +50,11 @@
       },
       "multiDbms": {
         "title": "Multi-SGBD",
-        "desc": "SQL Server, MySQL, PostgreSQL y Oracle soportados mediante providers drop-in. Cambia de base sin reescribir código."
+        "desc": "SQL Server y MySQL soportados mediante providers drop-in. Cambia de base sin reescribir código."
+      },
+      "linuxNative": {
+        "title": "Linux nativo",
+        "desc": "Despliegue en Linux con SQL Server o MySQL. Stack .NET 10 multiplataforma, tarball autónomo, sin dependencias de runtime Windows."
       }
     },
     "gallery": {
@@ -147,7 +151,7 @@
         "title": "Infraestructura",
         "multiDbms": {
           "title": "Multi-SGBD",
-          "desc": "SQL Server, MySQL, PostgreSQL, Oracle mediante providers drop-in. Cambia de base con una línea en appsettings.json."
+          "desc": "SQL Server y MySQL mediante providers drop-in. Cambia de base con una línea en appsettings.json."
         },
         "auth": {
           "title": "Auth y Sesiones",
@@ -660,7 +664,7 @@
     "reloading": "Actualización en curso, recargando la página..."
   },
   "seo": {
-    "home":      { "title": "Framework metadata-driven para aplicaciones de negocio",  "description": "WUIC convierte metadatos en interfaces completas: CRUD, dashboards, workflows, informes y chatbots IA. .NET 10 + Angular 21, sin boilerplate." },
+    "home":      { "title": "Framework metadata-driven para aplicaciones de negocio",  "description": "Genera CRUD, dashboards, workflows e informes desde metadatos. Incluye chatbot RAG, multi-SGBD, .NET 10 + Angular 21. Sin boilerplate." },
     "features":  { "title": "Características del framework",                            "description": "Todo incluido: capa de datos, diseñador visual, motor de workflow, generador de informes, chatbot RAG, multi-SGBD. Cada componente es metadata-driven." },
     "pricing":   { "title": "Precios y licencias",                                      "description": "Dos niveles: Developer 600€/año (1 fingerprint) y Professional 1200€/año (3 fingerprints, diseñador, IA). Pago con PayPal o tarjeta." },
     "gallery":   { "title": "Galería — Capturas reales",                                "description": "Capturas de interfaces reales generadas por el framework: listas, dashboards, formularios de edición, diseñador de workflow, visor de informes." },

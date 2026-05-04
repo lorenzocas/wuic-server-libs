@@ -135,6 +135,16 @@ document.addEventListener('DOMContentLoaded', () => {
 <li><strong>Automatic mapping</strong> of known runtime exceptions (<code>SqlException</code>, <code>AuthenticationException</code>, <code>JsonException</code>, etc.) to typed codes.</li>
 </ul>
 <hr />
+<h2 id="excel-export">📊 Excel export</h2>
+<p>Bulk <code>.xlsx</code> export rewritten on a producer/consumer pipeline and <code>OpenXmlWriter</code> streaming. Impact is mainly on large datasets (tens of thousands of rows and up).</p>
+<ul>
+<li>Streaming OpenXML instead of incremental DOM-build: typically 50× faster on bulk exports, memory footprint stays bounded even past one million rows.</li>
+<li>Pipelined DB-read / xlsx-write on a bounded buffer: DB reads no longer block on sheet compression time.</li>
+<li>Aggregated progress notifications over a dedicated channel: no more one task per update, no more WebSocket storm during long exports.</li>
+<li>Automatic multi-sheet split when the Excel per-sheet limit of 1,048,576 rows is exceeded. The completion message reports the number of sheets generated.</li>
+</ul>
+<p>No action required: the path is active by default for all <code>.xlsx</code> exports triggered from the list-grid toolbar (Export XLS) and from server-side APIs.</p>
+<hr />
 <h2 id="notable-bug-fixes">🐛 Notable bug fixes</h2>
 <ul>
 <li><strong><code>isSuperAdmin</code> gating</strong>: corrected permission check on multiple endpoints that previously confused <code>isAdmin</code> (per-user role) with <code>isSuperAdmin</code> (source-of-truth role).</li>

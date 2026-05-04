@@ -135,6 +135,16 @@ document.addEventListener('DOMContentLoaded', () => {
 <li><strong>Automatisches Mapping</strong> bekannter Runtime-Exceptions (<code>SqlException</code>, <code>AuthenticationException</code>, <code>JsonException</code>, usw.) auf typisierte Codes.</li>
 </ul>
 <hr />
+<h2 id="excel-export">📊 Excel-Export</h2>
+<p>Bulk-Export im <code>.xlsx</code>-Format wurde auf eine Producer/Consumer-Pipeline und <code>OpenXmlWriter</code> Streaming umgeschrieben. Die Auswirkungen betreffen vor allem große Datasets (ab Zehntausenden Zeilen).</p>
+<ul>
+<li>Streaming OpenXML statt inkrementellem DOM-Build: typischerweise 50× schneller bei Bulk-Exporten, Memory-Footprint bleibt auch jenseits einer Million Zeilen begrenzt.</li>
+<li>Pipelined DB-Read / xlsx-Write über einen bounded Buffer: DB-Reads blockieren nicht mehr auf der Sheet-Kompressionszeit.</li>
+<li>Aggregierte Progress-Notifications über einen dedizierten Channel: keine Task pro Update mehr, kein WebSocket-Storm während langer Exporte.</li>
+<li>Automatischer Multi-Sheet-Split, wenn das Excel-Limit von 1.048.576 Zeilen pro Sheet überschritten wird. Die Abschluss-Meldung enthält die Anzahl der erzeugten Sheets.</li>
+</ul>
+<p>Keine Aktion erforderlich: der Pfad ist standardmäßig aktiv für alle <code>.xlsx</code>-Exporte aus der List-Grid-Toolbar (Export XLS) und aus Server-side APIs.</p>
+<hr />
 <h2 id="erwahnenswerte-bug-fixes">🐛 Erwähnenswerte Bug-Fixes</h2>
 <ul>
 <li><strong><code>isSuperAdmin</code>-Gating</strong>: Korrigierte Berechtigungsprüfung an mehreren Endpunkten, die zuvor <code>isAdmin</code> (per-User-Rolle) mit <code>isSuperAdmin</code> (Source-of-Truth-Rolle) verwechselten.</li>

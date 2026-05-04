@@ -50,7 +50,8 @@ export class Home implements OnInit {
     { icon: 'pi pi-sitemap',         key: 'workflowEngine' },
     { icon: 'pi pi-file',            key: 'reportBuilder'  },
     { icon: 'pi pi-comments',        key: 'ragChatbot'     },
-    { icon: 'pi pi-cog',             key: 'multiDbms'      }
+    { icon: 'pi pi-cog',             key: 'multiDbms'      },
+    { icon: 'pi pi-server',          key: 'linuxNative'    }
   ];
 
   screenshots = [

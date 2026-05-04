@@ -144,6 +144,8 @@ function Invoke-RemotePwsh {
     .SYNOPSIS
         Run a PowerShell snippet on the remote IIS server over SSH.
         Encodes the snippet as Base64 (UTF-16LE) so quoting/escaping is neutralised.
+        Falls back to SCP-then-execute for long scripts that overflow the
+        Windows cmdline 8190-char limit.
     #>
     param(
         [Parameter(Mandatory = $true)][string]$RemoteUserHost,
@@ -151,10 +153,72 @@ function Invoke-RemotePwsh {
     )
     $bytes = [System.Text.Encoding]::Unicode.GetBytes($Script)
     $encoded = [Convert]::ToBase64String($bytes)
-    # Pipe ssh stdout straight to Out-Host so it doesn't contaminate the
+    # Pipe ssh stdout+stderr to Out-Host so it doesn't contaminate the
     # function's return value — otherwise $code would capture remote output + exit code together.
-    & ssh $RemoteUserHost "powershell -NoProfile -NonInteractive -EncodedCommand $encoded" | Out-Host
-    return $LASTEXITCODE
+    #
+    # `2>&1` cattura anche stderr del remote PowerShell. Senza, se la sessione
+    # SSH cade transient o lo script remoto fa write-error/throw, il messaggio
+    # finiva in stderr e il caller vedeva solo `exit 1` nudo (osservato
+    # 2026-05-04 su step 3 prep archive — l'errore remoto non era visibile).
+    #
+    # Windows cmdline length cap: ~8190 chars. The EncodedCommand prefix +
+    # ssh args + base64 payload all share that budget, so we keep a 7500-char
+    # safety margin on the encoded blob (UTF-16 doubles each source char,
+    # base64 adds ~33% overhead — a 3500-char source script encodes to ~9300
+    # chars and overflows). Beyond that we fall through to the SCP path so
+    # arbitrarily long scripts work without cmdline truncation.
+    # Bug observed 2026-05-04: step 3/3 prep archive script (with 7 ZIP
+    # filenames embedded as a `@()` literal + multi-line archive enumeration
+    # body) overflowed and the remote ssh process exited with "The command
+    # line is too long" before any of the body ran, leaving releases.json
+    # untouched on the server.
+    if ($encoded.Length -lt 7500) {
+        & ssh $RemoteUserHost "powershell -NoProfile -NonInteractive -EncodedCommand $encoded" 2>&1 | Out-Host
+        return $LASTEXITCODE
+    }
+
+    # Long-script fallback: write the script to a local temp file, SCP it to
+    # the remote home directory, then ssh-execute it via `-File` (which has no
+    # cmdline-length issue because the script body lives on disk, not in the
+    # process arguments). Cleanup is best-effort: a leftover .ps1 in
+    # %USERPROFILE%\AppData\Local\Temp\ is harmless and gets purged by Windows
+    # on the next disk-cleanup cycle, but we try to remove it anyway.
+    $localTmp = New-TemporaryFile
+    $localTmpPs1 = "$($localTmp.FullName).ps1"
+    Move-Item -LiteralPath $localTmp.FullName -Destination $localTmpPs1 -Force
+    $remoteTmpName = "wuicsite-deploy-$([guid]::NewGuid().ToString('N').Substring(0,8)).ps1"
+    $remoteTmpPath = "C:/Users/Administrator/AppData/Local/Temp/$remoteTmpName"
+
+    try {
+        # Write UTF-8 WITHOUT BOM. Set-Content -Encoding UTF8 in Windows
+        # PowerShell 5.1 emits a BOM by default, which the remote PS5 parser
+        # tolerates BUT can interfere with comment/HEREDOC parsing on large
+        # scripts (observed 2026-05-04: identical script encoded via
+        # -EncodedCommand parsed cleanly, but the BOM-prefixed file written
+        # by Set-Content failed mid-script with spurious "term 'X' not
+        # recognized" errors on lines that are actually comments). Using
+        # File.WriteAllText with an explicit UTF8Encoding($false) gives us
+        # the same byte-for-byte content the encoded path produces.
+        [System.IO.File]::WriteAllText($localTmpPs1, $Script, [System.Text.UTF8Encoding]::new($false))
+        & scp $localTmpPs1 "${RemoteUserHost}:${remoteTmpPath}" 2>&1 | Out-Host
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "  [warn] Invoke-RemotePwsh: scp del temp script fallita (exit $LASTEXITCODE)" -ForegroundColor Yellow
+            return $LASTEXITCODE
+        }
+        & ssh $RemoteUserHost "powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$remoteTmpPath`"" 2>&1 | Out-Host
+        $execCode = $LASTEXITCODE
+        # Cleanup remote temp file: very short cmdline (single Remove-Item),
+        # encoded path. We don't propagate cleanup failures because they
+        # don't affect the work this function actually accomplished.
+        $cleanupScript = "Remove-Item -LiteralPath '$remoteTmpPath' -Force -ErrorAction SilentlyContinue"
+        $cleanupBytes = [System.Text.Encoding]::Unicode.GetBytes($cleanupScript)
+        $cleanupEncoded = [Convert]::ToBase64String($cleanupBytes)
+        & ssh $RemoteUserHost "powershell -NoProfile -NonInteractive -EncodedCommand $cleanupEncoded" 2>$null | Out-Null
+        return $execCode
+    }
+    finally {
+        Remove-Item -LiteralPath $localTmpPs1 -Force -ErrorAction SilentlyContinue
+    }
 }
 
 function ConvertTo-ScpRemotePath {
@@ -772,9 +836,18 @@ Get-ChildItem -LiteralPath `$archiveRoot -Directory -ErrorAction SilentlyContinu
         `$mostRecent = (`$files | ForEach-Object { [datetime]`$_.modified } | Sort-Object -Descending)[0]
         # Multi-locale: enumera tutti i file release-notes-<key>.*.{html,md}
         # presenti sotto /downloads/release-notes/ e popola la mappa
-        # `releaseNotesUrls` (locale -> url). `releaseNotesUrl` (singolare)
+        # releaseNotesUrls (locale -> url). releaseNotesUrl (singolare)
         # e' backward-compat con priorita' it-IT, altrimenti prima locale
         # disponibile, altrimenti formato legacy single-locale.
+        # ATTENZIONE: questo blocco vive dentro un HEREDOC double-quoted.
+        # In double-quoted heredoc PS interpreta backtick + lettera come
+        # escape sequence (es. backtick-r diventa carriage return,
+        # backtick-n linefeed). Quindi nei commenti di questo blocco non
+        # mettere mai backtick prima di lettere come r, n, t, a, b, f, v, 0
+        # nemmeno in token decorativi tipo "field-name" wrappati: il CR/LF
+        # embedded spezza la linea e il parser remoto crasha su token
+        # validi nel commento (osservato 2026-05-04, "The term 'locale' is
+        # not recognized" e poi "The term 'come' is not recognized").
         `$rnDir = Join-Path `$downloads 'release-notes'
         `$rnUrls = [ordered]@{}
         `$rnUrl = `$null

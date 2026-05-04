@@ -21,7 +21,7 @@
       "title1": "Il framework",
       "accent": "metadata-driven",
       "title2": "per applicazioni business",
-      "subtitle": "WUIC trasforma metadata in interfacce complete: CRUD, dashboard, workflow, report e chatbot AI. Meno codice, più funzionalità.",
+      "subtitle": "Definisci una tabella, ottieni la UI: liste, dashboard, workflow e report generati dai metadati. Niente boilerplate.",
       "ctaDownload": "Scarica gratis",
       "ctaDemo": "Prova la demo"
     },
@@ -50,7 +50,11 @@
       },
       "multiDbms": {
         "title": "Multi-DBMS",
-        "desc": "SQL Server, MySQL, PostgreSQL e Oracle supportati con provider drop-in. Cambia database senza riscrivere codice."
+        "desc": "SQL Server e MySQL supportati con provider drop-in. Cambia database senza riscrivere codice."
+      },
+      "linuxNative": {
+        "title": "Linux nativo",
+        "desc": "Deploy su Linux con SQL Server o MySQL. Stack .NET 10 cross-platform, tarball self-contained, nessuna dipendenza Windows runtime."
       }
     },
     "gallery": {
@@ -147,7 +151,7 @@
         "title": "Infrastruttura",
         "multiDbms": {
           "title": "Multi-DBMS",
-          "desc": "SQL Server, MySQL, PostgreSQL, Oracle con provider drop-in. Cambia database con una riga in appsettings.json."
+          "desc": "SQL Server e MySQL con provider drop-in. Cambia database con una riga in appsettings.json."
         },
         "auth": {
           "title": "Auth & Sessioni",
@@ -660,7 +664,7 @@
     "reloading": "Aggiornamento in corso, ricarico la pagina..."
   },
   "seo": {
-    "home":      { "title": "Framework metadata-driven per applicazioni business",       "description": "WUIC trasforma metadata in interfacce complete: CRUD, dashboard, workflow, report, chatbot AI. .NET 10 + Angular 21, zero boilerplate." },
+    "home":      { "title": "Framework metadata-driven per applicazioni business",       "description": "Genera CRUD, dashboard, workflow e report dai metadati. Include chatbot RAG, multi-DBMS, .NET 10 + Angular 21. Zero boilerplate." },
     "features":  { "title": "Funzionalità del framework",                                "description": "Tutto incluso: data layer, designer visuale, workflow engine, report builder, RAG chatbot, multi-DBMS. Ogni componente è metadata-driven." },
     "pricing":   { "title": "Prezzi e licenze",                                          "description": "Due tier: Developer 600€/anno (1 fingerprint) e Professional 1200€/anno (3 fingerprint, designer, AI). Pagamento con PayPal o carta." },
     "gallery":   { "title": "Galleria — Esempi reali",                                   "description": "Screenshot di interfacce reali generate dal framework: liste, dashboard, edit form, workflow designer, report viewer." },

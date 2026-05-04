@@ -21,7 +21,7 @@
       "title1": "Le framework",
       "accent": "métadonnées-driven",
       "title2": "pour applications business",
-      "subtitle": "WUIC transforme les métadonnées en interfaces complètes : CRUD, tableaux de bord, workflows, rapports et chatbots IA. Moins de code, plus de fonctionnalités.",
+      "subtitle": "Définissez une table, obtenez l'UI : listes, tableaux de bord, workflows et rapports générés depuis les métadonnées. Sans boilerplate.",
       "ctaDownload": "Télécharger gratuit",
       "ctaDemo": "Essayer la démo"
     },
@@ -50,7 +50,11 @@
       },
       "multiDbms": {
         "title": "Multi-SGBD",
-        "desc": "SQL Server, MySQL, PostgreSQL et Oracle supportés via providers drop-in. Changez de base sans réécrire le code."
+        "desc": "SQL Server et MySQL supportés via providers drop-in. Changez de base sans réécrire le code."
+      },
+      "linuxNative": {
+        "title": "Linux natif",
+        "desc": "Déploiement sur Linux avec SQL Server ou MySQL. Stack .NET 10 multi-plateforme, tarball autonome, aucune dépendance runtime Windows."
       }
     },
     "gallery": {
@@ -147,7 +151,7 @@
         "title": "Infrastructure",
         "multiDbms": {
           "title": "Multi-SGBD",
-          "desc": "SQL Server, MySQL, PostgreSQL, Oracle via providers drop-in. Changez de base avec une ligne dans appsettings.json."
+          "desc": "SQL Server et MySQL via providers drop-in. Changez de base avec une ligne dans appsettings.json."
         },
         "auth": {
           "title": "Auth & Sessions",
@@ -660,7 +664,7 @@
     "reloading": "Mise à jour en cours, la page est rechargée..."
   },
   "seo": {
-    "home":      { "title": "Framework piloté par métadonnées pour applications business", "description": "WUIC transforme les métadonnées en interfaces complètes : CRUD, tableaux de bord, workflows, rapports et chatbots IA. .NET 10 + Angular 21, zéro boilerplate." },
+    "home":      { "title": "Framework piloté par métadonnées pour applications business", "description": "Générez CRUD, tableaux de bord, workflows et rapports depuis les métadonnées. Inclut chatbot RAG, multi-SGBD, .NET 10 + Angular 21. Zéro boilerplate." },
     "features":  { "title": "Fonctionnalités du framework",                                "description": "Tout inclus : couche de données, designer visuel, moteur de workflow, générateur de rapports, chatbot RAG, multi-SGBD. Chaque composant est piloté par métadonnées." },
     "pricing":   { "title": "Tarifs et licences",                                          "description": "Deux niveaux : Developer 600€/an (1 fingerprint) et Professional 1200€/an (3 fingerprints, designer, IA). Paiement par PayPal ou carte." },
     "gallery":   { "title": "Galerie — Captures réelles",                                  "description": "Captures d'écran d'interfaces réelles générées par le framework : listes, tableaux de bord, formulaires d'édition, designer de workflow, viewer de rapports." },

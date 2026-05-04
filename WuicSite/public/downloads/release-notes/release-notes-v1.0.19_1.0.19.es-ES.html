@@ -135,6 +135,16 @@ document.addEventListener('DOMContentLoaded', () => {
 <li><strong>Mapping automático</strong> de las excepciones runtime conocidas (<code>SqlException</code>, <code>AuthenticationException</code>, <code>JsonException</code>, etc.) a los códigos tipados.</li>
 </ul>
 <hr />
+<h2 id="exportacion-excel">📊 Exportación Excel</h2>
+<p>Reescritura del path de export bulk al formato <code>.xlsx</code> sobre pipeline producer/consumer y <code>OpenXmlWriter</code> streaming. El impacto se nota sobre todo en datasets grandes (decenas de miles de filas en adelante).</p>
+<ul>
+<li>Streaming OpenXML en lugar del DOM-build incremental: típicamente 50× más rápido en exports bulk, footprint de memoria contenido incluso por encima del millón de filas.</li>
+<li>Pipelining DB-read / xlsx-write sobre buffer limitado: las lecturas de DB ya no se bloquean en el tiempo de compresión de la hoja.</li>
+<li>Notificaciones de progress agregadas vía canal dedicado: ya no una task por cada update, eliminado el storm WebSocket durante exports largos.</li>
+<li>Split automático en varias hojas cuando se supera el límite Excel de 1.048.576 filas por hoja. El mensaje de finalización indica el número de hojas generadas.</li>
+</ul>
+<p>Ninguna acción requerida: el path está activo por defecto para todos los exports <code>.xlsx</code> invocados desde la toolbar de list-grid (Export XLS) y desde APIs server-side.</p>
+<hr />
 <h2 id="bug-fix-destacables">🐛 Bug fix destacables</h2>
 <ul>
 <li><strong>Gating <code>isSuperAdmin</code></strong>: corregida la verificación de permisos en varios endpoints que previamente confundían <code>isAdmin</code> (rol per-user) con <code>isSuperAdmin</code> (rol source of truth).</li>

@@ -21,7 +21,7 @@
       "title1": "Das",
       "accent": "metadaten-basierte",
       "title2": "Framework für Business-Anwendungen",
-      "subtitle": "WUIC verwandelt Metadaten in vollständige Oberflächen: CRUD, Dashboards, Workflows, Berichte und KI-Chatbots. Weniger Code, mehr Funktionalität.",
+      "subtitle": "Definiere eine Tabelle, erhalte die UI: Listen, Dashboards, Workflows und Berichte aus Metadaten generiert. Kein Boilerplate.",
       "ctaDownload": "Gratis herunterladen",
       "ctaDemo": "Demo testen"
     },
@@ -50,7 +50,11 @@
       },
       "multiDbms": {
         "title": "Multi-DBMS",
-        "desc": "SQL Server, MySQL, PostgreSQL und Oracle werden über Drop-in-Provider unterstützt. Datenbank wechseln ohne Code-Umschrift."
+        "desc": "SQL Server und MySQL werden über Drop-in-Provider unterstützt. Datenbank wechseln ohne Code-Umschrift."
+      },
+      "linuxNative": {
+        "title": "Linux nativ",
+        "desc": "Deployment auf Linux mit SQL Server oder MySQL. Cross-Platform-Stack .NET 10, eigenständiges Tarball, keine Windows-Runtime-Abhängigkeiten."
       }
     },
     "gallery": {
@@ -147,7 +151,7 @@
         "title": "Infrastruktur",
         "multiDbms": {
           "title": "Multi-DBMS",
-          "desc": "SQL Server, MySQL, PostgreSQL, Oracle per Drop-in-Provider. Datenbankwechsel mit einer Zeile in appsettings.json."
+          "desc": "SQL Server und MySQL per Drop-in-Provider. Datenbankwechsel mit einer Zeile in appsettings.json."
         },
         "auth": {
           "title": "Auth & Sessions",
@@ -660,7 +664,7 @@
     "reloading": "Aktualisierung läuft, Seite wird neu geladen..."
   },
   "seo": {
-    "home":      { "title": "Metadaten-basiertes Framework für Business-Anwendungen", "description": "WUIC verwandelt Metadaten in vollständige Oberflächen: CRUD, Dashboards, Workflows, Berichte und KI-Chatbots. .NET 10 + Angular 21, kein Boilerplate." },
+    "home":      { "title": "Metadaten-basiertes Framework für Business-Anwendungen", "description": "CRUD, Dashboards, Workflows und Berichte aus Metadaten generieren. Inkl. RAG-Chatbot, Multi-DBMS, .NET 10 + Angular 21. Kein Boilerplate." },
     "features":  { "title": "Framework-Funktionen",                                   "description": "Alles enthalten: Datenschicht, visueller Designer, Workflow-Engine, Report-Builder, RAG-Chatbot, Multi-DBMS. Jede Komponente ist metadatenbasiert." },
     "pricing":   { "title": "Preise und Lizenzen",                                    "description": "Zwei Stufen: Developer 600€/Jahr (1 Fingerprint) und Professional 1200€/Jahr (3 Fingerprints, Designer, KI). Zahlung mit PayPal oder Karte." },
     "gallery":   { "title": "Galerie — Echte Screenshots",                            "description": "Screenshots echter Oberflächen, die vom Framework generiert wurden: Listen, Dashboards, Bearbeitungsformulare, Workflow-Designer, Berichts-Viewer." },
