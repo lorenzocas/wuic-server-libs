@@ -1,6 +1,0 @@
-<p-checkbox [ngModel]="record[field.mc_nome_colonna] | async" [binary]="true" (onChange)="modelChangeFn($event)"
-    [inputId]="field.ang_name"
-    [attr.tabindex]="tabIndex"
-    [trueValue]="field.mc_ui_column_type == 'boolean' ? true : 1"
-    [falseValue]="field.mc_ui_column_type == 'boolean' ?  false : 0"
-    [disabled]="isDisabled()" />

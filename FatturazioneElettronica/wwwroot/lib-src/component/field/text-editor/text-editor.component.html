@@ -1,6 +1,0 @@
-<input [type]="field.mc_ui_is_password ? 'password' : 'text'" pInputText
-    [id]="field.ang_name" [name]="field.ang_name"
-    [attr.tabindex]="tabIndex"
-    [ngModel]="record?.[field.mc_nome_colonna] | async" (keydown)="beforeChange($event)"
-    (change)="modelChangeFn($event)" [ngStyle]="{width: '100%'}" (blur)="onBlur()"
-    [disabled]="field.extras?.form?.disabled || readOnly" [ngClass]="field.extras?.style?.editCss" />

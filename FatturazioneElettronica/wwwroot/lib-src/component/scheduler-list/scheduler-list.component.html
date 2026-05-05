@@ -1,8 +1,0 @@
-@if (calendarOptions) {
-<full-calendar #calendar [options]="calendarOptions" [events]="data">
-  <ng-template #eventContent let-arg>
-    <ng-container
-      *ngComponentOutlet="itemTemplate; inputs: { record: arg.event, rowData: arg.event, metaInfo: metaInfo, datasource: datasource }"></ng-container>
-  </ng-template>
-</full-calendar>
-}

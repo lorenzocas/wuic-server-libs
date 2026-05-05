@@ -1,7 +1,0 @@
-<p-datepicker [showIcon]="true" [ngModel]="(record[field.mc_nome_colonna] | async) | toDate"
-    [inputId]="field.ang_name"
-    [attr.tabindex]="tabIndex"
-    (ngModelChange)="modelChangeFn($event)" (onBlur)="onBlur()" [showTime]="field.mc_ui_column_type === 'datetime'"
-    [hourFormat]="hourFormat" [showOnFocus]="false" dateFormat="dd/mm/yy"
-    appendTo="body"
-    [disabled]="field.extras?.form?.disabled || readOnly" />

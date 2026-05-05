@@ -1,5 +1,0 @@
-describe('tree-view-selector.component.spec', () => {
-    it('should pass smoke test', () => {
-        expect(true).toBe(true);
-    });
-});
