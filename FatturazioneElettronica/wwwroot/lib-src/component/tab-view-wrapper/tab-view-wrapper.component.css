@@ -1,0 +1,65 @@
+.p-tabview.p-component {
+    height: 100%;
+}
+
+.p-tabview .p-tabview-nav-content {
+    scroll-padding-inline: 3rem;
+}
+
+.p-tabview-nav-content {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    overscroll-behavior: contain auto;
+}
+
+.p-tabview-nav {
+    display: inline-flex;
+    min-width: 100%;
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
+    flex: 1 1 auto;
+}
+
+.p-tabview .p-tabview-nav li .p-tabview-nav-link {
+    border-width: 0 0 2px 0;
+    padding: 1.25rem;
+    font-weight: 700;
+    border-top-right-radius: 6px;
+    border-top-left-radius: 6px;
+    transition: box-shadow 0.2s;
+    margin: 0 0 -2px 0;
+}
+
+.p-tabview-nav-link {
+    /* Tag e' <button> (Lighthouse SEO `crawlable-anchors` non flagga i button
+       come fa con <a> senza href). Reset stili browser default + match
+       look-and-feel del p-tabview originale. */
+    appearance: none;
+    background: transparent;
+    border: none;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    position: relative;
+    text-decoration: none;
+    overflow: hidden;
+    width: 100%;
+}
+
+.p-tabview .p-tabview-nav li.p-highlight .p-tabview-nav-link {
+    border-color: var(--p-primary-color, #3B82F6);
+    color: var(--p-primary-color, #3B82F6);
+    background-color: transparent;
+}
+
+.p-tabview-panels {
+    height: calc(100% - 60px);
+    overflow: auto;
+}

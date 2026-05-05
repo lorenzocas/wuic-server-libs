@@ -1,0 +1,32 @@
+.disabled-textfield {
+    display: block;
+    width: 100%;
+    min-height: 36px;
+    padding: 8px 12px;
+    border: 1px solid #d6dbe5;
+    border-radius: 6px;
+    background-color: #f8fafc;
+    color: #1f2937;
+    line-height: 1.35;
+    font-size: 0.98rem;
+    margin: 6px 0 16px;
+    box-sizing: border-box;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* Defensive override for mobile: il widget map applica una width inline che
+   su schermo stretto manda i field in overflow. Forza width piena anche
+   quando il field-editor e usato fuori da parametric-dialog. */
+@media (max-width: 768px) {
+    :host .data-field-wrapper,
+    :host ::ng-deep .data-field-wrapper {
+        width: 100% !important;
+        max-width: none !important;
+    }
+
+    :host .data-field-field,
+    :host ::ng-deep .data-field-field {
+        width: 100% !important;
+    }
+}

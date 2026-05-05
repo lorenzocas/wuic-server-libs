@@ -1,0 +1,44 @@
+@if (datasource?.value; as _ds) {
+  <div class="wuic-pager">
+    <div class="wuic-pager-main">
+      <div class="wuic-pager-controls">
+        <button class="p-element p-button p-component" [disabled]="busy || cursorMode || currentPage <= 1" (click)="firstPage()">
+          <<
+        </button>
+        <button class="p-element p-button p-component" [disabled]="busy || (!cursorMode && currentPage <= 1) || (cursorMode && !datasource?.value?.prevPageCursor)" (click)="prevPage()">
+          <
+        </button>
+        <span class="wuic-pager-status">
+          @if (cursorMode) {
+            {{ currentPage }}
+          } @else {
+            {{ currentPage }} / {{ totalPages }}
+          }
+        </span>
+        <button class="p-element p-button p-component" [disabled]="busy || (!cursorMode && currentPage >= totalPages) || (cursorMode && !datasource?.value?.nextPageCursor)" (click)="nextPage()">
+          >
+        </button>
+        <button class="p-element p-button p-component" [disabled]="busy || cursorMode || currentPage >= totalPages" (click)="lastPage()">
+          >>
+        </button>
+      </div>
+      <div class="wuic-pager-editors">
+        @if (!cursorMode) {
+          <div class="wuic-pager-field">
+            <span class="wuic-pager-label">Page:</span>
+            <input class="p-inputtext p-component" type="number" min="1" [(ngModel)]="currentPage" />
+            <button class="p-element p-button p-component" [disabled]="busy" (click)="applyCurrentPage()">Go</button>
+          </div>
+        }
+        <div class="wuic-pager-field">
+          <span class="wuic-pager-label">Size:</span>
+          <input class="p-inputtext p-component" type="number" min="1" [(ngModel)]="pageSize" />
+          <button class="p-element p-button p-component" [disabled]="busy" (click)="applyPageSize()">Apply</button>
+        </div>
+      </div>
+    </div>
+    <div class="wuic-pager-summary">
+      Records: {{ cursorMode ? '?' : totalRecords }}
+    </div>
+  </div>
+}

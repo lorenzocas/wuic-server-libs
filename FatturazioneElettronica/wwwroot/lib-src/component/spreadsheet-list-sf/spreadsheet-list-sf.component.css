@@ -1,0 +1,678 @@
+/* =======================================================
+   wuic-spreadsheet-list-sf — Syncfusion-based wrapper
+   ======================================================= */
+
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.wuic-sf-spreadsheet-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ----------- Toolbar ----------- */
+/* Stile allineato a <wuic-list-grid>: riusiamo `.grid-caption-bar` globale
+   (definito dal list-grid.component.scss / :ng-deep) oltre che i p-button
+   PrimeNG nativi. Wrapper locale per flex sizing nella colonna. */
+.wuic-sf-caption-bar {
+  flex: 0 0 auto;
+  padding: 5px;
+
+}
+
+.grid-caption-left {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+  min-height: 2.25rem;
+  height: 2.25rem;
+}
+
+/* ----------- Spreadsheet host ----------- */
+
+.wuic-sf-spreadsheet-host {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  position: relative;
+  /* overflow: visible perché i popup Syncfusion (filter, color picker,
+     ecc.) vengono renderizzati dentro .e-spreadsheet e devono poter
+     traboccare fuori dal host senza essere clippati. Il controllo dello
+     scroll interno della griglia e' gestito da .e-main-panel (gestito da
+     Syncfusion tramite scrollSettings.isFinite). */
+  overflow: visible;
+}
+
+/* Popup Syncfusion (filter, list-boxes, color-picker) che finiscono
+   renderizzati come figli di body: z-index alto per sicurezza e min-width
+   sensata perche' senza il popup e' molto stretto e i pulsanti OK/Cancel
+   finiscono tagliati. */
+::ng-deep .e-dialog.e-popup-open,
+::ng-deep .e-excelfilter,
+::ng-deep .e-filter-popup {
+  z-index: 10010 !important;
+  min-width: 240px;
+}
+
+::ng-deep .e-excelfilter .e-footer-content,
+::ng-deep .e-filter-popup .e-footer-content {
+  display: flex !important;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 8px 12px !important;
+}
+
+.wuic-sf-spreadsheet-host ejs-spreadsheet {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Grid boundaries gestito da scrollSettings.isFinite:true in Syncfusion. */
+
+/* Column-letter header di Syncfusion: riscriviamo il testo A/B/C... con
+   i nomi colonna WUIC via DOM (syncColumnHeadersWithMetadata in TS).
+   Qui aggiungiamo solo styling bold + padding per aria più leggibile. */
+:host ::ng-deep .e-spreadsheet .e-column-header .e-header-cell.wuic-sf-colname-header .e-header-cell-div {
+  font-weight: bold !important;
+  text-align: left !important;
+  padding-left: 6px !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ----------- Pagination ----------- */
+
+.wuic-sf-pagination {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 6px 10px;
+  background-color: var(--wuic-surface-a, #ffffff);
+  border-top: 1px solid var(--wuic-surface-border, #e5e7eb);
+  flex: 0 0 auto;
+  font-size: 13px;
+}
+
+.wuic-sf-page-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--wuic-surface-border, #e5e7eb);
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  color: var(--wuic-text-color, #1f2937);
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+
+.wuic-sf-page-btn:hover:not(:disabled) {
+  background-color: var(--wuic-hover-bg, #f3f4f6);
+  border-color: var(--wuic-primary-color, #6366f1);
+}
+
+.wuic-sf-page-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.wuic-sf-page-info {
+  margin: 0 8px;
+  white-space: nowrap;
+  color: var(--wuic-text-muted, #6b7280);
+}
+
+.wuic-sf-page-info strong {
+  color: var(--wuic-text-color, #1f2937);
+}
+
+.wuic-sf-page-total {
+  margin-left: 6px;
+  font-size: 12px;
+  color: var(--wuic-text-muted, #6b7280);
+}
+
+.wuic-sf-page-size {
+  margin-left: 8px;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--wuic-surface-border, #e5e7eb);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--wuic-text-color, #1f2937);
+  cursor: pointer;
+}
+
+/* ----------- Dark theme overrides ----------- */
+
+:host-context(.theme-dark) .wuic-sf-pagination,
+:host-context([data-theme="dark"]) .wuic-sf-pagination {
+  background-color: var(--wuic-surface-a-dark, #1f2937);
+  border-color: var(--wuic-surface-border-dark, #374151);
+}
+
+:host-context(.theme-dark) .wuic-sf-page-btn,
+:host-context([data-theme="dark"]) .wuic-sf-page-btn,
+:host-context(.theme-dark) .wuic-sf-page-size,
+:host-context([data-theme="dark"]) .wuic-sf-page-size {
+  color: #f3f4f6;
+  border-color: var(--wuic-surface-border-dark, #374151);
+}
+
+:host-context(.theme-dark) .wuic-sf-page-btn:hover:not(:disabled),
+:host-context([data-theme="dark"]) .wuic-sf-page-btn:hover:not(:disabled) {
+  background-color: #374151;
+}
+
+:host-context(.theme-dark) .wuic-sf-page-info,
+:host-context([data-theme="dark"]) .wuic-sf-page-info {
+  color: #9ca3af;
+}
+
+:host-context(.theme-dark) .wuic-sf-page-info strong,
+:host-context([data-theme="dark"]) .wuic-sf-page-info strong {
+  color: #f3f4f6;
+}
+
+:host-context(.theme-dark) .wuic-sf-page-total,
+:host-context([data-theme="dark"]) .wuic-sf-page-total {
+  color: #9ca3af;
+}
+
+/* ----------- Syncfusion component overrides ----------- */
+
+/* Nasconde il banner Unlicensed quando la chiave placeholder è attiva —
+   SOLO in sviluppo; in produzione la chiave valida elimina il banner da sé.
+   NON attivare in prod: non è una soluzione legittima, solo un'aide per lo
+   sviluppo iniziale quando la chiave community non è ancora arrivata. */
+/*
+:host ::ng-deep .e-dialog.e-popup-open:has(.e-dlg-content:contains("Unlicensed")) {
+  display: none !important;
+}
+*/
+
+/* Hook generici per integrare i colori Syncfusion col tema WUIC */
+:host ::ng-deep .e-spreadsheet {
+  font-family: var(--wuic-font-family, inherit);
+}
+
+/* Dark mode: column-letter header scuro */
+:host ::ng-deep ejs-spreadsheet.wuic-sf-dark .e-column-header .e-header-cell.wuic-sf-colname-header {
+  background-color: #111827 !important;
+  color: #e5e7eb !important;
+}
+
+/* Nascondi VISIVAMENTE i filter-btn nativi Syncfusion nelle data cells
+   ma MANTIENILI nel DOM cliccabili — il funnel custom nell'header inoltra
+   il click su di essi via element.click(). Con `display:none` il click
+   programmatico su elementi fuori dal layout non scatena il popup filter
+   Syncfusion (selectiona soltanto la colonna). Uso opacity/size zero per
+   tenerli hit-testable. */
+:host ::ng-deep .e-spreadsheet .e-sheet-content .e-filter-btn {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  /* Utente non ci clicca: solo il nostro codice via .click() */
+  width: 0 !important;
+  height: 0 !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  position: absolute !important;
+  right: 0;
+  top: 0;
+}
+
+/* Funnel button custom nell'header column-letter.
+   Positioned absolute right=0 così non occupa spazio col testo e sta sempre
+   in angolo destro della header cell (rispettando padding interno). */
+:host ::ng-deep .e-spreadsheet .e-column-header .e-header-cell.wuic-sf-colname-header {
+  position: relative !important;
+}
+
+:host ::ng-deep .e-spreadsheet .e-column-header .wuic-sf-header-filter-btn {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  color: #475569;
+  /* slate-600 */
+  flex-shrink: 0;
+  transition: background-color 0.12s, color 0.12s;
+  z-index: 2;
+}
+
+:host ::ng-deep .e-spreadsheet .e-column-header .wuic-sf-header-filter-btn:hover {
+  background-color: #e2e8f0;
+  /* slate-200 */
+  color: #1f2937;
+}
+
+:host ::ng-deep .e-spreadsheet .e-column-header .wuic-sf-header-filter-btn svg {
+  display: block;
+  pointer-events: none;
+}
+
+:host ::ng-deep .e-spreadsheet .e-column-header .wuic-sf-header-filter-btn svg * {
+  pointer-events: none !important;
+}
+
+/* Syncfusion's Resize3.setTarget chiama e.target.className.includes().
+   Se il mouse tocca un SVG (o child path/span con className SVGAnimatedString),
+   .includes crasha perché non è una stringa. Disabilitiamo pointer-events su
+   TUTTI gli SVG dentro la spreadsheet — non servono mai come event target. */
+:host ::ng-deep .e-spreadsheet svg,
+:host ::ng-deep .e-spreadsheet svg * {
+  pointer-events: none !important;
+}
+
+/* Indica visivamente colonna con filter attivo */
+:host ::ng-deep .e-spreadsheet .e-column-header .wuic-sf-header-filter-btn.wuic-filtered {
+  color: #2563eb;
+  /* blue-600 */
+}
+
+/* Reserve spazio a destra per il funnel button (18px + 4px margin) così
+   il testo lungo non ci finisce sotto. */
+:host ::ng-deep .e-spreadsheet .e-column-header .wuic-sf-colname-header .e-header-cell-div {
+  padding-right: 22px !important;
+}
+
+/* Dark mode */
+:host ::ng-deep ejs-spreadsheet.wuic-sf-dark .e-column-header .wuic-sf-header-filter-btn {
+  color: #cbd5e1;
+  /* slate-300 */
+}
+
+:host ::ng-deep ejs-spreadsheet.wuic-sf-dark .e-column-header .wuic-sf-header-filter-btn:hover {
+  background-color: #334155;
+  /* slate-700 */
+  color: #f3f4f6;
+}
+
+:host ::ng-deep ejs-spreadsheet.wuic-sf-dark .e-column-header .wuic-sf-header-filter-btn.wuic-filtered {
+  color: #60a5fa;
+  /* blue-400 */
+}
+
+:host ::ng-deep .e-spreadsheet .e-sheet-panel {
+  background-color: var(--wuic-surface-a, #ffffff);
+}
+
+:host-context(.theme-dark) ::ng-deep .e-spreadsheet,
+:host-context([data-theme="dark"]) ::ng-deep .e-spreadsheet,
+:host ::ng-deep ejs-spreadsheet.wuic-sf-dark {
+  background-color: var(--wuic-surface-a-dark, #1f2937);
+  color: #f3f4f6;
+}
+
+/* Dark mode override per le classi Syncfusion interne */
+:host ::ng-deep ejs-spreadsheet.wuic-sf-dark .e-sheet-panel,
+:host ::ng-deep ejs-spreadsheet.wuic-sf-dark .e-main-panel {
+  background-color: var(--wuic-surface-a-dark, #1f2937);
+  color: #f3f4f6;
+}
+
+:host ::ng-deep ejs-spreadsheet.wuic-sf-dark .e-cell,
+:host ::ng-deep ejs-spreadsheet.wuic-sf-dark .e-header-cell {
+  background-color: var(--wuic-surface-a-dark, #1f2937);
+  border-color: var(--wuic-surface-border-dark, #374151);
+  color: #f3f4f6;
+}
+
+:host ::ng-deep ejs-spreadsheet.wuic-sf-dark .e-header-row .e-header-cell,
+:host ::ng-deep ejs-spreadsheet.wuic-sf-dark .e-row-header .e-header-cell {
+  background-color: #111827 !important;
+  color: #e5e7eb !important;
+}
+
+/* Row evidenziata (stile WUIC) */
+:host ::ng-deep ejs-spreadsheet.wuic-sf-dark .e-cell.row-danger {
+  background-color: #7f1d1d !important;
+  color: #fecaca !important;
+}
+
+:host ::ng-deep .e-cell.row-danger {
+  background-color: #fee2e2 !important;
+}
+
+:host ::ng-deep .e-cell.row-warning {
+  background-color: #fef3c7 !important;
+}
+
+:host ::ng-deep .e-cell.row-success {
+  background-color: #d1fae5 !important;
+}
+
+/* ============================================================
+   Custom filter popup
+   - Il popup è montato in document.body (fuori dal componente),
+     quindi usiamo ::ng-deep senza :host per generare regole globali.
+   - Visibile sopra Syncfusion tramite z-index alto.
+   ============================================================ */
+
+::ng-deep .wuic-sf-filter-popup {
+  position: fixed;
+  z-index: 99999;
+  min-width: 260px;
+  max-width: 340px;
+  background: #ffffff;
+  color: #111827;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  font-family: inherit;
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  user-select: none;
+}
+
+::ng-deep .wuic-sf-filter-popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #f3f4f6;
+  border-bottom: 1px solid #e5e7eb;
+  font-weight: 600;
+}
+
+::ng-deep .wuic-sf-filter-popup-title {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+::ng-deep .wuic-sf-filter-popup-close {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 4px;
+  color: #6b7280;
+}
+
+::ng-deep .wuic-sf-filter-popup-close:hover {
+  color: #111827;
+}
+
+::ng-deep .wuic-sf-filter-popup-sort {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+::ng-deep .wuic-sf-filter-popup-sort-btn {
+  background: transparent;
+  border: none;
+  text-align: left;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #111827;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+::ng-deep .wuic-sf-filter-popup-sort-btn:hover {
+  background: #f3f4f6;
+}
+
+::ng-deep .wuic-sf-filter-popup-sort-icon {
+  font-size: 10px;
+  color: #6b7280;
+}
+
+::ng-deep .wuic-sf-filter-popup-clear {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+::ng-deep .wuic-sf-filter-popup-clear-btn {
+  width: 100%;
+  background: transparent;
+  border: none;
+  text-align: left;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #2563eb;
+}
+
+::ng-deep .wuic-sf-filter-popup-clear-btn:hover:not(:disabled) {
+  background: #eff6ff;
+}
+
+::ng-deep .wuic-sf-filter-popup-clear-btn:disabled {
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+::ng-deep .wuic-sf-filter-popup-search {
+  padding: 8px 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+::ng-deep .wuic-sf-filter-popup-search-input {
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 13px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+::ng-deep .wuic-sf-filter-popup-search-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+::ng-deep .wuic-sf-filter-popup-list-wrap {
+  display: flex;
+  flex-direction: column;
+  max-height: 260px;
+  overflow: hidden;
+}
+
+::ng-deep .wuic-sf-filter-popup-selectall {
+  padding: 4px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+  font-weight: 500;
+}
+
+::ng-deep .wuic-sf-filter-popup-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  max-height: 220px;
+}
+
+::ng-deep .wuic-sf-filter-popup-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+
+::ng-deep .wuic-sf-filter-popup-item:hover {
+  background: #f3f4f6;
+}
+
+::ng-deep .wuic-sf-filter-popup-item input[type="checkbox"] {
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+::ng-deep .wuic-sf-filter-popup-item span {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+::ng-deep .wuic-sf-filter-popup-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px 12px;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+::ng-deep .wuic-sf-filter-popup-ok,
+::ng-deep .wuic-sf-filter-popup-cancel {
+  padding: 4px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background: #ffffff;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+::ng-deep .wuic-sf-filter-popup-ok {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+::ng-deep .wuic-sf-filter-popup-ok:hover {
+  background: #1d4ed8;
+}
+
+::ng-deep .wuic-sf-filter-popup-cancel:hover {
+  background: #f3f4f6;
+}
+
+/* Funnel attivo (colonna con filtro applicato) */
+:host ::ng-deep .wuic-sf-header-filter-btn.wuic-sf-header-filter-btn--active {
+  color: #2563eb;
+}
+
+:host ::ng-deep .wuic-sf-header-filter-btn.wuic-sf-header-filter-btn--active svg {
+  fill: #2563eb;
+}
+
+/* Dark mode popup — attivato SOLO quando il tema WUIC è dark
+   (classe `.wuic-sf-filter-popup--dark` aggiunta dal componente TS in base
+   alle classi `theme-dark`/`data-theme=dark` su body/html).
+   NON usiamo `@media (prefers-color-scheme: dark)` perché quello segue il
+   tema dell'OS e renderebbe il popup scuro anche quando WUIC è in chiaro. */
+::ng-deep .wuic-sf-filter-popup.wuic-sf-filter-popup--dark {
+  background: #1f2937;
+  color: #f3f4f6;
+  border-color: #374151;
+}
+
+::ng-deep .wuic-sf-filter-popup--dark .wuic-sf-filter-popup-header,
+::ng-deep .wuic-sf-filter-popup--dark .wuic-sf-filter-popup-footer,
+::ng-deep .wuic-sf-filter-popup--dark .wuic-sf-filter-popup-selectall {
+  background: #111827;
+  border-color: #374151;
+}
+
+::ng-deep .wuic-sf-filter-popup--dark .wuic-sf-filter-popup-sort,
+::ng-deep .wuic-sf-filter-popup--dark .wuic-sf-filter-popup-clear,
+::ng-deep .wuic-sf-filter-popup--dark .wuic-sf-filter-popup-search {
+  border-color: #374151;
+}
+
+::ng-deep .wuic-sf-filter-popup--dark .wuic-sf-filter-popup-sort-btn,
+::ng-deep .wuic-sf-filter-popup--dark .wuic-sf-filter-popup-cancel {
+  color: #f3f4f6;
+  background: transparent;
+  border-color: #374151;
+}
+
+::ng-deep .wuic-sf-filter-popup--dark .wuic-sf-filter-popup-cancel {
+  background: #374151;
+}
+
+::ng-deep .wuic-sf-filter-popup--dark .wuic-sf-filter-popup-sort-btn:hover,
+::ng-deep .wuic-sf-filter-popup--dark .wuic-sf-filter-popup-item:hover,
+::ng-deep .wuic-sf-filter-popup--dark .wuic-sf-filter-popup-cancel:hover {
+  background: #374151;
+}
+
+::ng-deep .wuic-sf-filter-popup--dark .wuic-sf-filter-popup-search-input {
+  background: #111827;
+  color: #f3f4f6;
+  border-color: #374151;
+}
+
+::ng-deep .wuic-sf-filter-popup--dark .wuic-sf-filter-popup-close {
+  color: #9ca3af;
+}
+
+::ng-deep .wuic-sf-filter-popup--dark .wuic-sf-filter-popup-close:hover {
+  color: #f3f4f6;
+}
+
+/* ============================================================
+   Custom cell editors (date / datetime / boolean / dictionary)
+   - Montati in document.body come overlay `position: fixed` sopra la
+     cella Syncfusion (fuori dal clipping dello sheet content).
+   - Classe `--dark` aggiunta dal componente TS quando il tema WUIC è dark.
+   ============================================================ */
+::ng-deep .wuic-sf-cell-editor {
+  box-sizing: border-box;
+  padding: 2px 6px;
+  border: 2px solid #2563eb;
+  background: #ffffff;
+  color: #111827;
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-radius: 2px;
+}
+
+::ng-deep .wuic-sf-cell-editor:focus {
+  border-color: #1d4ed8;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+}
+
+::ng-deep select.wuic-sf-cell-editor {
+  cursor: pointer;
+}
+
+/* Dark theme */
+::ng-deep .wuic-sf-cell-editor.wuic-sf-cell-editor--dark {
+  background: #1f2937;
+  color: #f3f4f6;
+  border-color: #2563eb;
+}
+
+::ng-deep .wuic-sf-cell-editor.wuic-sf-cell-editor--dark option {
+  background: #1f2937;
+  color: #f3f4f6;
+}

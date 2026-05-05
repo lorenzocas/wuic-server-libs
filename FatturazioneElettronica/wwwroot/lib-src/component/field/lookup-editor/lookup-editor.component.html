@@ -1,0 +1,37 @@
+<div class="lookup-load-spinner">
+  @if ((nestedSource.loading | async) || !loaded) {
+  <i class="pi pi-spin pi-spinner" style="font-size: 2rem; position: absolute; right: 10px; top: 5px;"></i>
+  }
+
+  <wuic-data-source #nestedSource [autoload]="false" [routeFromRouting]="false"
+    [hardcodedRoute]="field.mc_ui_lookup_entity_name || field.mc_ui_grid_route" [parentRecord]="record"
+    [parentMetaInfo]="metaInfo"
+    [useComboEndpoint]="true"
+    [comboFormulaLookup]="field.mc_ui_lookup_combo_text_edit_computed_dataTextField || field.mc_ui_lookup_computed_dataTextField"
+    [comboMcId]="field.mc_id"
+    [comboField]="field"
+    [comboExtraFields]="field.extraFields"
+    [comboCurrentRecord]="record"></wuic-data-source>
+  <!--  || ((nestedSource.loading | async &&) && !loaded)  -->
+  @if (loaded) {
+  <p-autoComplete (onBlur)="onBlur()"
+    [inputId]="field.ang_name"
+    [ariaLabel]="field.mc_display_string_in_edit || field.mc_nome_colonna"
+    [dropdownAriaLabel]="field.mc_display_string_in_edit || field.mc_nome_colonna"
+    [attr.aria-labelledby]="ariaLabelledBy"
+    [attr.tabindex]="tabIndex"
+    [ngModel]="getNgModelValue()"
+    (onSelect)="modelChangeFn($event)" (onUnselect)="modelChangeFn($event, true)" (onClear)="modelChangeFn($event)"
+    [forceSelection]="true" [disabled]="field.extras?.form?.disabled || readOnly" [dropdown]="true"
+    [virtualScroll]="isLookupVirtualizationEnabled()" [virtualScrollItemSize]="getLookupVirtualizationItemSize()"
+    [suggestions]="items" (completeMethod)="search($event)"
+    (onShow)="onLookupOverlayShow()"
+    (onHide)="onLookupOverlayHide()"
+    [multiple]="field.mc_ui_column_type == 'multiple_check' || (isFilter && metaInfo.operators[this.field.mc_nome_colonna] == 'eqor')"
+    [optionLabel]="field.mc_ui_column_type == 'multiple_check' ? field.mc_ui_grid_display_field : field.mc_ui_lookup_dataTextField"
+    [optionValue]="(field.mc_ui_column_type == 'multiple_check' || (isFilter && metaInfo.operators[field.mc_nome_colonna] == 'eqor')) ? undefined : (field.mc_ui_lookup_dataValueField || field.mc_ui_grid_related_id_field)"
+    appendTo="body"
+    [dataKey]="field.mc_ui_column_type == 'multiple_check' ? field.mc_ui_grid_related_id_field : undefined"
+    [showClear]="field.mc_logic_nullable" />
+  }
+</div>

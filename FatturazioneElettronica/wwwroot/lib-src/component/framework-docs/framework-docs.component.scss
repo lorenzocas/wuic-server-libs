@@ -1,0 +1,824 @@
+.fw-docs {
+  --bg: linear-gradient(145deg, #f7f9ff 0%, #edf3ff 40%, #fefbf4 100%);
+  --panel: rgba(255, 255, 255, 0.86);
+  --text: #18304a;
+  --muted: #4d6278;
+  --accent: #0d6efd;
+  --border: #dce7fb;
+  height: calc(100vh - 70px);
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+}
+
+.fw-docs.dark,
+:host-context(.theme-dark) .fw-docs,
+:host-context(.dark-theme) .fw-docs,
+:host-context([data-theme-mode='dark']) .fw-docs {
+  --bg: linear-gradient(145deg, #121b2a 0%, #0f2233 55%, #222134 100%);
+  --panel: rgba(22, 35, 55, 0.85);
+  --text: #dbe8ff;
+  --muted: #9eb4d2;
+  --accent: #7eb2ff;
+  --border: #294869;
+}
+
+.sidebar {
+  backdrop-filter: blur(10px);
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  padding: 18px;
+  position: sticky;
+  top: 0;
+  height: calc(100vh - 70px);
+  overflow: auto;
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.brand p {
+  margin: 6px 0 14px;
+  color: var(--muted);
+  font-size: .88rem;
+}
+
+.search {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.nav-groups h3 {
+  margin: 14px 0 8px;
+  font-size: .86rem;
+  text-transform: uppercase;
+  color: var(--muted);
+  letter-spacing: .06em;
+}
+
+.nav-groups ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.nav-groups a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.nav-groups a.active,
+.nav-groups a:hover {
+  background: rgba(13, 110, 253, .12);
+}
+
+.content {
+  padding: 26px 30px 36px;
+  height: 100%;
+  overflow-y: scroll;
+  /* Forza scrollbar visibile (default browser e' overlay auto-hide) */
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--p-content-border-color, #94a3b8) 80%, transparent) transparent;
+  scrollbar-gutter: stable;
+}
+
+.content::-webkit-scrollbar,
+.sidebar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.content::-webkit-scrollbar-track,
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.content::-webkit-scrollbar-thumb,
+.sidebar::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--p-content-border-color, #94a3b8) 65%, transparent);
+  border-radius: 6px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.content::-webkit-scrollbar-thumb:hover,
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background-color: var(--p-text-muted-color, #64748b);
+}
+
+.sidebar {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--p-content-border-color, #94a3b8) 80%, transparent) transparent;
+}
+
+.breadcrumbs {
+  font-size: .85rem;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+header h2 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+header p {
+  margin: 8px 0 12px;
+  color: var(--muted);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+/* Tier badge — stessa forma pill dei tag esistenti (primi-passi verde, stable blu)
+   ma con palette dedicata per distinguere subito a colpo d'occhio il tier.
+   - dev-and-pro → viola/indigo (copertura ampia, "standard")
+   - pro         → ambra/oro (premium, richiama il badge Pro nel menu app)
+   Le regole usano `::ng-deep` perché PrimeNG applica gli stili su elementi
+   interni al componente p-tag. */
+::ng-deep .tier-tag.p-tag {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+::ng-deep .tier-tag-base.p-tag {
+  background: color-mix(in srgb, #6366f1 15%, var(--panel, #fff));
+  color: color-mix(in srgb, #4338ca 85%, var(--text, #0f172a));
+  border: 1px solid color-mix(in srgb, #6366f1 45%, transparent);
+}
+
+::ng-deep .tier-tag-pro.p-tag {
+  background: color-mix(in srgb, #f59e0b 18%, var(--panel, #fff));
+  color: color-mix(in srgb, #b45309 85%, var(--text, #0f172a));
+  border: 1px solid color-mix(in srgb, #f59e0b 55%, transparent);
+}
+
+.body-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 360px);
+  gap: 20px;
+}
+
+article {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.doc-section {
+  padding: 6px 0 16px;
+  border-bottom: 1px dashed var(--border);
+}
+
+.doc-section:last-child {
+  border-bottom: 0;
+}
+
+.doc-section h3 {
+  margin: 8px 0;
+}
+
+.section-html {
+  color: var(--text);
+}
+
+:host ::ng-deep .section-html p {
+  line-height: 1.58;
+}
+
+// Tabelle markdown: il generator emette <table><thead><tr><th>...</th></tr></thead><tbody><tr><td>...
+// Senza stili, il browser default rende celle attaccate senza padding -> illeggibile.
+// Layout: bordi su tutte le celle (per leggibilita' "a griglia"), header con background
+// accentato e bold, padding generoso, alternanza zebra. Allineamento ereditato dallo
+// `style="text-align:..."` inline che il generator scrive in base a `:---:` markdown align.
+:host ::ng-deep .section-html table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0 24px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 0.92rem;
+  // Box-shadow leggera per stacco dal foglio, coerente con altri "blocchi" del docs viewer
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+:host ::ng-deep .section-html thead {
+  background: color-mix(in srgb, var(--accent) 14%, var(--panel));
+}
+
+:host ::ng-deep .section-html thead th {
+  text-align: left;
+  color: var(--text);
+  font-weight: 700;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-bottom: 2px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  text-transform: uppercase;
+  font-size: 0.78rem;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+
+:host ::ng-deep .section-html tbody td {
+  padding: 11px 16px;
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  vertical-align: top;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+// Zebra striping leggera per migliorare la lettura row-by-row
+:host ::ng-deep .section-html tbody tr:nth-child(odd) td {
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+}
+:host ::ng-deep .section-html tbody tr:nth-child(even) td {
+  background: color-mix(in srgb, var(--panel) 100%, transparent);
+}
+
+// Hover row: aiuta a tracciare visualmente quando le righe sono molte
+:host ::ng-deep .section-html tbody tr:hover td {
+  background: color-mix(in srgb, var(--accent) 8%, var(--panel));
+}
+
+// Code inline dentro celle: leggermente piu' compatto del default per non rompere il layout
+:host ::ng-deep .section-html table code {
+  font-size: 0.85em;
+  padding: 1px 5px;
+}
+
+// Bold/italic dal nuovo support inline markdown: rendili coerenti con il color/weight base
+:host ::ng-deep .section-html strong { color: var(--text); font-weight: 600; }
+:host ::ng-deep .section-html em     { font-style: italic; }
+
+// Link demo "WuicTest-only" generato da `[label](demo:<slug>)`: visibile qui
+// (siamo nella docs in dev), nascosto in WuicSite (vedi WuicSite docs.scss).
+// Visual: pillola accentata stile bottone, icona play, hover leggero.
+:host ::ng-deep .section-html a.wuic-demo-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  margin: 0 2px;
+  background: color-mix(in srgb, var(--accent) 14%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  border-radius: 6px;
+  color: var(--accent, #4f46e5);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  line-height: 1.2;
+  transition: background 0.15s ease;
+
+  &::before {
+    content: "▶";
+    font-size: 0.7rem;
+    color: var(--accent, #4f46e5);
+  }
+
+  &:hover {
+    background: color-mix(in srgb, var(--accent) 22%, var(--panel));
+    text-decoration: none;
+  }
+}
+
+:host ::ng-deep .section-html :where(ul, ol) {
+  margin: 12px 0 16px;
+  padding-left: 0;
+}
+
+:host ::ng-deep .section-html ul {
+  list-style: none;
+}
+
+:host ::ng-deep .section-html ul>li {
+  position: relative;
+  margin: 8px 0;
+  padding: 8px 12px 8px 34px;
+  border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--panel) 90%, transparent);
+  line-height: 1.52;
+}
+
+:host ::ng-deep .section-html ul>li:nth-child(odd) {
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+}
+
+:host ::ng-deep .section-html ul>li:nth-child(even) {
+  background: color-mix(in srgb, var(--accent) 5%, var(--panel));
+  border-color: color-mix(in srgb, var(--accent) 18%, var(--border));
+}
+
+:host ::ng-deep .section-html ul>li::before {
+  content: "";
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  transform: translateY(-50%);
+  background: radial-gradient(circle at 35% 35%, #ffffff 0 24%, color-mix(in srgb, var(--accent) 80%, #4aa3ff) 25% 100%);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 32%, transparent);
+}
+
+:host ::ng-deep .section-html ol {
+  list-style: none;
+  counter-reset: wuic-doc-step;
+}
+
+:host ::ng-deep .section-html ol>li {
+  position: relative;
+  counter-increment: wuic-doc-step;
+  margin: 8px 0;
+  padding: 8px 12px 8px 42px;
+  border-left: 3px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 7%, var(--panel));
+  border-radius: 10px;
+  line-height: 1.52;
+}
+
+:host ::ng-deep .section-html ol>li:nth-child(odd) {
+  background: color-mix(in srgb, var(--accent) 7%, var(--panel));
+}
+
+:host ::ng-deep .section-html ol>li:nth-child(even) {
+  background: color-mix(in srgb, var(--accent) 11%, var(--panel));
+  border-left-color: color-mix(in srgb, var(--accent) 72%, transparent);
+}
+
+:host ::ng-deep .section-html ol>li::before {
+  content: counter(wuic-doc-step);
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 80%, #4aa3ff), color-mix(in srgb, var(--accent) 95%, #125dcc));
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+:host ::ng-deep .section-html li> :where(ul, ol) {
+  margin-top: 8px;
+}
+
+.code-block {
+  margin: 10px 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(13, 110, 253, .08);
+  padding: 8px 10px;
+}
+
+.code-block pre {
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  background: #1e1e1e;
+}
+
+.code-block code {
+  display: block;
+  font-family: Consolas, 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+  font-size: .88rem;
+  line-height: 1.55;
+  color: #d4d4d4;
+  white-space: pre;
+}
+
+.code-actions {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.code-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.snippet-lang {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  border: 1px solid transparent;
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  color: var(--text);
+}
+
+.snippet-lang.lang-html {
+  background: rgba(227, 108, 9, .14);
+  border-color: rgba(227, 108, 9, .32);
+  color: #b25d0e;
+}
+
+.snippet-lang.lang-json {
+  background: rgba(0, 128, 128, .14);
+  border-color: rgba(0, 128, 128, .32);
+  color: #0e6b6b;
+}
+
+.snippet-lang.lang-ts {
+  background: rgba(49, 120, 198, .14);
+  border-color: rgba(49, 120, 198, .32);
+  color: #1f5f9f;
+}
+
+.snippet-lang.lang-cs {
+  background: rgba(104, 33, 122, .14);
+  border-color: rgba(104, 33, 122, .32);
+  color: #6a2b82;
+}
+
+.snippet-lang i {
+  font-size: .72rem;
+}
+
+:host ::ng-deep .code-block code .tok-comment {
+  color: #6a9955;
+}
+
+:host ::ng-deep .code-block code .tok-string {
+  color: #ce9178;
+}
+
+:host ::ng-deep .code-block code .tok-number {
+  color: #b5cea8;
+}
+
+:host ::ng-deep .code-block code .tok-keyword {
+  color: #569cd6;
+}
+
+:host ::ng-deep .code-block code .tok-type {
+  color: #4ec9b0;
+}
+
+:host ::ng-deep .code-block code .tok-fn {
+  color: #dcdcaa;
+}
+
+:host ::ng-deep .code-block code .tok-prop {
+  color: #9cdcfe;
+}
+
+:host ::ng-deep .code-block code .tok-op {
+  color: #d4d4d4;
+}
+
+:host ::ng-deep .code-block.lang-html code .tok-tag {
+  color: #569cd6;
+}
+
+:host ::ng-deep .code-block.lang-html code .tok-attr {
+  color: #9cdcfe;
+}
+
+:host ::ng-deep .code-block.lang-html code .tok-string {
+  color: #ce9178;
+}
+
+:host ::ng-deep .code-block.lang-json code .tok-key {
+  color: #9cdcfe;
+}
+
+:host ::ng-deep .code-block.lang-json code .tok-string {
+  color: #ce9178;
+}
+
+:host ::ng-deep .code-block.lang-json code .tok-keyword {
+  color: #569cd6;
+}
+
+:host ::ng-deep .code-block.lang-json code .tok-number {
+  color: #b5cea8;
+}
+
+:host ::ng-deep .code-block.lang-ts code .tok-keyword {
+  color: #569cd6;
+}
+
+:host ::ng-deep .code-block.lang-ts code .tok-type {
+  color: #4ec9b0;
+}
+
+:host ::ng-deep .code-block.lang-ts code .tok-fn {
+  color: #dcdcaa;
+}
+
+:host ::ng-deep .code-block.lang-ts code .tok-prop {
+  color: #9cdcfe;
+}
+
+:host ::ng-deep .code-block.lang-ts code .tok-string {
+  color: #ce9178;
+}
+
+:host ::ng-deep .code-block.lang-ts code .tok-comment {
+  color: #6a9955;
+}
+
+:host ::ng-deep .code-block.lang-ts code .tok-number {
+  color: #b5cea8;
+}
+
+:host ::ng-deep .code-block.lang-cs code .tok-keyword {
+  color: #569cd6;
+}
+
+:host ::ng-deep .code-block.lang-cs code .tok-fn {
+  color: #dcdcaa;
+}
+
+:host ::ng-deep .code-block.lang-cs code .tok-prop {
+  color: #9cdcfe;
+}
+
+:host ::ng-deep .code-block.lang-cs code .tok-string {
+  color: #ce9178;
+}
+
+:host ::ng-deep .code-block.lang-cs code .tok-comment {
+  color: #6a9955;
+}
+
+:host ::ng-deep .code-block.lang-cs code .tok-number {
+  color: #b5cea8;
+}
+
+.screenshots .shots-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.screenshots figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.screenshots img {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+:host ::ng-deep .screenshots .p-image,
+:host ::ng-deep .screenshots .p-image img {
+  width: 100%;
+  display: block;
+}
+
+:host ::ng-deep .screenshots .p-image {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--panel) 90%, transparent);
+}
+
+:host ::ng-deep .screenshots .p-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  border: 0;
+}
+
+:host ::ng-deep .screenshots .p-image .p-image-preview-mask,
+:host ::ng-deep .screenshots .p-image .p-image-mask {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.missing {
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  padding: 36px 10px;
+  text-align: center;
+  color: var(--muted);
+}
+
+/* PrimeNG p-image preview: force opaque modal mask and panel. */
+:host ::ng-deep .p-image-mask,
+:host ::ng-deep .p-image-preview-mask {
+  background: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+:host ::ng-deep .p-image-toolbar {
+  background: #0c1220 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35) !important;
+}
+
+:host ::ng-deep .p-image-action {
+  color: #eaf1ff !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+:host ::ng-deep .p-image-preview {
+  background: rgba(126, 178, 255, 0.18) !important;
+}
+
+// [MIGRATION-DEAD] .p-image-preview-container, .p-image-preview-close, .p-image-preview-container, .p-image-preview-close — class removed from library source
+// :host ::ng-deep .p-image-preview-container .p-image-preview-close,
+// :host ::ng-deep .p-image-preview-container .p-image-preview-close:hover {
+//   color: #ffffff !important;
+//   opacity: 1 !important;
+// }
+// [/MIGRATION-DEAD]
+
+/* Global override: p-image preview is appended under <body>, so host-scoped selectors are not enough. */
+::ng-deep .p-image-mask.p-component-overlay,
+::ng-deep .p-image-preview-mask.p-component-overlay {
+  background: rgba(12, 18, 30, 0.98) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+// [MIGRATION-DEAD] .p-image-preview-container — class removed from library source
+// ::ng-deep .p-image-preview-container {
+//   background: #0c1220 !important;
+// }
+// [/MIGRATION-DEAD]
+
+// [MIGRATION-DEAD] .p-image-preview-container — class removed from library source
+// ::ng-deep .p-image-preview-container .p-image-toolbar {
+//   background: #0c1220 !important;
+//   backdrop-filter: none !important;
+//   -webkit-backdrop-filter: none !important;
+//   filter: none !important;
+//   border: 1px solid rgba(255, 255, 255, 0.14) !important;
+//   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35) !important;
+// }
+// [/MIGRATION-DEAD]
+
+// [MIGRATION-DEAD] .p-image-preview-container, .p-image-preview-container, .p-image-preview-close — class removed from library source
+// ::ng-deep .p-image-preview-container .p-image-action,
+// ::ng-deep .p-image-preview-container .p-image-preview-close {
+//   color: #eaf1ff !important;
+//   opacity: 1 !important;
+//   text-shadow: none !important;
+// }
+// [/MIGRATION-DEAD]
+
+/* Thumbnail hover in docs: keep it readable, not full black. */
+// [MIGRATION-DEAD] dead in this rule: .p-image-preview-indicator
+:host ::ng-deep .screenshots .p-image .p-image-mask,
+:host ::ng-deep .screenshots .p-image .p-image-preview-indicator {
+  background: rgba(12, 18, 30, 0.26) !important;
+}
+
+.themes-catalog {
+  margin-top: 14px;
+  padding: 6px 0 16px;
+  border-top: 1px dashed var(--border);
+}
+
+.themes-catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.themes-catalog-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 2.25rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+}
+
+.theme-dot {
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--text) 25%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, #ffffff 55%, transparent) inset;
+  flex: 0 0 auto;
+}
+
+.toc {
+  position: sticky;
+  top: 20px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.toc h4 {
+  margin: 0 0 8px;
+}
+
+.toc ul {
+  margin: 0;
+  padding-left: 18px;
+  list-style-position: outside;
+}
+
+.toc a {
+  display: block;
+  color: var(--text);
+  text-decoration: none;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.toc li {
+  margin: 0 0 6px;
+}
+
+.toc li:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 1360px) and (min-width: 1101px) {
+  .body-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 320px);
+  }
+}
+
+@media (max-width: 1100px) {
+  .fw-docs {
+    grid-template-columns: 1fr;
+    height: auto;
+    overflow: visible;
+  }
+
+  .sidebar {
+    height: auto;
+    position: static;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .content {
+    height: auto;
+    overflow: visible;
+  }
+
+  .body-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .toc {
+    position: static;
+  }
+}

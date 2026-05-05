@@ -1,0 +1,33 @@
+{
+  "config": {
+    "baseUrl": "http://localhost:4201",
+    "backendBaseUrl": "http://localhost:5100",
+    "user": "admin_test",
+    "password": "Test123!",
+    "apiUser": "admin_test_2",
+    "apiPassword": "Test123!",
+    "filter": "^09",
+    "bail": false,
+    "headed": false,
+    "outDir": "C:\\src\\Wuic\\FatturazioneElettronica\\playwright\\screenshots"
+  },
+  "results": [
+    {
+      "file": "09-invio-fattura-sdi.mjs",
+      "id": "09",
+      "name": "Invio fattura via SdiController (XML + markAsSent)",
+      "status": "pass",
+      "out": {
+        "fatturaId": 33,
+        "fileXml": "C:\\src\\Wuic\\KonvergenceCore\\wwwroot\\Upload\\sdi-out\\IT12345678901_00010.xml",
+        "xmlSize": 2814
+      },
+      "durationMs": 2425
+    }
+  ],
+  "pass": 1,
+  "fail": 0,
+  "skip": 0,
+  "total": 1,
+  "runAt": "2026-05-05T18:34:42.028Z"
+}

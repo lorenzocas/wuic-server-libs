@@ -1,0 +1,56 @@
+<svg class="wf-shape-layer" [attr.viewBox]="svgViewBox" aria-hidden="true">
+  <path class="wf-shape-fill" [attr.d]="shapePath"></path>
+  <rect class="wf-shape-title-band" [attr.x]="titleBandX" y="2" [attr.width]="titleBandWidth" [attr.height]="titleBandHeight" rx="5" ry="5"></rect>
+  <text class="wf-shape-title-text" [attr.x]="titleTextX" [attr.y]="titleTextY">
+    @for (line of titleLines; track line; let i = $index) {
+      <tspan [attr.x]="titleTextX" [attr.dy]="i === 0 ? 0 : titleLineDy">{{ line }}</tspan>
+    }
+  </text>
+  <path class="wf-shape-stroke" [attr.d]="shapePath" [attr.stroke-dasharray]="dashedStroke"></path>
+</svg>
+
+@for (output of data.outputs | keyvalueimpure: sortByIndex; track output) {
+  <div class="wf-output" [attr.data-testid]="'output-'+output.key">
+    <div class="wf-output-title" data-testid="output-title">{{ output.value?.label }}</div>
+    <div
+      class="wf-output-socket"
+      refComponent
+      [data]="{type: 'socket', side: 'output', key: output.key, nodeId: data.id, payload: output.value?.socket, seed: seed }"
+      [emit]="emit"
+      data-testid="output-socket">
+    </div>
+  </div>
+}
+
+@for (control of data.controls | keyvalueimpure: sortByIndex; track control) {
+  <div
+    class="wf-control"
+    refComponent
+    [data]="{type: 'control', payload: control.value }"
+    [emit]="emit"
+    [attr.data-testid]="'control-'+control.key">
+  </div>
+}
+
+@for (input of data.inputs | keyvalueimpure: sortByIndex; track input) {
+  <div class="wf-input" [attr.data-testid]="'input-'+input.key">
+    <div
+      class="wf-input-socket"
+      refComponent
+      [data]="{type: 'socket', side: 'input', key: input.key, nodeId: data.id, payload: input.value?.socket, seed: seed }"
+      [emit]="emit"
+      data-testid="input-socket">
+    </div>
+    @if (!input.value?.control || !input.value?.showControl) {
+      <div class="wf-input-title" data-testid="input-title">{{ input.value?.label }}</div>
+    }
+    <div
+      class="wf-input-control"
+      [style.display]="input.value?.control && input.value?.showControl ? '' : 'none'"
+      refComponent
+      [data]="{type: 'control', payload: input.value?.control }"
+      [emit]="emit"
+      data-testid="input-control">
+    </div>
+  </div>
+}

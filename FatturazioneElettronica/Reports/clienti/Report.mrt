@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<StiSerializer version="1.02" type="Net" application="StiReport">
+  <CalculationMode>Interpretation</CalculationMode>
+  <Dictionary Ref="1" type="Dictionary" isKey="true">
+    <BusinessObjects isList="true" count="0" />
+    <Databases isList="true" count="1">
+      <Connessione Ref="2" type="Stimulsoft.Report.Dictionary.StiSqlDatabase" isKey="true">
+        <Alias>Connessione</Alias>
+        <ConnectionStringEncrypted>1FJlCcloS+1iXI2I5FglC8RqzW3JW0PZYUe9mGIl4GPAePfrTnFL3ctEvfBiPeNG30DBiclK091hTe2YanTgP5B08QJNZPv9aVuhXGFsp2fg8rUJxUrzvGJHjRxNJaQf337N609Ue81iXJzMYBhle9Fw2UjNWUvtRUnNiMNJZRvEOvcCVFHzhWIT7dzqcCUvw/L9iU5WkqRiRKVQanjgj8Ng3etGTXMV4UQ=</ConnectionStringEncrypted>
+        <Name>Connessione</Name>
+      </Connessione>
+    </Databases>
+    <DataSources isList="true" count="1">
+      <clienti Ref="3" type="Stimulsoft.Report.Dictionary.StiSqlSource" isKey="true">
+        <Alias>clienti</Alias>
+        <Columns isList="true" count="9">
+          <value>id,Id,System.Int32</value>
+          <value>codice,Codice,System.String</value>
+          <value>ragione_sociale,Ragione_Sociale,System.String</value>
+          <value>partita_iva,Partita_IVA,System.String</value>
+          <value>codice_fiscale,Codice_Fiscale,System.String</value>
+          <value>citta,Citta,System.String</value>
+          <value>provincia,Provincia,System.String</value>
+          <value>email,Email,System.String</value>
+          <value>pec,PEC,System.String</value>
+        </Columns>
+        <CommandTimeout>300</CommandTimeout>
+        <Dictionary isRef="1" />
+        <Key>a1b2c3d4e5f6471a8c0d2f3e4b5a6c7d</Key>
+        <Name>clienti</Name>
+        <NameInSource>Connessione</NameInSource>
+        <Parameters isList="true" count="0" />
+        <SqlCommand>SELECT id, codice, ragione_sociale, partita_iva, codice_fiscale, citta, provincia, email, pec FROM dbo.clienti WHERE ISNULL(cancellato, 0) = 0 ORDER BY ragione_sociale ASC</SqlCommand>
+      </clienti>
+    </DataSources>
+    <Relations isList="true" count="0" />
+    <Report isRef="0" />
+    <Resources isList="true" count="0" />
+    <UserFunctions isList="true" count="0" />
+    <Variables isList="true" count="0" />
+  </Dictionary>
+  <EngineVersion>EngineV2</EngineVersion>
+  <GlobalizationStrings isList="true" count="0" />
+  <Key>b2c3d4e5f6a74712b8c0d2f3e4b5a6c7</Key>
+  <MetaTags isList="true" count="0" />
+  <Pages isList="true" count="1">
+    <Page1 Ref="4" type="Page" isKey="true">
+      <Border>None;Black;2;Solid;False;4;Black</Border>
+      <Brush>Transparent</Brush>
+      <Components isList="true" count="3">
+        <ReportTitleBand1 Ref="5" type="ReportTitleBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>0,0.4,19,1.2</ClientRectangle>
+          <Components isList="true" count="1">
+            <TextTitle Ref="20" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>0,0,19,1</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,18,Bold</Font>
+              <HorAlignment>Center</HorAlignment>
+              <Name>TextTitle</Name>
+              <Page isRef="4" />
+              <Parent isRef="5" />
+              <Text>Elenco Clienti</Text>
+              <TextBrush>Black</TextBrush>
+            </TextTitle>
+          </Components>
+          <Conditions isList="true" count="0" />
+          <Expressions isList="true" count="0" />
+          <Name>ReportTitleBand1</Name>
+          <Page isRef="4" />
+          <Parent isRef="4" />
+        </ReportTitleBand1>
+        <clienti_header Ref="6" type="HeaderBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>0,2,19,0.6</ClientRectangle>
+          <Components isList="true" count="5">
+            <TextH1 Ref="7" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>0,0,2,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,9,Bold</Font>
+              <Name>TextH1</Name>
+              <Page isRef="4" />
+              <Parent isRef="6" />
+              <Text>Codice</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+            </TextH1>
+            <TextH2 Ref="8" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>2,0,7,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,9,Bold</Font>
+              <Name>TextH2</Name>
+              <Page isRef="4" />
+              <Parent isRef="6" />
+              <Text>Ragione sociale</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+            </TextH2>
+            <TextH3 Ref="9" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>9,0,3,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,9,Bold</Font>
+              <Name>TextH3</Name>
+              <Page isRef="4" />
+              <Parent isRef="6" />
+              <Text>P.IVA</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+            </TextH3>
+            <TextH4 Ref="10" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>12,0,4,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,9,Bold</Font>
+              <Name>TextH4</Name>
+              <Page isRef="4" />
+              <Parent isRef="6" />
+              <Text>Citta</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+            </TextH4>
+            <TextH5 Ref="11" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>16,0,3,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,9,Bold</Font>
+              <Name>TextH5</Name>
+              <Page isRef="4" />
+              <Parent isRef="6" />
+              <Text>Email</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+            </TextH5>
+          </Components>
+          <Conditions isList="true" count="0" />
+          <Expressions isList="true" count="0" />
+          <Name>clienti_header</Name>
+          <Page isRef="4" />
+          <Parent isRef="4" />
+        </clienti_header>
+        <clienti_data Ref="12" type="DataBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <BusinessObjectGuid isNull="true" />
+          <ClientRectangle>0,3,19,0.6</ClientRectangle>
+          <Components isList="true" count="5">
+            <TextD1 Ref="13" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>0,0,2,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Name>TextD1</Name>
+              <Page isRef="4" />
+              <Parent isRef="12" />
+              <Text>{clienti.codice}</Text>
+              <TextBrush>Black</TextBrush>
+            </TextD1>
+            <TextD2 Ref="14" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>2,0,7,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Name>TextD2</Name>
+              <Page isRef="4" />
+              <Parent isRef="12" />
+              <Text>{clienti.ragione_sociale}</Text>
+              <TextBrush>Black</TextBrush>
+            </TextD2>
+            <TextD3 Ref="15" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>9,0,3,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Name>TextD3</Name>
+              <Page isRef="4" />
+              <Parent isRef="12" />
+              <Text>{clienti.partita_iva}</Text>
+              <TextBrush>Black</TextBrush>
+            </TextD3>
+            <TextD4 Ref="16" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>12,0,4,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Name>TextD4</Name>
+              <Page isRef="4" />
+              <Parent isRef="12" />
+              <Text>{clienti.citta} ({clienti.provincia})</Text>
+              <TextBrush>Black</TextBrush>
+            </TextD4>
+            <TextD5 Ref="17" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>16,0,3,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Name>TextD5</Name>
+              <Page isRef="4" />
+              <Parent isRef="12" />
+              <Text>{clienti.email}</Text>
+              <TextBrush>Black</TextBrush>
+            </TextD5>
+          </Components>
+          <Conditions isList="true" count="0" />
+          <DataSourceName>clienti</DataSourceName>
+          <Expressions isList="true" count="0" />
+          <Filters isList="true" count="0" />
+          <Name>clienti_data</Name>
+          <Page isRef="4" />
+          <Parent isRef="4" />
+          <PrintIfDetailEmpty>True</PrintIfDetailEmpty>
+          <Sort isList="true" count="0" />
+        </clienti_data>
+      </Components>
+      <Conditions isList="true" count="0" />
+      <Expressions isList="true" count="0" />
+      <Guid>c3d4e5f6a7b84812c8d0e2f3a4b5c6d7</Guid>
+      <Margins>1,1,1,1</Margins>
+      <Name>Page1</Name>
+      <PageHeight>29.7</PageHeight>
+      <PageWidth>21</PageWidth>
+      <Report isRef="0" />
+    </Page1>
+  </Pages>
+  <ReferencedAssemblies isList="true" count="8">
+    <value>System.Dll</value>
+    <value>System.Drawing.Dll</value>
+    <value>System.Windows.Forms.Dll</value>
+    <value>System.Data.Dll</value>
+    <value>System.Xml.Dll</value>
+    <value>Stimulsoft.Controls.Dll</value>
+    <value>Stimulsoft.Base.Dll</value>
+    <value>Stimulsoft.Report.Dll</value>
+  </ReferencedAssemblies>
+  <ReportAlias>Report</ReportAlias>
+  <ReportChanged>5/5/2026 10:35:00 AM</ReportChanged>
+  <ReportCreated>5/5/2026 10:35:00 AM</ReportCreated>
+  <ReportGuid>d4e5f6a7b8c94912d8e0f2a3b4c5d6e7</ReportGuid>
+  <ReportName>Report</ReportName>
+  <ReportUnit>Centimeters</ReportUnit>
+  <ReportVersion>2024.4.3.0</ReportVersion>
+  <Script>using System;
+using System.Drawing;
+using System.Windows.Forms;
+using System.Data;
+using Stimulsoft.Controls;
+using Stimulsoft.Base.Drawing;
+using Stimulsoft.Report;
+using Stimulsoft.Report.Dialogs;
+using Stimulsoft.Report.Components;
+
+namespace Reports
+{
+    public class Report : Stimulsoft.Report.StiReport
+    {
+        public Report()        {
+            this.InitializeComponent();
+        }
+
+        #region StiReport Designer generated code - do not modify
+		#endregion StiReport Designer generated code - do not modify
+    }
+}
+</Script>
+  <ScriptLanguage>CSharp</ScriptLanguage>
+  <Styles isList="true" count="0" />
+</StiSerializer>

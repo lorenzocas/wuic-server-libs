@@ -1,0 +1,55 @@
+<section class="workflow-runner">
+  <header class="runner-header">
+    <h2>{{ 'workflow_runner.title' | translate }}</h2>
+    <div class="runner-subtitle">
+      <span><strong>{{ 'workflow_runner.graph' | translate }}:</strong> {{ graphId }}</span>
+      @if (graphName) {
+      <span><strong>{{ 'name' | translate }}:</strong> {{ graphName }}</span>
+      }
+    </div>
+  </header>
+
+  @if (loading) {
+  <p class="runner-loading">{{ 'workflow_runner.loading' | translate }}</p>
+  }
+
+  @if (!loading && loadError) {
+  <p class="runner-error">{{ loadError }}</p>
+  }
+
+  @if (!loading && !loadError) {
+  <div class="runner-grid">
+    <article class="runner-card">
+      <h3>{{ 'workflow_runner.start' | translate }}</h3>
+      @if (startNode) {
+      <p><strong>{{ 'workflow_runner.caption' | translate }}:</strong> {{ startNode.startMenuCaption || ('workflow' | translate) }}</p>
+      <p><strong>{{ 'workflow_runner.defined_menus' | translate }}:</strong> {{ (startNode.startMenus || []).length }}</p>
+      } @else {
+      <p>{{ 'workflow_runner.start_node_missing' | translate }}</p>
+      }
+    </article>
+
+    <article class="runner-card">
+      <h3>{{ 'workflow_runner.graph' | translate }}</h3>
+      <p><strong>{{ 'workflow_runner.nodes' | translate }}:</strong> {{ nodes.length }}</p>
+      <p><strong>{{ 'workflow_runner.connections' | translate }}:</strong> {{ connections.length }}</p>
+      <p><strong>{{ 'workflow_runner.metadata_route' | translate }}:</strong> {{ routeMetadataCount }}</p>
+    </article>
+  </div>
+
+  <article class="runner-card runner-routes">
+    <h3>{{ 'workflow_runner.routes_connected_to_start' | translate }}</h3>
+    @if (!routeNodesConnectedToStart.length) {
+    <p>{{ 'workflow_runner.no_direct_routes' | translate }}</p>
+    } @else {
+    <ul>
+      @for (node of routeNodesConnectedToStart; track node.id) {
+      <li>
+        <a [routerLink]="['/', node.route, node.action || 'list']">{{ node.route }} [{{ node.action || 'list' }}]</a>
+      </li>
+      }
+    </ul>
+    }
+  </article>
+  }
+</section>

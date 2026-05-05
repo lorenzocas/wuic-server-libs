@@ -1,0 +1,100 @@
+<p-dialog [header]="'CSS Editor'" [(visible)]="visible" (visibleChange)="visibleChange.emit($event)" [modal]="true"
+  [closable]="true" [style]="{ width: '1100px', maxWidth: '98vw' }">
+  <div class="css-editor-layout">
+    <div class="css-editor-col">
+      <div class="css-editor-row">
+        <label>File CSS</label>
+        <p-select [options]="draftSheets" optionLabel="SheetPath" optionValue="SheetPath"
+          [(ngModel)]="selectedSheetPathDraft" (ngModelChange)="onSelectedSheetChanged()" appendTo="body"
+          [style]="{ width: '100%' }">
+        </p-select>
+      </div>
+      <div class="css-editor-row css-editor-inline">
+        <input type="text" [(ngModel)]="newSheetName" pattern="^[^/\\]+$"
+          [placeholder]="'Nuovo file in assets/' + (assetsFolder || '<dash_route>') + ' (solo nome, es. dashboard-custom.css)'" />
+        <p-button label="Crea file" (onClick)="addSheet()" [disabled]="!assetsFolder"></p-button>
+      </div>
+      @if (!assetsFolder) {
+      <div class="css-editor-row">
+        <small>Salva prima la dashboard per definire il folder (dash_route).</small>
+      </div>
+      }
+      <div class="css-editor-row">
+        <p-button severity="danger" label="Rimuovi file selezionato" (onClick)="removeSelectedSheet()"
+          [disabled]="!currentSheet"></p-button>
+      </div>
+    </div>
+
+    @if (currentSheet) {
+    <div class="css-editor-col">
+      <div class="css-editor-row">
+        <label>Classi</label>
+        <p-select [options]="currentSheet?.classes || []" optionLabel="SelectorString" optionValue="SelectorString"
+          [(ngModel)]="selectedClassSelector" (ngModelChange)="onSelectedClassChanged()" appendTo="body"
+          [style]="{ width: '100%' }">
+        </p-select>
+      </div>
+      <div class="css-editor-row css-editor-inline">
+        <input type="text" [(ngModel)]="newClassName" placeholder="Nuova classe (es. card-title)" />
+        <p-button label="Crea classe" (onClick)="addClassToSelectedSheet()" [disabled]="!currentSheet"></p-button>
+      </div>
+      <div class="css-editor-row">
+        <p-button severity="danger" label="Rimuovi classe selezionata" (onClick)="removeSelectedClass()"
+          [disabled]="!currentClass"></p-button>
+      </div>
+    </div>
+    }
+  </div>
+
+  @if (currentClass) {
+  <div class="css-editor-styles">
+    <div class="css-editor-row css-style-row" style="margin-bottom: 8px;">
+      <p-select [options]="styleProps" optionLabel="key" optionValue="key" [(ngModel)]="pendingStyleKey"
+        (ngModelChange)="onPendingStyleKeyChanged()" appendTo="body" [style]="{ width: '260px' }">
+      </p-select>
+
+      @if (isPropertyDictionary(pendingStyleKey)) {
+      <p-select [options]="getPropertyValues(pendingStyleKey)" [(ngModel)]="pendingStyleValue" appendTo="body"
+        [style]="{ width: '320px' }">
+      </p-select>
+      } @else if (isPropertyColor(pendingStyleKey)) {
+
+      <div class="css-style-color-input">
+        <div class="color-editor-root" [ngStyle]="{ '--wuic-color-editor-preview': valore || 'transparent' }">
+          <p-colorPicker format="hsb" [ngModel]="pickerValue" (ngModelChange)="onPendingColorChanged($event)"
+            appendTo="body">
+          </p-colorPicker>
+        </div>
+        <input type="text" [(ngModel)]="pendingStyleValue" style="width: 252px;" />
+      </div>
+      <div class="color-editor-alpha-row">
+        <label class="color-editor-alpha-label">Alpha</label>
+        <input type="range" min="0" max="1" step="0.01" [ngModel]="alphaValue"
+          (ngModelChange)="onAlphaChange($event)" />
+        <input type="number" min="0" max="1" step="0.01" [ngModel]="alphaValue"
+          (ngModelChange)="onAlphaChange($event)" />
+      </div>
+
+      } @else {
+      <input type="text" [(ngModel)]="pendingStyleValue" style="width: 320px;" />
+      }
+
+      <p-button label="Aggiungi proprietà corrente" (onClick)="addStyleToSelectedClass()"
+        [disabled]="!currentClass || !pendingStyleKey"></p-button>
+    </div>
+
+    @for (style of currentClass.Styles; track style; let i = $index) {
+    <div class="css-style-row">
+      <div class="css-style-readonly-key">{{ style.Key }}</div>
+      <div class="css-style-readonly-value">{{ style.Value }}</div>
+
+      <p-button icon="pi pi-trash" severity="danger" [text]="true" (onClick)="removeStyle(i)"></p-button>
+    </div>
+    }
+  </div>
+  }
+
+  <ng-template pTemplate="footer">
+    <p-button label="Chiudi" severity="secondary" (onClick)="close()"></p-button>
+  </ng-template>
+</p-dialog>

@@ -1,0 +1,346 @@
+:host {
+    display: block;
+    width: 100%;
+    min-height: 0;
+    overflow: visible;
+}
+
+:host ::ng-deep .wuic-filter-bar .p-tabpanels,
+:host ::ng-deep .wuic-filter-bar .p-tabpanel,
+:host ::ng-deep .wuic-filter-bar [data-pc-name="tabpanel"] {
+    padding: 0 !important;
+}
+
+:host ::ng-deep .wuic-filter-bar .filter-bar-collapse-row {
+    display: flex;
+    align-items: center;
+    padding: 0.2rem 0.2rem 0;
+}
+
+:host ::ng-deep .wuic-filter-bar .filter-bar-collapse-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.35rem 0.5rem;
+}
+
+:host ::ng-deep .wuic-filter-bar .p-tabpanel {
+    overflow: visible;
+}
+
+:host ::ng-deep .wuic-filter-bar .row {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+:host ::ng-deep .wuic-filter-bar .row::after {
+    content: "";
+    display: block;
+    clear: both;
+}
+
+:host ::ng-deep .wuic-filter-bar .filter-buttons {
+    margin-top: 0.5rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    float: none;
+}
+
+.filter-bar-content {
+    width: 100%;
+}
+
+.filter-bar-content-hidden {
+    display: none;
+}
+
+
+.filter-items-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.filter-item {
+    flex: 0 0 auto;
+    min-width: 140px;
+    max-width: 220px;
+}
+
+
+.filter-buttons {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.4rem;
+    margin-left: auto;
+}
+
+.filter-item-label {
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.filter-item-label + .filter-item-sublabel {
+    display: block;
+    font-size: 0.7rem;
+    color: #888;
+    margin-bottom: 2px;
+}
+
+.advanced-filter-actions-top {
+    display: flex;
+    gap: 8px;
+    margin: 8px 0;
+}
+
+.advanced-filter-readonly-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin: 8px 0;
+}
+
+.advanced-filter-summary {
+    margin: 8px 0 12px;
+    padding: 10px 12px;
+    border: 1px solid #d7deea;
+    border-radius: 8px;
+    background: #f9fbff;
+    color: #1f2a44;
+    font-size: 0.95rem;
+    line-height: 1.35;
+}
+
+.advanced-group {
+    border: 1px solid #d7deea;
+    border-radius: 8px;
+    padding: 10px;
+    margin: 10px 0;
+    background: #f9fbff;
+}
+
+.advanced-group-header {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+
+.advanced-group-title {
+    font-weight: 600;
+}
+
+.advanced-group-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.advanced-group-actions {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+}
+
+.advanced-rule-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+.advanced-rule-value {
+    min-width: 220px;
+    flex: 1 1 220px;
+}
+
+:host ::ng-deep .advanced-rule-value wuic-field-filter {
+    float: none !important;
+    width: 100%;
+}
+
+:host ::ng-deep .advanced-rule-value wuic-field-filter[class*='col-md-'] {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+:host ::ng-deep .advanced-rule-value .data-field-wrapper,
+:host ::ng-deep .advanced-rule-value .data-field-field,
+:host ::ng-deep .advanced-rule-value .editor-wapper {
+    margin: 0 !important;
+}
+
+.advanced-filter-inline-scroll {
+    max-height: 100px;
+    overflow: auto;
+    padding-right: 4px;
+}
+
+.advanced-filter-popup-body {
+    overflow: auto;
+    padding-right: 4px;
+}
+
+/* Mobile: stila .filter-bar-content come overlay fullscreen quando aperto.
+   Niente <p-dialog> ne' <ng-template>: il content resta inline (necessario
+   per i binding [(ngModel)] / [record]="filterDescriptor" di <wuic-field-filter>),
+   ma visivamente diventa una modal che NON schiaccia la lista sotto. */
+.filter-bar-content-mobile-overlay {
+    position: fixed;
+    inset: 4vh 2.5vw;
+    width: auto;
+    z-index: 1101;
+    background: var(--p-content-background, #ffffff);
+    border: 1px solid var(--p-content-border-color, #d6dbe5);
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 12px 14px 18px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Backdrop dietro l'overlay: pseudo-element sul body via :has (supportato Chrome 105+/Safari 15.4+). */
+:host:has(.filter-bar-content-mobile-overlay)::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 1100;
+}
+
+.filter-bar-mobile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--p-content-border-color, #d6dbe5);
+    margin-bottom: 4px;
+}
+
+.filter-bar-mobile-title {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.filter-bar-mobile-header button .pi {
+    font-size: 1.2rem;
+}
+
+/* Tab Raggruppamento: separare visivamente le sezioni "Raggruppamento" e
+   "Aggregazione" con fieldset + legend, e label sopra ogni control. */
+.filter-bar-grouping-section {
+    border: 1px solid var(--p-content-border-color, #d6dbe5);
+    border-radius: 8px;
+    padding: 10px 12px 12px 12px;
+    margin: 0 0 12px 0;
+    background: color-mix(in srgb, var(--p-content-background, #ffffff) 80%, transparent);
+}
+
+.filter-bar-grouping-section > legend {
+    padding: 0 6px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-transform: capitalize;
+    color: var(--p-text-color, #1f2937);
+}
+
+.filter-bar-control-label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: color-mix(in srgb, var(--p-text-color, #1f2937) 60%, transparent);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* Lista degli items applicati (raggruppamenti / aggregazioni) dentro le sezioni */
+.filter-bar-applied-list {
+    list-style: none;
+    padding: 0;
+    margin: 10px 0 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.filter-bar-applied-list li {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: color-mix(in srgb, var(--p-primary-color, #3b82f6) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--p-primary-color, #3b82f6) 35%, transparent);
+    border-radius: 999px;
+    font-size: 0.85rem;
+}
+
+.filter-bar-applied-name {
+    font-weight: 500;
+}
+
+.filter-bar-applied-tag {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--p-primary-color, #3b82f6);
+    color: var(--p-primary-contrast-color, #ffffff);
+    letter-spacing: 0.04em;
+}
+
+/* Tabs Sorting / Raggruppamento / Page Size usano `.row > .col-N` Bootstrap-like.
+   Su mobile overlay quel layout ibrido (selects + buttons mescolati con float)
+   genera buchi e bottoni stackati malamente. Forziamo stack verticale pulito. */
+.filter-bar-content-mobile-overlay :host ::ng-deep .row,
+.filter-bar-content-mobile-overlay .row {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.filter-bar-content-mobile-overlay .row [class^="col-"],
+.filter-bar-content-mobile-overlay .row [class*=" col-"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    flex: 0 0 auto;
+}
+
+.filter-bar-content-mobile-overlay .row .p-button,
+.filter-bar-content-mobile-overlay .row button.p-button {
+    width: 100%;
+    margin: 0 !important;
+}
+
+/* Coppie di bottoni inline (es. Filtro + Pulisci nello stesso col) restano
+   side-by-side anche su mobile quando il col li contiene entrambi. */
+.filter-bar-content-mobile-overlay .row [class^="col-"] > .p-button + .p-button,
+.filter-bar-content-mobile-overlay .row [class*=" col-"] > .p-button + .p-button {
+    margin-left: 8px !important;
+}
+
+.filter-bar-content-mobile-overlay .row [class^="col-"]:has(.p-button + .p-button),
+.filter-bar-content-mobile-overlay .row [class*=" col-"]:has(.p-button + .p-button) {
+    display: flex;
+    gap: 8px;
+}
+
+.filter-bar-content-mobile-overlay .row [class^="col-"]:has(.p-button + .p-button) > .p-button,
+.filter-bar-content-mobile-overlay .row [class*=" col-"]:has(.p-button + .p-button) > .p-button {
+    flex: 1 1 0;
+    margin-left: 0 !important;
+}

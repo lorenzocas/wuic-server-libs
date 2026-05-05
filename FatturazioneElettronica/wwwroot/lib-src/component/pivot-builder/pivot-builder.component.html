@@ -1,0 +1,394 @@
+<div class="pivot-builder">
+  <!-- ===== Global header (just title) ===== -->
+  <div class="pivot-toolbar">
+    <h2>{{ 'pivot_builder.title' | translate }}</h2>
+  </div>
+
+  <wuic-data-source #nestedSource class="pivot-hidden-datasource" [route]="pivotRoute$" [autoload]="true">
+  </wuic-data-source>
+
+  <!-- ===== Tabs ===== -->
+  <p-tabs [(value)]="activeTab">
+    <p-tablist>
+      <p-tab [value]="0">
+        <i class="pi pi-sitemap mr-2"></i>
+        <span>{{ 'pivot_builder.tab.view_builder' | translate }}</span>
+      </p-tab>
+      <p-tab [value]="1">
+        <i class="pi pi-th-large mr-2"></i>
+        <span>{{ 'pivot_builder.tab.pivot_config' | translate }}</span>
+      </p-tab>
+    </p-tablist>
+    <p-tabpanels>
+
+      <!-- ==================== Tab 0: View Builder ==================== -->
+      <p-tabpanel [value]="0">
+        <!-- View Builder toolbar -->
+        <div class="pivot-actions-row">
+          <!-- Toolbar: tutti i button uniformati al tema selezionato
+               (primary color della palette attiva — es. Aura Blu/Teal/...).
+               Rimosse severity override per evitare mix `contrast/success/
+               secondary` che rompeva la coerenza visiva.
+               "Create View", "Save Definition", "Open" + "Delete" sono
+               raggruppati nello split-button "Definition". -->
+          <div class="pivot-actions">
+            <p-button [label]="'pivot_builder.vb.generate_query' | translate" icon="pi pi-play" [loading]="generatingViewDefSql"
+              [disabled]="!hasViewDefinition" (onClick)="generateSqlFromViewDefinition()">
+            </p-button>
+            <p-button [label]="'pivot_builder.vb.execute_query' | translate" icon="pi pi-bolt" [loading]="executingViewDefQuery"
+              [disabled]="!hasViewDefinition" (onClick)="executeViewDefinitionQuery()">
+            </p-button>
+            <p-splitButton #definitionSplitBtn
+              [label]="'pivot_builder.vb.definition' | translate"
+              icon="pi pi-database"
+              [model]="definitionMenuItems"
+              styleClass="pivot-actions-definition-split"
+              [menuButtonProps]="{ ariaLabel: ('pivot_builder.vb.definition' | translate) }"
+              (onClick)="openDefinitionMenu(definitionSplitBtn, $event)">
+            </p-splitButton>
+          </div>
+          <!-- Chip della view creata: se c'e' una `createdViewRoute` rendiamo
+               un anchor cliccabile verso `#/<route>/list` (apertura in nuovo
+               tab, pattern standard del framework — vedi list-grid.component
+               `mc_logic_navigate_new_window`). Altrimenti ricadiamo su uno
+               span semplice (es. view creata senza scaffold, o payload
+               legacy senza route). -->
+          @if (createdViewName) {
+            @if (createdViewRoute) {
+              <a class="pivot-created-view-label pivot-created-view-link"
+                [href]="'#/' + createdViewRoute + '/list'"
+                target="_blank" rel="noopener"
+                [title]="t('pivot_builder.vb.view_created_tooltip','DB View created from this definition') + ' — ' + createdViewRoute + '/list'">
+                <i class="pi pi-database"></i> {{ createdViewName }}
+                <i class="pi pi-external-link pivot-created-view-ext"></i>
+              </a>
+            } @else {
+              <span class="pivot-created-view-label" [title]="t('pivot_builder.vb.view_created_tooltip','DB View created from this definition')">
+                <i class="pi pi-database"></i> {{ createdViewName }}
+              </span>
+            }
+          }
+          <!-- Settings split-button (pattern "Azioni designer"): ogni voce
+               del menu e' un toggle con icona check/stop che riflette lo
+               stato corrente (auto-generate, manual SQL, all-filterable,
+               auto-reflow). Click sulla voce inverte il flag.
+               Allineato a destra della toolbar tramite
+               `.pivot-actions-settings` (margin-left: auto). -->
+          <div class="pivot-actions-settings">
+            <p-splitButton #settingsSplitBtn
+              [label]="'pivot_builder.vb.settings' | translate"
+              icon="pi pi-cog"
+              [model]="settingsMenuItems"
+              styleClass="pivot-actions-settings-split"
+              [menuButtonProps]="{ ariaLabel: ('pivot_builder.vb.settings' | translate) }"
+              (onClick)="openSettingsMenu(settingsSplitBtn, $event)">
+            </p-splitButton>
+          </div>
+        </div>
+
+        <!-- Filter bar for View Builder (multi-table or single-table) — hidden in manual SQL mode -->
+        @if (!manualSqlMode && (viewBuilderFilterMetas.length || viewBuilderFilterRoute)) {
+        <div class="pivot-filter-full">
+          <wuic-filter-bar
+            [multiDatasourceMetas]="viewBuilderFilterMetas"
+            [hardcodedDatasource]="viewBuilderFilterMetas.length ? null! : nestedSource"
+            [skipUrlSync]="true"
+            [skipFetch]="true"
+            (filterApplied)="onViewBuilderFilterApplied()"
+            (onFilterApplied)="onViewBuilderMultiFilterApplied($event)"
+            (onPageSizeApplied)="onViewBuilderPageSizeApplied($event)"
+            (onSortingApplied)="onViewBuilderSortingApplied($event)"
+            (onGroupingChanged)="onViewBuilderGroupingChanged($event)">
+          </wuic-filter-bar>
+        </div>
+        }
+
+        <div style="flex: 1; min-height: 0; width: 100%;" [class.pivot-disabled-overlay]="manualSqlMode">
+          <wuic-view-builder #viewBuilderRef [autoReflowLayout]="autoReflowLayout"
+            (viewDefinitionChange)="onViewDefinitionChange($event)">
+          </wuic-view-builder>
+        </div>
+      </p-tabpanel>
+
+      <!-- ==================== Tab 1: Pivot Configuration ==================== -->
+      <p-tabpanel [value]="1">
+        <!-- Pivot toolbar: route selector + actions -->
+        <div class="pivot-actions-row">
+          <!-- Toolbar uniformata al tema selezionato (stessa regola della
+               tab View Builder: nessuna severity override).
+               "Create View", "Create Materialized Table",
+               "Save Configuration", "Open Pivot" sono raggruppati nello
+               split-button "Actions" (stesso pattern del Definition
+               split-button del tab View Builder). -->
+          <div class="pivot-actions">
+            <p-button [label]="'pivot_builder.generate_query' | translate" icon="pi pi-play" [loading]="generatingSql"
+              [disabled]="!canExecutePivot" (onClick)="generatePivotSql()">
+            </p-button>
+            <p-button [label]="'pivot_builder.execute_query' | translate" icon="pi pi-bolt"
+              [loading]="executingQuery" [disabled]="!canExecutePivot" (onClick)="executePivotSql()">
+            </p-button>
+            <p-splitButton #pivotConfigSplitBtn
+              [label]="'pivot_builder.actions' | translate"
+              [icon]="(creatingView || creatingMaterializedTable || savingConfiguration || reopeningPivotList || deletingPivot)
+                       ? 'pi pi-spin pi-spinner'
+                       : 'pi pi-ellipsis-v'"
+              [model]="pivotConfigMenuItems"
+              styleClass="pivot-actions-config-split"
+              [menuButtonProps]="{ ariaLabel: ('pivot_builder.actions' | translate) }"
+              (onClick)="openPivotConfigMenu(pivotConfigSplitBtn, $event)">
+            </p-splitButton>
+            <!-- Chip cliccabile della view/materialized-table scaffoldata
+                 dal pivot (pattern identico al chip createdViewName del
+                 tab View Builder). Apre `#/<route>/list` in nuovo tab.
+                 Tooltip include il tipo (view o table) serializzato. -->
+            @if (pivotCreatedName) {
+              @if (pivotCreatedRoute) {
+                <a class="pivot-created-view-label pivot-created-view-link"
+                  [href]="'#/' + pivotCreatedRoute + '/list'"
+                  target="_blank" rel="noopener"
+                  [title]="(pivotCreatedKind === 'table'
+                            ? t('pivot_builder.pivot_table_created_tooltip','Materialized table created from this pivot')
+                            : t('pivot_builder.pivot_view_created_tooltip','DB view created from this pivot'))
+                           + ' — ' + pivotCreatedRoute + '/list'">
+                  <i [ngClass]="pivotCreatedKind === 'table' ? 'pi pi-table' : 'pi pi-database'"></i>
+                  {{ pivotCreatedName }}
+                  <i class="pi pi-external-link pivot-created-view-ext"></i>
+                </a>
+              } @else {
+                <span class="pivot-created-view-label">
+                  <i [ngClass]="pivotCreatedKind === 'table' ? 'pi pi-table' : 'pi pi-database'"></i>
+                  {{ pivotCreatedName }}
+                </span>
+              }
+            }
+          </div>
+          <!-- Settings split-button del tab Pivot Config: stessi 3 toggle
+               del View Builder Settings (auto-generate, manual SQL,
+               all-filterable) meno il `auto-reflow` che e' specifico del
+               canvas. Allineato a destra con `.pivot-actions-settings`. -->
+          <div class="pivot-actions-settings">
+            <p-splitButton #pivotSettingsSplitBtn
+              [label]="'pivot_builder.vb.settings' | translate"
+              icon="pi pi-cog"
+              [model]="pivotSettingsMenuItems"
+              styleClass="pivot-actions-settings-split"
+              [menuButtonProps]="{ ariaLabel: ('pivot_builder.vb.settings' | translate) }"
+              (onClick)="openPivotSettingsMenu(pivotSettingsSplitBtn, $event)">
+            </p-splitButton>
+          </div>
+        </div>
+
+        <table style="width: 100%;">
+          <tr>
+            <td>
+              <p-autoComplete [(ngModel)]="selectedRouteOption" [suggestions]="filteredRouteOptions"
+                (completeMethod)="filterRouteOptions($event)" (onSelect)="onRouteOptionSelected($event.value)"
+                [dropdown]="true" [forceSelection]="true" optionLabel="label"
+                [placeholder]="'pivot_builder.select_route_placeholder' | translate"
+                styleClass="pivot-route-autocomplete">
+              </p-autoComplete>
+            </td>
+            <td>
+              <label>{{ 'aggregation' | translate }}</label>
+              <p-select [options]="aggregateOptions" optionLabel="label" optionValue="value"
+                [(ngModel)]="aggregateFunction">
+              </p-select>
+            </td>
+            <!-- Campo "Top rows" rimosso: il cap viene letto dal `nestedSource.pageSize`
+                 impostato via filter-bar "Dimensione pagina" (scelta utente con sentinel
+                 0 = "Illimitato"). topRows resta in stato come default-fallback solo se
+                 il pageSize non e' stato applicato esplicitamente. -->
+          </tr>
+        </table>
+
+        <!-- Filter panel -->
+        <div class="pivot-filter-full">
+
+          @if (selectedRouteName) {
+          <wuic-filter-bar [hardcodedDatasource]="nestedSource" [skipUrlSync]="true" [skipFetch]="true"
+            (filterApplied)="onFilterBarApplied()"
+            (onPageSizeApplied)="onPivotConfigPageSizeApplied($event)"
+            (onSortingApplied)="onPivotConfigSortingApplied($event)"
+            (onGroupingChanged)="onPivotConfigGroupingChanged($event)"></wuic-filter-bar>
+          }
+
+        </div>
+
+        <!-- 4-panel splitter: source cols | rows | columns | values -->
+        <div class="pivot-buckets-row">
+          <p-splitter [panelSizes]="[28, 24, 24, 24]" [style]="{ height: '100%', width: '100%' }"
+            styleClass="pivot-buckets-splitter">
+            <ng-template #panel>
+              <div class="pivot-panel">
+                <h3>{{ 'pivot_builder.route_columns' | translate }}</h3>
+                <div class="pivot-columns-list" [ngClass]="{ 'is-loading': loadingRouteColumns }">
+                  @for (col of sourceColumns; track col.alias) {
+                  <div class="pivot-column-item" draggable="true" (dragstart)="onDragStart($event, col)">
+                    <span>{{ col.label }}</span>
+                    <div class="pivot-column-actions">
+                      <button type="button" class="mini-btn" (click)="addToRows(col)">{{ 'row' | translate }}</button>
+                      <button type="button" class="mini-btn" (click)="addToColumns(col)">{{ 'column' | translate
+                        }}</button>
+                      <button type="button" class="mini-btn" (click)="addToValues(col)">{{ 'value' | translate
+                        }}</button>
+                    </div>
+                  </div>
+                  }
+                </div>
+              </div>
+            </ng-template>
+
+            <ng-template #panel>
+              <div class="pivot-panel">
+                <h3>{{ 'pivot_builder.rows_axis' | translate }}</h3>
+                <div class="pivot-dropzone" (dragover)="allowDrop($event)" (drop)="onDropToRows($event)">
+                  @if (!rowColumns.length) {
+                  <div class="pivot-empty">{{ 'pivot_builder.drag_rows_here' | translate }}</div>
+                  }
+                  @for (col of rowColumns; track col.alias) {
+                  <div class="pivot-chip">
+                    <span>{{ col.label }}</span>
+                    @if (isAxisDateCastAvailable(col)) {
+                    <label class="pivot-row-cast-flag">
+                      <input type="checkbox" [ngModel]="!!col.castDate"
+                        (ngModelChange)="setRowCastDate(col.alias, $event)" />
+                      {{ 'pivot_builder.cast_date' | translate }}
+                    </label>
+                    }
+                    @if (isAxisDateTimeGroupAvailable(col)) {
+                    <p-select [options]="dateGroupByOptions" optionLabel="label" optionValue="value"
+                      [ngModel]="col.dateGroupBy || ''" (ngModelChange)="setRowDateGroupBy(col.alias, $event)"
+                      appendTo="body" styleClass="pivot-chip-agg-select">
+                    </p-select>
+                    }
+                    <button type="button" (click)="removeFromRows(col.alias)">x</button>
+                  </div>
+                  }
+                </div>
+              </div>
+            </ng-template>
+
+            <ng-template #panel>
+              <div class="pivot-panel">
+                <h3>{{ 'pivot_builder.columns_axis' | translate }}</h3>
+                <div class="pivot-dropzone" (dragover)="allowDrop($event)" (drop)="onDropToColumns($event)">
+                  @if (!columnColumns.length) {
+                  <div class="pivot-empty">{{ 'pivot_builder.drag_columns_here' | translate }}</div>
+                  }
+                  @for (col of columnColumns; track col.alias) {
+                  <div class="pivot-chip">
+                    <span>{{ col.label }}</span>
+                    @if (isAxisDateCastAvailable(col)) {
+                    <label class="pivot-row-cast-flag">
+                      <input type="checkbox" [ngModel]="!!col.castDate"
+                        (ngModelChange)="setColumnCastDate(col.alias, $event)" />
+                      {{ 'pivot_builder.cast_date' | translate }}
+                    </label>
+                    }
+                    @if (isAxisDateTimeGroupAvailable(col)) {
+                    <p-select [options]="dateGroupByOptions" optionLabel="label" optionValue="value"
+                      [ngModel]="col.dateGroupBy || ''" (ngModelChange)="setColumnDateGroupBy(col.alias, $event)"
+                      appendTo="body" styleClass="pivot-chip-agg-select">
+                    </p-select>
+                    }
+                    <button type="button" (click)="removeFromColumns(col.alias)">x</button>
+                  </div>
+                  }
+                </div>
+              </div>
+            </ng-template>
+
+            <ng-template #panel>
+              <div class="pivot-panel">
+                <h3>{{ 'pivot_builder.values' | translate }}</h3>
+                <div class="pivot-dropzone" (dragover)="allowDrop($event)" (drop)="onDropToValues($event)">
+                  @if (!valueColumns.length) {
+                  <div class="pivot-empty">{{ 'pivot_builder.drag_values_here' | translate }}</div>
+                  }
+                  @for (col of valueColumns; track col.id) {
+                  <div class="pivot-chip">
+                    <input class="pivot-value-caption" type="text" [ngModel]="col.caption"
+                      (ngModelChange)="setValueCaption(col.id, $event)" [title]="col.label"
+                      [placeholder]="'pivot_builder.metric_caption' | translate" />
+                    <div class="pivot-chip-actions">
+                      <p-select [options]="aggregateOptions" optionLabel="label" optionValue="value"
+                        [ngModel]="getValueAggregate(col.id)" (ngModelChange)="setValueAggregate(col.id, $event)"
+                        appendTo="body" styleClass="pivot-chip-agg-select">
+                      </p-select>
+                      <button type="button" (click)="removeFromValues(col.id)">x</button>
+                    </div>
+                  </div>
+                  }
+                </div>
+              </div>
+            </ng-template>
+          </p-splitter>
+        </div>
+      </p-tabpanel>
+    </p-tabpanels>
+  </p-tabs>
+
+  <!-- ===== Output row (below tabs, always visible) ===== -->
+  <div class="pivot-output-row">
+    @if (!showQueryResults) {
+    <div class="pivot-sql-editor">
+      <h3 [innerHTML]="'pivot_builder.generated_sql' | translate"></h3>
+      @if (generatingViewDefSql || generatingSql) {
+      <div class="pivot-sql-busy"><i class="pi pi-spin pi-spinner"></i> {{ 'pivot_builder.generating' | translate }}</div>
+      }
+      <ngx-monaco-editor [options]="sqlEditorOptions" [(ngModel)]="generatedSql"></ngx-monaco-editor>
+    </div>
+    } @else {
+    <p-splitter [panelSizes]="[50, 50]" [style]="{ height: '100%', width: '100%' }" styleClass="pivot-result-splitter">
+      <ng-template #panel>
+        <div class="pivot-sql-editor">
+          <h3 [innerHTML]="'pivot_builder.generated_sql' | translate"></h3>
+          @if (generatingViewDefSql || generatingSql) {
+          <div class="pivot-sql-busy"><i class="pi pi-spin pi-spinner"></i> {{ 'pivot_builder.generating' | translate }}</div>
+          }
+          <ngx-monaco-editor [options]="sqlEditorOptions" [(ngModel)]="generatedSql"></ngx-monaco-editor>
+        </div>
+      </ng-template>
+      <ng-template #panel>
+        <div class="pivot-result-panel">
+          <h3>{{ 'pivot_builder.query_results' | translate }}</h3>
+          <p-table [value]="queryResultRows" [scrollable]="true" scrollHeight="flex" styleClass="pivot-result-table">
+            <ng-template pTemplate="header">
+              <tr>
+                @for (c of queryResultColumns; track c) {
+                <th>{{ c }}</th>
+                }
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-row>
+              <tr>
+                @for (c of queryResultColumns; track c) {
+                <td>{{ formatQueryCellValue(row?.[c], c) }}</td>
+                }
+              </tr>
+            </ng-template>
+          </p-table>
+        </div>
+      </ng-template>
+    </p-splitter>
+    }
+  </div>
+</div>
+
+<p-dialog [header]="viewBuilderOpenMode ? t('pivot_builder.vb.open_view_definition','Open View Definition') : ('pivot_builder.reopen_pivot' | translate)" [(visible)]="reopenPivotDialogVisible" [modal]="true"
+  [closable]="true" [draggable]="false" [resizable]="false" [appendTo]="'body'" [style]="{ width: '34rem' }"
+  (onHide)="cancelReopenPivotDialog()">
+  <div class="route-popup-form">
+    <label for="pivot-reopen-select">{{ viewBuilderOpenMode ? t('pivot_builder.vb.saved_view_definitions','Saved view definitions') : ('pivot_builder.saved_pivots' | translate) }}</label>
+    <p-select inputId="pivot-reopen-select" [options]="savedPivotOptions" optionLabel="label" optionValue="value"
+      [(ngModel)]="reopenDialogSelectedPivotName" [filter]="true" [showClear]="true" [style]="{ width: '100%' }"
+      appendTo="body" />
+
+    <div class="route-popup-actions">
+      <button type="button" class="route-popup-btn" (click)="cancelReopenPivotDialog()">{{ 'cancel' | translate
+        }}</button>
+      <button type="button" class="route-popup-btn route-popup-btn-primary" (click)="confirmReopenPivotDialog()"
+        [disabled]="!reopenDialogSelectedPivotName">{{ 'open' | translate }}</button>
+    </div>
+  </div>
+</p-dialog>

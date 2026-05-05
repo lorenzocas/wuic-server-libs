@@ -1,0 +1,196 @@
+.editor-btn {
+    color: #fff;
+    list-style-type: none;
+    z-index: 2001;
+    visibility: visible;
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    display: flex;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+}
+
+.editor-btn li {
+    list-style: none;
+}
+
+.editor-btn li div {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #334155;
+    border-radius: 4px;
+    background: rgba(15, 23, 42, 0.85);
+    cursor: pointer;
+}
+
+.fullscreen {
+    position: fixed;
+    inset: 16px;
+    z-index: 3000;
+    background: #1e1e1e;
+    width: auto;
+    height: auto;
+}
+
+.fullscreen .editor-shell {
+    position: absolute;
+    top: 44px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: auto;
+}
+
+.fullscreen .editor-pane ngx-monaco-editor {
+    position: relative;
+    height: auto !important;
+}
+
+
+.no-full-screen {
+    width: 100%;
+    height: 200px;
+    position: relative;
+}
+
+.editor-container {
+    overflow: visible !important;
+}
+
+.editor-shell {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+}
+
+.editor-pane {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 100%;
+}
+
+.editor-pane--with-preview {
+    flex: 0 0 62%;
+}
+
+.html-preview-pane {
+    flex: 0 0 38%;
+    min-width: 260px;
+    border-left: 1px solid #404040;
+    background: #111827;
+    color: #e5e7eb;
+    display: flex;
+    flex-direction: column;
+}
+
+.html-preview-pane__header {
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 10px 12px;
+    border-bottom: 1px solid #374151;
+    color: #9ca3af;
+}
+
+.html-preview-pane__body {
+    flex: 1 1 auto;
+    overflow: auto;
+    padding: 12px;
+    background: #ffffff;
+    color: #111827;
+}
+
+:host ::ng-deep .html-preview-pane__body .wuic-preview-component {
+    border: 1px solid #cbd5e1;
+    border-left: 4px solid #2563eb;
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin-bottom: 10px;
+    background: #f8fafc;
+}
+
+:host ::ng-deep .html-preview-pane__body .wuic-preview-component__title {
+    font-weight: 600;
+    color: #0f172a;
+    margin-bottom: 4px;
+}
+
+:host ::ng-deep .html-preview-pane__body .wuic-preview-component__content {
+    margin-top: 8px;
+}
+
+:host ::ng-deep .html-preview-pane__body .wuic-preview-field__label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #0f172a;
+    margin-bottom: 6px;
+}
+
+:host ::ng-deep .html-preview-pane__body .wuic-preview-field__input {
+    display: block;
+    width: 100%;
+    border: 1px solid #3b82f6;
+    border-radius: 4px;
+    min-height: 36px;
+    box-sizing: border-box;
+    background: #fff;
+}
+
+:host ::ng-deep .monaco-editor .suggest-widget,
+:host ::ng-deep .monaco-editor .parameter-hints-widget,
+:host ::ng-deep .monaco-editor .monaco-hover {
+    z-index: 4000 !important;
+}
+
+/* Keep suggest popup height stable while filtering to avoid vertical drift. */
+:host ::ng-deep .monaco-editor .suggest-widget {
+    height: 220px !important;
+    margin-top: -30px !important;
+}
+
+:host ::ng-deep .monaco-editor .suggest-widget .tree,
+:host ::ng-deep .monaco-editor .suggest-widget .monaco-list,
+:host ::ng-deep .monaco-editor .suggest-widget .monaco-list-rows,
+:host ::ng-deep .monaco-editor .suggest-widget .monaco-scrollable-element {
+    height: 186px !important;
+    max-height: 186px !important;
+}
+
+:host ::ng-deep .monaco-editor .suggest-widget .monaco-list-rows {
+    box-sizing: border-box;
+    padding-bottom: 20px !important;
+    /* aumenta range scroll verso il fondo */
+}
+
+::-webkit-scrollbar {
+    width: 12px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+    box-shadow: inset 0 0 5px grey;
+    border-radius: 10px;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+    background: rgba($color: #ffffff, $alpha: 0.5);
+    border-radius: 10px;
+    visibility: hidden;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    visibility: visible;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+    background: rgba($color: #ffffff, $alpha: 0.8);
+}

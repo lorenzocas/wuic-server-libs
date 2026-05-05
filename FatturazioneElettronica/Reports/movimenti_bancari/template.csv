@@ -1,0 +1,6 @@
+Data Operazione;Data Valuta;Importo;Causale;Descrizione;IBAN Controparte;Nome Controparte;Riferimento
+2026-05-04;2026-05-05;122,00;BONIFICO;Pagamento fattura 1/2026;IT60X0542811101000000123456;Cliente Test SRL;F1/2026
+2026-05-06;;-50,00;ADDEBITO;Commissioni bancarie mensili;;;
+2026-05-08;2026-05-08;1234,56;ACCREDITO;Saldo iniziale conto corrente;;;
+2026-05-10;2026-05-11;-300,00;BONIFICO;Pagamento fornitore Acme SpA;IT12A0123456789012345678901;Acme SpA;FB-2026-042
+2026-05-15;2026-05-16;750,00;RIBA;Incasso RIBA F2/2026;IT60X0542811101000000123456;Cliente Test SRL;F2/2026

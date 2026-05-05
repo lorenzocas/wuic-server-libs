@@ -1,0 +1,26 @@
+<div class="color-editor-root" [ngStyle]="{ '--wuic-color-editor-preview': valore || 'transparent' }">
+    <p-colorPicker
+        [ngModel]="pickerValue"
+        (onChange)="modelChangeFn($event)"
+        format="hsb"
+        [disabled]="field.extras?.form?.disabled || readOnly" />
+</div>
+<div class="color-editor-alpha-row">
+    <span class="color-editor-alpha-label">Alpha</span>
+    <input
+        type="range"
+        min="0"
+        max="1"
+        step="0.01"
+        [ngModel]="alphaValue"
+        (ngModelChange)="onAlphaChange($event)"
+        [disabled]="field.extras?.form?.disabled || readOnly" />
+    <input
+        type="number"
+        min="0"
+        max="1"
+        step="0.01"
+        [ngModel]="alphaValue"
+        (ngModelChange)="onAlphaChange($event)"
+        [disabled]="field.extras?.form?.disabled || readOnly" />
+</div>

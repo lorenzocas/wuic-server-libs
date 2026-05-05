@@ -1,0 +1,297 @@
+@if (authState$ | async; as auth) {
+<nav class="wuic-meta-menu-landmark" aria-label="Menu principale">
+@if (auth.sessionExpiring) {
+<div class="wuic-session-warning">
+  <span class="pi pi-exclamation-triangle"></span>
+  {{ 'auth.session.expiring_in' | translate }} <strong>{{ auth.sessionExpiresInSeconds }}</strong> {{ 'seconds' | translate }}.
+  <button type="button" class="wuic-auth-btn" (click)="refreshAuthSession()">{{ 'auth.session.extend' | translate }}</button>
+</div>
+}
+@if (auth.initialized && !requiresAuthentication(auth)) {
+<div style="display:none">
+  <wuic-data-source #menuMetadataDs [hardcodedRoute]="metaMenuRoute" [autoload]="false"></wuic-data-source>
+</div>
+<p-menubar #menubar [model]="items" [autoHide]="false">
+  <ng-template #item let-item>
+    @if (item.route) {
+    <!-- [href] con path assoluto (NO `#/` hash) cosi' Lighthouse SEO
+         `crawlable-anchors` considera il link crawlable: il path
+         `/<route>` e' un URL valid + condivisibile + apribile in nuova
+         tab via Ctrl+Click. Il click handler `onMenuItemClick` chiama
+         `event.preventDefault()` quando il button click e' "primary"
+         (no Ctrl/middle), cosi' la SPA navigation passa per
+         `router.navigateByUrl` (che con `withHashLocation()` aggiunge
+         comunque l'hash internamente all'URL) e preserva pending changes
+         /query params. Per Ctrl+Click / middle-click il browser segue
+         l'href naturalmente → apre nuova tab con path puro (poi il
+         server fa SPA fallback a index.html, e Angular legge la route
+         dalla path). -->
+    <a class="p-menubar-item-link" [href]="getMenuItemHref(item)" (click)="onMenuItemClick(item, $event)" (contextmenu)="onMenuContext($event, item, auth, menuCtx)"
+      [attr.draggable]="canDragMenu(auth, item) ? true : null" (dragstart)="onMenuDragStart($event, item, auth)"
+      (dragover)="onMenuDragOver($event, item, auth)" (drop)="onMenuDrop($event, item, auth)"
+      (dragend)="onMenuDragEnd()">
+      <span [class]="item.icon"></span>
+      <span class="ml-2">{{ item.label }}</span>
+    </a>
+    } @else {
+    <!-- Parent items (folder con submenu, NO route propria): NON sono `<a>`
+         ma `<div>` semantici. Lighthouse non flagga `<div>` come uncrawlable
+         (l'audit `crawlable-anchors` controlla solo `<a>`). PrimeNG si
+         occupa di toggle del submenu via il (click). -->
+    <div class="p-menubar-item-link" (click)="onMenuItemClick(item, $event); onFocus($event)" (contextmenu)="onMenuContext($event, item, auth, menuCtx)"
+      [attr.draggable]="canDragMenu(auth, item) ? true : null" (dragstart)="onMenuDragStart($event, item, auth)"
+      (dragover)="onMenuDragOver($event, item, auth)" (drop)="onMenuDrop($event, item, auth)"
+      (dragend)="onMenuDragEnd()">
+      <span [class]="item.icon"></span>
+      <span class="ml-2">{{ item.label }}</span>
+      <span class="pi pi-fw pi-angle-down ml-2"></span>
+    </div>
+    }
+  </ng-template>
+
+  <ng-template #end>
+    @if (auth.authenticated || auth.legacyAuthenticated) {
+    <div class="wuic-menubar-extra">
+      <span class="wuic-license-badge"
+            [class.wuic-license-badge-pro]="getLicenseTier() === 'professional'"
+            [class.wuic-license-badge-dev]="getLicenseTier() === 'developer'"
+            [class.wuic-license-badge-trial]="getLicenseTier() === 'trial'"
+            [attr.title]="getLicenseTooltip()"
+            role="status"
+            [attr.aria-label]="getLicenseTooltip()">
+        <span [class]="getLicenseIconClass()" aria-hidden="true"></span>
+        <span class="wuic-license-badge-label">{{ getLicenseBadgeLabel() }}</span>
+      </span>
+
+      <div class="wuic-menubar-user-wrap" (click)="toggleUserLanguageMenu($event)">
+        <img class="wuic-menubar-user-flag" [src]="getCurrentUserLanguageFlagSrc()" [alt]="getCurrentUserLanguageId()"
+          (error)="onLanguageFlagLoadError($event)" />
+        <div class="wuic-menubar-user">
+          @if (auth.authenticated) {
+          <span class="wuic-menubar-user-name">{{ auth.name || ('user.default' | translate) }}</span>
+          <span class="wuic-menubar-user-role">
+            <span class="wuic-role-badge">{{ auth.provider || ('auth.provider.google' | translate) }}</span>
+          </span>
+          } @else {
+          <span class="wuic-menubar-user-name">{{ auth.legacyName || ('user.default' | translate) }}</span>
+          <span class="wuic-menubar-user-role">
+            <span class="wuic-role-badge" [class.wuic-role-badge-admin]="isAdminRole(auth)">{{ auth.legacyRole ||
+              ('auth.role.na' | translate) }}</span>
+          </span>
+          }
+        </div>
+        @if (userLanguageSwitchEnabled) {
+        <span class="pi pi-angle-down wuic-menubar-user-caret" aria-hidden="true"></span>
+        }
+        @if (userLanguageSwitchEnabled && userLanguageMenuVisible) {
+        <div class="wuic-language-menu" (click)="$event.stopPropagation()">
+          @for (lang of userLanguages; track lang.id) {
+          <button type="button" class="wuic-language-item" [class.is-active]="isCurrentUserLanguage(lang.id)"
+            (click)="onSelectUserLanguage(lang.id, $event)">
+            <img class="wuic-language-item-flag" [src]="getLanguageFlagSrc(lang.id)" [alt]="lang.id"
+              (error)="onLanguageFlagLoadError($event)" />
+            <span>{{ lang.lingua || lang.id }}</span>
+            <small>{{ lang.id }}</small>
+          </button>
+          }
+        </div>
+        }
+      </div>
+
+      <button type="button" class="wuic-auth-btn wuic-menubar-logout" (click)="logout()" [disabled]="auth.loading">
+        {{ 'logout' | translate }}
+      </button>
+    </div>
+    }
+  </ng-template>
+</p-menubar>
+<p-contextMenu #menuCtx [model]="contextItems" appendTo="body" [autoZIndex]="true" [baseZIndex]="13000"></p-contextMenu>
+<p-dialog [(visible)]="moveDialogVisible" [modal]="true" [draggable]="false" [resizable]="false" [closable]="true"
+  [style]="{ width: '28rem' }" [header]="'menu.move.title' | translate" (onHide)="cancelPendingMove()"
+  [autoZIndex]="true" [baseZIndex]="14000">
+  <p>{{ 'menu.move.drop_target' | translate }}: <strong>{{ pendingMove?.targetLabel || pendingMove?.targetId }}</strong></p>
+  <p>{{ 'menu.move.choose_position' | translate }}</p>
+  <div class="wuic-menu-move-actions">
+    <button type="button" class="wuic-auth-btn" (click)="executePendingMove('before')"
+      [disabled]="!hasMenuAdminMethod('reorderMenu')">{{ 'menu.move.before' | translate }}</button>
+    <button type="button" class="wuic-auth-btn" (click)="executePendingMove('after')"
+      [disabled]="!hasMenuAdminMethod('reorderMenu')">{{ 'menu.move.after' | translate }}</button>
+    <button type="button" class="wuic-auth-btn wuic-auth-btn-primary" (click)="executePendingMove('inside')"
+      [disabled]="!hasMenuAdminMethod('nestMenu')">{{ 'menu.move.inside' | translate }}</button>
+  </div>
+</p-dialog>
+}
+@if (auth.initialized && showAuthBar(auth)) {
+<div class="wuic-auth-stage" [class.wuic-auth-stage-login]="requiresAuthentication(auth)">
+  @if (!(translationsLoaded$ | async)) {
+  <!-- Non mostrare il form login finche' le traduzioni non sono caricate: l'utente
+       vedrebbe i placeholder grezzi `auth.username` / `auth.password` invece dei
+       label tradotti. Meglio uno spinner finche' la tabella traduzioni arriva
+       (localStorage o backend). Tipicamente <50ms se cache, ~200-800ms se
+       cold-fetch dal backend. -->
+  <div class="wuic-auth-bar wuic-auth-bar-loading" [class.wuic-auth-bar-login]="requiresAuthentication(auth)">
+    <div class="wuic-auth-loading">
+      <i class="pi pi-spinner pi-spin"></i>
+      <span>Loading…</span>
+    </div>
+  </div>
+  } @else {
+  <div class="wuic-auth-bar" [class.wuic-auth-bar-login]="requiresAuthentication(auth)">
+    <div class="wuic-auth-status">
+      @if (auth.loading) {
+      <span>{{ 'auth.status.loading' | translate }}</span>
+      } @else if (auth.authenticated) {
+      <span>{{ 'auth.status.active' | translate }}: <strong>{{ auth.name || ('user.default' | translate) }}</strong>
+        ({{ auth.provider || ('auth.provider.google' | translate) }})</span>
+      } @else if (auth.enabled) {
+      <span>{{ 'auth.status.not_authenticated' | translate }} ({{ auth.provider || ('auth.provider.google' | translate)
+        }})</span>
+      } @else if (auth.legacyAuthenticated) {
+      <span>{{ 'auth.status.active' | translate }}: <strong>{{ auth.legacyName || ('user.default' | translate)
+          }}</strong> ({{ 'auth.provider.credentials' | translate }})</span>
+      } @else {
+      <span>{{ 'auth.status.login_required' | translate }} ({{ 'auth.provider.credentials' | translate }})</span>
+      }
+    </div>
+
+    <div class="wuic-auth-form" [class.wuic-auth-form-login]="requiresAuthentication(auth)">
+      @if (auth.enabled) {
+      <label for="wuicAuthReturnUrl">{{ 'auth.return_url' | translate }}</label>
+      <input id="wuicAuthReturnUrl" type="text" [(ngModel)]="authReturnUrl" (ngModelChange)="onAuthReturnUrlChanged()"
+        placeholder="/" />
+
+      <button type="button" class="wuic-auth-btn wuic-auth-btn-primary" (click)="loginWithGoogle()"
+        [disabled]="auth.authenticated || auth.loading">
+        {{ 'auth.login_google' | translate }}
+      </button>
+
+      <button type="button" class="wuic-auth-btn" (click)="logout()" [disabled]="!auth.authenticated || auth.loading">
+        {{ 'logout' | translate }}
+      </button>
+      } @else if (!auth.legacyAuthenticated) {
+
+      @if (authView === 'login') {
+      <form (ngSubmit)="loginLegacy()" novalidate>
+      <label for="wuicAuthUser">{{ 'auth.username' | translate }}</label>
+      <input id="wuicAuthUser" type="text" [(ngModel)]="loginUsername" [placeholder]="'auth.username' | translate"
+        autocomplete="username" name="loginUsername" />
+
+      <label for="wuicAuthPwd">{{ 'auth.password' | translate }}</label>
+      <input id="wuicAuthPwd" type="password" [(ngModel)]="loginPassword" [placeholder]="'auth.password' | translate"
+        autocomplete="current-password" name="loginPassword" />
+
+      @if (captchaEnabled) {
+      <div id="wuic-captcha-container" class="wuic-captcha"></div>
+      }
+
+      <button type="submit" class="wuic-auth-btn wuic-auth-btn-primary"
+        [disabled]="!loginUsername || !loginPassword || auth.loading || (captchaEnabled && !captchaToken)">
+        {{ 'auth.login' | translate }}
+      </button>
+
+      <div class="wuic-auth-links">
+        <button type="button" class="wuic-auth-link" (click)="switchAuthView('forgotPassword')">{{ 'auth.link.forgot_password' | translate }}</button>
+        @if (registrationEnabled) {
+        <button type="button" class="wuic-auth-link" (click)="switchAuthView('register')">{{ 'auth.link.register' | translate }}</button>
+        }
+      </div>
+      </form>
+      } @else if (authView === 'register') {
+      <form (ngSubmit)="submitRegistration()" novalidate>
+      <label for="wuic-auth-register-username">{{ 'auth.username' | translate }}</label>
+      <input id="wuic-auth-register-username" type="text" [(ngModel)]="registerUsername" [placeholder]="'auth.username' | translate" autocomplete="username"
+        name="registerUsername" />
+
+      <label for="wuic-auth-register-email">{{ 'auth.email' | translate }}</label>
+      <input id="wuic-auth-register-email" type="email" [(ngModel)]="registerEmail" [placeholder]="'auth.email' | translate" autocomplete="email" name="registerEmail" />
+
+      <label for="wuic-auth-register-password">{{ 'auth.password' | translate }}</label>
+      <input id="wuic-auth-register-password" type="password" [(ngModel)]="registerPassword" [placeholder]="'auth.password' | translate" autocomplete="new-password"
+        name="registerPassword" />
+
+      @if (captchaEnabled) {
+      <div id="wuic-captcha-container" class="wuic-captcha"></div>
+      }
+
+      <button type="submit" class="wuic-auth-btn wuic-auth-btn-primary"
+        [disabled]="!registerUsername || !registerEmail || !registerPassword || (captchaEnabled && !captchaToken)">
+        {{ 'auth.link.register' | translate }}
+      </button>
+
+      @if (registerMessage) {
+      <div class="wuic-auth-success">{{ registerMessage }}</div>
+      }
+      @if (registerError) {
+      <div class="wuic-auth-error">{{ registerError }}</div>
+      }
+
+      <div class="wuic-auth-links">
+        <button type="button" class="wuic-auth-link" (click)="switchAuthView('login')">{{ 'auth.link.back_to_login' | translate }}</button>
+      </div>
+      </form>
+      } @else if (authView === 'forgotPassword') {
+      <label for="wuic-auth-forgot-email">{{ 'auth.email' | translate }}</label>
+      <input id="wuic-auth-forgot-email" type="email" [(ngModel)]="forgotEmail" [placeholder]="'auth.forgot.email_placeholder' | translate" autocomplete="email"
+        (keyup.enter)="submitForgotPassword()" />
+
+      <button type="button" class="wuic-auth-btn wuic-auth-btn-primary" (click)="submitForgotPassword()"
+        [disabled]="!forgotEmail">
+        {{ 'auth.forgot.send_reset_link' | translate }}
+      </button>
+
+      @if (forgotMessage) {
+      <div class="wuic-auth-success">{{ forgotMessage }}</div>
+      }
+      @if (forgotError) {
+      <div class="wuic-auth-error">{{ forgotError }}</div>
+      }
+
+      <div class="wuic-auth-links">
+        <button type="button" class="wuic-auth-link" (click)="switchAuthView('login')">{{ 'auth.link.back_to_login' | translate }}</button>
+      </div>
+      } @else if (authView === 'resetPassword') {
+      <form (ngSubmit)="submitResetPassword()" novalidate>
+      <label for="wuic-auth-reset-new-password">{{ 'auth.reset.new_password' | translate }}</label>
+      <input id="wuic-auth-reset-new-password" type="password" [(ngModel)]="resetNewPassword" [placeholder]="'auth.reset.new_password' | translate" autocomplete="new-password"
+        name="resetNewPassword" />
+
+      <button type="submit" class="wuic-auth-btn wuic-auth-btn-primary"
+        [disabled]="!resetNewPassword">
+        {{ 'auth.reset.submit' | translate }}
+      </button>
+
+      @if (resetMessage) {
+      <div class="wuic-auth-success">{{ resetMessage }}</div>
+      }
+      @if (resetError) {
+      <div class="wuic-auth-error">{{ resetError }}</div>
+      }
+
+      <div class="wuic-auth-links">
+        <button type="button" class="wuic-auth-link" (click)="switchAuthView('login')">{{ 'auth.link.back_to_login' | translate }}</button>
+      </div>
+      </form>
+      }
+
+      }
+
+      <button type="button" class="wuic-auth-btn" (click)="refreshAuthSession()" [disabled]="auth.loading">
+        {{ 'auth.refresh' | translate }}
+      </button>
+    </div>
+
+    @if (auth.error) {
+    <div class="wuic-auth-error">{{ auth.error }}</div>
+    }
+  </div>
+  }
+</div>
+}
+</nav>
+}
+
+<!-- <p-megaMenu *ngIf="menuType=='megamenu'" [model]="megaItems">
+</p-megaMenu> -->
+
+<!-- <p-megaMenu *ngIf="menuType=='megamenu'" [model]="megaItems2"></p-megaMenu>
+</p-megaMenu> -->

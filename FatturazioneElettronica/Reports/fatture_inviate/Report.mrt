@@ -1,0 +1,486 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<StiSerializer version="1.02" type="Net" application="StiReport">
+  <CalculationMode>Interpretation</CalculationMode>
+  <Dictionary Ref="1" type="Dictionary" isKey="true">
+    <BusinessObjects isList="true" count="0" />
+    <Databases isList="true" count="1">
+      <Connessione Ref="2" type="Stimulsoft.Report.Dictionary.StiSqlDatabase" isKey="true">
+        <Alias>Connessione</Alias>
+        <ConnectionStringEncrypted>1FJlCcloS+1iXI2I5FglC8RqzW3JW0PZYUe9mGIl4GPAePfrTnFL3ctEvfBiPeNG30DBiclK091hTe2YanTgP5B08QJNZPv9aVuhXGFsp2fg8rUJxUrzvGJHjRxNJaQf337N609Ue81iXJzMYBhle9Fw2UjNWUvtRUnNiMNJZRvEOvcCVFHzhWIT7dzqcCUvw/L9iU5WkqRiRKVQanjgj8Ng3etGTXMV4UQ=</ConnectionStringEncrypted>
+        <Name>Connessione</Name>
+      </Connessione>
+    </Databases>
+    <DataSources isList="true" count="2">
+      <fatture_inviate Ref="3" type="Stimulsoft.Report.Dictionary.StiSqlSource" isKey="true">
+        <Alias>fatture_inviate</Alias>
+        <Columns isList="true" count="11">
+          <value>id,Id,System.Int32</value>
+          <value>numero,Numero,System.String</value>
+          <value>data_documento,Data_documento,System.DateTime</value>
+          <value>cliente_ragione_sociale,Cliente,System.String</value>
+          <value>cliente_partita_iva,P_IVA,System.String</value>
+          <value>cliente_indirizzo,Indirizzo,System.String</value>
+          <value>cliente_cap_citta,CAP_Citta,System.String</value>
+          <value>imponibile,Imponibile,System.Decimal</value>
+          <value>iva,IVA,System.Decimal</value>
+          <value>totale,Totale,System.Decimal</value>
+          <value>causale,Causale,System.String</value>
+        </Columns>
+        <CommandTimeout>300</CommandTimeout>
+        <Dictionary isRef="1" />
+        <Key>c9d0e1f2a3b4435cd8e0f2a3b4c5d6e7</Key>
+        <Name>fatture_inviate</Name>
+        <NameInSource>Connessione</NameInSource>
+        <Parameters isList="true" count="1">
+          <fattura_id Ref="30" type="Stimulsoft.Report.Dictionary.StiDataParameter" isKey="true">
+            <Name>fattura_id</Name>
+            <ParameterDirection>Input</ParameterDirection>
+            <Size>4</Size>
+            <Type>Int32</Type>
+            <Value>0</Value>
+          </fattura_id>
+        </Parameters>
+        <SqlCommand>SELECT f.id, f.numero, f.data_documento, c.ragione_sociale AS cliente_ragione_sociale, c.partita_iva AS cliente_partita_iva, c.indirizzo AS cliente_indirizzo, (ISNULL(c.cap,'') + ' ' + ISNULL(c.citta,'') + ' (' + ISNULL(c.provincia,'') + ')') AS cliente_cap_citta, f.imponibile, f.iva, f.totale, f.causale FROM dbo.fatture_inviate f JOIN dbo.clienti c ON c.id = f.cliente_id WHERE f.id = @fattura_id</SqlCommand>
+      </fatture_inviate>
+      <righe Ref="4" type="Stimulsoft.Report.Dictionary.StiSqlSource" isKey="true">
+        <Alias>righe</Alias>
+        <Columns isList="true" count="6">
+          <value>riga,Riga,System.Int32</value>
+          <value>descrizione,Descrizione,System.String</value>
+          <value>quantita,Quantita,System.Decimal</value>
+          <value>prezzo_unitario,Prezzo_unitario,System.Decimal</value>
+          <value>aliquota_iva,Aliquota_IVA,System.Decimal</value>
+          <value>imponibile_riga,Imponibile_riga,System.Decimal</value>
+        </Columns>
+        <CommandTimeout>300</CommandTimeout>
+        <Dictionary isRef="1" />
+        <Key>d0e1f2a3b4c5436de8f0a2b3c4d5e6f7</Key>
+        <Name>righe</Name>
+        <NameInSource>Connessione</NameInSource>
+        <Parameters isList="true" count="1">
+          <fattura_id Ref="31" type="Stimulsoft.Report.Dictionary.StiDataParameter" isKey="true">
+            <Name>fattura_id</Name>
+            <ParameterDirection>Input</ParameterDirection>
+            <Size>4</Size>
+            <Type>Int32</Type>
+            <Value>0</Value>
+          </fattura_id>
+        </Parameters>
+        <SqlCommand>SELECT r.riga, r.descrizione, r.quantita, r.prezzo_unitario, ci.aliquota AS aliquota_iva, r.imponibile_riga FROM dbo.fatture_inviate_righe r LEFT JOIN dbo.codici_iva ci ON ci.id = r.codice_iva_id WHERE r.fattura_id = @fattura_id ORDER BY r.riga</SqlCommand>
+      </righe>
+    </DataSources>
+    <Relations isList="true" count="0" />
+    <Report isRef="0" />
+    <Resources isList="true" count="0" />
+    <UserFunctions isList="true" count="0" />
+    <Variables isList="true" count="0" />
+  </Dictionary>
+  <EngineVersion>EngineV2</EngineVersion>
+  <GlobalizationStrings isList="true" count="0" />
+  <Key>e1f2a3b4c5d6437ec8f0a2b3c4d5e6f7</Key>
+  <MetaTags isList="true" count="0" />
+  <Pages isList="true" count="1">
+    <Page1 Ref="5" type="Page" isKey="true">
+      <Border>None;Black;2;Solid;False;4;Black</Border>
+      <Brush>Transparent</Brush>
+      <Components isList="true" count="4">
+        <ReportTitleBand1 Ref="6" type="ReportTitleBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>0,0.4,19,3</ClientRectangle>
+          <Components isList="true" count="6">
+            <TextTitle Ref="7" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>0,0,19,1</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,20,Bold</Font>
+              <HorAlignment>Center</HorAlignment>
+              <Name>TextTitle</Name>
+              <Page isRef="5" />
+              <Parent isRef="6" />
+              <Text>FATTURA</Text>
+              <TextBrush>Black</TextBrush>
+            </TextTitle>
+            <TextNumLabel Ref="8" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>11,1.2,3,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,10</Font>
+              <Name>TextNumLabel</Name>
+              <Page isRef="5" />
+              <Parent isRef="6" />
+              <Text>Numero:</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+            </TextNumLabel>
+            <TextNumValue Ref="9" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>14,1.2,5,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,10,Bold</Font>
+              <Name>TextNumValue</Name>
+              <Page isRef="5" />
+              <Parent isRef="6" />
+              <Text>{fatture_inviate.numero}</Text>
+              <TextBrush>Black</TextBrush>
+            </TextNumValue>
+            <TextDataLabel Ref="10" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>11,1.7,3,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,10</Font>
+              <Name>TextDataLabel</Name>
+              <Page isRef="5" />
+              <Parent isRef="6" />
+              <Text>Data:</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+            </TextDataLabel>
+            <TextDataValue Ref="11" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>14,1.7,5,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,10</Font>
+              <Format Charset="" type="Date">dd/MM/yyyy</Format>
+              <Name>TextDataValue</Name>
+              <Page isRef="5" />
+              <Parent isRef="6" />
+              <Text>{fatture_inviate.data_documento}</Text>
+              <TextBrush>Black</TextBrush>
+              <TextFormat Ref="32" type="Stimulsoft.Base.Localization.StiDateFormatService">
+                <NullDisplay></NullDisplay>
+                <State>Date</State>
+                <StringFormat>dd/MM/yyyy</StringFormat>
+              </TextFormat>
+            </TextDataValue>
+            <TextClienteBlock Ref="12" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <Border>Bottom;Black;1;Solid;False;4;Black</Border>
+              <ClientRectangle>0,1.2,10,1.8</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,10</Font>
+              <Name>TextClienteBlock</Name>
+              <Page isRef="5" />
+              <Parent isRef="6" />
+              <Text>Cliente:&#xD;&#xA;{fatture_inviate.cliente_ragione_sociale}&#xD;&#xA;P.IVA: {fatture_inviate.cliente_partita_iva}&#xD;&#xA;{fatture_inviate.cliente_indirizzo}&#xD;&#xA;{fatture_inviate.cliente_cap_citta}</Text>
+              <TextBrush>Black</TextBrush>
+            </TextClienteBlock>
+          </Components>
+          <Conditions isList="true" count="0" />
+          <DataSourceName>fatture_inviate</DataSourceName>
+          <Expressions isList="true" count="0" />
+          <Name>ReportTitleBand1</Name>
+          <Page isRef="5" />
+          <Parent isRef="5" />
+        </ReportTitleBand1>
+        <righe_header Ref="13" type="HeaderBand" isKey="true">
+          <Brush>LightGray</Brush>
+          <ClientRectangle>0,3.7,19,0.6</ClientRectangle>
+          <Components isList="true" count="5">
+            <TextHR1 Ref="14" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>0,0,1,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,9,Bold</Font>
+              <Name>TextHR1</Name>
+              <Page isRef="5" />
+              <Parent isRef="13" />
+              <Text>#</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+            </TextHR1>
+            <TextHR2 Ref="15" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>1,0,9,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,9,Bold</Font>
+              <Name>TextHR2</Name>
+              <Page isRef="5" />
+              <Parent isRef="13" />
+              <Text>Descrizione</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+            </TextHR2>
+            <TextHR3 Ref="16" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>10,0,2,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,9,Bold</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>TextHR3</Name>
+              <Page isRef="5" />
+              <Parent isRef="13" />
+              <Text>Quantita</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+            </TextHR3>
+            <TextHR4 Ref="17" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>12,0,3,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,9,Bold</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>TextHR4</Name>
+              <Page isRef="5" />
+              <Parent isRef="13" />
+              <Text>Prezzo unit.</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+            </TextHR4>
+            <TextHR5 Ref="18" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>15,0,4,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,9,Bold</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>TextHR5</Name>
+              <Page isRef="5" />
+              <Parent isRef="13" />
+              <Text>Imponibile</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+            </TextHR5>
+          </Components>
+          <Conditions isList="true" count="0" />
+          <Expressions isList="true" count="0" />
+          <Name>righe_header</Name>
+          <Page isRef="5" />
+          <Parent isRef="5" />
+        </righe_header>
+        <righe_data Ref="19" type="DataBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <BusinessObjectGuid isNull="true" />
+          <ClientRectangle>0,4.5,19,0.6</ClientRectangle>
+          <Components isList="true" count="5">
+            <TextDR1 Ref="20" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>0,0,1,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Name>TextDR1</Name>
+              <Page isRef="5" />
+              <Parent isRef="19" />
+              <Text>{righe.riga}</Text>
+              <TextBrush>Black</TextBrush>
+            </TextDR1>
+            <TextDR2 Ref="21" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>1,0,9,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Name>TextDR2</Name>
+              <Page isRef="5" />
+              <Parent isRef="19" />
+              <Text>{righe.descrizione}</Text>
+              <TextBrush>Black</TextBrush>
+            </TextDR2>
+            <TextDR3 Ref="22" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>10,0,2,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>TextDR3</Name>
+              <Page isRef="5" />
+              <Parent isRef="19" />
+              <Text>{righe.quantita}</Text>
+              <TextBrush>Black</TextBrush>
+            </TextDR3>
+            <TextDR4 Ref="23" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>12,0,3,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>TextDR4</Name>
+              <Page isRef="5" />
+              <Parent isRef="19" />
+              <Text>{righe.prezzo_unitario}</Text>
+              <TextBrush>Black</TextBrush>
+            </TextDR4>
+            <TextDR5 Ref="24" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>15,0,4,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>TextDR5</Name>
+              <Page isRef="5" />
+              <Parent isRef="19" />
+              <Text>{righe.imponibile_riga}</Text>
+              <TextBrush>Black</TextBrush>
+            </TextDR5>
+          </Components>
+          <Conditions isList="true" count="0" />
+          <DataSourceName>righe</DataSourceName>
+          <Expressions isList="true" count="0" />
+          <Filters isList="true" count="0" />
+          <Name>righe_data</Name>
+          <Page isRef="5" />
+          <Parent isRef="5" />
+          <PrintIfDetailEmpty>True</PrintIfDetailEmpty>
+          <Sort isList="true" count="0" />
+        </righe_data>
+        <totali_footer Ref="25" type="ReportSummaryBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>0,5.5,19,2.4</ClientRectangle>
+          <Components isList="true" count="6">
+            <TextTotImpL Ref="26" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>11,0.4,4,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,10</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>TextTotImpL</Name>
+              <Page isRef="5" />
+              <Parent isRef="25" />
+              <Text>Imponibile:</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+            </TextTotImpL>
+            <TextTotImpV Ref="27" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>15,0.4,4,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,10</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>TextTotImpV</Name>
+              <Page isRef="5" />
+              <Parent isRef="25" />
+              <Text>{fatture_inviate.imponibile}</Text>
+              <TextBrush>Black</TextBrush>
+            </TextTotImpV>
+            <TextTotIvaL Ref="28" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>11,1,4,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,10</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>TextTotIvaL</Name>
+              <Page isRef="5" />
+              <Parent isRef="25" />
+              <Text>IVA:</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+            </TextTotIvaL>
+            <TextTotIvaV Ref="29" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>15,1,4,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,10</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>TextTotIvaV</Name>
+              <Page isRef="5" />
+              <Parent isRef="25" />
+              <Text>{fatture_inviate.iva}</Text>
+              <TextBrush>Black</TextBrush>
+            </TextTotIvaV>
+            <TextTotL Ref="33" type="Text" isKey="true">
+              <Brush>LightGray</Brush>
+              <Border>Top;Black;2;Solid;False;4;Black</Border>
+              <ClientRectangle>11,1.7,4,0.7</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,12,Bold</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>TextTotL</Name>
+              <Page isRef="5" />
+              <Parent isRef="25" />
+              <Text>Totale:</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+            </TextTotL>
+            <TextTotV Ref="34" type="Text" isKey="true">
+              <Brush>LightGray</Brush>
+              <Border>Top;Black;2;Solid;False;4;Black</Border>
+              <ClientRectangle>15,1.7,4,0.7</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,12,Bold</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>TextTotV</Name>
+              <Page isRef="5" />
+              <Parent isRef="25" />
+              <Text>{fatture_inviate.totale}</Text>
+              <TextBrush>Black</TextBrush>
+            </TextTotV>
+          </Components>
+          <Conditions isList="true" count="0" />
+          <Expressions isList="true" count="0" />
+          <Name>totali_footer</Name>
+          <Page isRef="5" />
+          <Parent isRef="5" />
+        </totali_footer>
+      </Components>
+      <Conditions isList="true" count="0" />
+      <Expressions isList="true" count="0" />
+      <Guid>f2a3b4c5d6e7438fc8d0e2f3a4b5c6d7</Guid>
+      <Margins>1.5,1.5,1,1</Margins>
+      <Name>Page1</Name>
+      <PageHeight>29.7</PageHeight>
+      <PageWidth>21</PageWidth>
+      <Report isRef="0" />
+    </Page1>
+  </Pages>
+  <ReferencedAssemblies isList="true" count="8">
+    <value>System.Dll</value>
+    <value>System.Drawing.Dll</value>
+    <value>System.Windows.Forms.Dll</value>
+    <value>System.Data.Dll</value>
+    <value>System.Xml.Dll</value>
+    <value>Stimulsoft.Controls.Dll</value>
+    <value>Stimulsoft.Base.Dll</value>
+    <value>Stimulsoft.Report.Dll</value>
+  </ReferencedAssemblies>
+  <ReportAlias>Report</ReportAlias>
+  <ReportChanged>5/5/2026 10:35:00 AM</ReportChanged>
+  <ReportCreated>5/5/2026 10:35:00 AM</ReportCreated>
+  <ReportGuid>a3b4c5d6e7f84939c8d0e2f3a4b5c6d7</ReportGuid>
+  <ReportName>Report</ReportName>
+  <ReportUnit>Centimeters</ReportUnit>
+  <ReportVersion>2024.4.3.0</ReportVersion>
+  <Script>using System;
+using System.Drawing;
+using System.Windows.Forms;
+using System.Data;
+using Stimulsoft.Controls;
+using Stimulsoft.Base.Drawing;
+using Stimulsoft.Report;
+using Stimulsoft.Report.Dialogs;
+using Stimulsoft.Report.Components;
+
+namespace Reports
+{
+    public class Report : Stimulsoft.Report.StiReport
+    {
+        public Report()        {
+            this.InitializeComponent();
+        }
+
+        #region StiReport Designer generated code - do not modify
+		#endregion StiReport Designer generated code - do not modify
+    }
+}
+</Script>
+  <ScriptLanguage>CSharp</ScriptLanguage>
+  <Styles isList="true" count="0" />
+</StiSerializer>

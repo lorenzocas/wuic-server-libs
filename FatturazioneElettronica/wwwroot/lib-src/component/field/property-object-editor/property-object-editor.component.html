@@ -1,0 +1,10 @@
+@if (nestedMetaInfo) {
+  <ul style="border: 1px solid;">
+    @for (prop of nestedMetaInfo.columnMetadata; track prop) {
+      <li>
+        <wuic-field-editor [field]="prop" [record]="record[field.mc_nome_colonna]" [metaInfo]="nestedMetaInfo"
+        [triggerProp]="triggerProp"></wuic-field-editor>
+      </li>
+    }
+  </ul>
+}

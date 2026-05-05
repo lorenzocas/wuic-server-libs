@@ -1,0 +1,29 @@
+@if (chartOptions) {
+  <div class="chart-list-root">
+    @if (!hideToolbar) {
+    <div class="chart-list-toolbar">
+      @if (isAdmin) {
+      <button class="p-element p-button p-component" (click)="openConfigPopup()">{{'chart.settings' | translate}}</button>
+      }
+      <button class="p-element p-button p-component" (click)="exportChart()">{{'chart.export' | translate}}</button>
+      @if (isAdmin) {
+      <button class="p-element p-button p-component" (click)="saveChartMetadataPropsBag()">{{ 'metadata.save_table' | translate }}</button>
+      }
+    </div>
+    }
+
+    <div class="chart-list-chart-host" #chartHostRef [style.height.px]="chartHostHeightPx" [style.max-height.px]="chartHostHeightPx">
+      <p-chart #chartRef [type]="chartOptions.type" [data]="data" [options]="chartOptions" width="100%"
+        height="100%" [responsive]="true" (onDataSelect)="drillDown($event)" />
+    </div>
+  </div>
+
+  <wuic-archetype-configurator
+    [visible]="showConfigPopup"
+    (visibleChange)="showConfigPopup = $event"
+    [archetype]="'chart'"
+    [metaInfo]="metaInfo"
+    [value]="getChartConfigValue()"
+    (applyConfig)="onArchetypeConfigApply($event)">
+  </wuic-archetype-configurator>
+}

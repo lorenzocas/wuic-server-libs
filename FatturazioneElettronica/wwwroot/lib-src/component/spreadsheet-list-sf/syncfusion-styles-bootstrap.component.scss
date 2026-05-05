@@ -1,0 +1,36 @@
+// =============================================================================
+// CSS bootstrap globale Syncfusion EJ2.
+// =============================================================================
+// Questo file usa `@import` con package-name resolution (no path relativi):
+// l'Angular CSS preprocessor (ESBuild in Angular v17+) risolve i percorsi
+// "@syncfusion/..." dal node_modules root indipendentemente dalla depth del
+// file consumer.
+//
+// Perchè non styleUrls relativi diretti?
+//   - Lo stesso file viene compilato sia da ng-packagr (depth `wuic-framework-lib/
+//     src/lib/component/spreadsheet-list-sf/` = 7 livelli da node_modules) sia
+//     da WuicTest dev via symlink `lib-src/component/spreadsheet-list-sf/`
+//     (3 livelli da node_modules). Path relativi non possono soddisfare
+//     entrambi i contesti.
+//   - Package-name resolution è agnostica alla depth.
+//
+// Caricato lazy: questo SCSS è styleUrl di un componente stub (vedi
+// .ts file affianco) che si monta solo dentro <wuic-spreadsheet-list-sf>
+// (lazy). Il chunk CSS associato finisce nel lazy bundle, non nel main.
+//
+// `ViewEncapsulation.None` sul componente stub: i selettori `.e-spreadsheet`,
+// `.e-cell`, ecc. che la libreria Syncfusion genera a runtime devono restare
+// globali (no scoping AOT-emulated).
+
+@import '@syncfusion/ej2-base/styles/material.css';
+@import '@syncfusion/ej2-buttons/styles/material.css';
+@import '@syncfusion/ej2-inputs/styles/material.css';
+@import '@syncfusion/ej2-popups/styles/material.css';
+@import '@syncfusion/ej2-lists/styles/material.css';
+@import '@syncfusion/ej2-navigations/styles/material.css';
+@import '@syncfusion/ej2-splitbuttons/styles/material.css';
+@import '@syncfusion/ej2-notifications/styles/material.css';
+@import '@syncfusion/ej2-dropdowns/styles/material.css';
+@import '@syncfusion/ej2-calendars/styles/material.css';
+@import '@syncfusion/ej2-grids/styles/material.css';
+@import '@syncfusion/ej2-spreadsheet/styles/material.css';

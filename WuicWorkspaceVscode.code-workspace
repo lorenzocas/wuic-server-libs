@@ -38,6 +38,9 @@
     },
     {
       "path": "WuicCrashReceiver"
+    },
+    {
+      "path": "FatturazioneElettronica"
     }
   ],
   "settings": {

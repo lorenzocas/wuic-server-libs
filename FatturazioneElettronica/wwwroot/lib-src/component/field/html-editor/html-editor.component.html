@@ -1,0 +1,27 @@
+<div class="html-editor-wrapper">
+  @if (!isFilter) {
+    <button class="btn btn-primary toggle-button" type="button" (click)="toggleEditor()">
+      Toggle Html Editor
+    </button>
+  }
+
+  @if (isFilter || !field.codeEditing) {
+    <textarea
+      pInputTextarea
+      [attr.tabindex]="tabIndex"
+      [ngModel]="record[field.mc_nome_colonna] | async"
+      (ngModelChange)="modelChangeFn($event)"
+      (blur)="onBlur()"
+    ></textarea>
+  }
+
+  @if (!isFilter && field.codeEditing) {
+    <p-editor
+      [attr.tabindex]="tabIndex"
+      [ngModel]="record[field.mc_nome_colonna] | async"
+      (ngModelChange)="modelChangeFn($event)"
+      (onBlur)="onBlur()"
+      [style]="{ height: '220px' }"
+    ></p-editor>
+  }
+</div>

@@ -1,0 +1,96 @@
+<div class="page">
+  <h1>
+    <i class="pi" [ngClass]="mode() === 'lipe' ? 'pi-calculator' : 'pi-globe'"></i>
+    {{ mode() === 'lipe' ? 'LIPE — Liquidazione IVA Periodica' : 'Esterometro' }}
+  </h1>
+
+  <!-- ── LIPE form ───────────────────────────────────────── -->
+  @if (mode() === 'lipe') {
+    <section class="form-row">
+      <label>Anno
+        <p-inputNumber [ngModel]="anno()" (ngModelChange)="anno.set($event)"
+                       [useGrouping]="false" [min]="2020" [max]="2099" />
+      </label>
+      <label>Trimestre
+        <p-selectButton [options]="trimestreOptions"
+                        [ngModel]="trimestre()" (ngModelChange)="trimestre.set($event)"
+                        optionLabel="label" optionValue="value" />
+      </label>
+      <p-button label="Calcola" icon="pi pi-search" (onClick)="runLipe()" [loading]="loading()" />
+      @if (lipeData()) {
+        <p-button label="Scarica XML" icon="pi pi-download" severity="secondary"
+                  (onClick)="downloadLipeXml()" />
+      }
+    </section>
+
+    @if (errorMsg()) {
+      <p-message severity="warn" [text]="errorMsg()!" />
+    }
+
+    @if (lipeData(); as d) {
+      <section class="kpi-grid">
+        <div class="kpi"><span>Operazioni attive</span><strong>{{ fmtEuro(d.imponibile_op_attive) }}</strong></div>
+        <div class="kpi"><span>Operazioni passive</span><strong>{{ fmtEuro(d.imponibile_op_passive) }}</strong></div>
+        <div class="kpi pos"><span>IVA a debito</span><strong>{{ fmtEuro(d.iva_debito) }}</strong></div>
+        <div class="kpi neg"><span>IVA a credito</span><strong>{{ fmtEuro(d.iva_credito) }}</strong></div>
+        <div class="kpi total" [class.versare]="d.tipo_saldo === 'A_VERSARE'">
+          <span>Saldo IVA ({{ d.tipo_saldo === 'A_VERSARE' ? 'a versare' : 'a credito' }})</span>
+          <strong>{{ fmtEuro(d.saldo_iva) }}</strong>
+        </div>
+      </section>
+      <p class="muted small">
+        Periodo: dal {{ d.data_inizio | date:'dd/MM/yyyy' }} al {{ d.data_fine | date:'dd/MM/yyyy' }}.
+        I dati sono aggregati da `fatture_inviate` (stati EMESSA/CONSEGNATA) e `fatture_ricevute` (stati REGISTRATA/PAGATA).
+      </p>
+    }
+  }
+
+  <!-- ── Esterometro form ────────────────────────────────── -->
+  @if (mode() === 'esterometro') {
+    <section class="form-row">
+      <label>Anno
+        <p-inputNumber [ngModel]="anno()" (ngModelChange)="anno.set($event)"
+                       [useGrouping]="false" [min]="2020" [max]="2099" />
+      </label>
+      <label>Mese
+        <p-inputNumber [ngModel]="mese()" (ngModelChange)="mese.set($event)"
+                       [useGrouping]="false" [min]="1" [max]="12" />
+      </label>
+      <p-button label="Cerca" icon="pi pi-search" (onClick)="runEsterometro()" [loading]="loading()" />
+    </section>
+
+    @if (errorMsg()) {
+      <p-message severity="warn" [text]="errorMsg()!" />
+    }
+
+    <p-table [value]="esteroRows()" [paginator]="true" [rows]="20" responsiveLayout="scroll">
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Tipo</th>
+          <th>Documento</th>
+          <th>Data</th>
+          <th>Controparte</th>
+          <th>Nazione</th>
+          <th class="num">Imponibile</th>
+          <th class="num">IVA</th>
+          <th class="num">Totale</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-r>
+        <tr>
+          <td><span class="badge" [class.attiva]="r.tipo === 'ATTIVA'">{{ r.tipo }}</span></td>
+          <td>{{ r.doc_numero }}</td>
+          <td>{{ r.data_documento | date:'dd/MM/yyyy' }}</td>
+          <td>{{ r.controparte_nome }} <span class="muted">({{ r.controparte_piva }})</span></td>
+          <td>{{ r.nazione }}</td>
+          <td class="num">{{ fmtEuro(r.imponibile) }}</td>
+          <td class="num">{{ fmtEuro(r.iva) }}</td>
+          <td class="num"><strong>{{ fmtEuro(r.totale) }}</strong></td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr><td colspan="8" class="center muted">Nessuna operazione estera nel periodo selezionato.</td></tr>
+      </ng-template>
+    </p-table>
+  }
+</div>

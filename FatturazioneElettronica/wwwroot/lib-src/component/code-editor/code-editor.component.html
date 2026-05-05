@@ -1,0 +1,91 @@
+@if (render) {
+<div [ngClass]="{'fullscreen': fullscreen, 'no-full-screen': !fullscreen }">
+  <div
+    [ngStyle]="{width: sqlObjView ? '22%' : null, display: sqlObjView ? null : 'none', position: fullscreen ? 'absolute' : null, 'left': fullscreen ? '0px' : null, 'top': fullscreen ? '0px' : null }"
+    style="float: left; height: 100%; overflow: auto; background-color: #1e1e1e; z-index: 2000;">
+    <p-tree [value]="primeTreeNodes">
+      <ng-template let-node pTemplate="default">
+        <span style="-webkit-user-select: none; -ms-user-select: none;  user-select: none;" draggable="true"
+          (dragstart)="onTreeNodeDragStart($event, node.data)" (click)="editorOptions.onNodeClick($event, node.data)"
+          (dragend)="onTreeNodeDragEnd($event, node.data)">
+          <span>
+            {{ node.label }}
+          </span>
+        </span>
+      </ng-template>
+    </p-tree>
+  </div>
+  <div [ngStyle]="{width: sqlObjView ? '78%' : '100%', 'left': fullscreen ? (!sqlObjView ? '0px' : '22%') : null }"
+    style="height: 100%; float: left;">
+    <ul class="editor-btn">
+      <li>
+        <div (click)="setFullScreen($event, this)">
+          <i
+            [ngClass]="{'pi': true, 'pi-window-maximize': fullscreen == false, 'pi-window-minimize': fullscreen == true}"></i>
+        </div>
+      </li>
+      @if (editorOptions.language == 'sql') {
+      <li>
+        <div (click)="toggleSqlObjView($event, this)">
+          <i [ngClass]="{'pi': true, 'pi-server': true}"></i>
+        </div>
+      </li>
+      }
+      @if (editorOptions.language == 'sql') {
+      <li>
+        <div (click)="testSql($event, this)">
+          <i [ngClass]="{'pi': true, 'pi-verified': true}"></i>
+        </div>
+      </li>
+      }
+      @if (field.mc_suggest_value_callback) {
+      <li>
+        <div (click)="suggest($event, this)">
+          <i [ngClass]="{'pi': true, 'pi-question': true}"></i>
+        </div>
+      </li>
+      }
+      @if (isHtmlEditor) {
+      <li>
+        <div (click)="formatHtmlNow($event)" title="Format HTML">
+          <i [ngClass]="{'pi': true, 'pi-align-left': true}"></i>
+        </div>
+      </li>
+      <li>
+        <div (click)="toggleHtmlPreview($event)" title="Toggle HTML preview">
+          <i [ngClass]="{'pi': true, 'pi-eye': showHtmlPreview, 'pi-eye-slash': !showHtmlPreview}"></i>
+        </div>
+      </li>
+      }
+      @if (isJsonEditor) {
+      <li>
+        <div (click)="formatJsonNow($event)" title="Format JSON">
+          <i [ngClass]="{'pi': true, 'pi-code': true}"></i>
+        </div>
+      </li>
+      }
+    </ul>
+    <div class="editor-shell">
+      <div class="editor-pane" [ngClass]="{'editor-pane--with-preview': isHtmlEditor && showHtmlPreview}">
+        <ngx-monaco-editor #editorRef [options]="editorOptions" [ngModel]="editorModelValue"
+          (ngModelChange)="onEditorModelChange($event)"
+          [ngModelOptions]="{standalone: true}"
+          [ngStyle]="{'left': fullscreen ? (!sqlObjView ? '0px' : '22%') : null, width: '100%' }"
+          style="width: 100%; height: 100%;"
+          (onDropIntoEditor)="editorOptions.onDropIntoEditor($event)"></ngx-monaco-editor>
+      </div>
+      @if (isHtmlEditor && showHtmlPreview) {
+      <div class="html-preview-pane">
+        <div class="html-preview-pane__header">HTML Pseudo-Preview (sanitized)</div>
+        <div class="html-preview-pane__body" [innerHTML]="sanitizedHtmlPreview"></div>
+      </div>
+      }
+    </div>
+  </div>
+</div>
+}
+
+@if (editorRef?.editorContent?.nativeElement) {
+<p-contextMenu [target]="editorRef?.editorContent?.nativeElement" [model]="editorOptions.contextMenuItems"
+  appendTo="body" />
+}

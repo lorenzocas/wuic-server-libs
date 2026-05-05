@@ -1,0 +1,17 @@
+{
+  "name": "fatturazione-elettronica-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Suite e2e test per l'app FatturazioneElettronica: orchestratore ad-hoc + Playwright UI reale (no mock) + verifiche data-oriented coerenza.",
+  "scripts": {
+    "test": "node dispatcher.mjs",
+    "test:bail": "node dispatcher.mjs --bail",
+    "test:filter": "node dispatcher.mjs --filter",
+    "test:headed": "node dispatcher.mjs --headed",
+    "install:browsers": "playwright install chromium"
+  },
+  "devDependencies": {
+    "playwright": "^1.45.0"
+  }
+}

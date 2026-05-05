@@ -1,0 +1,16 @@
+.code-editor-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  color: #64748b;
+  font-size: 0.9rem;
+  background: #f1f5f9;
+  border: 1px dashed #cbd5e1;
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+.code-editor-loading .pi-spinner {
+  font-size: 1rem;
+}

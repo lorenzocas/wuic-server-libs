@@ -1,0 +1,8 @@
+::ng-deep .wuic-dictionary-panel.p-select-overlay {
+  overflow: visible !important;
+}
+
+::ng-deep .wuic-dictionary-panel.p-select-overlay .p-select-list-container {
+  max-height: min(16rem, 45vh) !important;
+  overflow-y: auto !important;
+}

@@ -1,0 +1,619 @@
+.wuic-session-warning {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: color-mix(in srgb, var(--p-yellow-100, var(--yellow-100, #fef9c3)) 50%, var(--p-surface-card, var(--surface-card, #fff)));
+  border-bottom: 2px solid var(--p-yellow-500, var(--yellow-500, #eab308));
+  color: var(--p-yellow-800, var(--yellow-800, #854d0e));
+  font-size: 0.85rem;
+  font-weight: 500;
+  z-index: 1000;
+}
+
+.wuic-session-warning .pi {
+  font-size: 1rem;
+}
+
+.wuic-session-warning .wuic-auth-btn {
+  margin-left: auto;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.8rem;
+}
+
+.wuic-auth-stage {
+  display: block;
+}
+
+/* Loading state mostrato mentre le traduzioni non sono ancora disponibili:
+   evitiamo che l'utente veda i placeholder grezzi (`auth.username`, ecc.).
+   Stessa altezza/padding dell'auth-bar normale per non spostare il layout
+   quando lo spinner sparisce e compare il form. */
+.wuic-auth-bar-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0.75rem 1rem;
+}
+
+.wuic-auth-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--p-text-color-secondary, var(--text-color-secondary, #64748b));
+  font-size: 0.9rem;
+}
+
+.wuic-auth-loading .pi-spinner {
+  font-size: 1.1rem;
+}
+
+:host ::ng-deep .p-menubar .p-menubar-item-link[draggable="true"] {
+  cursor: grab;
+}
+
+:host ::ng-deep .p-menubar .p-menubar-item-link[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+/* Hover esplicito sulle voci menu (link e folder div). Nei build PrimeNG 21
+   il default :hover sul menubar non e' sempre visibile (token primario molto
+   tenue su sfondo bianco). Riusiamo il token PrimeNG canonico
+   --p-content-hover-background con fallback --surface-hover, stessa convenzione
+   usata in .wuic-language-item:hover (linea 144) per coerenza light/dark. */
+:host ::ng-deep .p-menubar .p-menubar-item-link:not(.p-disabled):hover {
+  background: var(--p-content-hover-background, var(--surface-hover, #f1f5f9));
+  color: var(--p-primary-color, var(--p-text-color, inherit));
+}
+
+:host-context(.theme-dark) ::ng-deep .p-menubar .p-menubar-item-link:not(.p-disabled):hover {
+  background: color-mix(in srgb, var(--p-content-hover-background, #1f2937) 80%, var(--p-primary-color, #3b82f6) 20%);
+  color: var(--p-primary-color, var(--p-text-color, #f3f4f6));
+}
+
+.wuic-menubar-extra {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 280px;
+  justify-content: flex-end;
+  padding-left: 0.75rem;
+}
+
+.wuic-menubar-user-flag {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  display: block;
+  border: 1px solid var(--p-content-border-color, var(--surface-border, #d9e2ec));
+  background: var(--p-content-background, var(--surface-section, #eef3f8));
+  object-fit: cover;
+  flex: 0 0 auto;
+}
+
+.wuic-menubar-user-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  cursor: pointer;
+}
+
+.wuic-menubar-user-caret {
+  font-size: 0.8rem;
+  color: var(--p-text-muted-color, var(--text-color-secondary, #4f6479));
+}
+
+.wuic-menubar-user {
+  display: grid;
+  line-height: 1.15;
+  text-align: right;
+  min-width: 0;
+}
+
+.wuic-language-menu {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  right: 0;
+  min-width: 170px;
+  background: var(--p-surface-card, var(--surface-card, #fff));
+  border: 1px solid var(--p-content-border-color, var(--surface-border, #d9e2ec));
+  border-radius: 8px;
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--p-text-color, #1f2f43) 16%, transparent);
+  z-index: 1100;
+  padding: 0.3rem;
+}
+
+.wuic-language-item {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  text-align: left;
+  border-radius: 6px;
+  padding: 0.45rem 0.55rem;
+  cursor: pointer;
+  color: var(--p-text-color, var(--text-color, #1f2f43));
+}
+
+.wuic-language-item-flag {
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 999px;
+  border: 1px solid var(--p-content-border-color, var(--surface-border, #d9e2ec));
+  object-fit: cover;
+  flex: 0 0 auto;
+}
+
+.wuic-language-item span {
+  flex: 1 1 auto;
+}
+
+.wuic-language-item small {
+  color: var(--p-text-muted-color, var(--text-color-secondary, #5f748a));
+}
+
+.wuic-language-item:hover {
+  background: var(--p-content-hover-background, var(--surface-hover, #f5f8fb));
+}
+
+.wuic-language-item.is-active {
+  background: color-mix(in srgb, var(--p-primary-color, #3b82f6) 14%, transparent);
+  color: var(--p-primary-color, #315fdd);
+}
+
+:host-context(.theme-dark) .wuic-language-menu {
+  background: var(--p-content-background, var(--surface-card, #111827));
+  border-color: var(--p-content-border-color, var(--surface-border, rgba(255, 255, 255, 0.2)));
+  box-shadow:
+    0 10px 28px color-mix(in srgb, #000 55%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--p-content-border-color, rgba(255, 255, 255, 0.2)) 65%, transparent) inset;
+}
+
+:host-context(.theme-dark) .wuic-language-item {
+  color: var(--p-text-color, var(--text-color, #f3f4f6));
+}
+
+:host-context(.theme-dark) .wuic-language-item small {
+  color: var(--p-text-muted-color, var(--text-color-secondary, #b7c3d0));
+}
+
+:host-context(.theme-dark) .wuic-language-item:hover {
+  background: color-mix(in srgb, var(--p-content-hover-background, #1f2937) 85%, var(--p-primary-color, #3b82f6) 15%);
+}
+
+:host-context(.theme-dark) .wuic-language-item.is-active {
+  background: color-mix(in srgb, var(--p-primary-color, #3b82f6) 30%, transparent);
+  color: var(--p-primary-contrast-color, #e7f0ff);
+}
+
+
+.wuic-menubar-user-name {
+  font-weight: 600;
+  color: var(--p-text-color, var(--text-color, #1f2f43));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.wuic-menubar-user-role {
+  font-size: 0.75rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.wuic-role-badge {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--p-content-border-color, var(--surface-border, #d4deea));
+  background: var(--p-content-background, var(--surface-section, #f3f7fb));
+  color: var(--p-text-muted-color, var(--text-color-secondary, #4a6077));
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.wuic-role-badge-admin {
+  border-color: color-mix(in srgb, var(--p-yellow-500, var(--yellow-500, #f59e0b)) 55%, var(--p-content-border-color, var(--surface-border, #d4deea)));
+  background: color-mix(in srgb, var(--p-yellow-100, var(--yellow-100, #fff6df)) 30%, var(--p-surface-card, var(--surface-card, #fff)));
+  color: color-mix(in srgb, var(--p-yellow-700, var(--yellow-700, #9a5a00)) 80%, var(--p-text-color, var(--text-color, #233242)));
+}
+
+.wuic-menubar-logout {
+  white-space: nowrap;
+  padding-inline: 0.8rem;
+}
+
+/* License tier badge shown in the menubar `#end` area next to the user box.
+   Colors follow PrimeNG token semantics: pro = emerald/gold tint, dev = blue,
+   trial = amber warning. Falls back gracefully when tokens are missing. */
+.wuic-license-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--p-content-border-color, var(--surface-border, #d4deea));
+  background: var(--p-content-background, var(--surface-section, #f3f7fb));
+  color: var(--p-text-muted-color, var(--text-color-secondary, #4a6077));
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: default;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.wuic-license-badge .pi {
+  font-size: 0.85rem;
+}
+
+.wuic-license-badge-label {
+  line-height: 1;
+}
+
+.wuic-license-badge-pro {
+  border-color: color-mix(in srgb, var(--p-emerald-500, #10b981) 55%, var(--p-content-border-color, #d4deea));
+  background: color-mix(in srgb, var(--p-emerald-100, #d1fae5) 45%, var(--p-surface-card, #fff));
+  color: color-mix(in srgb, var(--p-emerald-700, #047857) 80%, var(--p-text-color, #233242));
+}
+
+.wuic-license-badge-dev {
+  border-color: color-mix(in srgb, var(--p-blue-500, #3b82f6) 55%, var(--p-content-border-color, #d4deea));
+  background: color-mix(in srgb, var(--p-blue-100, #dbeafe) 45%, var(--p-surface-card, #fff));
+  color: color-mix(in srgb, var(--p-blue-700, #1d4ed8) 80%, var(--p-text-color, #233242));
+}
+
+.wuic-license-badge-trial {
+  border-color: color-mix(in srgb, var(--p-orange-500, #f97316) 55%, var(--p-content-border-color, #d4deea));
+  background: color-mix(in srgb, var(--p-orange-100, #ffedd5) 45%, var(--p-surface-card, #fff));
+  color: color-mix(in srgb, var(--p-orange-700, #c2410c) 80%, var(--p-text-color, #233242));
+}
+
+.wuic-auth-stage-login,
+.wuic-auth-stage-login * {
+  color-scheme: inherit;
+}
+
+.wuic-auth-stage-login {
+  --wuic-surface-ground: var(--p-surface-ground, var(--surface-ground, var(--surface-b, #f7f8fa)));
+  --wuic-surface-card: var(--p-surface-card, var(--surface-card, var(--surface-a, #ffffff)));
+  --wuic-surface-section: var(--p-content-background, var(--surface-section, var(--surface-c, #ffffff)));
+  --wuic-surface-hover: var(--p-content-hover-background, var(--surface-hover, var(--surface-hover-background, #f3f4f6)));
+  --wuic-surface-border: var(--p-content-border-color, var(--surface-border, var(--surface-d, #d7dce3)));
+  --wuic-text: var(--p-text-color, var(--text-color, #1f2937));
+  --wuic-text-muted: var(--p-text-muted-color, var(--text-color-secondary, #6b7280));
+  --wuic-primary: var(--p-primary-color, var(--primary-color, #3b82f6));
+  --wuic-primary-text: var(--p-primary-contrast-color, var(--primary-color-text, #ffffff));
+  --wuic-danger-100: var(--p-red-100, var(--red-100, #fee2e2));
+  --wuic-danger-500: var(--p-red-500, var(--red-500, #ef4444));
+  --wuic-danger-700: var(--p-red-700, var(--red-700, #b91c1c));
+  min-height: calc(100vh - 2rem);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  color: var(--wuic-text);
+  background-color: var(--wuic-surface-ground) !important;
+  background:
+    radial-gradient(circle at 15% 20%, color-mix(in srgb, var(--wuic-primary) 12%, transparent), transparent 45%),
+    radial-gradient(circle at 85% 15%, color-mix(in srgb, var(--wuic-primary) 8%, transparent), transparent 40%),
+    linear-gradient(180deg, var(--wuic-surface-ground) 0%, var(--wuic-surface-ground) 100%) !important;
+}
+
+:host-context(.theme-dark) .wuic-auth-stage-login {
+  --wuic-surface-ground: var(--p-surface-900, var(--p-content-background, var(--surface-b, #0f172a)));
+  --wuic-surface-card: var(--p-content-background, var(--p-surface-800, var(--surface-a, #111827)));
+  --wuic-surface-section: var(--p-content-background, var(--p-surface-800, var(--surface-c, #1f2937)));
+  --wuic-surface-hover: var(--p-content-hover-background, var(--p-surface-700, var(--surface-hover-background, #374151)));
+  --wuic-surface-border: var(--p-content-border-color, var(--surface-d, rgba(255,255,255,0.28)));
+  --wuic-text: var(--p-content-color, var(--p-text-color, var(--text-color, #f3f4f6)));
+  --wuic-text-muted: var(--p-text-muted-color, var(--text-color-secondary, #d1d5db));
+}
+
+:host-context(.theme-dark) .wuic-auth-bar,
+:host-context(.theme-dark) .wuic-auth-bar-login {
+  background: var(--wuic-surface-card) !important;
+  color: var(--wuic-text) !important;
+  border-color: var(--wuic-surface-border) !important;
+}
+
+:host-context(.theme-dark) .wuic-auth-form label,
+:host-context(.theme-dark) .wuic-auth-status,
+:host-context(.theme-dark) .wuic-auth-bar span,
+:host-context(.theme-dark) .wuic-auth-bar strong {
+  color: var(--wuic-text) !important;
+}
+
+:host-context(.theme-dark) .wuic-auth-form input {
+  background: var(--wuic-surface-section) !important;
+  color: var(--wuic-text) !important;
+  border-color: var(--wuic-surface-border) !important;
+}
+
+:host-context(.theme-dark) .wuic-auth-form input::placeholder {
+  color: var(--wuic-text-muted) !important;
+}
+
+:host-context(.theme-dark) .wuic-auth-btn {
+  background: var(--wuic-surface-section) !important;
+  color: var(--wuic-text) !important;
+  border-color: color-mix(in srgb, var(--wuic-surface-border) 75%, white 25%) !important;
+}
+
+:host-context(.theme-dark) .wuic-auth-btn-primary {
+  background: var(--wuic-primary) !important;
+  border-color: var(--wuic-primary) !important;
+  color: var(--wuic-primary-text) !important;
+}
+
+.wuic-auth-bar {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--wuic-surface-border);
+  border-top: 0;
+  background: var(--wuic-surface-card) !important;
+  color: var(--wuic-text) !important;
+}
+
+.wuic-auth-bar-login {
+  width: min(420px, 92vw);
+  gap: 1rem;
+  padding: 1.15rem 1.2rem;
+  border-radius: 14px;
+  border: 1px solid var(--wuic-surface-border) !important;
+  background: var(--wuic-surface-card) !important;
+  box-shadow:
+    0 14px 40px color-mix(in srgb, var(--wuic-text) 12%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--wuic-surface-border) 65%, transparent) inset;
+}
+
+.wuic-auth-status {
+  font-size: 0.9rem;
+  color: var(--wuic-text) !important;
+  margin-bottom: 0.1rem;
+  line-height: 1.35;
+}
+
+.wuic-auth-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.wuic-auth-form-login {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.75rem;
+}
+
+.wuic-auth-form-login form {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.wuic-auth-form label {
+  font-size: 0.85rem;
+  color: var(--wuic-text) !important;
+}
+
+.wuic-auth-form-login label {
+  font-weight: 600;
+  margin-top: 0;
+}
+
+.wuic-auth-form input {
+  min-width: 220px;
+  flex: 1 1 320px;
+  border: 1px solid var(--wuic-surface-border);
+  border-radius: 6px;
+  padding: 0.45rem 0.6rem;
+  background: var(--wuic-surface-section) !important;
+  color: var(--wuic-text) !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--wuic-surface-border) 35%, transparent) inset;
+}
+
+.wuic-auth-form input::placeholder {
+  color: var(--wuic-text-muted);
+  opacity: 1;
+}
+
+.wuic-auth-form input:focus {
+  outline: none;
+  border-color: var(--wuic-primary);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--wuic-primary) 55%, transparent) inset,
+    0 0 0 0.15rem color-mix(in srgb, var(--wuic-primary) 22%, transparent);
+}
+
+.wuic-auth-form-login input {
+  min-width: 0;
+  width: 100%;
+  flex: initial;
+}
+
+.wuic-auth-btn {
+  border: 1px solid var(--wuic-surface-border);
+  background: var(--wuic-surface-section) !important;
+  color: var(--wuic-text) !important;
+  border-radius: 6px;
+  padding: 0.45rem 0.75rem;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
+}
+
+.wuic-auth-form-login .wuic-auth-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.wuic-auth-form-login>.wuic-auth-btn:not(.wuic-auth-btn-primary) {
+  margin-top: 0.2rem;
+}
+
+.wuic-auth-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.wuic-auth-btn:not(:disabled):hover {
+  background: var(--wuic-surface-hover) !important;
+  border-color: color-mix(in srgb, var(--wuic-primary) 35%, var(--wuic-surface-border));
+}
+
+.wuic-auth-btn:not(:disabled):focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 0.15rem color-mix(in srgb, var(--wuic-primary) 20%, transparent);
+}
+
+.wuic-auth-btn-primary {
+  background: var(--wuic-primary) !important;
+  border-color: var(--wuic-primary) !important;
+  color: var(--wuic-primary-text) !important;
+}
+
+.wuic-auth-btn-primary:not(:disabled):hover {
+  background: color-mix(in srgb, var(--wuic-primary) 88%, black 12%) !important;
+  border-color: color-mix(in srgb, var(--wuic-primary) 88%, black 12%) !important;
+  color: var(--wuic-primary-text) !important;
+}
+
+.wuic-captcha {
+  margin: 0.25rem 0;
+}
+
+.wuic-auth-error {
+  color: var(--wuic-danger-700);
+  font-size: 0.85rem;
+  background: color-mix(in srgb, var(--wuic-danger-100) 22%, var(--wuic-surface-card));
+  border: 1px solid color-mix(in srgb, var(--wuic-danger-500) 35%, var(--wuic-surface-border));
+  border-radius: 8px;
+  padding: 0.5rem 0.65rem;
+}
+
+.wuic-auth-success {
+  color: var(--p-green-700, var(--green-700, #15803d));
+  font-size: 0.85rem;
+  background: color-mix(in srgb, var(--p-green-100, var(--green-100, #dcfce7)) 22%, var(--wuic-surface-card));
+  border: 1px solid color-mix(in srgb, var(--p-green-500, var(--green-500, #22c55e)) 35%, var(--wuic-surface-border));
+  border-radius: 8px;
+  padding: 0.5rem 0.65rem;
+}
+
+.wuic-auth-links {
+  display: flex;
+  justify-content: center;
+  gap: 1.25rem;
+  margin-top: 0.1rem;
+}
+
+.wuic-auth-link {
+  /* Reset stili browser default del <button>: il tag e' button (Lighthouse SEO
+     `crawlable-anchors` non flagga i button come fa con <a> senza href), ma
+     visualmente deve sembrare un link inline. */
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  font-size: 0.82rem;
+  color: color-mix(in srgb, var(--wuic-primary) 60%, #0f172a 40%);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.wuic-auth-link:hover {
+  color: color-mix(in srgb, var(--wuic-primary) 40%, #0f172a 60%);
+}
+
+@media (max-width: 768px) {
+  .wuic-menubar-extra {
+    min-width: 0;
+    gap: 0.5rem;
+  }
+
+  .wuic-menubar-user-name,
+  .wuic-menubar-user-role {
+    max-width: 130px;
+  }
+
+  :host ::ng-deep .p-menubar.p-menubar-mobile-active .p-menubar-root-list,
+  :host ::ng-deep .p-menubar.p-menubar-mobile-active .p-menubar-submenu {
+    overflow-x: hidden !important;
+  }
+
+  :host ::ng-deep .p-menubar.p-menubar-mobile-active .p-menubar-root-list {
+    max-height: calc(100vh - 13rem);
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  :host ::ng-deep .p-menubar.p-menubar-mobile-active .p-menubar-submenu {
+    width: 100% !important;
+    margin-left: 0 !important;
+    max-height: none;
+    overflow-y: visible !important;
+  }
+
+  :host ::ng-deep .p-menubar.p-menubar-mobile-active .p-menubar-submenu>.p-menubar-item {
+    width: 100% !important;
+    float: none !important;
+  }
+
+  :host ::ng-deep .p-menubar.p-menubar-mobile-active .p-menubar-item-link {
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  /* Layout compatto verticale di default in hamburger */
+  :host ::ng-deep .p-menubar.p-menubar-mobile-active .p-menubar-root-list>.p-menubar-item>.p-menubar-submenu {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  :host ::ng-deep .p-menubar.p-menubar-mobile-active .p-menubar-root-list>.p-menubar-item>.p-menubar-submenu>.p-menubar-item>.p-menubar-item-link {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+}
+
+@media (max-width: 768px) and (min-width: 560px) {
+  /* Su viewport mobile più larghi, usa 2 colonne per ridurre altezza pannello */
+  :host ::ng-deep .p-menubar.p-menubar-mobile-active .p-menubar-root-list>.p-menubar-item>.p-menubar-submenu {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 0.25rem;
+  }
+}
+
+:host ::ng-deep .p-contextmenu {
+  z-index: 13000 !important;
+}
+
+:host ::ng-deep .p-menubar-item-link[draggable="true"] {
+  cursor: grab;
+}
+
+:host ::ng-deep .p-menubar-item-link[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.wuic-menu-move-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 0.75rem;
+}

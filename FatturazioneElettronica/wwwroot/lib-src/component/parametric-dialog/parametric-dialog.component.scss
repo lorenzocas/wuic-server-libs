@@ -1,0 +1,341 @@
+:host {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    width: 100%;
+    height: auto;
+    max-height: 100%;
+    min-height: 0;
+    --pd-surface: #ffffff;
+    --pd-surface-soft: #fbfcfe;
+    --pd-surface-toolbar: #f7f9fc;
+    --pd-border: #d9e0ea;
+    --pd-border-soft: #e6ebf2;
+    --pd-tab-header: linear-gradient(180deg, #f9fbff 0%, #f3f7fd 100%);
+    --pd-icon: #334155;
+    --pd-icon-hover: #1d4ed8;
+    --pd-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+.form-edit-wrapper {
+    flex: 1 1 auto;
+    height: auto !important;
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    border: 1px solid var(--pd-border);
+    border-radius: 12px;
+    background: var(--pd-surface);
+    box-shadow: var(--pd-shadow);
+    overflow: hidden;
+}
+
+.parametric-dialog-form {
+    flex: 1 1 auto;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.parametric-dialog-body {
+    flex: 1 1 auto;
+    overflow: auto;
+    min-height: 0;
+    height: auto;
+    padding: 10px 10px 10px 10px;
+    border: 1px solid var(--pd-border-soft);
+    border-radius: 10px;
+    background: var(--pd-surface-soft);
+}
+
+.edit-form-button-bar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0;
+    min-height: 64px;
+    padding: 10px 12px 12px 12px;
+    list-style: none;
+    border-top: 1px solid var(--pd-border);
+    background: var(--pd-surface-toolbar);
+}
+
+.edit-form-button-bar li {
+    margin: 0;
+}
+
+.pending-changes-cue {
+    margin-left: auto !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 2rem;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    border: 1px solid var(--pd-border-soft);
+    font-size: 0.82rem;
+    white-space: nowrap;
+}
+
+.pending-changes-cue.is-clean {
+    color: #166534;
+    background: #ecfdf3;
+    border-color: #b7ebcc;
+}
+
+.pending-changes-cue.is-dirty {
+    color: #b42318;
+    background: #fff2f0;
+    border-color: #fecdca;
+}
+
+.pending-dot {
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 999px;
+    background: currentColor;
+}
+
+.edit-form-button-bar li .pi {
+    font-size: 2.2rem;
+    color: var(--pd-icon);
+    cursor: pointer;
+    transition: color 0.15s ease, transform 0.15s ease;
+    line-height: 1;
+}
+
+.edit-form-button-bar li .pi:hover {
+    color: var(--pd-icon-hover);
+    transform: translateY(-1px);
+}
+
+:host ::ng-deep .parametric-toolbar-btn.p-button {
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 999px;
+    border: 1px solid var(--pd-border-soft);
+    color: var(--pd-icon);
+    background: color-mix(in srgb, var(--pd-surface) 86%, transparent);
+}
+
+:host ::ng-deep .parametric-toolbar-btn.p-button .p-button-icon {
+    font-size: 1.3rem;
+}
+
+:host ::ng-deep .parametric-toolbar-btn.p-button:hover {
+    color: var(--pd-icon-hover);
+    border-color: color-mix(in srgb, var(--pd-icon-hover) 45%, var(--pd-border-soft));
+    background: color-mix(in srgb, var(--pd-icon-hover) 10%, var(--pd-surface));
+}
+
+:host ::ng-deep .p-tabs {
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--pd-border-soft);
+    border-radius: 10px;
+    background: var(--pd-surface-soft);
+    overflow: hidden;
+}
+
+:host ::ng-deep .p-tabs .p-tablist {
+    flex: 0 0 auto;
+    border-bottom: 1px solid var(--pd-border);
+    background: var(--pd-tab-header);
+    padding: 0 8px;
+    position: relative;
+    z-index: 1;
+}
+
+:host ::ng-deep .p-tabs .p-tab {
+    border-radius: 8px 8px 0 0;
+    margin-top: 6px;
+}
+
+:host ::ng-deep .p-tabs .p-tabpanels {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 12px;
+    background: transparent;
+    overflow: auto;
+    padding-bottom: 18px;
+}
+
+:host-context(.theme-dark) {
+    --pd-surface: #111827;
+    --pd-surface-soft: #0f172a;
+    --pd-surface-toolbar: #0b1220;
+    --pd-border: #334155;
+    --pd-border-soft: #263449;
+    --pd-tab-header: linear-gradient(180deg, #1a2436 0%, #111b2b 100%);
+    --pd-icon: #cbd5e1;
+    --pd-icon-hover: #7dd3fc;
+    --pd-shadow: 0 14px 30px rgba(0, 0, 0, 0.35);
+}
+
+/* High contrast (WCAG) — rimappa la palette --pd-* sui token --hc-* esposti
+   globalmente da :is(html,body).theme-high-contrast (assets/styles.scss).
+   Le var --hc-* si auto-invertono nella variant .theme-dark, quindi un solo
+   override copre sia HC light che HC dark. */
+:host-context(.theme-high-contrast) {
+    --pd-surface: var(--hc-bg);
+    --pd-surface-soft: var(--hc-bg);
+    --pd-surface-toolbar: var(--hc-bg);
+    --pd-border: var(--hc-border);
+    --pd-border-soft: var(--hc-border);
+    --pd-tab-header: var(--hc-bg);
+    --pd-icon: var(--hc-fg);
+    --pd-icon-hover: var(--hc-accent);
+    --pd-shadow: none;
+}
+
+:host-context(.theme-high-contrast) .form-edit-wrapper,
+:host-context(.theme-high-contrast) .parametric-dialog-body {
+    border-width: 2px;
+}
+
+:host-context(.theme-high-contrast) ::ng-deep .p-tabs {
+    border: 2px solid var(--hc-border);
+    background: var(--hc-bg);
+}
+
+:host-context(.theme-high-contrast) ::ng-deep .p-tabs .p-tablist {
+    border-bottom: 2px solid var(--hc-border);
+    background: var(--hc-bg);
+}
+
+:host-context(.theme-high-contrast) ::ng-deep .p-tabs .p-tab {
+    color: var(--hc-fg);
+    background: var(--hc-bg);
+    border: 2px solid transparent;
+    border-radius: 0;
+    margin-top: 0;
+}
+
+:host-context(.theme-high-contrast) ::ng-deep .p-tabs .p-tab:hover {
+    background: var(--hc-hover-bg);
+    color: var(--hc-fg);
+}
+
+:host-context(.theme-high-contrast) ::ng-deep .p-tabs .p-tab.p-tab-active,
+:host-context(.theme-high-contrast) ::ng-deep .p-tabs .p-tab[data-p-active='true'],
+:host-context(.theme-high-contrast) ::ng-deep .p-tabs .p-tab.p-highlight {
+    color: var(--hc-fg);
+    background: var(--hc-bg);
+    border-color: var(--hc-border);
+    box-shadow: inset 0 -3px 0 var(--hc-accent);
+}
+
+:host-context(.theme-high-contrast) ::ng-deep .p-tabs .p-tab:focus-visible {
+    outline: 4px solid var(--hc-focus);
+    outline-offset: 2px;
+}
+
+:host-context(.theme-high-contrast) ::ng-deep .p-tabs .p-tablist-active-bar {
+    background: var(--hc-accent);
+    height: 3px;
+}
+
+:host-context(.theme-dark) ::ng-deep .parametric-toolbar-btn.p-button {
+    background: color-mix(in srgb, var(--pd-surface-soft) 88%, #0b1220);
+    border-color: var(--pd-border);
+}
+
+:host-context(.theme-dark) .pending-changes-cue.is-clean {
+    color: #86efac;
+    background: color-mix(in srgb, #14532d 45%, var(--pd-surface-soft));
+    border-color: #166534;
+}
+
+:host-context(.theme-dark) .pending-changes-cue.is-dirty {
+    color: #fca5a5;
+    background: color-mix(in srgb, #7f1d1d 55%, var(--pd-surface-soft));
+    border-color: #7f1d1d;
+}
+
+@media (max-width: 768px) {
+    .parametric-dialog-form {
+        padding: 8px;
+    }
+
+    .parametric-dialog-body {
+        padding: 8px 6px 10px 6px;
+    }
+
+    .edit-form-button-bar {
+        padding: 8px;
+        min-height: 58px;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .edit-form-button-bar li .pi {
+        font-size: 2rem;
+    }
+
+    :host ::ng-deep .parametric-toolbar-btn.p-button {
+        width: 2.5rem;
+        height: 2.5rem;
+    }
+
+    .pending-changes-cue {
+        order: 99;
+        margin-left: 0 !important;
+    }
+
+    /* Stacca i field uno sotto l'altro: il container .row ospita i field-editor
+       che hanno una larghezza inline calcolata dai metadata (mc_ui_size_width).
+       Forziamo flex-column + width 100% per neutralizzare l'overflow su mobile.
+       `flex-wrap: nowrap` e' essenziale: il default `.row` (Bootstrap-like)
+       wrappa, e con altezza vincolata + flex-direction column si crea una
+       seconda colonna fuori viewport. */
+    .row {
+        display: flex;
+        flex-direction: column;
+        flex-wrap: nowrap;
+        gap: 12px;
+    }
+
+    :host ::ng-deep .data-field-wrapper {
+        width: 100% !important;
+        max-width: none !important;
+    }
+
+    :host ::ng-deep .data-field-field {
+        width: 100% !important;
+    }
+
+    /* Tab list scrollabile orizzontalmente quando ci sono troppi tab.
+       NON scrollare `<p-tabs>` (scrollerebbe anche il panel content sotto).
+       PrimeNG di default ha `.p-tablist { display: table }` che cresce alla
+       larghezza dei tab (es. 1005px) sforando il container mobile (436px).
+       Forziamo `display: flex` per rispettare `max-width: 100%`, e `align-items:
+       stretch + min-height` per non collassare verticalmente l'altezza dei tab. */
+    :host ::ng-deep .p-tabs .p-tablist {
+        display: flex !important;
+        align-items: stretch !important;
+        max-width: 100%;
+        min-height: 50px;
+    }
+
+    :host ::ng-deep .p-tabs .p-tablist-content,
+    :host ::ng-deep .p-tabs .p-tablist-viewport {
+        max-width: 100%;
+        min-height: 50px;
+        overflow-x: auto !important;
+        overflow-y: visible !important;
+    }
+
+    :host ::ng-deep .p-tabs .p-tab {
+        flex-shrink: 0;
+    }
+
+    :host ::ng-deep .p-tabs .p-tabpanels {
+        padding: 8px;
+    }
+}

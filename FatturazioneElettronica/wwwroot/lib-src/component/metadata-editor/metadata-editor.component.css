@@ -1,0 +1,123 @@
+:host {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Internal helper data sources are required by ViewChild but must stay hidden in UI. */
+:host > wuic-data-source {
+  display: none;
+}
+
+::ng-deep .metadata-editor.p-menubar {
+  width: 100%;
+}
+
+/* Tag e' <button> per Lighthouse SEO `crawlable-anchors` (non <a>): reset
+   stili browser default del button cosi' visivamente e' identico al link
+   PrimeNG menubar item. La classe `.p-menubar-item-link` PrimeNG e' applicata
+   sia in metadata-editor sia nei menu PrimeNG default — questi reset restano
+   minimal (transparent bg, no border, font inherit) per non sovrascrivere
+   gli stili tematici PrimeUix che gia' presidiano color/padding. */
+::ng-deep .metadata-editor.p-menubar button.p-menubar-item-link,
+::ng-deep .metadata-editor .p-menubar-submenu button.p-menubar-item-link {
+  appearance: none;
+  background: transparent;
+  border: none;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+}
+
+/* Hover esplicito: il reset sopra fissa background:transparent con specificita'
+   maggiore della regola PrimeNG default :hover, quindi senza questa il bottone
+   non da' feedback visivo al mouseover. Stessa specificita' del reset + :hover
+   garantisce override pulito; var(--p-content-hover-background) auto-adatta
+   tema light vs dark via token PrimeNG. */
+::ng-deep .metadata-editor.p-menubar button.p-menubar-item-link:not(:disabled):hover,
+::ng-deep .metadata-editor .p-menubar-submenu button.p-menubar-item-link:not(:disabled):hover {
+  background: var(--p-content-hover-background, var(--surface-hover, #f1f5f9));
+  color: var(--p-primary-color, var(--p-text-color, inherit));
+}
+
+:host-context(.theme-dark) ::ng-deep .metadata-editor.p-menubar button.p-menubar-item-link:not(:disabled):hover,
+:host-context(.theme-dark) ::ng-deep .metadata-editor .p-menubar-submenu button.p-menubar-item-link:not(:disabled):hover {
+  background: color-mix(in srgb, var(--p-content-hover-background, #1f2937) 80%, var(--p-primary-color, #3b82f6) 20%);
+  color: var(--p-primary-color, var(--p-text-color, #f3f4f6));
+}
+
+::ng-deep .metadata-editor .p-menubar-root-list {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.25rem;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+::ng-deep .metadata-editor .p-menubar-item {
+  flex: 0 0 auto;
+}
+
+/* Prevent designer toolbox list styles from leaking into menubar internals. */
+::ng-deep .metadata-editor ul {
+  width: auto;
+  margin: 0;
+  padding: 0;
+}
+
+::ng-deep .metadata-editor li {
+  float: none;
+  margin: 0;
+}
+
+/* Metadata editor dropdowns: constrained to viewport with internal vertical scroll. */
+::ng-deep .metadata-editor .p-menubar-submenu,
+::ng-deep body .p-menubar.metadata-editor .p-menubar-submenu {
+  z-index: 13050 !important;
+  max-height: min(60dvh, calc(100dvh - 8rem)) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain;
+}
+
+/* Smart flip: if there is not enough space below, open submenu upward. */
+::ng-deep .metadata-editor .p-menubar-root-list > .p-menubar-item > .p-menubar-submenu.wuic-open-upward,
+::ng-deep body .p-menubar.metadata-editor .p-menubar-root-list > .p-menubar-item > .p-menubar-submenu.wuic-open-upward {
+  top: auto !important;
+  bottom: calc(100% + 0.2rem) !important;
+}
+
+/* Default separator inside a section (e.g. between Insert and records). */
+::ng-deep body .p-menubar.metadata-editor .p-menubar-submenu li[id^="related-meta-insert-separator-"].p-menubar-separator {
+  margin: 0.15rem 0;
+  border-top: 1px solid #d6deea;
+  opacity: 1;
+}
+
+/* Stronger separator between sections. */
+::ng-deep body .p-menubar.metadata-editor .p-menubar-submenu li[id^="related-meta-section-separator-"].p-menubar-separator {
+  margin: 0.45rem 0;
+  border-top: 2px solid #b7c6dc;
+  opacity: 1;
+}
+
+/* Section title rows use ids like related-meta-section-*. */
+::ng-deep body .p-menubar.metadata-editor .p-menubar-submenu li[id^="related-meta-section-"] .p-menubar-item-content {
+  background: #f3f6fb;
+  border-top: 1px solid #d5deec;
+  border-bottom: 1px solid #d5deec;
+}
+
+::ng-deep body .p-menubar.metadata-editor .p-menubar-submenu li[id^="related-meta-section-"] .p-menubar-item-link {
+  min-height: 2rem;
+}
+
+::ng-deep body .p-menubar.metadata-editor .p-menubar-submenu li[id^="related-meta-section-"] .p-menubar-item-label {
+  font-weight: 700;
+  color: #334155;
+  letter-spacing: 0.01em;
+}

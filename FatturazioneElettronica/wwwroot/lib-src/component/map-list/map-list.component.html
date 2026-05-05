@@ -1,0 +1,77 @@
+<div class="map-list-root" #mapHostRef [style.height.px]="mapHostHeightPx" [style.max-height.px]="mapHostHeightPx">
+  @if (loading) {
+  <div class="map-loading-overlay">
+    <div class="map-loading-spinner" aria-hidden="true"></div>
+    <div class="map-loading-label">Loading map...</div>
+  </div>
+  }
+  @if (archetypeOptions) {
+  <!-- <google-map [options]="options" /> (mapClick)="click($event)"-->
+  <google-map #map height="100%" width="100%" [zoom]="zoom" [center]="center" [options]="archetypeOptions"
+    (boundsChanged)="handleMapBoundsChanged()" (centerChanged)="handleMapCenterChanged()"
+    (mapRightclick)="handleMapContextMenu($event)" (mapDrag)="handleMapDrag($event)"
+    (mapDragend)="handleMapDragEnd($event)" (mapDragstart)="handleMapDragStart($event)"
+    (mapMousemove)="handleMapMouseMove($event)" (mapMouseout)="handleMapMouseOut($event)"
+    (mapMouseover)="handleMapMouseOver($event)" (zoomChanged)="handleMapZoomChanged()" (mapClick)="hello($event)">
+    @for (record of data; track record) {
+    @if (record.__marker) {
+    <!-- 2026-05-03: rimosso `(mapClick)="openInfo(...)"` perche'
+         @angular/google-maps@21.x espone `mapClick` come
+         `getLazyEmitter('click')` sul AdvancedMarkerElement; Google ha
+         deprecato l'evento `click` (use `gmp-click` instead). Il binding
+         viene fatto manualmente in ngAfterViewInit + markerElements.changes
+         (vedi `wireMarkerGmpClick()` nel .ts). -->
+    <map-advanced-marker #markerElem="mapAdvancedMarker" [position]="record.__marker.position"
+      [title]="record.__marker.title" [options]="record.__marker.options" [gmpDraggable]="record.__marker.draggable"
+      (mapDragstart)="mapDragstart(markerElem, record.__marker, $event)" [content]="record.__marker.content"
+      (mapDragend)="mapDragend(markerElem, record.__marker, $event)"></map-advanced-marker>
+    }
+    }
+    @for (record of data; track record; let polygonIndex = $index) {
+    @if (record.__polygon) {
+    <map-polygon #polygonElem="mapPolygon" [paths]="record.__polygon.paths" [options]="record.__polygon.options"
+      (polygonClick)="openPolygonInfo(record.__polygon, $event)"
+      (polygonMouseup)="onPolygonShapeChanged(polygonElem, record, polygonIndex)"
+      (polygonDragend)="onPolygonShapeChanged(polygonElem, record, polygonIndex)"></map-polygon>
+    }
+    }
+    <!--
+      <ng-container *ngFor="let circle of circles">
+        <map-circle [center]="circle.center" [radius]="circle.radius" />
+      </ng-container>
+      -->
+    <map-info-window #info [options]="infoWindowOptions">
+      @if (currentMarker) {
+      <ng-container
+        *ngComponentOutlet="itemTemplate; inputs: {  record: currentMarker, rowData: currentMarker, metaInfo: metaInfo, datasource: datasource, getDescription: renderMarkerInfo.bind(this) }"></ng-container>
+      }
+    </map-info-window>
+  </google-map>
+  @if (!hideToolbar) {
+  <div class="map-controls">
+    <p-button [label]="'map.zoom_in' | translate" (onClick)="zoomIn()"></p-button>
+    <p-button [label]="'map.zoom_out' | translate" (onClick)="zoomOut()"></p-button>
+    @if (showMarkerDragButton()) {
+    <p-button [label]="'map.toggle_marker_draggable' | translate" (onClick)="setAllDraggable()"></p-button>
+    }
+    @if (showPolygonEditButton()) {
+    <p-button [label]="polygonEditMode ? 'Save polygons' : 'Edit polygons'"
+      [severity]="polygonEditMode ? 'success' : 'secondary'" (onClick)="togglePolygonEditing()"></p-button>
+    }
+    @if (isAdmin) {
+    <p-button [label]="'map.configure' | translate" icon="pi pi-cog" (onClick)="openMapConfig()"></p-button>
+    }
+    <!-- @if (isAdmin) {
+    <p-button [label]="'metadata.save_table' | translate" (onClick)="saveMapMetadataPropsBag()"></p-button>
+    } -->
+  </div>
+  }
+  }
+  @if (!archetypeOptions && !loading) {
+  <div class="map-empty-placeholder"></div>
+  }
+</div>
+
+<wuic-archetype-configurator [visible]="showConfigDialog" (visibleChange)="showConfigDialog = $event"
+  [archetype]="'map'" [metaInfo]="metaInfo" [value]="archetypeOptions" (applyConfig)="applyMapConfig($event)">
+</wuic-archetype-configurator>

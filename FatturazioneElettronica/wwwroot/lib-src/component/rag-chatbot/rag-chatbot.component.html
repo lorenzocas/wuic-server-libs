@@ -1,0 +1,175 @@
+<div class="wuic-rag-chatbot" [style.--chat-height]="chatHeight">
+
+  <!-- Header -->
+  <div class="wuic-rag-chatbot__header">
+    <div class="wuic-rag-chatbot__title">
+      <i class="pi pi-comments wuic-rag-chatbot__title-icon" aria-hidden="true"></i>
+      <span>{{ title }}</span>
+    </div>
+    <div class="wuic-rag-chatbot__header-actions">
+      <p-badge
+        [value]="modeBadgeLabel"
+        [severity]="modeBadgeSeverity"
+        [pTooltip]="healthInfo
+          ? ('chunks indicizzati: ' + healthInfo.docs_loaded + ' | modello: ' + healthInfo.default_model)
+          : (healthError || 'connessione al server RAG...')"
+        tooltipPosition="bottom">
+      </p-badge>
+      @if (showClearButton) {
+        <p-button
+          icon="pi pi-trash"
+          severity="secondary"
+          [text]="true"
+          [rounded]="true"
+          size="small"
+          [disabled]="history.length === 0 || loading"
+          (onClick)="onClearHistory()"
+          pTooltip="Svuota cronologia"
+          tooltipPosition="bottom"
+          ariaLabel="Svuota cronologia chat">
+        </p-button>
+      }
+    </div>
+  </div>
+
+  <!-- Health error banner -->
+  @if (healthError) {
+    <p-message severity="error" [text]="'Server RAG non raggiungibile: ' + healthError" styleClass="wuic-rag-chatbot__error-banner"></p-message>
+  }
+
+  <!-- Chat history -->
+  <div #scrollContainer class="wuic-rag-chatbot__history" role="log" aria-live="polite">
+    @if (history.length === 0) {
+      <div class="wuic-rag-chatbot__empty">
+        <i class="pi pi-info-circle wuic-rag-chatbot__empty-icon" aria-hidden="true"></i>
+        <p>Fai una domanda sul codebase WUIC, ad esempio:</p>
+        <ul class="wuic-rag-chatbot__suggestions">
+          <li>Invalidare la cache metadata runtime sul server</li>
+          <li>Spreadsheet per data entry massivo simile a excel</li>
+          <li>Salvataggio di un report dal designer</li>
+        </ul>
+      </div>
+    }
+
+    @for (turn of history; track turn.messageId || $index) {
+      <div class="wuic-rag-chatbot__turn"
+           [attr.data-message-id]="turn.messageId || null"
+           [class.wuic-rag-chatbot__turn--user]="turn.role === 'user'"
+           [class.wuic-rag-chatbot__turn--assistant]="turn.role === 'assistant'">
+
+        <div class="wuic-rag-chatbot__turn-header">
+          <i class="pi"
+             [class.pi-user]="turn.role === 'user'"
+             [class.pi-android]="turn.role === 'assistant'"
+             aria-hidden="true"></i>
+          <span>{{ turn.role === 'user' ? 'Tu' : 'Assistente' }}</span>
+          @if (turn.mode) {
+            <span class="wuic-rag-chatbot__turn-mode">[{{ turn.mode === 'rag-llm' ? 'RAG+LLM' : 'retrieval' }}]</span>
+          }
+        </div>
+
+        @if (turn.loading) {
+          <div class="wuic-rag-chatbot__turn-loading">
+            <p-progressSpinner styleClass="wuic-rag-chatbot__spinner" strokeWidth="3" animationDuration=".9s"></p-progressSpinner>
+            <span>Sto interrogando il codebase...</span>
+          </div>
+        } @else if (turn.errorMessage) {
+          <p-message severity="error" [text]="turn.errorMessage" styleClass="wuic-rag-chatbot__turn-error"></p-message>
+        } @else {
+          <div class="wuic-rag-chatbot__turn-content">{{ turn.content }}</div>
+          @if (turn.warning) {
+            <p-message severity="warn" [text]="turn.warning" styleClass="wuic-rag-chatbot__turn-warning"></p-message>
+          }
+          @if (showSources && turn.role === 'assistant' && turn.sources && turn.sources.length > 0) {
+            @let dedupedSources = dedupSources(turn.sources);
+            <div class="wuic-rag-chatbot__sources">
+              <div class="wuic-rag-chatbot__sources-label">Fonti:</div>
+              <div class="wuic-rag-chatbot__sources-list">
+                @for (source of dedupedSources; track source.chunk_id || source.rank) {
+                  <p-chip
+                    [label]="sourceLabel(source, dedupedSources)"
+                    [icon]="isDocsSource(source) ? 'pi pi-book' : (isSkillSource(source) ? 'pi pi-wrench' : 'pi pi-file-edit')"
+                    [removable]="false"
+                    [pTooltip]="sourceTooltip(source)"
+                    tooltipPosition="top"
+                    [styleClass]="isDocsSource(source)
+                      ? 'wuic-rag-chatbot__source-chip wuic-rag-chatbot__source-chip--docs'
+                      : (isSkillSource(source)
+                        ? 'wuic-rag-chatbot__source-chip wuic-rag-chatbot__source-chip--skill'
+                        : 'wuic-rag-chatbot__source-chip')"
+                    (click)="onSourceClick(source)">
+                  </p-chip>
+                }
+              </div>
+            </div>
+          }
+          @if (turn.tokensIn || turn.tokensOut) {
+            <div class="wuic-rag-chatbot__tokens">
+              tokens in/out: {{ turn.tokensIn ?? '?' }}/{{ turn.tokensOut ?? '?' }}
+            </div>
+          }
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Input area -->
+  <div class="wuic-rag-chatbot__input-area">
+    <textarea #inputTextarea
+              pTextarea
+              class="wuic-rag-chatbot__input"
+              [(ngModel)]="inputValue"
+              (keydown)="onKeyDown($event)"
+              [placeholder]="placeholder"
+              [disabled]="loading || !!healthError"
+              [autoResize]="true"
+              rows="1"
+              aria-label="Domanda per il chatbot codebase">
+    </textarea>
+    <p-button
+      icon="pi pi-send"
+      [disabled]="sendDisabled"
+      [loading]="loading"
+      (onClick)="onSend()"
+      severity="primary"
+      ariaLabel="Invia messaggio">
+    </p-button>
+  </div>
+
+  <!-- Dialog preview snippet sorgente.
+       Mostra SOLO il contenuto del chunk (gia' embedded nella response RAG).
+       NON espone il path del file ne' apre editor esterni: il codebase del
+       framework vive sul repo dev e non deve essere linkato all'utente finale. -->
+  @if (selectedSource) {
+    <p-dialog
+      [visible]="true"
+      [modal]="true"
+      [closable]="true"
+      [closeOnEscape]="true"
+      [dismissableMask]="true"
+      [style]="{ width: '640px', maxWidth: '92vw' }"
+      [header]="sourceDialogTitle(selectedSource)"
+      styleClass="wuic-rag-chatbot__source-dialog"
+      (onHide)="closeSourcePreview()">
+      <div class="wuic-rag-chatbot__source-meta">
+        @if (sourceFilePath(selectedSource); as fpath) {
+          <span class="wuic-rag-chatbot__source-tag wuic-rag-chatbot__source-tag--file">
+            <i class="pi pi-file" aria-hidden="true"></i>
+            {{ fpath }}
+          </span>
+        }
+        @if (selectedSource.symbol_type) {
+          <span class="wuic-rag-chatbot__source-tag">{{ selectedSource.symbol_type }}</span>
+        }
+        @if (selectedSource.start_line && selectedSource.end_line) {
+          <span class="wuic-rag-chatbot__source-tag">linee {{ selectedSource.start_line }}-{{ selectedSource.end_line }}</span>
+        }
+        @if (selectedSource.score_vector !== null && selectedSource.score_vector !== undefined) {
+          <span class="wuic-rag-chatbot__source-tag">vec {{ selectedSource.score_vector | number:'1.2-2' }}</span>
+        }
+      </div>
+      <pre class="wuic-rag-chatbot__source-snippet"><code>{{ selectedSource.snippet || '(snippet non disponibile)' }}</code></pre>
+    </p-dialog>
+  }
+
+</div>

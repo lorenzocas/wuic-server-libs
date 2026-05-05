@@ -1,0 +1,166 @@
+// Floating Action Button (FAB) bottom-right.
+// Posizionamento `position: fixed` rispetto al viewport: si appoggia
+// all'angolo basso-destro della pagina, indipendentemente dallo scroll.
+//
+// z-index: 1100 = sopra a navbar/sidebar standard ma sotto a p-dialog modal
+// (PrimeNG default 1101+). Così quando l'utente apre il dialog, il FAB resta
+// raggiungibile sotto il dialog ma non lo sovrappone.
+.wuic-rag-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  background: var(--p-primary-color, #2563eb);
+  color: var(--p-primary-color-text, #fff);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18), 0 2px 4px rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  // Stato "peek": il FAB e' spinto fuori viewport a destra lasciando sporgere
+  // solo un pezzettino sottile (~8px) sul bordo destro. L'utente deve passare
+  // col mouse ESATTAMENTE su quel pezzettino per evocare lo slide-in (niente
+  // hotspot esteso invisibile: il trigger e' solo il cerchio realmente visibile).
+  //
+  // Calcolo: translateX(calc(100% + 16px)) = 72px di traslazione →
+  // con width:56 e right:24, il bordo sinistro del cerchio sta a
+  // viewport_right - 24 - 56 + 72 = viewport_right + (-8) = viewport_right - 8 wait
+  // simpler: bordo-destro-post-transform = viewport_right - 24 + 72 = vr + 48,
+  // bordo-sinistro-post-transform = vr + 48 - 56 = vr - 8.
+  // → 8px di cerchio dentro il viewport, 48px fuori. Peek sottile.
+  transform: translateX(calc(100% + 16px));
+  opacity: 0.45;
+  // Transition asimmetrica:
+  //  - hover-in (peek → slide-in): immediato (delay 0)
+  //  - hover-out (slide-in → peek): delay 250ms di grace window
+  // Motivo: quando il cursore esce dal pezzettino peek, il FAB slida a sx e
+  // finisce sotto al cursore se l'utente segue il movimento. Senza il delay,
+  // al primo pixel "non-hover" il FAB rientrerebbe → loop di flicker. Col
+  // grace di 250ms, l'utente fa in tempo a muovere il mouse sulla posizione
+  // slide-in e stabilizzare il :hover, oppure cliccare.
+  transition: transform 0.28s cubic-bezier(.16,1,.3,1) 0.25s,
+              opacity 0.28s ease-out 0.25s,
+              box-shadow 0.18s ease-out 0s,
+              background-color 0.18s ease-out 0s;
+
+  i {
+    font-size: 24px;
+    line-height: 1;
+  }
+
+  &:hover,
+  &:focus-visible {
+    transform: translateX(0) scale(1.05);
+    opacity: 1;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22), 0 3px 6px rgba(0, 0, 0, 0.14);
+    // Niente delay entrando in hover: slide-in immediato.
+    transition: transform 0.28s cubic-bezier(.16,1,.3,1) 0s,
+                opacity 0.28s ease-out 0s,
+                box-shadow 0.18s ease-out 0s,
+                background-color 0.18s ease-out 0s;
+
+    // "Corridoio di hover" invisibile che copre l'area tra il FAB slidato
+    // (posizione attuale) e la posizione peek originale (bordo destro viewport).
+    // Esiste SOLO quando il FAB e' in :hover → niente hotspot esteso permanente,
+    // solo un prolungamento che mantiene :hover stabile durante/dopo lo slide-in:
+    // cosi' il cursore puo' restare dov'era (sul peek) senza perdere l'hover,
+    // e puo' muoversi verso sinistra per cliccare il FAB senza flicker.
+    //
+    // left:100% inizia dal bordo destro del FAB; width:96px copre l'intera
+    // traslazione (72px del transform + 24px di right offset).
+    &::after {
+      content: '';
+      position: absolute;
+      top: -8px;
+      bottom: -8px;
+      left: 100%;
+      width: 96px;
+      background: transparent;
+      pointer-events: auto;
+    }
+  }
+
+  &:active {
+    transform: translateX(0) scale(0.98);
+    opacity: 1;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--p-primary-color, #2563eb);
+    outline-offset: 3px;
+  }
+
+  // Quando il dialog è aperto, il FAB resta pienamente visibile (non peek).
+  // Al close del dialog la class viene rimossa e il FAB torna a scomparsa.
+  &.wuic-rag-fab--dialog-open {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+// Badge unread count attaccato top-right del FAB.
+.wuic-rag-fab__badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  background: #e11d48;        // rosso intenso (notification color)
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+// Override PrimeNG dialog quando ospita il chatbot.
+// Il componente usa `encapsulation: None`: questi selettori sono GLOBALI ma
+// namespaced su `.wuic-rag-fab__dialog` per evitare collisioni con altri dialog.
+.wuic-rag-fab__dialog {
+  // Posizionamento fisso: il dialog sta SOPRA il FAB (non sovrapposto).
+  // Il FAB occupa `56px + 24px bottom` = 80px; lasciamo 16px di gap extra
+  // per separare visivamente dialog e ballon → bottom: 96px.
+  // Così il FAB resta visibile nell'angolo sotto il dialog.
+  // `!important` necessario perché PrimeNG applica inline style via @media
+  // query/style binding a runtime.
+  position: fixed !important;
+  top: auto !important;
+  left: auto !important;
+  bottom: 96px !important;
+  right: 16px !important;
+  margin: 0 !important;
+  // Max-height: dialog limitato all'area sopra il FAB (96 bottom + 16 top gap).
+  max-height: calc(100vh - 112px);
+
+  .p-dialog-content {
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .p-dialog-header {
+    padding: 12px 18px;
+  }
+}
+
+// Il p-dialog-mask che ospita il dialog usa flex per centrarlo di default.
+// Override: lasciamo che il dialog si posizioni da solo con position:fixed,
+// e il mask resta invisibile non-modale. `pointer-events: none` sul mask +
+// `auto` sul dialog per permettere all'utente di interagire con la UI
+// sottostante mentre il dialog è aperto (coerente con `[modal]="false"`).
+.p-dialog-mask:has(> .wuic-rag-fab__dialog) {
+  pointer-events: none;
+  background: transparent !important;
+
+  > .wuic-rag-fab__dialog {
+    pointer-events: auto;
+  }
+}

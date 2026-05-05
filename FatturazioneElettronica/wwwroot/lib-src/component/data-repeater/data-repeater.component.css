@@ -1,0 +1,105 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+}
+
+:host(.wuic-data-repeater-fill-height) {
+  display: flex !important;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.data-repeater-body {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.data-repeater-body > ng-component {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.data-repeater-body > ng-component > * {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
+}
+
+:host ::ng-deep .data-repeater-body > ng-component {
+  display: flex !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+}
+
+:host ::ng-deep .data-repeater-body > ng-component > * {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+:host(.wuic-data-repeater-fill-height) .data-repeater-body,
+:host(.wuic-data-repeater-fill-height) ::ng-deep .data-repeater-body > ng-component,
+:host(.wuic-data-repeater-fill-height) ::ng-deep .data-repeater-body > ng-component > * {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+:host(.wuic-data-repeater-fill-height) ::ng-deep .data-repeater-body > ng-component > * {
+  flex-direction: column;
+}
+
+:host(.wuic-data-repeater-fill-height) ::ng-deep .data-repeater-body > * {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+:host(.wuic-data-repeater-fill-height) ::ng-deep .data-repeater-body > * > * {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+:host(.wuic-data-repeater-fill-height) ::ng-deep wuic-list-grid,
+:host(.wuic-data-repeater-fill-height) ::ng-deep .list-grid-container,
+:host(.wuic-data-repeater-fill-height) ::ng-deep .list-grid-container .p-datatable {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
+}
+
+:host(.wuic-data-repeater-fill-height) ::ng-deep wuic-map-list,
+:host(.wuic-data-repeater-fill-height) ::ng-deep wuic-map-list .map-list-root,
+:host(.wuic-data-repeater-fill-height) ::ng-deep wuic-map-list .map-list-root google-map {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}

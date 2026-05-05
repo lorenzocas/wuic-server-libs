@@ -1,0 +1,21 @@
+<!-- <button (click)="fix()">Fix</button> -->
+@defer (on immediate) {
+  <stimulsoft-designer-angular #designer [requestUrl]="requestUrl" [width]="'100%'"
+      [height]="'100%'"></stimulsoft-designer-angular>
+} @placeholder {
+  <div class="stimulsoft-loading-placeholder">
+    <i class="pi pi-spin pi-spinner"></i>
+    <span>Caricamento Report Designer…</span>
+    <small>Il SDK Stimulsoft è in download (~16 MB). Operazione una tantum.</small>
+  </div>
+} @loading (minimum 300ms) {
+  <div class="stimulsoft-loading-placeholder">
+    <i class="pi pi-spin pi-spinner"></i>
+    <span>Inizializzazione editor…</span>
+  </div>
+} @error {
+  <div class="stimulsoft-error-placeholder">
+    <i class="pi pi-exclamation-triangle"></i>
+    <span>Errore nel caricamento del Report Designer. Verifica connessione e ricarica la pagina.</span>
+  </div>
+}

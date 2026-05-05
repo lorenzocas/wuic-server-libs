@@ -1,0 +1,35 @@
+<wuic-data-source #datasourceTabelle [hardcodedRoute]="' metadati  tabelle'" style="display: none;"></wuic-data-source>
+<wuic-data-source #datasourceColonne [hardcodedRoute]="' metadati  colonne'" style="display: none;"></wuic-data-source>
+<wuic-data-source #datasourceRelatedMetadataCustomActions [hardcodedRoute]="metaCustomActionsRoute" style="display: none;"></wuic-data-source>
+<wuic-data-source #datasourceRelatedMetadataAuthTable [hardcodedRoute]="metaAuthTableRoute" style="display: none;"></wuic-data-source>
+<wuic-data-source #datasourceRelatedMetadataAuthColumn [hardcodedRoute]="metaAuthColumnRoute" style="display: none;"></wuic-data-source>
+<wuic-data-source #datasourceRelatedMetadataTableStyles [hardcodedRoute]="metaTableStyleRoute" style="display: none;"></wuic-data-source>
+<wuic-data-source #datasourceRelatedMetadataColumnStyles [hardcodedRoute]="metaColumnStyleRoute" style="display: none;"></wuic-data-source>
+<wuic-data-source #datasourceRelatedMetadataConditionGroup [hardcodedRoute]="metaConditionGroupRoute" style="display: none;"></wuic-data-source>
+<wuic-data-source #datasourceRelatedMetadataConditionItem [hardcodedRoute]="metaConditionItemRoute" style="display: none;"></wuic-data-source>
+<wuic-data-source #datasourceRelatedMetadataConditionActionGroup [hardcodedRoute]="metaConditionActionGroupRoute" style="display: none;"></wuic-data-source>
+<wuic-data-source #datasourceRelatedMetadataConditionAction [hardcodedRoute]="metaConditionActionRoute" style="display: none;"></wuic-data-source>
+
+<p-menubar #metadataMenubar [model]="items" [styleClass]="'metadata-editor'" [autoDisplay]="false" appendTo="body" [autoZIndex]="true" [baseZIndex]="13000" [breakpoint]="'0px'">
+    <ng-template #item let-item>
+        <ng-container>
+            <!-- Tag <button> (non <a>) per Lighthouse SEO `crawlable-anchors`:
+                 questi sono action commands (es. "Insert column", "Remove
+                 column", "Sync metadata from schema"), non navigation links
+                 → semantica corretta. La classe `p-menubar-item-link` viene
+                 mantenuta per uniformita' visiva con il resto del menubar
+                 (vedi reset `appearance: none` etc. in metadata-editor.scss
+                 sotto `button.p-menubar-item-link`). -->
+            <button type="button" pRipple class="p-menubar-item-link" [class.p-disabled]="!!item?.disabled"
+                style="display: flex; align-items: center; width: 100%;"
+                (click)="onMenuItemClick($event, item)">
+                <span class="p-menubar-item-label" style="padding-left: .5rem;">{{ item.label }}</span>
+                @if (item?.item?.deletable || item?.deletable) {
+                <span
+                    style="margin-left: auto; color: #b3261e; font-weight: 700; cursor: pointer; padding: 0 .5rem; font-size: 1rem; line-height: 1;"
+                    [title]="'delete' | translate" (click)="onMenuItemDeleteClick($event, item)">×</span>
+                }
+            </button>
+        </ng-container>
+    </ng-template>
+</p-menubar>

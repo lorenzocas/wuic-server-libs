@@ -1,0 +1,121 @@
+<div class="data-field-wrapper">
+  <div class="data-field-field"
+    [ngStyle]="{width: true ? (field.mc_ui_filter_size_width ? (field.mc_ui_filter_size_width + 'px') : widgetDefinition.defaultFilterWidth || widgetDefinition.defaultWidth) : (field.mc_ui_size_width ? field.mc_ui_size_width + 'px' : widgetDefinition.defaultWidth)}">
+    @if (!hideLabel && condition()) {
+    <div class="caption-wrapper">
+      <table style="width: 100%;">
+        <tr>
+          @if (!metaInfo.tableMetadata.md_inline_edit) {
+          <td>
+            @if (!metaInfo.editMode) {
+            @if (getAccessibleControlId()) {
+            <label class="caption" [attr.id]="getAccessibleLabelId()" [attr.for]="getAccessibleControlId()">
+              {{field.mc_display_string_in_edit}}
+              @if (field.mc_tooltip) {
+              <i class="pi pi-info-circle" [pTooltip]="field.mc_tooltip" tooltipPosition="right"
+                style="margin-right: 10px;"></i>
+              }
+              @if (field.mc_suggest_value_callback) {
+              <i class="pi pi-sparkles" [pTooltip]="'suggest' | translate" tooltipPosition="right"
+                style="margin-right: 10px;"
+                (click)="field.mc_suggest_value_callback__fn(record, field, metaInfo, wtoolbox)"></i>
+              }
+            </label>
+            } @else {
+            <span class="caption" [attr.id]="getAccessibleLabelId()">
+              {{field.mc_display_string_in_edit}}
+              @if (field.mc_tooltip) {
+              <i class="pi pi-info-circle" [pTooltip]="field.mc_tooltip" tooltipPosition="right"
+                style="margin-right: 10px;"></i>
+              }
+              @if (field.mc_suggest_value_callback) {
+              <i class="pi pi-sparkles" [pTooltip]="'suggest' | translate" tooltipPosition="right"
+                style="margin-right: 10px;"
+                (click)="field.mc_suggest_value_callback__fn(record, field, metaInfo, wtoolbox)"></i>
+              }
+            </span>
+            }
+            }
+            @if (metaInfo.editMode) {
+            <div class="datafield-edit-box">
+              <i (click)="metaSrv.hideColumn(field, false, true)" class="pointer glyphicon glyphicon-eye-close"></i>
+              <i (click)="metaSrv.reorderField(field, 'up', metaInfo)" class="pointer glyphicon glyphicon-arrow-up"></i>
+              <i (click)="metaSrv.reorderField(field, 'down', metaInfo)"
+                class="pointer glyphicon glyphicon-arrow-down"></i>
+              <div>
+                <!-- ng-model-options="{ updateOn: 'blur' }"-->
+                <input type="text" pInputText [(ngModel)]="field.mc_display_string_in_edit" />
+              </div>
+            </div>
+            }
+            @if (field.mc_tooltip) {
+            <span kendo-tooltip k-options="{position: 'top'}" title="{{field.mc_tooltip}}"
+              class="pointer glyphicon glyphicon-question-sign"></span>
+            }
+            @if (field.mc_suggest_value_callback) {
+            <span k-options="{position: 'top'}" title="{{'suggest' | translate }}"
+              class="pointer glyphicon glyphicon-info-sign" (click)="metaSrv.suggest(field, record)"></span>
+            }
+            @if (field.mc_syntax_builder) {
+            <div>
+              <!-- <syntax-builder field="field" route="{{metaInfo.tableMetadata.md_route_name}}"></syntax-builder> -->
+            </div>
+            }
+          </td>
+          }
+          <!-- <td style="float:right;">
+            <div class="data-field-validation" ng-messages="editForm[field.ang_name].$error" *ngIf="editForm[field.ang_name].$touched && !editForm[field.ang_name].$valid">
+              <span class="k-tooltip k-tooltip-validation k-invalid-msg" ng-repeat="rule in validationsRules | fieldNameFilter:field.ang_name" ng-message="{{rule.type}}">
+                <i class="fa fa-exclamation-triangle" style="color: rgba(246, 103, 103, 1);" aria-hidden="true" title="{{rule.message | translate:field}}"></i>
+              </span>
+            </div>
+          </td> -->
+        </tr>
+        @if (!isRangeFilter() && !widgetDefinition.hideFilterOperator && widgetDefinition.filterOperators.length &&
+        !field.mc_filter_hide_operator && field.mc_ui_column_type != 'point') {
+        <tr>
+          <td>
+            <div class="filter-operator">
+              <select [ngModel]="operator" class="filter-operators" (change)="setOperator($event)"
+                [disabled]="field.mc_filter_disable_operator">
+                @for (opt of widgetDefinition.filterOperators | availableOperators: field; track opt) {
+                <option [value]="opt.key" [selected]="opt.key == operator">
+                  {{opt.value}}
+                </option>
+                }
+              </select>
+            </div>
+          </td>
+        </tr>
+        }
+      </table>
+    </div>
+    }
+
+    <div class="editor-wapper" [ngClass]="field.extras?.style?.editCss">
+      @if (condition()) {
+      <div
+        [ngStyle]="{'min-height': field.mc_ui_size_height ? (field.mc_ui_size_height + 'px') : widgetDefinition.defaultHeight, height: widgetMap[field.mc_ui_column_type]?.height, width: true ? (field.mc_ui_filter_size_width ? (field.mc_ui_filter_size_width + 'px') : widgetDefinition.defaultFilterWidth || widgetDefinition.defaultWidth) : widgetMap[field.mc_ui_column_type]?.width}">
+        @if (field.mc_ui_column_type == 'point') {
+        <wuic-point-filter [record]="record" [field]="field" [metaInfo]="metaInfo"
+          [datasource]="datasource"></wuic-point-filter>
+        } @else if (isRangeFilter()) {
+        <div class="wuic-range-filter-row">
+          <div class="wuic-range-filter-item">
+            <wuic-number-editor [record]="rangeFromRecord" [field]="rangeFromField" [metaInfo]="metaInfo"
+              [isFilter]="true"></wuic-number-editor>
+          </div>
+          <div class="wuic-range-filter-item">
+            <wuic-number-editor [record]="rangeToRecord" [field]="rangeToField" [metaInfo]="metaInfo"
+              [isFilter]="true"></wuic-number-editor>
+          </div>
+        </div>
+        } @else {
+        <ng-container *ngComponentOutlet="getComponent(); inputs: getInputs()" />
+        }
+      </div>
+      }
+      <!-- <span class="disabled-textfield" *ngIf="conditionSpan()">{{this | formatViewValue:field}}</span> -->
+    </div>
+  </div>
+</div>

@@ -1,0 +1,180 @@
+<div class="app-settings-editor">
+
+  <!-- Header -->
+  <div class="app-settings-editor__header">
+    <div class="app-settings-editor__title">
+      <i class="pi pi-cog"></i>
+      <h2>{{ 'app_settings.title' | translate }}</h2>
+    </div>
+    @if (filePath()) {
+      <div class="app-settings-editor__file-path">
+        <i class="pi pi-file"></i>
+        <code>{{ filePath() }}</code>
+      </div>
+    }
+  </div>
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="app-settings-editor__loading">
+      <p-progressSpinner class="w-4rem h-4rem" strokeWidth="4"></p-progressSpinner>
+      <span>{{ 'app_settings.loading' | translate }}</span>
+    </div>
+  }
+
+  <!-- Error banner -->
+  @if (errorMsg() && !loading()) {
+    <div class="app-settings-editor__error">
+      <i class="pi pi-exclamation-triangle"></i>
+      <span>{{ errorMsg() }}</span>
+      <p-button [label]="'app_settings.retry' | translate" icon="pi pi-refresh" size="small" severity="secondary" (onClick)="onReload()"></p-button>
+    </div>
+  }
+
+  <!-- Tabs + form -->
+  @if (!loading() && sections().length > 0) {
+    <p-tabs [value]="activeTabValue()" (valueChange)="onTabChange($any($event))">
+      <p-tablist>
+        @for (sec of sections(); track sec.name; let i = $index) {
+          <p-tab [value]="i">
+            <i class="{{ sec.icon }} mr-2"></i>
+            <span>{{ t(sec.labelKey, sec.label) }}</span>
+          </p-tab>
+        }
+      </p-tablist>
+      <p-tabpanels>
+        @for (sec of sections(); track sec.name; let i = $index) {
+          <p-tabpanel [value]="i">
+            <div class="app-settings-editor__fields">
+              @for (f of sec.fields; track f.key) {
+                <div class="app-settings-editor__field">
+                  <label class="app-settings-editor__field-label" [attr.for]="'fld-' + f.key">
+                    <span class="label-text">{{ t(f.labelKey, f.label) }}</span>
+                    <p-tag
+                      [value]="impactLabel(f.impact)"
+                      [severity]="impactSeverity(f.impact)"
+                      class="ml-2 impact-tag"
+                      [pTooltip]="(('app_settings.impact' | translate) + ': ' + impactLabel(f.impact))"></p-tag>
+                  </label>
+
+                  <!-- Ogni ngModel qui è standalone: non c'è un <form> wrapper che
+                       raggruppi i controlli, ogni field ha il suo (fieldValue / onFieldChange)
+                       two-way binding. Senza `[ngModelOptions]="{standalone: true}"`
+                       Angular 21 emette NG01203 ("No value accessor for form control
+                       unspecified name attribute") perche' cerca un NgForm parent. -->
+                  @if (f.options && f.options.length > 0) {
+                    <!-- enum-like (highest priority — wins over type-based branches when populated) -->
+                    <p-select
+                      [inputId]="'fld-' + f.key"
+                      [options]="f.options"
+                      [ngModel]="fieldValue(f.key)"
+                      (ngModelChange)="onFieldChange(f.key, $event)"
+                      [ngModelOptions]="{standalone: true}"
+                      [appendTo]="'body'"
+                      class="w-full"></p-select>
+                  } @else if (f.type === 'bool') {
+                    <p-toggleSwitch
+                      [ngModel]="fieldValue(f.key)"
+                      (ngModelChange)="onFieldChange(f.key, $event)"
+                      [ngModelOptions]="{standalone: true}"
+                      [inputId]="'fld-' + f.key"></p-toggleSwitch>
+                  } @else if (f.type === 'int') {
+                    <p-inputNumber
+                      [ngModel]="fieldValue(f.key)"
+                      (ngModelChange)="onFieldChange(f.key, $event)"
+                      [ngModelOptions]="{standalone: true}"
+                      [inputId]="'fld-' + f.key"
+                      [useGrouping]="false"
+                      class="w-full"></p-inputNumber>
+                  } @else if (f.type === 'password') {
+                    <p-password
+                      [inputId]="'fld-' + f.key"
+                      [ngModel]="fieldValue(f.key)"
+                      (ngModelChange)="onFieldChange(f.key, $event)"
+                      [ngModelOptions]="{standalone: true}"
+                      [feedback]="false"
+                      [toggleMask]="true"
+                      class="w-full"
+                      inputStyleClass="w-full"></p-password>
+                  } @else if (f.type === 'longtext') {
+                    <textarea
+                      pTextarea
+                      [id]="'fld-' + f.key"
+                      rows="3"
+                      [ngModel]="fieldValue(f.key)"
+                      (ngModelChange)="onFieldChange(f.key, $event)"
+                      [ngModelOptions]="{standalone: true}"
+                      class="w-full"></textarea>
+                  } @else {
+                    <!-- string (single line) — default fallback -->
+                    <input
+                      pInputText
+                      type="text"
+                      [id]="'fld-' + f.key"
+                      [ngModel]="fieldValue(f.key)"
+                      (ngModelChange)="onFieldChange(f.key, $event)"
+                      [ngModelOptions]="{standalone: true}"
+                      class="w-full" />
+                  }
+
+                  @if (f.description) {
+                    <small class="app-settings-editor__field-hint">{{ t(f.descriptionKey, f.description) }}</small>
+                  }
+                </div>
+              }
+            </div>
+          </p-tabpanel>
+        }
+      </p-tabpanels>
+    </p-tabs>
+
+    <!-- Toolbar (mimics parametric-dialog edit-form-button-bar) -->
+    <ul class="edit-form-button-bar app-settings-editor__toolbar">
+      <li>
+        <p-button
+          [label]="'app_settings.save_and_apply' | translate"
+          icon="pi pi-save"
+          severity="success"
+          (onClick)="onSaveAndApply()"
+          [disabled]="!hasPendingChanges() || saving() || waitingRestart()"></p-button>
+      </li>
+      <li>
+        <p-button
+          [label]="'app_settings.reset' | translate"
+          icon="pi pi-undo"
+          severity="secondary"
+          [text]="true"
+          (onClick)="onResetChanges()"
+          [disabled]="!hasPendingChanges() || saving() || waitingRestart()"></p-button>
+      </li>
+      <li>
+        <p-button
+          [label]="'app_settings.reload_from_disk' | translate"
+          icon="pi pi-refresh"
+          severity="secondary"
+          [text]="true"
+          (onClick)="onReload()"
+          [disabled]="saving() || waitingRestart()"></p-button>
+      </li>
+
+      @if (hasPendingChanges()) {
+        <li class="pending-changes-cue">
+          <span class="pending-dot" aria-hidden="true"></span>
+          <span>{{ pendingChangesCount() }} {{ (pendingChangesCount() === 1 ? 'app_settings.pending_change' : 'app_settings.pending_changes') | translate }}</span>
+        </li>
+      }
+    </ul>
+  }
+
+  <!-- Restart overlay -->
+  @if (waitingRestart()) {
+    <div class="app-settings-editor__restart-overlay">
+      <div class="app-settings-editor__restart-card">
+        <p-progressSpinner class="w-5rem h-5rem" strokeWidth="3"></p-progressSpinner>
+        <h3>{{ 'app_settings.restart_title' | translate }}</h3>
+        <p>{{ 'app_settings.restart_line1' | translate }}<br />{{ 'app_settings.restart_line2' | translate }}</p>
+      </div>
+    </div>
+  }
+
+</div>

@@ -1,0 +1,112 @@
+<div class="print-toolbar no-print">
+  <p-button label="Stampa" icon="pi pi-print" (onClick)="print()"></p-button>
+  <p-button label="Indietro" icon="pi pi-arrow-left" severity="secondary"
+            (onClick)="back()" styleClass="ml-2"></p-button>
+</div>
+
+@if (loading()) {
+  <div class="loading-state">
+    <p-progressSpinner></p-progressSpinner>
+    <p>Caricamento fattura…</p>
+  </div>
+} @else if (errorMsg()) {
+  <div class="error-state">
+    <i class="pi pi-exclamation-triangle"></i>
+    <p>{{ errorMsg() }}</p>
+  </div>
+} @else if (header(); as h) {
+  <article class="fattura-sheet">
+
+    <!-- Header con dati emittente / numero fattura -->
+    <header class="fattura-head">
+      <div class="emittente">
+        <h2>FatturazioneElettronica Test SRL</h2>
+        <div class="muted">
+          Via Esempio 1, 00100 Roma (RM)<br>
+          P.IVA 00000000000 — C.F. 00000000000<br>
+          PEC: fatture&#64;example.it
+        </div>
+      </div>
+      <div class="doc-id">
+        <h1>Fattura</h1>
+        <div class="num">N. {{ h['numero'] }}</div>
+        <div class="muted">Data: {{ $any(h['data_documento']) | date:'dd/MM/yyyy' }}</div>
+        @if (h['stato_sdi']) {
+          <div class="badge sdi">SDI: {{ h['stato_sdi'] }}</div>
+        }
+      </div>
+    </header>
+
+    <!-- Cliente -->
+    <section class="cliente">
+      <div class="label">Cliente</div>
+      <div class="value">
+        <strong>{{ h['cliente_id_lookup'] || h['cliente_ragione_sociale'] || '—' }}</strong>
+      </div>
+    </section>
+
+    <!-- Righe fattura -->
+    <table class="righe">
+      <thead>
+        <tr>
+          <th class="num">#</th>
+          <th>Descrizione</th>
+          <th class="qty">Q.tà</th>
+          <th class="price">Prezzo unit.</th>
+          <th class="vat">IVA %</th>
+          <th class="total">Imponibile</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (r of righe(); track r['id']) {
+          <tr>
+            <td class="num">{{ r['riga'] }}</td>
+            <td>{{ r['descrizione'] }}</td>
+            <td class="qty">{{ $any(r['quantita']) | number:'1.0-2' }}</td>
+            <td class="price">{{ $any(r['prezzo_unitario']) | currency:'EUR':'symbol':'1.2-2' }}</td>
+            <td class="vat">{{ $any(r['aliquota']) | number:'1.0-2' }}%</td>
+            <td class="total">{{ $any(r['imponibile_riga']) | currency:'EUR':'symbol':'1.2-2' }}</td>
+          </tr>
+        } @empty {
+          <tr><td colspan="6" class="muted center">(nessuna riga)</td></tr>
+        }
+      </tbody>
+    </table>
+
+    <!-- Riepilogo IVA -->
+    @if (riepilogoIva().length) {
+      <table class="riepilogo">
+        <thead>
+          <tr>
+            <th>Aliquota</th>
+            <th class="total">Imponibile</th>
+            <th class="total">Imposta</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (rip of riepilogoIva(); track rip['aliquota']) {
+            <tr>
+              <td>{{ $any(rip['aliquota']) | number:'1.0-2' }}%</td>
+              <td class="total">{{ $any(rip['imponibile']) | currency:'EUR':'symbol':'1.2-2' }}</td>
+              <td class="total">{{ $any(rip['iva']) | currency:'EUR':'symbol':'1.2-2' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+
+    <!-- Totali -->
+    <section class="totali">
+      <div><span>Imponibile:</span><strong>{{ $any(h['imponibile']) | currency:'EUR':'symbol':'1.2-2' }}</strong></div>
+      <div><span>IVA:</span><strong>{{ $any(h['iva']) | currency:'EUR':'symbol':'1.2-2' }}</strong></div>
+      <div class="grand"><span>Totale fattura:</span><strong>{{ $any(h['totale']) | currency:'EUR':'symbol':'1.2-2' }}</strong></div>
+    </section>
+
+    @if (h['note']) {
+      <section class="note">
+        <div class="label">Note</div>
+        <div class="value">{{ h['note'] }}</div>
+      </section>
+    }
+  </article>
+}

@@ -1,0 +1,278 @@
+<div class="workflow-designer">
+  <div class="workflow-toolbar">
+    <div class="workflow-current-graph">{{ currentGraphCaption }}</div>
+    <div class="workflow-toolbar-menu-group">
+      <button type="button" (click)="graphActionsMenu.toggle($event)">
+        Azioni grafo
+      </button>
+      <p-menu #graphActionsMenu [popup]="true" [model]="graphActionsMenuItems" appendTo="body"></p-menu>
+    </div>
+    <div class="workflow-toolbar-menu-group">
+      <button type="button" (click)="runnerActionsMenu.toggle($event)" [disabled]="!canOpenWorkflowRunner">
+        Runner
+      </button>
+      <p-menu #runnerActionsMenu [popup]="true" [model]="runnerActionsMenuItems" appendTo="body"></p-menu>
+    </div>
+  </div>
+
+  <aside class="workflow-palette">
+    <div class="workflow-palette-title">{{ 'workflow.palette' | translate }}</div>
+    <div class="workflow-palette-list">
+      @for (item of paletteNodes; track item) {
+        <div
+          class="workflow-palette-item"
+        [ngClass]="{
+          'workflow-palette-item-route': item.type === 'route',
+          'workflow-palette-item-action': item.type === 'action',
+          'workflow-palette-item-start': item.type === 'start',
+          'workflow-palette-item-condition': item.type === 'condition',
+          'workflow-palette-item-end': item.type === 'end',
+          'workflow-palette-item-disabled': !isPaletteNodeEnabled(item)
+        }"
+          [attr.draggable]="isPaletteNodeEnabled(item) ? 'true' : 'false'"
+          (dragstart)="onPaletteDragStart($event, item)">
+          <div class="workflow-palette-item-title">{{ item.label }}</div>
+          @if (item.type === 'route') {
+            <div class="workflow-palette-item-badge">{{ 'workflow.badge.route' | translate }}</div>
+          }
+          @if (item.type === 'action') {
+            <div class="workflow-palette-item-badge">{{ 'workflow.badge.action_scope' | translate }}</div>
+          }
+          <div class="workflow-palette-item-description">{{ item.description }}</div>
+        </div>
+      }
+    </div>
+  </aside>
+
+  <section
+    #workflowCanvas
+    class="workflow-canvas"
+    (dragover)="onCanvasDragOver($event)"
+    (drop)="onCanvasDrop($event)"
+    (contextmenu)="onCanvasContextMenu($event)"
+    (click)="onCanvasClick()">
+    <div class="workflow-canvas-hint">
+      {{ 'workflow.drag_hint' | translate }}
+    </div>
+  </section>
+  <p-contextMenu
+    #primeContextMenu
+    [model]="contextMenuItems"
+    appendTo="body"
+    [autoZIndex]="true"
+    [baseZIndex]="13000">
+  </p-contextMenu>
+</div>
+
+<p-dialog
+  [header]="'Riapri grafo'"
+  [(visible)]="reopenWorkflowDialogVisible"
+  [modal]="true"
+  [closable]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [appendTo]="'body'"
+  [style]="{ width: '34rem' }"
+  (onHide)="cancelReopenWorkflowDialog()">
+  <div class="route-popup-form">
+    <label for="workflow-reopen-select">Grafi esistenti</label>
+    <p-select
+      inputId="workflow-reopen-select"
+      [options]="savedGraphOptions"
+      optionLabel="label"
+      optionValue="value"
+      [(ngModel)]="reopenDialogSelectedGraphKey"
+      [filter]="true"
+      [showClear]="true"
+      [style]="{ width: '100%' }"
+      appendTo="body" />
+
+    <div class="route-popup-actions">
+      <button type="button" class="route-popup-btn" (click)="cancelReopenWorkflowDialog()">{{ 'cancel' | translate }}</button>
+      <button type="button" class="route-popup-btn route-popup-btn-primary" (click)="confirmReopenWorkflowDialog()"
+      [disabled]="!reopenDialogSelectedGraphKey || loadingWorkflow">Riapri</button>
+    </div>
+  </div>
+</p-dialog>
+
+<div style="display:none">
+  <wuic-data-source #routeMetadataDs [hardcodedRoute]="routeMetadataRoute"></wuic-data-source>
+  <wuic-data-source #startMenuDs [hardcodedRoute]="' metadati  menu'"></wuic-data-source>
+  <wuic-data-source #menuAuthDs [hardcodedRoute]="' mtdt  tnt  trizzazioni  menus'"></wuic-data-source>
+  @if (routeMetadataDs) {
+    <wuic-metadata-editor
+      #actionMetadataEditor
+      [hardcodedDatasource]="routeMetadataDs!"
+      [saveCallback]="routeMetadataSaveCallback"
+      [hideReports]="true"
+      [hideRelatedTableActions]="true"
+      [hideRelatedColumnActions]="true">
+    </wuic-metadata-editor>
+  }
+</div>
+
+<p-dialog
+  [header]="'workflow.configure_route' | translate"
+  [(visible)]="routePopupVisible"
+  [modal]="true"
+  [closable]="false"
+  [draggable]="false"
+  [resizable]="false"
+  [style]="{ width: '32rem' }">
+  <div class="route-popup-form">
+    <label for="workflow-route-source-select">Sorgente nodo</label>
+    <p-select
+      inputId="workflow-route-source-select"
+      [options]="routeSourceOptions"
+      optionLabel="label"
+      optionValue="value"
+      [(ngModel)]="selectedRouteSourceType"
+      (ngModelChange)="onRouteSourceTypeChanged()"
+      [style]="{ width: '100%' }"
+      appendTo="body" />
+
+    @if (selectedRouteSourceType === 'route') {
+      <label for="workflow-route-select">{{ 'workflow.route' | translate }}</label>
+      <p-autoComplete
+        inputId="workflow-route-select"
+        [(ngModel)]="selectedRouteName"
+        [suggestions]="filteredRouteOptions"
+        [forceSelection]="true"
+        [dropdown]="true"
+        dropdownMode="current"
+        [optionLabel]="'label'"
+        [optionValue]="'value'"
+        [style]="{ width: '100%' }"
+        appendTo="body"
+        (completeMethod)="filterRouteOptions($event)" />
+      <label for="workflow-action-select">{{ 'workflow.action' | translate }}</label>
+      <p-select
+        inputId="workflow-action-select"
+        [options]="routeActionOptions"
+        optionLabel="label"
+        optionValue="value"
+        [(ngModel)]="selectedRouteAction"
+        [style]="{ width: '100%' }"
+        appendTo="body" />
+    } @else {
+      <label for="workflow-dashboard-select">Dashboard</label>
+      <p-autoComplete
+        inputId="workflow-dashboard-select"
+        [(ngModel)]="selectedDashboardRoute"
+        [suggestions]="filteredDashboardOptions"
+        [forceSelection]="true"
+        [dropdown]="true"
+        dropdownMode="current"
+        [optionLabel]="'label'"
+        [optionValue]="'value'"
+        [style]="{ width: '100%' }"
+        appendTo="body"
+        (completeMethod)="filterDashboardOptions($event)" />
+    }
+
+
+    <div class="route-popup-actions">
+      <button type="button" class="route-popup-btn" (click)="cancelRouteDrop()">{{ 'cancel' | translate }}</button>
+      <button type="button" class="route-popup-btn route-popup-btn-primary" (click)="confirmRouteDrop()"
+      [disabled]="selectedRouteSourceType === 'dashboard' ? !selectedDashboardRoute : (!selectedRouteName || !selectedRouteAction)">{{ 'confirmation' | translate }}</button>
+    </div>
+  </div>
+</p-dialog>
+
+<p-dialog
+  [header]="'workflow.metadata_route' | translate"
+  [(visible)]="routeMetadataDialogVisible"
+  [modal]="true"
+  position="top"
+  [draggable]="false"
+  [resizable]="false"
+  [appendTo]="'body'"
+  styleClass="workflow-route-metadata-dialog"
+  [style]="{ width: '78rem', maxHeight: 'calc(100vh - 2rem)' }"
+  [contentStyle]="{ overflow: 'visible', maxHeight: 'calc(100vh - 10rem)' }">
+  @if (routeMetadataDialogVisible && routeMetadataDs) {
+    <wuic-metadata-editor
+      #routeMetadataEditor
+      [hardcodedDatasource]="routeMetadataDs!"
+      [saveCallback]="routeMetadataSaveCallback"
+      [hideReports]="true"
+      [hideRelatedTableActions]="false"
+      [hideRelatedColumnActions]="false">
+    </wuic-metadata-editor>
+  }
+</p-dialog>
+
+<p-dialog
+  [header]="'workflow.configure_action' | translate"
+  [(visible)]="actionPopupVisible"
+  [modal]="true"
+  [closable]="false"
+  [draggable]="false"
+  [resizable]="false"
+  [style]="{ width: '32rem' }">
+  <div class="route-popup-form">
+    <label for="workflow-action-type-select">{{ 'workflow.action_type' | translate }}</label>
+    <p-select
+      inputId="workflow-action-type-select"
+      [options]="actionTypeOptions"
+      optionLabel="label"
+      optionValue="value"
+      [(ngModel)]="selectedActionTypeId"
+      [style]="{ width: '100%' }"
+      appendTo="body" />
+
+    <label for="workflow-action-scope-select">{{ 'workflow.action_scope' | translate }}</label>
+    <p-select
+      inputId="workflow-action-scope-select"
+      [options]="actionScopeOptions"
+      optionLabel="label"
+      optionValue="value"
+      [(ngModel)]="selectedActionScopeId"
+      [style]="{ width: '100%' }"
+      appendTo="body" />
+
+    <div class="route-popup-actions">
+      <button type="button" class="route-popup-btn" (click)="cancelActionDrop()">{{ 'cancel' | translate }}</button>
+      <button type="button" class="route-popup-btn route-popup-btn-primary" (click)="confirmActionDrop()"
+      [disabled]="selectedActionTypeId === null || selectedActionTypeId === undefined || selectedActionScopeId === null || selectedActionScopeId === undefined">{{ 'confirmation' | translate }}</button>
+    </div>
+  </div>
+</p-dialog>
+
+<p-dialog
+  [header]="'Opzioni workflow'"
+  [(visible)]="workflowOptionsDialogVisible"
+  [modal]="true"
+  [closable]="false"
+  [draggable]="false"
+  [resizable]="false"
+  [style]="{ width: '32rem' }">
+  <div class="route-popup-form">
+    <label for="workflow-options-caption">Caption menu start</label>
+    <input
+      id="workflow-options-caption"
+      class="workflow-options-input"
+      type="text"
+      [(ngModel)]="workflowOptionsCaption" />
+
+    <label class="workflow-options-toggle">
+      <input type="checkbox" [(ngModel)]="workflowOptionsInheritMetadata" />
+      <span>Eredita metadati</span>
+    </label>
+
+    <label class="workflow-options-toggle">
+      <input type="checkbox" [(ngModel)]="workflowOptionsExclusiveMenu" />
+      <span>Menu esclusivo</span>
+    </label>
+
+    <label class="workflow-options-toggle">
+      <input type="checkbox" [(ngModel)]="workflowOptionsShowExit" />
+      <span>Mostra esci</span>
+    </label>
+
+    <div class="route-popup-actions">
+      <button type="button" class="route-popup-btn" (click)="cancelWorkflowOptionsDialog()">{{ 'cancel' | translate }}</button>
+      <button type="button" class="route-popup-btn route-popup-btn-primary" (click)="confirmWorkflowOptionsDialog()">{{ 'confirmation' | translate }}</button>
+    </div>
+  </div>
+</p-dialog>

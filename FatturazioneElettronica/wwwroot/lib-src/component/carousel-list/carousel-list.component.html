@@ -1,0 +1,45 @@
+@if (archetypeOptions && data) {
+<div class="carousel-layout">
+  @if (!hideToolbar) {
+  <div class="carousel-toolbar">
+    @if (isAdmin) {
+    <p-button [label]="'carousel.configure' | translate" icon="pi pi-cog" (onClick)="openConfigDialog()"></p-button>
+    }
+    @if (isAdmin) {
+    <p-button [label]="'metadata.save_table' | translate" (onClick)="saveCarouselMetadataPropsBag()"></p-button>
+    }
+  </div>
+  }
+
+  <div class="carousel-content" #carouselContent>
+    <p-carousel [value]="data" [numVisible]="archetypeOptions.numVisible" [numScroll]="archetypeOptions.numScroll"
+      [responsiveOptions]="archetypeOptions.responsiveOptions" (onPage)="handleCarouselPage($event)">
+      <ng-template let-item pTemplate="item">
+        <div class="carousel-item-card m-2 p-3" (click)="handleCarouselItemClick(item, $event)">
+          @if (itemTemplate) {
+          <ng-container
+            *ngComponentOutlet="itemTemplate; inputs: { record: item, rowData: item, metaInfo: metaInfo, datasource: datasource }"></ng-container>
+          } @else {
+          <div class="mb-3">
+            <div class="relative mx-auto" style="text-align: center;">
+              <wuic-image-wrapper [preview]="true" appendTo="body"
+                [src]="item[archetypeOptions.imageFieldName] | getSrcUploadPreview : imageColumn : metaInfo : item"
+                [previewImageSrc]="item[archetypeOptions.imageFieldName] | getSrcUploadPreview : imageColumn : metaInfo : item"
+                [alt]="item[archetypeOptions.imageFieldName]" [width]="archetypeOptions.imageWidth + ''">
+              </wuic-image-wrapper>
+            </div>
+          </div>
+          <div class="carousel-item-caption mb-3 font-medium">
+            {{ item[archetypeOptions.descriptionFieldName] }}
+          </div>
+          }
+        </div>
+      </ng-template>
+    </p-carousel>
+  </div>
+
+  <wuic-archetype-configurator [visible]="showConfigDialog" (visibleChange)="showConfigDialog = $event"
+    [archetype]="'carousel'" [metaInfo]="metaInfo" [value]="archetypeOptions" (applyConfig)="applyConfig($event)">
+  </wuic-archetype-configurator>
+</div>
+}

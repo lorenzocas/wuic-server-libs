@@ -1,0 +1,32 @@
+<div class="wuic-upload-dialog">
+  <div class="wuic-upload-dialog__info">
+    <div><strong>Tabella target:</strong> <code>{{ targetTable }}</code></div>
+    <div><strong>Stored:</strong> <code>{{ storedName }}</code></div>
+    <div><strong>Modalit&agrave;:</strong> <code>{{ targetMode }}</code></div>
+  </div>
+
+  <div class="wuic-upload-dialog__picker">
+    <p-fileUpload
+      mode="basic"
+      [customUpload]="true"
+      [auto]="false"
+      [chooseLabel]="chooseLabel"
+      [accept]="accept"
+      [maxFileSize]="maxFileSize"
+      [showCancelButton]="false"
+      [disabled]="uploading"
+      (onSelect)="onFileSelect($event)"
+      (onClear)="onFileClear()">
+    </p-fileUpload>
+    <span class="wuic-upload-dialog__filename" *ngIf="selectedFileName">{{ selectedFileName }}</span>
+  </div>
+
+  <p-message *ngIf="errorMessage" severity="error" [text]="errorMessage" styleClass="wuic-upload-dialog__error"></p-message>
+
+  <p-progressBar *ngIf="uploading" mode="indeterminate" styleClass="wuic-upload-dialog__progress"></p-progressBar>
+
+  <div class="wuic-upload-dialog__actions">
+    <button pButton type="button" [label]="'Annulla'" class="p-button-text" [disabled]="uploading" (click)="onCancel()"></button>
+    <button pButton type="button" [label]="'Carica'" icon="pi pi-upload" [disabled]="!selectedFile || uploading" (click)="onConfirm()"></button>
+  </div>
+</div>

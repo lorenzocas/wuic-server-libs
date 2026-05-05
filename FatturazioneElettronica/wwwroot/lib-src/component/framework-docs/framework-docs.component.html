@@ -1,0 +1,138 @@
+<div class="fw-docs" [class.dark]="dark()">
+  <aside class="sidebar">
+    <div class="brand">
+      <h2>{{ 'docs.title' | translate }}</h2>
+      <p>{{ 'docs.subtitle' | translate }}</p>
+    </div>
+
+    <div class="search">
+      <input pInputText type="text" [ngModel]="query()" (ngModelChange)="query.set($event || '')" [placeholder]="t('docs.search_placeholder','Search feature, tag, keyword')" />
+      <button pButton type="button" icon="pi pi-sun" *ngIf="dark()" (click)="toggleTheme()"></button>
+      <button pButton type="button" icon="pi pi-moon" *ngIf="!dark()" (click)="toggleTheme()"></button>
+    </div>
+
+    <div class="nav-groups">
+      @for (group of filteredGroups(); track group.id) {
+      <section>
+        <h3>{{ group.title }}</h3>
+        <ul>
+          @for (item of group.items; track item.slug) {
+          <li>
+            <a [class.active]="item.slug === currentSlug()" [href]="'#/docs/' + item.slug" (click)="openPage(item.slug); $event.preventDefault()">
+              <i class="pi" [ngClass]="item.icon || 'pi-file'"></i>
+              <span>{{ item.title }}</span>
+            </a>
+          </li>
+          }
+        </ul>
+      </section>
+      }
+    </div>
+  </aside>
+
+  <main class="content" #contentScroller *ngIf="currentPage() as page">
+    <nav class="breadcrumbs">{{ breadcrumbs().join(' / ') }}</nav>
+
+    <header>
+      <h1>{{ page.title }}</h1>
+      <p>{{ page.description }}</p>
+      <div class="tags">
+        <p-tag *ngFor="let tag of page.tags" [value]="tag"></p-tag>
+        <p-tag
+          [value]="page.status"
+          [severity]="page.status === 'beta' ? 'warn' : 'success'"
+          [pTooltip]="page.status === 'beta' ? 'Feature in beta: API e comportamento possono cambiare senza preavviso' : ''"
+          tooltipPosition="top"></p-tag>
+        <p-tag *ngIf="page.tier === 'pro'" value="Pro only" styleClass="tier-tag tier-tag-pro"></p-tag>
+        <p-tag *ngIf="!page.tier || page.tier === 'dev-and-pro'" value="Dev & Pro" styleClass="tier-tag tier-tag-base"></p-tag>
+      </div>
+    </header>
+
+    <div class="body-grid">
+      <article>
+        @for (section of page.sections; track section.id) {
+        <section [attr.id]="section.id" class="doc-section">
+          <h3>{{ section.title }}</h3>
+          @for (part of sectionParts(section); track $index) {
+          @if (part.kind === 'html') {
+          <div class="section-html" [innerHTML]="getHighlightedHtml(part.html)"></div>
+          } @else {
+          @let sampleKey = getSampleKey(page.slug, section.id, part.sample.id);
+          <div class="code-block" [ngClass]="getSnippetLanguageClass(part.sample.language)">
+            <div class="code-header">
+              <div class="code-meta">
+                <span>{{ part.sample.title }}</span>
+                <span class="snippet-lang" [ngClass]="getSnippetLanguageClass(part.sample.language)">
+                  <i class="pi" [ngClass]="getSnippetLanguageIconClass(part.sample.language)"></i>
+                  {{ getSnippetLanguageLabel(part.sample.language) }}
+                </span>
+              </div>
+              <div class="code-actions">
+                @if (isSampleCollapsible(part.sample.code)) {
+                <button
+                  pButton
+                  type="button"
+                  size="small"
+                  severity="secondary"
+                  [icon]="isSampleExpanded(sampleKey) ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"
+                  [label]="isSampleExpanded(sampleKey) ? t('docs.collapse','Collapse') : (t('docs.expand','Expand') + ' (+' + getCollapsedHiddenLines(part.sample.code) + ')')"
+                  (click)="toggleSampleExpanded(sampleKey)">
+                </button>
+                }
+                <button pButton type="button" size="small" icon="pi pi-copy" [label]="t('docs.copy','Copy')" (click)="copyCode(part.sample.code)"></button>
+              </div>
+            </div>
+            <pre><code [innerHTML]="getVisibleSampleHighlightedCode(part.sample.code, sampleKey, part.sample.language)"></code></pre>
+          </div>
+          }
+          }
+        </section>
+        }
+
+        @if (page.slug === 'themes') {
+        <section class="themes-catalog">
+          <h3>{{ 'docs.themes_catalog' | translate }}</h3>
+          <div class="themes-catalog-grid">
+            @for (theme of allThemes; track theme.value) {
+            <div class="themes-catalog-item">
+              <span class="theme-dot" [style.backgroundColor]="theme.primaryHex"></span>
+              <span>{{ theme.label }}</span>
+            </div>
+            }
+          </div>
+        </section>
+        }
+
+        @if (page.images?.length) {
+        <section class="screenshots">
+          <h3>{{ 'docs.feature_screenshots' | translate }}</h3>
+          <div class="shots-grid">
+            @for (img of page.images; track img.id) {
+            <figure>
+              <p-image
+                *ngIf="img.status === 'available'"
+                [preview]="true"
+                [src]="img.path"
+                [previewImageSrc]="img.path"
+                [alt]="img.caption"
+              />
+              <div class="missing" *ngIf="img.status !== 'available'">{{ 'docs.snapshot_unavailable' | translate }}</div>
+              <figcaption [innerHTML]="getHighlightedText(formatScreenshotCaption(img.caption))"></figcaption>
+            </figure>
+            }
+          </div>
+        </section>
+        }
+      </article>
+
+      <aside class="toc">
+        <h4>{{ 'docs.on_this_page' | translate }}</h4>
+        <ul>
+          @for (item of page.toc; track item.id) {
+          <li><a [href]="'#' + item.id" (click)="scrollToSection($event, item.id, item.title)">{{ item.title }}</a></li>
+          }
+        </ul>
+      </aside>
+    </div>
+  </main>
+</div>

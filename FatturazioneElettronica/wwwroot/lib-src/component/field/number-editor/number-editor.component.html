@@ -1,0 +1,23 @@
+@if (!(field.use_slider_in_edit && field.hide_value_in_view)) {
+<p-inputNumber [ngModel]="record[field.mc_nome_colonna] | async"
+  [inputId]="field.ang_name" [name]="field.ang_name"
+  [attr.tabindex]="tabIndex"
+  [mode]="field.mc_ui_slider_format == 'C' ? 'currency' : 'decimal'" [locale]="locale"
+  [currency]="field.mc_ui_slider_format == 'C' ? currencyCode : undefined"
+  [minFractionDigits]="field.mc_ui_slider_decimals" (onInput)="modelChangeFn($event)" (onBlur)="onBlur()"
+  [disabled]="field.extras?.form?.disabled || field.use_slider_in_edit || readOnly"
+  [ngClass]="field.extras?.style?.editCss"
+  [min]="field.mc_ui_slider_min !== null && field.mc_ui_slider_min !== undefined ? field.mc_ui_slider_min : undefined"
+  [max]="field.mc_ui_slider_max !== null && field.mc_ui_slider_max !== undefined ? field.mc_ui_slider_max : undefined" />
+}
+
+@if (field.use_slider_in_edit) {
+<p-slider [ngModel]="record[field.mc_nome_colonna] | async" [step]="field.mc_ui_slider_smallstep"
+  (onChange)="modelChangeFn($event)"
+  [ariaLabel]="field.mc_display_string_in_edit || field.mc_nome_colonna"
+  [attr.aria-labelledby]="field.ang_name ? (field.ang_name + '__label') : null"
+  [attr.tabindex]="tabIndex"
+  [min]="field.mc_ui_slider_min !== null && field.mc_ui_slider_min !== undefined ? field.mc_ui_slider_min : undefined"
+  [max]="field.mc_ui_slider_max !== null && field.mc_ui_slider_max !== undefined ? field.mc_ui_slider_max : undefined"
+  [disabled]="field.extras?.form?.disabled || readOnly" />
+}
