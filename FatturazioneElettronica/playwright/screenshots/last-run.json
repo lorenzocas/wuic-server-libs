@@ -18,16 +18,16 @@
       "name": "Invio fattura via SdiController (XML + markAsSent)",
       "status": "pass",
       "out": {
-        "fatturaId": 33,
-        "fileXml": "C:\\src\\Wuic\\KonvergenceCore\\wwwroot\\Upload\\sdi-out\\IT12345678901_00010.xml",
+        "fatturaId": 35,
+        "fileXml": "C:\\src\\Wuic\\FatturazioneElettronica\\wwwroot\\Upload\\sdi-out\\IT12345678901_00010.xml",
         "xmlSize": 2814
       },
-      "durationMs": 2425
+      "durationMs": 1088
     }
   ],
   "pass": 1,
   "fail": 0,
   "skip": 0,
   "total": 1,
-  "runAt": "2026-05-05T18:34:42.028Z"
+  "runAt": "2026-05-05T18:40:00.507Z"
 }

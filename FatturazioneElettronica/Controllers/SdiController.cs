@@ -39,30 +39,6 @@ public class SdiController : ControllerBase
         ConfigurationManager.ConnectionStrings["DataSQLConnection"]?.ConnectionString
         ?? throw new InvalidOperationException("DataSQLConnection non configurata");
 
-    /// <summary>
-    /// Ritorna il root della FE app (csproj folder).
-    /// NB: NON usare `IWebHostEnvironment.ContentRootPath` ne'
-    /// `Directory.GetCurrentDirectory()` per gli output FE-specific:
-    /// `Program.cs:200-203` imposta `UseContentRoot(KonvergenceCore)`
-    /// perche' la FE app condivide lo workspace Angular di KC; quindi
-    /// `ContentRootPath` punta a KC, non alla FE. Per file FE-specific
-    /// (es. XML SDI) ricaviamo il path dal `AppContext.BaseDirectory`
-    /// (= `bin/Debug/net10.0/`) risalendo 3 livelli.
-    /// </summary>
-    private static string FeAppRoot
-    {
-        get
-        {
-            string baseDir = AppContext.BaseDirectory;
-            // Dev: bin/Debug/net10.0/ -> ../../.. = csproj folder
-            string devCandidate = Path.GetFullPath(Path.Combine(baseDir, "..", "..", ".."));
-            if (File.Exists(Path.Combine(devCandidate, "FatturazioneElettronica.csproj")))
-                return devCandidate;
-            // Published: BaseDirectory IS the publish output root
-            return Path.GetFullPath(baseDir);
-        }
-    }
-
     public class GenerateXmlRequest { public int FatturaId { get; set; } }
     public class MarkAsSentRequest { public int FatturaId { get; set; } public string SdiId { get; set; } = ""; public string SdiMessaggio { get; set; } = ""; }
 
@@ -80,11 +56,12 @@ public class SdiController : ControllerBase
             // Costruisci XML
             string xml = BuildFatturaPaXml(payload);
 
-            // Salva su disco usando FeAppRoot (csproj folder della FE app),
-            // NON `Directory.GetCurrentDirectory()` ne' `_env.ContentRootPath`
-            // (che punta a KonvergenceCore per riuso workspace Angular —
-            // vedi commento su FeAppRoot).
-            string xmlDir = Path.Combine(FeAppRoot, "wwwroot", "Upload", "sdi-out");
+            // Salva su disco usando `FeAppPaths.HostProjectRoot` (csproj folder
+            // della FE app). NON `Directory.GetCurrentDirectory()` ne'
+            // `IWebHostEnvironment.ContentRootPath` (che punta a KonvergenceCore
+            // per riuso workspace Angular — vedi FeAppPaths.cs e
+            // Program.CreateHostBuilder per il razionale).
+            string xmlDir = Path.Combine(FatturazioneElettronica.FeAppPaths.HostProjectRoot, "wwwroot", "Upload", "sdi-out");
             Directory.CreateDirectory(xmlDir);
             string fileName = $"IT{(payload.Header["cliente_piva"] as string ?? "00000000000")}_{payload.Header["progressivo"]:00000}.xml";
             string xmlPath = Path.Combine(xmlDir, fileName);

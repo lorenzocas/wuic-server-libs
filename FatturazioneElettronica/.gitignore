@@ -332,3 +332,11 @@ wwwroot/Reports/cache/**
 .vscode/
 .dotnet/**
 .local-package-sync.stamp
+
+# wwwroot/lib-src e' un junction verso
+# KonvergenceCore/wwwroot/my-workspace/projects/wuic-framework-lib/src/lib
+# (regola 16 AGENTS). Vive solo nel repo KC; in FE NON deve essere
+# tracciato. Per distribuzione end-user il junction non serve — l'app
+# usera' il pacchetto npm `wuic-framework-lib` da node_modules.
+wwwroot/lib-src
+wwwroot/lib-src/**

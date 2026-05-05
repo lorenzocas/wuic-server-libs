@@ -8,7 +8,7 @@ internal static class Program
 {
     private static void Main(string[] args)
     {
-        string hostProjectRoot = ResolveHostProjectRoot();
+        string hostProjectRoot = FatturazioneElettronica.FeAppPaths.HostProjectRoot;
         string legacyRoot = ResolveLegacyRoot(hostProjectRoot);
 
         SyncLegacyConfiguration(hostProjectRoot, legacyRoot);
@@ -238,16 +238,7 @@ internal static class Program
         return hostProjectRoot;
     }
 
-    private static string ResolveHostProjectRoot()
-    {
-        string baseDir = AppContext.BaseDirectory;
-
-        // Dev layout: bin/Debug|Release/net10.0/.. .. .. = csproj folder
-        string devCandidate = Path.GetFullPath(Path.Combine(baseDir, "..", "..", ".."));
-        if (File.Exists(Path.Combine(devCandidate, "FatturazioneElettronica.csproj")))
-            return devCandidate;
-
-        // Published layout: AppContext.BaseDirectory IS the publish output root
-        return Path.GetFullPath(baseDir);
-    }
+    // ResolveHostProjectRoot rimosso — sostituito da
+    // `FatturazioneElettronica.FeAppPaths.HostProjectRoot` (vedi FeAppPaths.cs)
+    // riusato anche da Controllers/SdiController per output XML SDI.
 }
