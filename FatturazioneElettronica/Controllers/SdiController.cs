@@ -6,7 +6,6 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Xml;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FatturazioneElettronica.Controllers;
@@ -81,12 +80,11 @@ public class SdiController : ControllerBase
             // Costruisci XML
             string xml = BuildFatturaPaXml(payload);
 
-            // Salva su disco. Usiamo `_env.ContentRootPath` (path radice della
-            // FE app) invece di `Directory.GetCurrentDirectory()` — quest'ultimo
-            // ritorna il cwd del processo .NET che, se il backend e' lanciato
-            // da una cwd diversa (es. KonvergenceCore via subprocess), fa
-            // finire i file XML fuori dalla webroot della FE app.
-            string xmlDir = Path.Combine(_env.ContentRootPath, "wwwroot", "Upload", "sdi-out");
+            // Salva su disco usando FeAppRoot (csproj folder della FE app),
+            // NON `Directory.GetCurrentDirectory()` ne' `_env.ContentRootPath`
+            // (che punta a KonvergenceCore per riuso workspace Angular —
+            // vedi commento su FeAppRoot).
+            string xmlDir = Path.Combine(FeAppRoot, "wwwroot", "Upload", "sdi-out");
             Directory.CreateDirectory(xmlDir);
             string fileName = $"IT{(payload.Header["cliente_piva"] as string ?? "00000000000")}_{payload.Header["progressivo"]:00000}.xml";
             string xmlPath = Path.Combine(xmlDir, fileName);
