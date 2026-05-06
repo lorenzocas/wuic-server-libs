@@ -6,28 +6,27 @@
     "password": "Test123!",
     "apiUser": "admin_test_2",
     "apiPassword": "Test123!",
-    "filter": "^09",
+    "filter": "^14",
     "bail": false,
     "headed": false,
     "outDir": "C:\\src\\Wuic\\FatturazioneElettronica\\playwright\\screenshots"
   },
   "results": [
     {
-      "file": "09-invio-fattura-sdi.mjs",
-      "id": "09",
-      "name": "Invio fattura via SdiController (XML + markAsSent)",
+      "file": "14-home-dashboard.mjs",
+      "id": "14",
+      "name": "Home dashboard rendering (strict)",
       "status": "pass",
       "out": {
-        "fatturaId": 35,
-        "fileXml": "C:\\src\\Wuic\\FatturazioneElettronica\\wwwroot\\Upload\\sdi-out\\IT12345678901_00010.xml",
-        "xmlSize": 2814
+        "tiles": 4,
+        "screenshot": "C:\\src\\Wuic\\FatturazioneElettronica\\playwright\\screenshots\\PASS_14_home_dashboard_1778011077820.png"
       },
-      "durationMs": 1088
+      "durationMs": 10094
     }
   ],
   "pass": 1,
   "fail": 0,
   "skip": 0,
   "total": 1,
-  "runAt": "2026-05-05T18:40:00.507Z"
+  "runAt": "2026-05-05T19:57:57.973Z"
 }
