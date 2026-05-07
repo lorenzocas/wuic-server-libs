@@ -43,13 +43,18 @@ namespace WEB_UI_CRAFTER
         private static volatile string _schemaEnsuredTable = null;
         private static readonly object _schemaLock = new object();
 
+        // Fixes S1192: define costanti per literal usati 4× nei default
+        private const string DefaultTranslationsTableName = "_record_field_translations";
+        private const string DefaultLanguageCode = "it-IT";
+
+        // S1104: encapsulation in properties
         public sealed class Settings
         {
-            public bool Enabled;
-            public string DefaultTableName;
-            public string TranslationJsonFieldName;
-            public string DefaultLanguage;
-            public List<string> FieldNames;
+            public bool Enabled { get; set; }
+            public string DefaultTableName { get; set; }
+            public string TranslationJsonFieldName { get; set; }
+            public string DefaultLanguage { get; set; }
+            public List<string> FieldNames { get; set; }
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -61,9 +66,9 @@ namespace WEB_UI_CRAFTER
         {
             // Defaults globali (allineati a MSSQL)
             bool enabled = ParseBool(GetConfig("RecordTranslations:Enabled") ?? GetConfig("recordTranslationsEnabled"), false);
-            string defaultTableName = NullIfBlank(GetConfig("RecordTranslations:DefaultTableName") ?? GetConfig("recordTranslationsDefaultTableName")) ?? "_record_field_translations";
+            string defaultTableName = NullIfBlank(GetConfig("RecordTranslations:DefaultTableName") ?? GetConfig("recordTranslationsDefaultTableName")) ?? DefaultTranslationsTableName;
             string jsonField = NullIfBlank(GetConfig("RecordTranslations:TranslationJsonFieldName") ?? GetConfig("recordTranslationsTranslationJsonFieldName")) ?? "translation_json";
-            string defaultLanguage = NullIfBlank(GetConfig("RecordTranslations:DefaultLanguage") ?? GetConfig("recordTranslationsDefaultLanguage")) ?? "it-IT";
+            string defaultLanguage = NullIfBlank(GetConfig("RecordTranslations:DefaultLanguage") ?? GetConfig("recordTranslationsDefaultLanguage")) ?? DefaultLanguageCode;
             List<string> fieldNames = ParseFieldNamesFromConfig();
 
             // Per-route override via md_props_bag.serverProperties.RecordTranslations
@@ -199,11 +204,11 @@ CREATE TABLE IF NOT EXISTS {quoted} (
                 .ToList();
             if (configuredFields.Count == 0) return;
 
-            string tableName = IsValidIdentifier(settings.DefaultTableName) ? settings.DefaultTableName : "_record_field_translations";
+            string tableName = IsValidIdentifier(settings.DefaultTableName) ? settings.DefaultTableName : DefaultTranslationsTableName;
             EnsureSchema(connection, tableName, settings.TranslationJsonFieldName);
 
             string quotedTable = "`" + tableName.Replace("`", "``") + "`";
-            List<string> languages = ResolveLanguages(connection, settings.DefaultLanguage);
+            List<string> languages = ResolveLanguages(settings.DefaultLanguage);
 
             int timeout = ParseTimeout();
 
@@ -261,7 +266,7 @@ ON DUPLICATE KEY UPDATE
             if (!settings.Enabled || connection == null || tableMetadata == null || metadataColumns == null || entity == null)
                 return;
 
-            _Metadati_Colonne pk = metadataColumns.FirstOrDefault(x => x.mc_is_primary_key is true);
+            _Metadati_Colonne pk = metadataColumns.FirstOrDefault(x => x.mc_is_primary_key);
             if (pk == null || !entity.ContainsKey(pk.mc_nome_colonna) || entity[pk.mc_nome_colonna] == null)
                 return;
 
@@ -279,22 +284,20 @@ ON DUPLICATE KEY UPDATE
             // `{field: '...', oldValue: '...', timestamp: '...'}`). La forma
             // arriva sia come Dictionary<string,object> che come JObject
             // (tramite AsmxProxy JSON pipeline). Normalizziamo entrambi.
+            // S1066: merged enclosing if + inner type-pattern (eliminata anche la doppia null check).
             var changedFieldNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            if (entity.ContainsKey("__changes") && entity["__changes"] != null)
+            if (entity.ContainsKey("__changes") && entity["__changes"] is IEnumerable<object> changes)
             {
-                if (entity["__changes"] is IEnumerable<object> changes)
+                foreach (object entry in changes)
                 {
-                    foreach (object entry in changes)
-                    {
-                        string field = ExtractField(entry);
-                        if (!string.IsNullOrWhiteSpace(field)) changedFieldNames.Add(field);
-                    }
+                    string field = ExtractField(entry);
+                    if (!string.IsNullOrWhiteSpace(field)) changedFieldNames.Add(field);
                 }
             }
             if (changedFieldNames.Count == 0) return;
 
             string runtimeLanguage = ResolveRuntimeLanguage(userId, settings.DefaultLanguage);
-            string tableName = IsValidIdentifier(settings.DefaultTableName) ? settings.DefaultTableName : "_record_field_translations";
+            string tableName = IsValidIdentifier(settings.DefaultTableName) ? settings.DefaultTableName : DefaultTranslationsTableName;
             EnsureSchema(connection, tableName, settings.TranslationJsonFieldName);
             string quotedTable = "`" + tableName.Replace("`", "``") + "`";
             int timeout = ParseTimeout();
@@ -342,7 +345,7 @@ ON DUPLICATE KEY UPDATE
             Settings settings = ResolveSettings(tableMetadata);
             if (!settings.Enabled || tableMetadata == null || string.IsNullOrWhiteSpace(recordId)) return;
 
-            string tableName = IsValidIdentifier(settings.DefaultTableName) ? settings.DefaultTableName : "_record_field_translations";
+            string tableName = IsValidIdentifier(settings.DefaultTableName) ? settings.DefaultTableName : DefaultTranslationsTableName;
             EnsureSchema(connection, tableName, settings.TranslationJsonFieldName);
             string quotedTable = "`" + tableName.Replace("`", "``") + "`";
 
@@ -355,8 +358,11 @@ ON DUPLICATE KEY UPDATE
         //  Helpers
         // ─────────────────────────────────────────────────────────────────
 
-        private static List<string> ResolveLanguages(MySqlConnection dataConnection, string defaultLanguage)
+        private static List<string> ResolveLanguages(string defaultLanguage)
         {
+            // S1172 fix: rimosso parametro `dataConnection` non usato (le lingue vivono
+            // sul DB METADATI accessibile via metaQueryMySql.GetOpenConnection — non
+            // serve la dataConnection passata).
             // Le lingue vivono sul DB METADATI, non sul DB dati. Per non
             // accoppiare connections (ed evitare di aprire una seconda
             // connessione per ogni record), usiamo `metaModelRaw.metaQueryMySql.GetOpenConnection(true)`
@@ -376,7 +382,7 @@ ON DUPLICATE KEY UPDATE
             {
                 RawHelpers.logError(ex, "RecordTranslationsMySql.ResolveLanguages", "Lingue");
             }
-            return new List<string> { NormalizeLanguage(defaultLanguage, "it-IT") };
+            return new List<string> { NormalizeLanguage(defaultLanguage, DefaultLanguageCode) };
         }
 
         private static string ResolveRuntimeLanguage(string userId, string fallback)
@@ -390,7 +396,11 @@ ON DUPLICATE KEY UPDATE
                 if (u != null && !string.IsNullOrWhiteSpace(u.language))
                     return NormalizeLanguage(u.language, fallback);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                // S2486 fix: log non-fatale (cookie può essere assente in scenari batch/scheduler).
+                RawHelpers.logError(ex, "RecordTranslationsMySql.ResolveRuntimeLanguage.cookie", "");
+            }
 
             try
             {
@@ -398,14 +408,18 @@ ON DUPLICATE KEY UPDATE
                 if (u2 != null && !string.IsNullOrWhiteSpace(u2.language))
                     return NormalizeLanguage(u2.language, fallback);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                // S2486 fix: lookup user può fallire (utente cancellato, DB transient).
+                RawHelpers.logError(ex, "RecordTranslationsMySql.ResolveRuntimeLanguage.userById", "");
+            }
 
-            return NormalizeLanguage(fallback, "it-IT");
+            return NormalizeLanguage(fallback, DefaultLanguageCode);
         }
 
         private static string NormalizeLanguage(string lang, string fallback)
         {
-            if (string.IsNullOrWhiteSpace(lang)) return fallback ?? "it-IT";
+            if (string.IsNullOrWhiteSpace(lang)) return fallback ?? DefaultLanguageCode;
             string trimmed = lang.Trim();
             // BCP-47 "xx-YY" o "xx_YY" → normalizziamo separatore
             return trimmed.Replace('_', '-');
@@ -415,7 +429,7 @@ ON DUPLICATE KEY UPDATE
         {
             if (column == null) return false;
             if (column is _Metadati_Colonne_Lookup) return false;
-            if (column.mc_is_computed is true) return false;
+            if (column.mc_is_computed == true) return false;  // bool? — explicit compare avoids ambiguity
             string dbType = RawHelpers.ParseNull(column.mc_db_column_type).Trim().ToLowerInvariant();
             if (string.IsNullOrEmpty(dbType)) return false;
             return dbType == "varchar" || dbType == "nvarchar" || dbType == "text" || dbType == "ntext" ||
@@ -424,12 +438,11 @@ ON DUPLICATE KEY UPDATE
 
         private static string ExtractField(object entry)
         {
+            // S1066 fix: nested if merged via &&
             if (entry == null) return null;
-            if (entry is IDictionary<string, object> dict)
-            {
-                if (dict.TryGetValue("field", out object v) && v != null)
-                    return RawHelpers.ParseNull(v).Trim();
-            }
+            if (entry is IDictionary<string, object> dict
+                && dict.TryGetValue("field", out object v) && v != null)
+                return RawHelpers.ParseNull(v).Trim();
             // Newtonsoft JObject (AsmxProxy JSON path)
             if (entry is JObject jo)
             {
@@ -485,7 +498,7 @@ ON DUPLICATE KEY UPDATE
             if (!string.IsNullOrWhiteSpace(inline))
             {
                 string raw = inline.Trim();
-                if (raw.StartsWith("[") && raw.EndsWith("]"))
+                if (raw.StartsWith('[') && raw.EndsWith(']'))
                 {
                     try
                     {

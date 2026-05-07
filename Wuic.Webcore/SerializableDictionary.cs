@@ -19,6 +19,11 @@ namespace WEB_UI_CRAFTER.Helpers
 
         public void ReadXml(System.Xml.XmlReader reader)
         {
+            // Bug fix: la versione precedente usava `reader.ReadContentAsString()` su
+            // nodi Element ed era basata su `ReadOuterXml` che consuma l'elemento, due
+            // pattern incompatibili che producevano `InvalidOperationException` su
+            // qualunque dictionary non vuoto. Riscritta per essere simmetrica al
+            // `WriteXml` che usa `XmlSerializer` per chiavi/valori.
             XmlSerializer keySerializer = new XmlSerializer(typeof(TKey));
             XmlSerializer valueSerializer = new XmlSerializer(typeof(TValue));
             bool wasEmpty = reader.IsEmptyElement;
@@ -27,20 +32,19 @@ namespace WEB_UI_CRAFTER.Helpers
                 return;
             while (reader.NodeType != System.Xml.XmlNodeType.EndElement)
             {
-
-                string peek = reader.ReadOuterXml();
-
                 reader.ReadStartElement("item");
+
                 reader.ReadStartElement("key");
-                TKey key = (TKey)(System.Convert.ChangeType(reader.Value, typeof(TKey)));
-                reader.ReadContentAsString();
-                reader.ReadEndElement();
+                TKey key = (TKey)keySerializer.Deserialize(reader);
+                reader.ReadEndElement();   // </key>
+
                 reader.ReadStartElement("value");
-                TValue value = (TValue)(System.Convert.ChangeType(reader.Value, typeof(TValue)));
-                reader.ReadContentAsString();
-                reader.ReadEndElement();
+                TValue value = (TValue)valueSerializer.Deserialize(reader);
+                reader.ReadEndElement();   // </value>
+
                 this.Add(key, value);
-                reader.ReadEndElement();
+
+                reader.ReadEndElement();   // </item>
                 reader.MoveToContent();
             }
             reader.ReadEndElement();

@@ -499,6 +499,28 @@ FROM {fromTable}
             LastCrudSqlQuery.Value = null;
         }
 
+        // Helper estratto da DeleteflatData/InsertflatData per S1199 (extract nested
+        // block) + S6608 (use [0] indexer) + S1125 (no boolean literal compare).
+        private static string ResolvePrimaryKeyValueForTranslations(IList<_Metadati_Colonne> metadata, IDictionary<string, object> entity)
+        {
+            if (metadata == null || entity == null) return null;
+            _Metadati_Colonne pk = metadata.FirstOrDefault(x => x.mc_is_primary_key);
+            if (pk == null || !entity.ContainsKey(pk.mc_nome_colonna)) return null;
+            return RawHelpers.ParseNull(entity[pk.mc_nome_colonna]).Trim();
+        }
+
+        // Helper estratto da InsertflatData per S3358 (no nested ternary).
+        // Priorità: generated_pkey (autoincrement) → result (from caller) → PK value in entity.
+        private static string ResolveRecordIdForTranslations(string generated_pkey, string result, IList<_Metadati_Colonne> metadata, IDictionary<string, object> entity)
+        {
+            if (!string.IsNullOrEmpty(generated_pkey)) return generated_pkey;
+            if (!string.IsNullOrEmpty(result)) return result;
+            string pkColumnName = metadata?.FirstOrDefault(m => m.mc_is_primary_key)?.mc_nome_colonna;
+            if (string.IsNullOrEmpty(pkColumnName) || entity == null) return null;
+            var pkEntry = entity.FirstOrDefault(kv => string.Equals(kv.Key, pkColumnName, StringComparison.OrdinalIgnoreCase));
+            return RawHelpers.ParseNull(pkEntry.Value);
+        }
+
         private static void SetLastCrudSqlQuery(string query)
         {
             LastCrudSqlQuery.Value = query;
@@ -3136,12 +3158,8 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
             // Risolvi recordId PRIMA del DELETE — dopo, i valori dell'entity
             // potrebbero essere persi (e comunque la PK e' invariante).
-            string recordIdForTranslations = null;
-            {
-                _Metadati_Colonne pk = metadata.FirstOrDefault(x => x.mc_is_primary_key is true);
-                if (pk != null && entity != null && entity.ContainsKey(pk.mc_nome_colonna))
-                    recordIdForTranslations = RawHelpers.ParseNull(entity[pk.mc_nome_colonna]).Trim();
-            }
+            // S1199 fix: estratto in metodo dedicato.
+            string recordIdForTranslations = ResolvePrimaryKeyValueForTranslations(metadata, entity);
 
             var watch = Stopwatch.StartNew();
             SetLastCrudSqlQuery(query);
@@ -3154,8 +3172,9 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
             // abilitato sulla route.
             try
             {
+                // S6608: indexer [0] anziché .First()
                 if (!string.IsNullOrWhiteSpace(recordIdForTranslations))
-                    WEB_UI_CRAFTER.RecordTranslationsMySql.OnDelete(connection, trn, metadata.First()._Metadati_Tabelle, recordIdForTranslations);
+                    WEB_UI_CRAFTER.RecordTranslationsMySql.OnDelete(connection, trn, metadata[0]._Metadati_Tabelle, recordIdForTranslations);
             }
             catch (Exception rtEx)
             {
@@ -3325,14 +3344,12 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
             // route non ha `RecordTranslations.Enabled=true` in props_bag o globale.
             // recordIdForTranslations: usa il pkey generato dall'autoincrement
             // se presente, altrimenti il valore della PK fornito nell'entity.
-            string recordIdForTranslations = !string.IsNullOrEmpty(generated_pkey)
-                ? generated_pkey
-                : !string.IsNullOrEmpty(result)
-                    ? result
-                    : RawHelpers.ParseNull(entity.FirstOrDefault(kv => string.Equals(kv.Key, metadata.FirstOrDefault(m => m.mc_is_primary_key is true)?.mc_nome_colonna, StringComparison.OrdinalIgnoreCase)).Value);
+            // S3358 fix: nested ternary estratto in metodo dedicato.
+            string recordIdForTranslations = ResolveRecordIdForTranslations(generated_pkey, result, metadata, entity);
             try
             {
-                WEB_UI_CRAFTER.RecordTranslationsMySql.OnInsert(connection, trn, metadata.First()._Metadati_Tabelle, metadata, entity, recordIdForTranslations, userId);
+                // S6608: indexer [0] anziché .First()
+                WEB_UI_CRAFTER.RecordTranslationsMySql.OnInsert(connection, trn, metadata[0]._Metadati_Tabelle, metadata, entity, recordIdForTranslations, userId);
             }
             catch (Exception rtEx)
             {
