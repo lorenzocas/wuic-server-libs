@@ -70,12 +70,18 @@ export async function query(sql, db = DEFAULT_DATA_DB) {
  * Ritorna il numero di righe affette se disponibile.
  */
 export async function exec(sql, db = DEFAULT_DATA_DB) {
+  // Wrap con SET safe options (regola SQL AGENTS) — alcuni trigger e DDL
+  // richiedono QUOTED_IDENTIFIER ON; sqlcmd default ANSI puo' divergere.
+  const wrapped =
+    'SET ANSI_NULLS ON;\nSET ANSI_PADDING ON;\nSET ANSI_WARNINGS ON;\n' +
+    'SET ARITHABORT ON;\nSET CONCAT_NULL_YIELDS_NULL ON;\nSET QUOTED_IDENTIFIER ON;\n' +
+    'SET NUMERIC_ROUNDABORT OFF;\nSET NOCOUNT ON;\n' + sql;
   const args = [
     '-S', DEFAULT_INSTANCE,
     '-d', db,
     '-C',
     '-b',
-    '-Q', sql
+    '-Q', wrapped
   ];
   const { stdout } = await execFile('sqlcmd', args, { maxBuffer: 10 * 1024 * 1024 });
   return stdout;

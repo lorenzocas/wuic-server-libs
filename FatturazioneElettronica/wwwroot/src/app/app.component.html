@@ -20,10 +20,11 @@
         @if (showRightHeaderBlock) {
         <div class="app-shell-theme">
             <div class="app-shell-theme-card border-1 border-300 border-round p-3 surface-100 shadow-2">
-                <div class="app-shell-theme-select mb-2">
+                <div class="app-shell-theme-select mb-2"
+                     style="display: flex; align-items: center; gap: 6px;">
                     <p-select [options]="availableThemes" optionLabel="label" optionValue="value"
                         [ngModel]="selectedTheme" (ngModelChange)="onThemeChange($event)"
-                        [style]="{ width: '100%', height: '35px' }" placeholder="Tema" appendTo="body">
+                        [style]="{ width: '140px', height: '35px' }" placeholder="Tema" appendTo="body">
                         <ng-template #selectedItem let-selectedOption>
                             @if (selectedOption) {
                             <div class="theme-select-item">
@@ -41,6 +42,34 @@
                             </div>
                         </ng-template>
                     </p-select>
+
+                    <!-- Workflow #12: trigger inline per global-search palette.
+                         Sostituisce il vecchio FAB bottom-right (visivamente piu' integrato). -->
+                    <button id="app_global_search_fab"
+                            type="button"
+                            (click)="openGlobalSearch()"
+                            class="app-shell-search-icon-btn"
+                            title="Cerca (Ctrl+K)"
+                            aria-label="Cerca globale"
+                            style="width:35px; height:35px; border-radius:50%; border:1px solid #cbd5e1;
+                                   background:white; cursor:pointer; display:flex; align-items:center;
+                                   justify-content:center; color:#475569; flex-shrink:0;">
+                        <i class="pi pi-search" style="font-size:14px"></i>
+                    </button>
+
+                    <!-- Workflow #16: trigger inline per quick-create modal. -->
+                    <button id="app_quick_create_fab"
+                            type="button"
+                            (click)="openQuickCreate()"
+                            class="app-shell-quickcreate-icon-btn"
+                            title="Crea nuovo (Alt+N)"
+                            aria-label="Crea nuovo record"
+                            style="width:35px; height:35px; border-radius:50%; border:none;
+                                   background:#10b981; color:white; cursor:pointer; display:flex;
+                                   align-items:center; justify-content:center; flex-shrink:0;
+                                   box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+                        <i class="pi pi-plus" style="font-size:14px; font-weight:bold"></i>
+                    </button>
                 </div>
                 <div class="app-shell-notification">
                     <ng-container *ngIf="notificationBellComponent"
@@ -85,3 +114,19 @@
      Posizionamento `position:fixed` interno - sta in basso a destra senza richiedere
      wrapper layout dall'host. -->
 <wuic-rag-chatbot-fab></wuic-rag-chatbot-fab>
+
+<!-- Workflow #12 + #16: search globale cross-route + Ctrl+K command palette.
+     Trigger button renderizzato inline nell'header (vicino al theme selector);
+     qui rendiamo solo il dialog modale [showFab]=false. Esposto con #globalSearchRef
+     per chiamare openPalette() dal button header. -->
+<app-global-search [showFab]="false"></app-global-search>
+
+<!-- Workflow #15: Dashboard widget configurabili per utente.
+     FAB gear icon (sopra global-search) → dialog con checkbox per nascondere/mostrare
+     widget della board attiva. Salva pref via /api/board-pref per (user_id, route). -->
+<app-board-pref></app-board-pref>
+
+<!-- Workflow #16: quick-create modal — Alt+N o button "+" nell'header
+     apre dialog con catalog entita' (cliente/fornitore/fattura/preventivo)
+     e naviga alla list scelta con ?quickCreate=1. -->
+<app-quick-create></app-quick-create>

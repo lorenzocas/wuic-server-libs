@@ -1,4 +1,4 @@
-import { AfterContentInit, ChangeDetectorRef, Component, forwardRef, Injector, OnDestroy, OnInit } from '@angular/core';
+import { AfterContentInit, ChangeDetectorRef, Component, forwardRef, Injector, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute, NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { Meta, Title } from '@angular/platform-browser';
 import { filter } from 'rxjs/operators';
@@ -38,6 +38,9 @@ import {
 } from './wuic-bridges/core';
 import { ImageWrapperComponent } from './wuic-bridges/ui';
 import { WuicRagChatbotFabComponent, LazyFirstRunWizardComponent, WuicErrorDialogComponent } from './wuic-bridges/public';
+import { GlobalSearchComponent } from './component/global-search/global-search.component';
+import { BoardPrefComponent } from './component/board-pref/board-pref.component';
+import { QuickCreateComponent } from './component/quick-create/quick-create.component';
 // CustomListComponent template removed during rename-project cleanup;
 // designer custom tool registration kept disabled.
 
@@ -47,13 +50,20 @@ import { WuicRagChatbotFabComponent, LazyFirstRunWizardComponent, WuicErrorDialo
     CommonModule, RouterOutlet, NgComponentOutlet, ToggleSwitchModule, SelectModule,
     FormsModule, DialogModule, ButtonModule, TranslateModule, TooltipModule, ToastModule,
     ConfirmDialogModule, FieldsetModule, WuicRagChatbotFabComponent, LazyFirstRunWizardComponent,
-    WuicErrorDialogComponent,
+    WuicErrorDialogComponent, GlobalSearchComponent, BoardPrefComponent, QuickCreateComponent,
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
   providers: [MessageService, ConfirmationService, DialogService, GlobalHandler]
 })
 export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
+  @ViewChild(GlobalSearchComponent) globalSearchRef?: GlobalSearchComponent;
+  @ViewChild(QuickCreateComponent) quickCreateRef?: QuickCreateComponent;
+
+  /** Workflow #12+#16: aperto dal trigger inline nell'header (search button accanto al theme select). */
+  openGlobalSearch(): void { this.globalSearchRef?.openPalette(); }
+  openQuickCreate(): void { this.quickCreateRef?.openDialog(); }
+
   private static readonly ThemeStorageKey = 'wuic-selected-theme';
   private static readonly ThemeModeStorageKey = 'wuic-theme-mode';
   private readonly themePresets: Record<string, any> = {

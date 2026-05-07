@@ -73,13 +73,28 @@ export class FatturaPrintComponent implements OnInit {
       // sp_sdi_get_fattura_payload.
       const baseUrl = environment.api_url + 'Meta/AsmxProxy';
 
+      // Header via getFlatRecordData (canonical method del framework).
+      // Signature documentata in backend-api-client.mjs#crudRead.
       const headerResp = await firstValueFrom(
-        this.http.post<{ data?: unknown[] }>(
+        this.http.post<any>(
           `${baseUrl}/MetaService.getFlatRecordData`,
-          { route_name: 'fatture_inviate', record_id: fatturaId }
+          {
+            user_id: '',
+            route: 'fatture_inviate',
+            lookup_table_id: 0,
+            SortInfo: null,
+            GroupInfo: null,
+            PageInfo: { page: 1, pageSize: 1 },
+            filterInfo: { filters: [{ field: 'id', operator: 'eq', value: fatturaId }] },
+            logicOperator: 'and',
+            has_server_operation: false,
+            aggregates: null,
+            columnRestrictionList: null
+          }
         )
       );
-      const headerRows = (headerResp?.data ?? []) as Array<Record<string, unknown>>;
+      const headerParsed = typeof headerResp === 'string' ? JSON.parse(headerResp) : headerResp;
+      const headerRows = (headerParsed?.results ?? headerParsed?.data ?? []) as Array<Record<string, unknown>>;
       if (!headerRows.length) {
         this.errorMsg.set(`Fattura ${fatturaId} non trovata.`);
         this.loading.set(false);
@@ -88,16 +103,25 @@ export class FatturaPrintComponent implements OnInit {
       this.header.set(headerRows[0]);
 
       const righeResp = await firstValueFrom(
-        this.http.post<{ data?: unknown[] }>(
-          `${baseUrl}/MetaService.AsmxCrudRead`,
+        this.http.post<any>(
+          `${baseUrl}/MetaService.getFlatRecordData`,
           {
-            route_name: 'fatture_inviate_righe',
-            filterInfo: { fattura_id: fatturaId },
-            sortInfo: [{ field: 'riga', direction: 'asc' }]
+            user_id: '',
+            route: 'fatture_inviate_righe',
+            lookup_table_id: 0,
+            SortInfo: [{ field: 'riga', direction: 'asc' }],
+            GroupInfo: null,
+            PageInfo: { page: 1, pageSize: 100 },
+            filterInfo: { filters: [{ field: 'fattura_id', operator: 'eq', value: fatturaId }] },
+            logicOperator: 'and',
+            has_server_operation: false,
+            aggregates: null,
+            columnRestrictionList: null
           }
         )
       );
-      this.righe.set((righeResp?.data ?? []) as Array<Record<string, unknown>>);
+      const righeParsed = typeof righeResp === 'string' ? JSON.parse(righeResp) : righeResp;
+      this.righe.set((righeParsed?.results ?? righeParsed?.data ?? []) as Array<Record<string, unknown>>);
 
       // Riepilogo IVA aggregato dalle righe (lato client per semplicita')
       this.computeRiepilogoIva();

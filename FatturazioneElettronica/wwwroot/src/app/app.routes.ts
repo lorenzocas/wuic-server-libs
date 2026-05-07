@@ -18,6 +18,33 @@ export const appRoutes: Routes = [
 
   // ──────── Custom component livello 2 (FatturazioneElettronica) ────────
 
+  // Block 4 Analytics — REFACTOR FRAMEWORK-FIRST 2026-05-06.
+  // I 4 componenti Angular custom (cashflow-forecast / top-clienti /
+  // aging-crediti / aging-debiti) sono stati DROPPED in favore di dashboard
+  // dom_board.boardroute con boardcontent built da template skill 2x2 +
+  // 4 KPI tile bindati via SPAN.bindingFunction + chart archetype framework.
+  //
+  // Runtime URL boardroute: #/<boardroute>/dashboard
+  //   - #/cashflow_forecast/dashboard
+  //   - #/top_clienti/dashboard
+  //   - #/aging_crediti/dashboard
+  //   - #/aging_debiti/dashboard
+  //
+  // Vedi skill: skills/dashboard-replicate-custom-ui/SKILL.md
+
+  // Bonus B1: Riepilogo IVA periodico (LIPE-style).
+  // Aggrega per aliquota su fatture inviate (a debito) + ricevute (a credito)
+  // nel periodo (YEAR | Q1..Q4 | 01..12) e calcola il saldo IVA da versare/credito.
+  {
+    path: 'iva/riepilogo',
+    loadComponent: () => import('./component/iva-riepilogo/iva-riepilogo.component')
+      .then(m => m.IvaRiepilogoComponent),
+    data: {
+      breadcrumbs: 'Riepilogo IVA',
+      description: 'Aggregato IVA periodico per aliquota: vendite, acquisti, saldo a debito o credito. Filtri per anno e periodo (anno intero, trimestre, mese).'
+    }
+  },
+
   // Preview HTML stampabile della fattura. Complementa l'export XML SDI
   // (/api/sdi/generateXml) con un layout umano-leggibile per la stampa
   // o l'invio email al cliente. Carica i dati via stored

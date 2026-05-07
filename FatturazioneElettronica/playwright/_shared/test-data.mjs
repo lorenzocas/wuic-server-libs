@@ -19,16 +19,123 @@ function _uniq() { return (_seq++).toString(36).padStart(2, '0').slice(-2); }
 
 export const PREFIX = '_e2e_';
 
-export function newCliente(overrides = {}) {
+/**
+ * Pool di nomi fantasia realistici per dati di test piu' leggibili nei chart/screenshot.
+ * Tutti gli elementi mantengono il prefisso `_e2e_` su `codice` (per cleanup), ma la
+ * `ragione_sociale` e' un nome italiano plausibile invece di "TC_TOP_A_504394_AAA".
+ */
+export const NOMI_AZIENDE_FANTASY = [
+  'Acme Forniture S.r.l.',
+  'Bianchi & Figli S.p.A.',
+  'Costruzioni Verdi S.r.l.',
+  'Delta Servizi S.r.l.',
+  'Edilizia Romana S.p.A.',
+  'Ferrari Macchinari S.r.l.',
+  'Galassia Trasporti S.r.l.',
+  'Hotel Belvedere S.r.l.',
+  'Industrial Solutions S.p.A.',
+  'Lombardo Costruzioni S.r.l.',
+  'Marini Impianti S.r.l.',
+  'Nautilus Marine S.r.l.',
+  'Officina Meccanica Toscana',
+  'Panini Distribuzione S.r.l.',
+  'Quadrifoglio Ristorazione',
+  'Rossi Costruzioni S.p.A.',
+  'Studio Legale Bianchi',
+  'Trasporti Adriatici S.r.l.',
+  'Unione Viticoltori S.r.l.',
+  'Vesuvio Forniture S.r.l.',
+  'Wellness Center Roma',
+  'Xenon Elettronica S.r.l.',
+  'Yacht Club Liguria',
+  'Zaffiro Gioielli S.r.l.'
+];
+export const NOMI_FORNITORI_FANTASY = [
+  'Cartiera del Garda S.p.A.',
+  'Plastica Adriatica S.r.l.',
+  'Metalli Industriali S.p.A.',
+  'Energia Verde Italia S.r.l.',
+  'TecnoSoft Italia S.p.A.',
+  'Logistica Express S.r.l.',
+  'Materiali Edili Veneto',
+  'Chimica Padana S.r.l.'
+];
+
+let _nomeAziendaIdx = 0;
+let _nomeFornitoreIdx = 0;
+
+/** Restituisce un nome fantasy diverso ogni call (round-robin sul pool). */
+export function nextNomeAzienda() {
+  const n = NOMI_AZIENDE_FANTASY[_nomeAziendaIdx % NOMI_AZIENDE_FANTASY.length];
+  _nomeAziendaIdx++;
+  return n;
+}
+export function nextNomeFornitore() {
+  const n = NOMI_FORNITORI_FANTASY[_nomeFornitoreIdx % NOMI_FORNITORI_FANTASY.length];
+  _nomeFornitoreIdx++;
+  return n;
+}
+
+/**
+ * Variante di `newCliente()` che usa un nome fantasy realistico (es.
+ * "Acme Forniture S.r.l.") invece del placeholder "Cliente E2E Test xxx".
+ *
+ * Marker visivo: " (e2e)" suffisso alla ragione_sociale → identifica le
+ * righe di test nei chart/screenshot in modo discreto.
+ * Cleanup primary: `codice LIKE '_e2e_%'` (sempre presente).
+ * Cleanup fallback (se cleanup primario fallisce per FK): `ragione_sociale LIKE '% (e2e)'`.
+ */
+export function newClienteRealistico(overrides = {}) {
   const u = _uniq();
+  const nome = nextNomeAzienda();
   return {
-    // _e2e_cl<6>_<2> = max 16 char (margin under 20)
     codice: `${PREFIX}cl${RUN_ID.slice(0, 6)}${u}`,
-    ragione_sociale: `Cliente E2E Test ${RUN_ID}`,
+    ragione_sociale: `${nome} (e2e)`,
     tipo_soggetto: 'AZIENDA',
     partita_iva: '12345678901',
     codice_fiscale: '12345678901',
-    indirizzo: 'Via E2E 1',
+    indirizzo: 'Via Roma 1',
+    cap: '00100',
+    citta: 'Roma',
+    provincia: 'RM',
+    nazione: 'IT',
+    pec: `e2e_${RUN_ID}@pec.example.it`,
+    codice_destinatario: '0000000',
+    email: `e2e_${RUN_ID}@example.it`,
+    ...overrides
+  };
+}
+
+export function newFornitoreRealistico(overrides = {}) {
+  const u = _uniq();
+  const nome = nextNomeFornitore();
+  return {
+    codice: `${PREFIX}fr${RUN_ID.slice(0, 6)}${u}`,
+    ragione_sociale: `${nome} (e2e)`,
+    tipo_soggetto: 'AZIENDA',
+    partita_iva: '98765432109',
+    indirizzo: 'Via Industria 5',
+    cap: '00100',
+    citta: 'Milano',
+    provincia: 'MI',
+    nazione: 'IT',
+    ...overrides
+  };
+}
+
+export function newCliente(overrides = {}) {
+  const u = _uniq();
+  // Default usa nome fantasy realistico (vedi pool NOMI_AZIENDE_FANTASY).
+  // Per nomi custom passa override `ragione_sociale`. Tutti i test devono
+  // sempre suffissare " (e2e)" per identificare le righe nei chart/UI.
+  const nome = nextNomeAzienda();
+  return {
+    codice: `${PREFIX}cl${RUN_ID.slice(0, 6)}${u}`,
+    ragione_sociale: `${nome} (e2e)`,
+    tipo_soggetto: 'AZIENDA',
+    partita_iva: '12345678901',
+    codice_fiscale: '12345678901',
+    indirizzo: 'Via Roma 1',
     cap: '00100',
     citta: 'Roma',
     provincia: 'RM',
@@ -42,25 +149,46 @@ export function newCliente(overrides = {}) {
 
 export function newFornitore(overrides = {}) {
   const u = _uniq();
+  const nome = nextNomeFornitore();
   return {
     codice: `${PREFIX}fr${RUN_ID.slice(0, 6)}${u}`,
-    ragione_sociale: `Fornitore E2E Test ${RUN_ID}`,
+    ragione_sociale: `${nome} (e2e)`,
     tipo_soggetto: 'AZIENDA',
     partita_iva: '98765432109',
-    indirizzo: 'Via Fornitore 1',
+    indirizzo: 'Via Industria 5',
     cap: '00100',
-    citta: 'Roma',
-    provincia: 'RM',
+    citta: 'Milano',
+    provincia: 'MI',
     nazione: 'IT',
     ...overrides
   };
+}
+
+// Pool descrittivi prodotti (anche qui niente "Prodotto E2E Test xxx").
+export const NOMI_PRODOTTI_FANTASY = [
+  'Servizio consulenza ore',
+  'Manutenzione mensile',
+  'Licenza software annuale',
+  'Materiale ufficio',
+  'Formazione una giornata',
+  'Pacchetto base',
+  'Supporto tecnico premium',
+  'Hosting cloud annuo',
+  'Installazione apparato',
+  'Trasporto e consegna'
+];
+let _nomeProdottoIdx = 0;
+function nextNomeProdotto() {
+  const n = NOMI_PRODOTTI_FANTASY[_nomeProdottoIdx % NOMI_PRODOTTI_FANTASY.length];
+  _nomeProdottoIdx++;
+  return n;
 }
 
 export function newProdotto(overrides = {}) {
   const u = _uniq();
   return {
     codice: `${PREFIX}pr${RUN_ID.slice(0, 6)}${u}`,
-    descrizione: `Prodotto E2E Test ${RUN_ID}`,
+    descrizione: `${nextNomeProdotto()} (e2e)`,
     tipo: 'BENE',
     prezzo_vendita: 100.0,
     ...overrides

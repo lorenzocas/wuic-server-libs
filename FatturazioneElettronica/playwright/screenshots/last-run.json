@@ -1,32 +1,35 @@
 {
   "config": {
-    "baseUrl": "http://localhost:4201",
+    "baseUrl": "http://localhost:4202",
     "backendBaseUrl": "http://localhost:5100",
     "user": "admin_test",
     "password": "Test123!",
     "apiUser": "admin_test_2",
     "apiPassword": "Test123!",
-    "filter": "^14",
+    "filter": "^30",
     "bail": false,
     "headed": false,
     "outDir": "C:\\src\\Wuic\\FatturazioneElettronica\\playwright\\screenshots"
   },
   "results": [
     {
-      "file": "14-home-dashboard.mjs",
-      "id": "14",
-      "name": "Home dashboard rendering (strict)",
+      "file": "30-aging-crediti.mjs",
+      "id": "30",
+      "name": "Aging crediti dashboard (framework-first: 3 viste + boardcontent + 4 KPI tile + stacked bar + table)",
       "status": "pass",
       "out": {
-        "tiles": 4,
-        "screenshot": "C:\\src\\Wuic\\FatturazioneElettronica\\playwright\\screenshots\\PASS_14_home_dashboard_1778011077820.png"
+        "idA": 175,
+        "idB": 176,
+        "idC": 177,
+        "scadenze": 5,
+        "dashboard_url": "/#/aging_crediti/dashboard"
       },
-      "durationMs": 10094
+      "durationMs": 6445
     }
   ],
   "pass": 1,
   "fail": 0,
   "skip": 0,
   "total": 1,
-  "runAt": "2026-05-05T19:57:57.973Z"
+  "runAt": "2026-05-06T23:02:35.440Z"
 }
