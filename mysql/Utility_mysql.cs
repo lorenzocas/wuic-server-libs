@@ -699,25 +699,17 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
 
         public static string getConnectionString(ConcurrentDictionary<string, object> utenteExtra)
         {
-
-            string connectionString = "";
-
             if (utenteExtra.ContainsKey("connection"))
             {
-                string userConnection = utenteExtra["connection"].ToString();
-
+                string userConnection = utenteExtra["connection"]?.ToString();
                 if (!string.IsNullOrEmpty(userConnection))
-                    connectionString = ConfigurationManager.ConnectionStrings[userConnection].ConnectionString;
-                else
                 {
-                    connectionString = ConfigurationManager.ConnectionStrings["DataSQLConnection"].ConnectionString;
+                    var resolved = ConfigHelper.ResolveConnectionString(userConnection);
+                    if (!string.IsNullOrEmpty(resolved))
+                        return resolved;
                 }
             }
-            else
-            {
-                connectionString = ConfigurationManager.ConnectionStrings["DataSQLConnection"].ConnectionString;
-            }
-            return connectionString;
+            return ConfigHelper.ResolveConnectionString("DataSQLConnection") ?? "";
         }
 
         public static string authenticate()

@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using MySql.Data.MySqlClient;
+using WEB_UI_CRAFTER.Helpers;
 using WuicCore.Services.Notifications;
 
 // Global namespace (no `namespace { }` blocco) per allinearsi al pattern del
@@ -28,9 +29,11 @@ public sealed class mysqlNotificationRepository : INotificationRepository
 
         public mysqlNotificationRepository(IConfiguration configuration = null)
         {
-            _metaConnectionString =
-                System.Configuration.ConfigurationManager.ConnectionStrings["MetaDataSQLConnection"]?.ConnectionString
-                ?? string.Empty;
+            // Prefer DI-injected IConfiguration → ConfigHelper centralized helper
+            // (which itself prefers AspNetCore IConfiguration over legacy ConfigurationManager).
+            // This makes the repository test-friendly: WAF can override
+            // ConnectionStrings via AddInMemoryCollection without touching disk config.
+            _metaConnectionString = ConfigHelper.ResolveConnectionString("MetaDataSQLConnection") ?? string.Empty;
 
             if (string.IsNullOrWhiteSpace(_metaConnectionString) && configuration != null)
             {

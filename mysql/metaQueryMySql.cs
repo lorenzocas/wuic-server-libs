@@ -621,9 +621,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
         public static MySqlConnection GetContentConnection()
         {
-            string connectionString;
-            connectionString = ConfigurationManager.ConnectionStrings["ContentSQLConnection"].ConnectionString;
-
+            string connectionString = ConfigHelper.ResolveConnectionString("ContentSQLConnection");
             var connection = new MySqlConnection(connectionString);
             connection.Open();
             return connection;
@@ -654,21 +652,13 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
             {
                 if (string.IsNullOrEmpty(connectionName))
                 {
-                    if (isMetaDataQuery)
-                    {
-                        connectionString = ConfigurationManager.ConnectionStrings["MetaDataSQLConnection"].ConnectionString;
-                    }
-                    else
-                    {
-                        connectionString = ConfigurationManager.ConnectionStrings["DataSQLConnection"].ConnectionString;
-                    }
+                    connectionString = ConfigHelper.ResolveConnectionString(isMetaDataQuery ? "MetaDataSQLConnection" : "DataSQLConnection");
                 }
                 else
                 {
-                    if (ConfigurationManager.ConnectionStrings[connectionName] == null)
+                    connectionString = ConfigHelper.ResolveConnectionString(connectionName);
+                    if (string.IsNullOrEmpty(connectionString))
                         throw new Exception(string.Format("Connection '{0}' not found in web.config", connectionName));
-
-                    connectionString = ConfigurationManager.ConnectionStrings[connectionName].ConnectionString;
                 }
 
                 if (!isMetaDataQuery)
@@ -685,7 +675,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                             string userConnection = (string)u.extra_keys["connection"];
 
                             if (!string.IsNullOrEmpty(userConnection))
-                                connectionString = ConfigurationManager.ConnectionStrings[userConnection].ConnectionString;
+                                connectionString = ConfigHelper.ResolveConnectionString(userConnection);
                         }
                     }
                 }
@@ -1693,7 +1683,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                 tablename = RawHelpers.escapeDBObjectName(tab.md_db_name, "mysql") + ".";
             else if (tab.is_system_route)
             {
-                string cs = ConfigurationManager.ConnectionStrings["MetaDataSQLConnection"].ConnectionString;
+                string cs = ConfigHelper.ResolveConnectionString("MetaDataSQLConnection");
                 var csb = new MySqlConnectionStringBuilder(cs);
                 string metadataDbName = csb.Database;
                 tablename = RawHelpers.escapeDBObjectName(metadataDbName, "mysql") + ".";
@@ -2881,8 +2871,8 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                 // UPDATE is the row-count, NOT the pkey, so we can't use it
                 // here as we do in the INSERT path.
                 string __id_src = entity.ContainsKey("__guid") ? entity["__guid"]?.ToString() :
-                                  entity.ContainsKey("__id")   ? entity["__id"]?.ToString()   :
-                                  entity.ContainsKey("uid")    ? entity["uid"]?.ToString()    :
+                                  entity.ContainsKey("__id") ? entity["__id"]?.ToString() :
+                                  entity.ContainsKey("uid") ? entity["uid"]?.ToString() :
                                   entity[metadata.First(x => x.mc_is_primary_key is true).mc_nome_colonna]?.ToString();
                 // DESTINATION id: the existing record's primary key.
                 string __id_dst = entity[metadata.First(x => x.mc_is_primary_key is true).mc_nome_colonna]?.ToString();
@@ -7147,7 +7137,10 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
                     field_list += (field_list == "" ? "" : ", ") + current_fld;
 
-                    object valore = entity[fld.mc_nome_colonna];
+                    // FIX: pkey con logic_editable=true e nessun valore in entity (es. IDENTITY
+                    // autogen) crashava qui con KeyNotFoundException. Tutti i blocchi
+                    // successivi gia' gestiscono valore=null come no-op → fallback safe.
+                    object valore = entity.ContainsKey(fld.mc_nome_colonna) ? entity[fld.mc_nome_colonna] : null;
 
                     if (valore != null)
                     {
@@ -7727,544 +7720,6 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
         #endregion
 
         #region "BO UNIVERSE"
-
-
-        private static string builSelectFromUniverseDefinition(List<Definizione_Universi> definition, List<SortInfo> SortInfo, PageInfo PageInfo, FilterInfos filterInfo, string logicOperator, MySqlConnection connection, out long totalRecords)
-        {
-            Dictionary<string, string> aliases = new Dictionary<string, string>();
-            string select_clause = "";
-            string from_clause = "";
-            string join_clause = "";
-            string where_clause = "";
-            string groupby_clause = "";
-            Dictionary<Definizione_Universi, string> groupby_fields = new Dictionary<Definizione_Universi, string>();
-            string orderby_clause = "";
-            string order_safetable_name = "";
-            string having_clause = "";
-            string default_order = "";
-            string alternate_ordering = "";
-
-            using (metaRawModel context = new metaRawModel())
-            {
-                foreach (Definizione_Universi def in definition)
-                {
-                    alternate_ordering = "";
-
-                    if (def.isChecked)
-                    {
-                        if (def.isTable)
-                        {
-                            if (string.IsNullOrEmpty(from_clause))
-                            {
-                                string safetable_name = RawHelpers.getStoreTableNameFromUniverseDef(def, "mysql");
-
-                                _Metadati_Tabelle tbl = context.GetMetadati_Tabelles("", def.realID.ToString()).FirstOrDefault();
-                                _Metadati_Colonne pk = tbl._Metadati_Colonnes.FirstOrDefault(x => x.mc_is_primary_key is true);
-
-                                string prefix = RawHelpers.getStorePrefix(tbl, "mysql");
-                                string safeEntityName = (!string.IsNullOrEmpty(prefix) ? prefix : "") + RawHelpers.escapeDBObjectName(tbl.md_nome_tabella, "mysql");
-
-                                if (pk != null)
-                                    default_order += (string.IsNullOrEmpty(default_order) ? "" : ", ") + safeEntityName + "." + RawHelpers.escapeDBObjectName(pk.mc_nome_colonna, "mysql");
-                                else
-                                    default_order += (string.IsNullOrEmpty(default_order) ? "" : ", ") + safeEntityName + "." + RawHelpers.escapeDBObjectName(tbl._Metadati_Colonnes.FirstOrDefault().mc_nome_colonna, "mysql");
-
-                                from_clause = safetable_name;
-                            }
-                            else
-                            {
-                                Definizione_Universi lookH = definition.FirstOrDefault(x => x.id == def.parent && x.isLookup);
-                                _Metadati_Colonne_Lookup lookC = context.GetMetadati_Colonnes(lookH.realID.ToString()).OfType<_Metadati_Colonne_Lookup>().FirstOrDefault();
-                                if (lookC != null)
-                                {
-                                    _Metadati_Tabelle ownerTable = lookC._Metadati_Tabelle;
-                                    _Metadati_Tabelle relatedTable = context.GetMetadati_Tabelles(lookC.mc_ui_lookup_entity_name).FirstOrDefault();
-                                    if (relatedTable != null)
-                                    {
-                                        string prefix = RawHelpers.getStorePrefix(relatedTable, "mysql");
-                                        string prefix_2 = RawHelpers.getStorePrefix(ownerTable, "mysql");
-                                        string safeEntityName = (!string.IsNullOrEmpty(prefix) ? prefix : "") + RawHelpers.escapeDBObjectName(relatedTable.md_nome_tabella, "mysql");
-                                        string safeColumnName = RawHelpers.escapeDBObjectName(RawHelpers.getStoreColumnName(lookC), "mysql");
-
-                                        string safeUniqueEntityName = RawHelpers.escapeDBObjectName(lookC.mc_nome_colonna + "_" + lookC.mc_ui_lookup_entity_name, "mysql");
-
-                                        string current_fld;
-
-                                        if (!aliases.ContainsKey(relatedTable.md_nome_tabella))
-                                        {
-                                            aliases.Add(relatedTable.md_nome_tabella, safeUniqueEntityName);
-                                            current_fld = (!string.IsNullOrEmpty(prefix) ? prefix_2 : "") + RawHelpers.escapeDBObjectName(ownerTable.md_nome_tabella, "mysql") + "." + safeColumnName;
-                                        }
-                                        else
-                                        {
-                                            current_fld = aliases[relatedTable.md_nome_tabella] + "." + safeColumnName;
-                                        }
-
-                                        if (!aliases.ContainsKey(ownerTable.md_nome_tabella))
-                                        {
-
-                                        }
-                                        else
-                                        {
-                                            current_fld = aliases[ownerTable.md_nome_tabella] + "." + safeColumnName;
-                                        }
-
-                                        join_clause += string.Format(" LEFT JOIN {0} AS {3} ON {1} = {2}", safeEntityName, current_fld, safeUniqueEntityName + "." + RawHelpers.escapeDBObjectName(lookC.mc_ui_lookup_dataValueField, "mysql"), safeUniqueEntityName);
-
-                                        where_clause = AppendFilter(lookC, filterInfo, logicOperator, (current_fld), where_clause, ownerTable, "");
-
-                                    }
-                                }
-                            }
-                        }
-                        else if (def.isLookup)
-                            continue;
-                        else
-                        {
-                            _Metadati_Colonne col = context.GetMetadati_Colonnes(def.realID.ToString()).FirstOrDefault();
-                            _Metadati_Tabelle ownerTable = null;
-                            string safeColumnName = "";
-                            string current_fld;
-                            string prefix = "";
-                            string alias;
-                            string aggregatedAlias = "";
-                            string safeAlias;
-
-                            if (col == null) //computed
-                            {
-                                current_fld = parseComputedFormula(def, context);
-
-                                alias = def.name.Replace(" ", "_") + "_" + def.id;
-                                safeColumnName = RawHelpers.escapeDBObjectName(alias, "mysql");
-                            }
-                            else
-                            {
-                                alias = col.mc_nome_colonna + "_" + def.id.ToString();
-                                safeAlias = RawHelpers.escapeDBObjectName(alias, "mysql");
-
-                                ownerTable = col._Metadati_Tabelle;
-                                safeColumnName = RawHelpers.escapeDBObjectName(RawHelpers.getStoreColumnName(col), "mysql");
-
-                                prefix = RawHelpers.getStorePrefix(ownerTable, "mysql");
-
-                                if (!aliases.ContainsKey(ownerTable.md_nome_tabella))
-                                {
-                                    prefix = RawHelpers.getStorePrefix(ownerTable, "mysql");
-                                    current_fld = (!string.IsNullOrEmpty(prefix) ? prefix : "") + RawHelpers.escapeDBObjectName(ownerTable.md_nome_tabella, "mysql") + "." + safeColumnName;
-                                }
-                                else
-                                {
-                                    prefix = "";
-                                    current_fld = (!string.IsNullOrEmpty(prefix) ? prefix : "") + aliases[ownerTable.md_nome_tabella] + "." + safeColumnName;
-                                    prefix = aliases[ownerTable.md_nome_tabella];
-                                }
-                            }
-
-
-                            if (def.navigator_isSelected)
-                            {
-                                if (def.navigator_isAggregableCountChecked)
-                                {
-                                    aggregatedAlias = string.Format("Count({0})", current_fld);
-                                    select_clause += (string.IsNullOrEmpty(select_clause) ? "" : ", ") + string.Format("Count({0}) as `count_{1}`", current_fld, alias);
-                                }
-                                if (def.navigator_isAggregableSumChecked)
-                                {
-                                    aggregatedAlias = string.Format("Sum({0})", current_fld);
-                                    select_clause += (string.IsNullOrEmpty(select_clause) ? "" : ", ") + string.Format("Sum({0}) as `sum_{1}`", current_fld, alias);
-                                }
-                                if (def.navigator_isAggregableMaxChecked)
-                                {
-                                    aggregatedAlias = string.Format("Max({0})", current_fld);
-                                    select_clause += (string.IsNullOrEmpty(select_clause) ? "" : ", ") + string.Format("Max({0}) as `max_{1}`", current_fld, alias);
-                                }
-                                if (def.navigator_isAggregableMinChecked)
-                                {
-                                    aggregatedAlias = string.Format("Min({0})", current_fld);
-                                    select_clause += (string.IsNullOrEmpty(select_clause) ? "" : ", ") + string.Format("Min({0}) as `min_{1}`", current_fld, alias);
-                                }
-                                if (def.navigator_isAggregableAvgChecked)
-                                {
-                                    aggregatedAlias = string.Format("Avg({0})", current_fld);
-                                    select_clause += (string.IsNullOrEmpty(select_clause) ? "" : ", ") + string.Format("Avg({0}) as `avg_{1}`", current_fld, alias);
-                                }
-                                if (def.navigator_isAggregableVarChecked)
-                                {
-                                    aggregatedAlias = string.Format("Var({0})", current_fld);
-                                    select_clause += (string.IsNullOrEmpty(select_clause) ? "" : ", ") + string.Format("Var({0}) as `var_{1}`", current_fld, alias);
-                                }
-
-                                if (!def.navigator_isAggregableCountChecked && !def.navigator_isAggregableSumChecked && !def.navigator_isAggregableMaxChecked && !def.navigator_isAggregableMinChecked && !def.navigator_isAggregableAvgChecked && !def.navigator_isAggregableVarChecked)
-                                {
-
-                                    string group_piece = "";
-                                    if (def.navigator_isDayOfTheYearChecked)
-                                    {
-                                        group_piece = string.Format("DAYOFYEAR({0})", current_fld);
-                                        groupby_fields.Add(def, group_piece);
-
-                                        groupby_clause += (string.IsNullOrEmpty(groupby_clause) ? "GROUP BY " : ", ") + group_piece;
-                                        select_clause += (string.IsNullOrEmpty(select_clause) ? "" : ", ") + string.Format("DAYOFYEAR({0}) as {1}", current_fld, safeColumnName);
-                                    }
-                                    else if (def.navigator_isMonthOfTheYearChecked)
-                                    {
-                                        group_piece = string.Format("DAYOFMONTH({0})", current_fld);
-                                        groupby_fields.Add(def, group_piece);
-
-                                        groupby_clause += (string.IsNullOrEmpty(groupby_clause) ? "GROUP BY " : ", ") + group_piece;
-                                        select_clause += (string.IsNullOrEmpty(select_clause) ? "" : ", ") + string.Format("DAYOFMONTH({0}) as {1}", current_fld, safeColumnName);
-                                    }
-                                    else if (def.navigator_isDay_and_monthChecked)
-                                    {
-                                        group_piece = string.Format(" DATE_FORMAT({0}, '%e-%c')", current_fld);
-                                        groupby_fields.Add(def, group_piece);
-
-                                        groupby_clause += (string.IsNullOrEmpty(groupby_clause) ? "GROUP BY " : ", ") + group_piece;
-                                        select_clause += (string.IsNullOrEmpty(select_clause) ? "" : ", ") + string.Format("EXTRACT(YEAR_MONTH FROM {0}) as {1}", current_fld, safeColumnName);
-                                        alternate_ordering = alias;
-                                    }
-                                    else if (def.navigator_isMonth_and_yearChecked)
-                                    {
-                                        group_piece = string.Format("EXTRACT(YEAR_MONTH FROM {0})", current_fld);
-                                        groupby_fields.Add(def, group_piece);
-
-                                        groupby_clause += (string.IsNullOrEmpty(groupby_clause) ? "GROUP BY " : ", ") + group_piece;
-                                        select_clause += (string.IsNullOrEmpty(select_clause) ? "" : ", ") + string.Format("EXTRACT(YEAR_MONTH FROM {0}) as {1}", current_fld, safeColumnName);
-                                        alternate_ordering = alias;
-                                    }
-                                    else if (def.navigator_isGroupableChecked)
-                                    {
-                                        group_piece = current_fld;
-                                        groupby_fields.Add(def, group_piece);
-
-                                        groupby_clause += (string.IsNullOrEmpty(groupby_clause) ? "GROUP BY " : ", ") + group_piece;
-                                        select_clause += (string.IsNullOrEmpty(select_clause) ? "" : ", ") + string.Format("{0} as `{1}`", current_fld, alias);
-                                    }
-                                    else
-                                    {
-                                        select_clause += (string.IsNullOrEmpty(select_clause) ? "" : ", ") + string.Format("{0} as `{1}`", current_fld, alias);
-                                    }
-
-                                    if (ownerTable != null)
-                                    {
-                                        order_safetable_name = (!string.IsNullOrEmpty(prefix) ? prefix : "") + RawHelpers.escapeDBObjectName(ownerTable.md_nome_tabella, "mysql");
-                                        SortInfo sortI = SortInfo.FirstOrDefault(x => x.field == col.mc_nome_colonna);
-
-                                        if (string.IsNullOrEmpty(alternate_ordering))
-                                        {
-                                            if (sortI != null)
-                                                AppendSort(col, order_safetable_name, ref orderby_clause, sortI.dir);
-                                        }
-                                        else
-                                        {
-                                            if (sortI != null)
-                                            {
-                                                orderby_clause += ((orderby_clause == "") ? " ORDER BY " : ", ") + alternate_ordering + " " + sortI.dir;
-                                            }
-                                        }
-                                    }
-
-                                }
-                            }
-
-                            if (col == null)
-                            {
-                                col = new _Metadati_Colonne() { mc_ui_column_type = def.type, mc_is_primary_key = false, mc_nome_colonna = def.name, mc_display_string_in_view = def.displayName };
-                            }
-
-                            string aliased = "";
-                            filterElement matchingFilter = filterInfo.filters.FirstOrDefault(x => (x.isHaving is false) && x.havingAggregation != null && x.field == x.havingAggregation + "_" + col.mc_nome_colonna + "_" + def.id);
-                            if (matchingFilter == null)
-                            {
-                                aliased = col.mc_nome_colonna + "_" + def.id;
-                                matchingFilter = filterInfo.filters.FirstOrDefault(x => (x.isHaving is false) && x.havingAggregation == null && x.field == aliased);
-                            }
-                            if (matchingFilter != null)
-                            {
-                                if (string.IsNullOrEmpty(aliased))
-                                    col.mc_nome_colonna = matchingFilter.havingAggregation + "_" + col.mc_nome_colonna + "_" + def.id;
-                                else
-                                    col.mc_nome_colonna = aliased;
-                            }
-
-                            where_clause = AppendFilter(col, filterInfo, logicOperator, (current_fld), where_clause, ownerTable, "");
-                            having_clause = AppendHaving(col, filterInfo, logicOperator, (current_fld), having_clause, ownerTable, def);
-
-                            if (SortInfo.Any(x => x.mc_id == col.mc_id))
-                            {
-                                if (string.IsNullOrEmpty(order_safetable_name))
-                                {
-                                    orderby_clause += ((orderby_clause == "") ? " ORDER BY " : ", ") + "(" + ((col.mc_is_computed.Value) ? "(SELECT " + col.mc_computed_formula + ")" : (!string.IsNullOrEmpty(aggregatedAlias) ? aggregatedAlias : alias)) + ") " + SortInfo.FirstOrDefault(x => x.mc_id == col.mc_id).dir;
-                                }
-                                else
-                                {
-                                    AppendSort(col, order_safetable_name, ref orderby_clause, SortInfo.FirstOrDefault(x => x.mc_id == col.mc_id).dir);
-                                }
-                            }
-
-                        }
-                    }
-                }
-
-
-
-                string ret = "";
-
-                if (PageInfo.pageSize > 0)
-                {
-                    if (PageInfo.currentPage == 0)
-                        PageInfo.currentPage = 1;
-
-                    int skiprecords = (PageInfo.currentPage - 1) * PageInfo.pageSize;
-
-                    string fix_order;
-
-                    if (!string.IsNullOrEmpty(groupby_clause))
-                    {
-                        if (string.IsNullOrEmpty(orderby_clause))
-                        {
-                            fix_order = "ORDER BY " + groupby_clause.Replace("GROUP BY ", "");
-                        }
-                        else
-                        {
-                            fix_order = orderby_clause;
-                        }
-                        groupby_clause = fix_groupby(definition, groupby_fields, groupby_clause);
-                    }
-                    else
-                    {
-                        fix_order = (string.IsNullOrEmpty(orderby_clause) ? "ORDER BY " + default_order : orderby_clause);
-                    }
-
-                    //ritorna il count per il paging
-                    string countQry = string.Format("SELECT count(*) as conta_record FROM ( SELECT {0} FROM {1} {2} {3} {4} {5} ) as T", select_clause, from_clause, join_clause, where_clause, groupby_clause, having_clause);
-                    try
-                    {
-                        totalRecords = connection.QueryColumn<long>(countQry).FirstOrDefault();
-                    }
-                    catch (Exception ex)
-                    {
-                        RawHelpers.logError(ex, "getFlatData", countQry);
-                        throw new Exception(ex.Message + " " + countQry);
-                    }
-
-                    ret = string.Format("SELECT  {0} " +
-                                "FROM {1} {2} {3} {4} {5} {6} ", select_clause, from_clause, join_clause, where_clause, groupby_clause, having_clause, fix_order) +
-                                string.Format("limit {0} offset {1}", PageInfo.pageSize, ((skiprecords == 0) ? 0 : skiprecords + 1));
-                }
-                else
-                {
-                    groupby_clause = fix_groupby(definition, groupby_fields, groupby_clause);
-
-                    select_clause = fix_select(definition, select_clause, context, aliases);
-
-                    ret = string.Format("SELECT {0} FROM {1} {2} {3} {4} {5} {6}", select_clause, from_clause, join_clause, where_clause, groupby_clause, having_clause, string.IsNullOrEmpty(orderby_clause) ? "" : orderby_clause);
-
-                    totalRecords = 0;
-                }
-                return ret;
-            }
-
-        }
-
-        private static string parseComputedFormula(Definizione_Universi def, metaRawModel context)
-        {
-            Regex rgx = new Regex(@"\{[^}]+\}");
-            string current_fld = rgx.Replace(def.computedFormula, new MatchEvaluator((m) =>
-            {
-                string mc_id = m.Value.Split(new string[] { "___" }, StringSplitOptions.None)[1].Replace("}", "");
-                return context.GetMetadati_Colonnes(mc_id).FirstOrDefault().mc_nome_colonna;
-            }));
-            return current_fld;
-        }
-
-        private static string fix_select(List<Definizione_Universi> definition, string select_clause, metaRawModel context, Dictionary<string, string> aliases)
-        {
-            string select_append = "";
-
-            definition.Where(x => (x.navigator_isGroupableChecked || x.navigator_isDay_and_monthChecked || x.navigator_isDayOfTheYearChecked || x.navigator_isMonth_and_yearChecked || x.navigator_isMonthOfTheYearChecked) && (x.groupByCube || x.groupByRollup))
-            .OrderBy(y => y.groupingOrder).ToList().ForEach(z =>
-            {
-                string colName = (aliases.ContainsKey(z.ownerTableName) ? aliases[z.ownerTableName] : z.ownerTableName) + "." + z.name;
-                if (z.navigator_isDay_and_monthChecked)
-                {
-                    select_append += (string.IsNullOrEmpty(select_append) ? ", case when " : " OR ") + string.Format("GROUPING({0})=1", string.Format("RIGHT(REPLICATE('0',2) + cast(DATEPART(dd, {0}) as varchar(2)) ,2)  +  '-' + RIGHT(REPLICATE('0',2) + cast(DATEPART(mm, {0}) as varchar(2)) ,2)", (z.realID == 0 ? parseComputedFormula(z, context) : colName)));
-                }
-                else if (z.navigator_isDayOfTheYearChecked)
-                {
-                    select_append += (string.IsNullOrEmpty(select_append) ? ", case when " : " OR ") + string.Format("GROUPING({0})=1", string.Format("DATEPART(dy, {0})", (z.realID == 0 ? parseComputedFormula(z, context) : colName)));
-                }
-                else if (z.navigator_isMonth_and_yearChecked)
-                {
-                    select_append += (string.IsNullOrEmpty(select_append) ? ", case when " : " OR ") + string.Format("GROUPING({0})=1", string.Format("RIGHT(REPLICATE('0',2) + cast(DATEPART(dd, {0}) as varchar(2)) ,2)  +  '-' + RIGHT(REPLICATE('0',2) + cast(DATEPART(mm, {0}) as varchar(2)) ,2)", (z.realID == 0 ? parseComputedFormula(z, context) : colName)));
-                }
-                else if (z.navigator_isMonthOfTheYearChecked)
-                {
-                    select_append += (string.IsNullOrEmpty(select_append) ? ", case when " : " OR ") + string.Format("GROUPING({0})=1", string.Format("DATEPART(mm, {0})", (z.realID == 0 ? parseComputedFormula(z, context) : colName)));
-                }
-                else
-                {
-                    select_append += (string.IsNullOrEmpty(select_append) ? ", case when " : " OR ") + string.Format("GROUPING({0})=1", colName);
-                }
-            });
-
-            return select_clause + (string.IsNullOrEmpty(select_append) ? "" : select_append + " then 1 else 0 end as __is_total");
-        }
-
-
-        private static string fix_groupby(List<Definizione_Universi> definition, Dictionary<Definizione_Universi, string> groupby_fields, string groupby_clause)
-        {
-            groupby_clause = "";
-            bool rollup_started = false;
-            bool cube_started = false;
-
-            definition.OrderBy(y => y.groupingOrder).ToList().ForEach(z =>
-            {
-                string group_piece = groupby_fields.FirstOrDefault(d => d.Key.realID == z.realID).Value;
-                if (string.IsNullOrEmpty(group_piece))
-                    return;
-
-                string special_pre = "";
-                string special_post = "";
-                if (z.groupByRollup)
-                {
-                    if (rollup_started)
-                    {
-                        special_pre = "";
-                    }
-                    else
-                    {
-                        special_pre = " ROLLUP (";
-                    }
-                    rollup_started = true;
-                }
-                else if (z.groupByCube)
-                {
-                    if (cube_started)
-                    {
-                    }
-                    else
-                    {
-                        special_pre = " CUBE (";
-                    }
-                    cube_started = true;
-                }
-                else
-                {
-                    if (rollup_started)
-                    {
-                        special_post = ")";
-                        rollup_started = false;
-                    }
-                    if (cube_started)
-                    {
-                        special_post = ")";
-                        cube_started = false;
-                    }
-                }
-                groupby_clause += (string.IsNullOrEmpty(groupby_clause) ? "GROUP BY " : ", ") + special_pre + group_piece + special_post;
-            });
-
-            if (rollup_started || cube_started)
-                groupby_clause += ")";
-            return groupby_clause;
-        }
-
-        public static Universi getUniverseDefinition(string route)
-        {
-            using (metaRawModel context = new metaRawModel())
-            {
-                Universi bo = context.GetUniversis(route).FirstOrDefault();
-                return bo;
-            }
-        }
-
-        public static Universi getUniverseDefinitionByID(int universe_id)
-        {
-            using (metaRawModel context = new metaRawModel())
-            {
-                Universi bo = context.GetUniversis("", universe_id.ToString()).FirstOrDefault();
-                return bo;
-            }
-        }
-
-        public static rawPagedResult getUniverseData(List<Definizione_Universi> definition, List<SortInfo> SortInfo, PageInfo PageInfo, FilterInfos filterInfo, string logicOperator, string user_id)
-        {
-            Universi bo;
-            int? bo_id = definition.First().bo_id;
-            using (metaRawModel context = new metaRawModel())
-            {
-                bo = context.GetUniversis("", bo_id.Value.ToString()).FirstOrDefault();
-            }
-            List<_Metadati_Colonne> lst = _Metadati_Colonne.getColonneFromUniverse(definition.Where(x => x.navigator_isSelected).ToList()).OrderBy(x => x.mc_ordine).ToList();
-
-            _Metadati_Tabelle universe_table = new _Metadati_Tabelle() { md_route_name = "universe", md_pagesize = 0, md_server_side_operations = true, md_display_string = "universe", md_is_view = true, md_long_description = "universe", md_pageable = false, md_show_record_count = true, md_sortable = true, md_scrollable = true, md_disabilita_filtri = true, md_ui_grid_conditional_template = "total_row", md_ui_grid_conditional_alt_template = "total_row" };
-
-            if (definition.Any(x => x.navigator_isSelected && (x.groupByCube || x.groupByRollup)))
-            {
-                universe_table.md_ui_grid_conditional_template_condition = "(data.__is_total) ? __is_total==1 : false";
-            }
-
-            //implement authorization...
-            List<_Metadati_Colonne> restricted = new List<_Metadati_Colonne>();
-            bool added = false;
-            lst.ForEach(x =>
-            {
-                if (x.applyColumnRestrictions(new List<_Metadati_Utenti_Autorizzazioni_Colonne>()))
-                {
-                    restricted.Add(x);
-                    if (!added)
-                    {
-                        x._Metadati_Tabelle = universe_table;
-                        added = true;
-                    }
-                }
-            });
-
-            if (restricted.Count > 0)
-            {
-                string query = "";
-                long totalRecords;
-                using (MySqlConnection connection = metaQueryMySql.GetOpenConnection(false))
-                {
-                    try
-                    {
-                        query = builSelectFromUniverseDefinition(definition, SortInfo, PageInfo, filterInfo, logicOperator, connection, out totalRecords);
-                        List<SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)connection.Query(query);
-
-                        if (totalRecords == 0)
-                            totalRecords = rows.Count;
-
-                        return new rawPagedResult() { results = rows, TotalRecords = totalRecords, Agg = null, metadata = restricted };
-                    }
-                    catch (Exception EX)
-                    {
-                        RawHelpers.logError(EX, "getUniverseData", query);
-                        throw new Exception(EX.Message + "****EXECUTED QUERY:****" + query);
-                    }
-                }
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        public static Definizione_Universi addComputedColumn(string route, int parentID, string formula, string nome, string tipo)
-        {
-            using (metaRawModel context = new metaRawModel())
-            {
-                Universi bo = context.GetUniversis(route).FirstOrDefault();
-                long id = bo.Definizione_Universis.Max(x => x.id) + 10000;
-                _Metadati_Tabelle tabel = context.GetMetadati_Tabelles("", parentID.ToString()).FirstOrDefault();
-                Definizione_Universi computed = new Definizione_Universi() { bo_id = bo.bo_id, displayName = nome, isLookup = false, isTable = false, name = nome, parent = parentID, type = tipo, id = id, computedFormula = formula, isTbl = 2, ownerRouteName = tabel.md_route_name, ownerTableName = tabel.md_nome_tabella, schemaName = tabel.md_schema_name, dbName = tabel.md_db_name, isChecked = false, navigator_isSelected = false };
-                List<Definizione_Universi> l = new List<Definizione_Universi>();
-                l.Add(computed);
-                context.AddDefUniversi(l);
-                return computed;
-            }
-        }
-
         public static int GetMetadati_Tabelles_NonSystem_Count()
         {
             using (MySqlConnection con = GetOpenConnection(true))

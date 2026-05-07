@@ -206,6 +206,11 @@ namespace System.WebCore
 
                 if (myType == null)
                 {
+                    // NOTE: ConfigHelper is in KonvergenceCore.Helpers (WEB_UI_CRAFTER.Helpers
+                    // namespace) which Wuic.Webcore cannot reference (circular dependency).
+                    // ConfigurationManager.AppSettings is populated by LegacyConfigurationSync
+                    // at Startup time so this remains functional in production. In test env
+                    // this code path is non-critical (only fires for plugin-style asm loading).
                     string projectAssemblyName = ConfigurationManager.AppSettings["projectAssemblyName"];
                     if (!string.IsNullOrWhiteSpace(projectAssemblyName) && File.Exists(projectAssemblyName))
                     {
@@ -982,7 +987,12 @@ namespace System.WebCore
             {
                 get
                 {
-                    return _accessor.HttpContext.Connection.RemoteIpAddress.ToString();
+                    // Defensive: WAF test env (WebApplicationFactory) genera HttpContext
+                    // sintetici dove Connection.RemoteIpAddress puo' essere null. In
+                    // produzione Kestrel/IIS popolano sempre il valore. Fallback "::1"
+                    // (loopback IPv6) coerente con un client locale.
+                    var ip = _accessor.HttpContext?.Connection?.RemoteIpAddress;
+                    return ip?.ToString() ?? "::1";
                 }
             }
 
