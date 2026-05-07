@@ -7,6 +7,7 @@ using System.IO;
 using System.Text;
 using System.Xml;
 using Microsoft.AspNetCore.Mvc;
+using FatturazioneElettronica.Helpers;
 
 namespace FatturazioneElettronica.Controllers;
 
@@ -45,6 +46,10 @@ public class SdiController : ControllerBase
     [HttpPost("generateXml")]
     public IActionResult GenerateXml([FromBody] GenerateXmlRequest req)
     {
+        // Generazione XML SDI = scrittura file + DB → admin gate.
+        var gate = AuthGate.RequireAdmin();
+        if (gate != null) return gate;
+
         if (req.FatturaId <= 0) return BadRequest(new { ok = false, error = "fattura_id mancante" });
 
         try
@@ -88,6 +93,10 @@ public class SdiController : ControllerBase
     [HttpPost("markAsSent")]
     public IActionResult MarkAsSent([FromBody] MarkAsSentRequest req)
     {
+        // Cambio stato SDI = workflow critico → admin gate.
+        var gate = AuthGate.RequireAdmin();
+        if (gate != null) return gate;
+
         if (req.FatturaId <= 0) return BadRequest(new { ok = false, error = "fattura_id mancante" });
 
         using var cn = new SqlConnection(DataConn);
@@ -111,6 +120,10 @@ WHERE id = @id", cn);
     [HttpGet("download/{fatturaId}")]
     public IActionResult Download(int fatturaId)
     {
+        // Download XML SDI = lettura file privato → solo auth.
+        var gate = AuthGate.RequireAuth();
+        if (gate != null) return gate;
+
         using var cn = new SqlConnection(DataConn);
         cn.Open();
         using var cmd = new SqlCommand("SELECT file_xml FROM dbo.fatture_inviate WHERE id = @id", cn);

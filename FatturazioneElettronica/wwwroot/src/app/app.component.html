@@ -121,10 +121,18 @@
      per chiamare openPalette() dal button header. -->
 <app-global-search [showFab]="false"></app-global-search>
 
-<!-- Workflow #15: Dashboard widget configurabili per utente.
-     FAB gear icon (sopra global-search) → dialog con checkbox per nascondere/mostrare
-     widget della board attiva. Salva pref via /api/board-pref per (user_id, route). -->
-<app-board-pref></app-board-pref>
+<!-- Workflow #15: Dashboard widget configurabili per utente — DISABILITATO 2026-05-08.
+     FAB gear icon + dialog con checkbox di nascondi/mostra widget. Stato: il backend
+     `/api/board-pref` (POST/GET/DELETE) e' funzionante con IDOR-defense, ma il client
+     ha un `WIDGET_CATALOG` HARDCODED placeholder (5 voci CRM-like fittizie) che non
+     riflette i widget reali della dashboard corrente — quindi l'utente vede la
+     stessa lista ovunque e i toggle non producono effetto sui widget veri (sono
+     definiti dentro `dom_board.boardcontent`, non in questo catalog).
+     Da fare prima di riattivare il FAB: discovery dinamica del catalog dal
+     `boardcontent` della route corrente + listener `board-pref:changed` nei
+     dashboard renderer che applichi `display:none` ai widget nascosti.
+     Tracking: vedi IMPLEMENTATION_PLAN.md sezione "Workflow #15 (deferred)". -->
+<!-- <app-board-pref></app-board-pref> -->
 
 <!-- Workflow #16: quick-create modal — Alt+N o button "+" nell'header
      apre dialog con catalog entita' (cliente/fornitore/fattura/preventivo)

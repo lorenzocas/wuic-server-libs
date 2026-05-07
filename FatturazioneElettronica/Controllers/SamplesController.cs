@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using FatturazioneElettronica.Helpers;
 
 namespace FatturazioneElettronica.Controllers;
 
@@ -75,6 +76,9 @@ public class SamplesController : ControllerBase
         string? filterValue = null,
         string? filterOp = "contains")
     {
+        var gate = AuthGate.RequireAuth();
+        if (gate != null) return gate;
+
         IEnumerable<InventoryItem> q = _inventory;
 
         // 1) Filter (applicato prima di sort/page perche' total deve essere
@@ -176,12 +180,16 @@ public class SamplesController : ControllerBase
     [HttpGet("tasks")]
     public IActionResult GetTasks()
     {
+        var gate = AuthGate.RequireAuth();
+        if (gate != null) return gate;
         lock (_tasksLock) { return Ok(_tasks.ToList()); }
     }
 
     [HttpPost("tasks")]
     public IActionResult AddTask([FromBody] TaskItem item)
     {
+        var gate = AuthGate.RequireAuth();
+        if (gate != null) return gate;
         if (item == null || string.IsNullOrWhiteSpace(item.Title))
         {
             return BadRequest(new { error = "title required" });
@@ -197,6 +205,8 @@ public class SamplesController : ControllerBase
     [HttpPut("tasks/{id:int}")]
     public IActionResult UpdateTask(int id, [FromBody] TaskItem item)
     {
+        var gate = AuthGate.RequireAuth();
+        if (gate != null) return gate;
         lock (_tasksLock)
         {
             var existing = _tasks.FirstOrDefault(t => t.Id == id);
@@ -210,6 +220,8 @@ public class SamplesController : ControllerBase
     [HttpDelete("tasks/{id:int}")]
     public IActionResult DeleteTask(int id)
     {
+        var gate = AuthGate.RequireAuth();
+        if (gate != null) return gate;
         lock (_tasksLock)
         {
             var removed = _tasks.RemoveAll(t => t.Id == id);
@@ -224,6 +236,9 @@ public class SamplesController : ControllerBase
     [HttpPost("registrations")]
     public IActionResult PostRegistration([FromBody] RegistrationDto reg)
     {
+        var gate = AuthGate.RequireAuth();
+        if (gate != null) return gate;
+
         if (reg == null || string.IsNullOrWhiteSpace(reg.Email))
         {
             return BadRequest(new { error = "email required" });

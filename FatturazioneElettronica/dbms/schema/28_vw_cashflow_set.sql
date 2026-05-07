@@ -75,6 +75,11 @@ SELECT
     -- ROW_NUMBER come pk virtuale ordinata
     CAST(ROW_NUMBER() OVER (ORDER BY data_scadenza) AS INT) AS id,
     data_scadenza,
+    -- Etichetta corta per asse X chart (es. "21/06"). Senza questa colonna
+    -- il chart label userebbe data_scadenza serializzata come "2026-06-21T00:00:00",
+    -- che ruotata occuperebbe ~150px verticali e con altezza chart ~380px viene
+    -- troncata da Chart.js auto-skip.
+    CONVERT(CHAR(5), data_scadenza, 103) AS data_label,
     incassi_attesi,
     pagamenti_attesi,
     (incassi_attesi - pagamenti_attesi) AS saldo_giorno,

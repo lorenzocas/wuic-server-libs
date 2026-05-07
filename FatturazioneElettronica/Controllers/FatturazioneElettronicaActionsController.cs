@@ -5,6 +5,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
+using FatturazioneElettronica.Helpers;
 
 namespace FatturazioneElettronica.Controllers;
 
@@ -26,6 +27,10 @@ public class FatturazioneElettronicaActionsController : ControllerBase
     [HttpPost("execute/{actionKey}")]
     public async Task<IActionResult> Execute(string actionKey, CancellationToken cancellationToken)
     {
+        // Bulk action FE = scrittura → auth obbligatoria.
+        var gate = AuthGate.RequireAuth();
+        if (gate != null) return gate;
+
         if (string.IsNullOrWhiteSpace(_dataConnectionString))
         {
             return BadRequest(new { ok = false, actionKey, message = "DataSQLConnection non configurata." });

@@ -6,6 +6,7 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
+using FatturazioneElettronica.Helpers;
 
 namespace FatturazioneElettronica.Controllers;
 
@@ -37,6 +38,9 @@ public class ContabilitaController : ControllerBase
         [FromQuery] int? mese = null,
         [FromQuery] string? tipo = "TUTTI")
     {
+        var gate = AuthGate.RequireAuth();
+        if (gate != null) return gate;
+
         var oggi = DateTime.Today;
         int annoEff = anno ?? oggi.Year;
         int meseEff = mese ?? oggi.Month;

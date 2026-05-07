@@ -94,6 +94,7 @@ Vedi skill: [dashboard-replicate-custom-ui](../KonvergenceCore/skills/dashboard-
 | # | Feature | Test | Status | Note |
 |---|---|---|---|---|
 | **#29** | **Bulk "Invia SDI" multi-fattura** | test 39 | ⏳ | Era nel #14 originale ma implementato solo "marca pagate". Spostato qui come carryover. |
+| **#15** | **Dashboard widget configurabili per utente (BoardPref)** | — | 🚧 deferred | Backend `/api/board-pref` (POST/GET/DELETE) ✅ implementato + IDOR-defense. Client `BoardPrefComponent` ❌ stub: il `WIDGET_CATALOG` è hardcoded con 5 voci CRM-like fittizie (`kpi_clienti`/`kpi_fatture`/`kpi_scadenze`/`chart_vendite`/`list_recenti`) → mostra la stessa lista su qualsiasi route, e i toggle non hanno effetto sui widget reali (sono in `dom_board.boardcontent`). FAB nascosto in [`app.component.html:127`](wwwroot/src/app/app.component.html#L127) e import commentato in [`app.component.ts:42`](wwwroot/src/app/app.component.ts#L42) il 2026-05-08. **Da fare per riattivare:** (a) discovery dinamico del catalog dal `boardcontent` della route corrente (titolo + uniqueName per ogni widget top-level), (b) listener `board-pref:changed` nei dashboard renderer che applichi `display:none` ai widget nascosti via `uniqueName`, (c) re-aggiungere `<app-board-pref>` + import. |
 
 ---
 

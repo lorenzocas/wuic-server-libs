@@ -178,12 +178,18 @@ function uniquify(node) {
 
 function makeKpiTile({ labelText, ds_route, bindingBody, color }) {
   const td = cloneTd();
-  td.inputs.height = 'clamp(90px, 12vh, 130px)'; td.inputs.maxHeight = 'clamp(90px, 12vh, 130px)'; td.inputs.width = '25%';
+  td.inputs.height = 'clamp(90px, 12vh, 130px)'; td.inputs.maxHeight = 'clamp(90px, 12vh, 130px)';
+  // FIX 2026-05-08 (flex layout): TR display:flex row + 4 KPI flex equi-distribuiti
+  td.inputs.flex = '1 1 0'; td.inputs.width = 'auto'; td.inputs.maxWidth = 'none';
   const div = td.nestedComponents[0];
   div.inputs.height = '100%'; div.inputs.minHeight = 'auto'; div.inputs.padding = '12px';
   const spanTitle = div.nestedComponents[0];
   const ds = div.nestedComponents[1];
   const spanValue = JSON.parse(JSON.stringify(spanTitle));
+  // FIX 2026-05-08: append marker per distinguerlo dal title (deep-clone
+  // eredita lo stesso uniqueName, uniquify appenderebbe lo stesso suffix).
+  if (spanValue.inputs?.uniqueName) spanValue.inputs.uniqueName += '_VALUE';
+  if (spanValue.uniqueName) spanValue.uniqueName += '_VALUE';
   div.nestedComponents[2] = spanValue;
   spanTitle.inputs.innerText = labelText;
   spanTitle.inputs.fontSize = '12px'; spanTitle.inputs.color = '#6b7280'; spanTitle.inputs.fontWeight = '500';
@@ -199,13 +205,21 @@ function makeKpiTile({ labelText, ds_route, bindingBody, color }) {
   return td;
 }
 
-function makeWideWidget({ titleText, ds_route, action, colspan, height }) {
+function makeWideWidget({ titleText, ds_route, action, colspan, height, fillResidual }) {
   const td = cloneTd();
   if (colspan && colspan > 1) td.inputs.colSpan = String(colspan);
-  const widgetHeight = height || (action === 'chart' ? 'clamp(300px, 40vh, 460px)' : 'clamp(160px, 20vh, 240px)');
-  td.inputs.height = widgetHeight; td.inputs.maxHeight = widgetHeight; td.inputs.width = '100%';
+  // FIX 2026-05-08 (flex layout): pattern dashboard-replicate-custom-ui
+  td.inputs.width = 'auto'; td.inputs.maxWidth = 'none'; td.inputs.flex = '1 1 0';
   const div = td.nestedComponents[0];
-  div.inputs.height = '100%'; div.inputs.minHeight = 'auto';
+  if (fillResidual) {
+    td.inputs.height = '100%'; delete td.inputs.maxHeight;
+    div.inputs.height = '100%'; div.inputs.minHeight = height || 'clamp(160px, 20vh, 240px)';
+    delete div.inputs.maxHeight; delete div.inputs.overflow;
+  } else {
+    const widgetHeight = height || (action === 'chart' ? 'clamp(300px, 40vh, 460px)' : 'clamp(160px, 20vh, 240px)');
+    td.inputs.height = widgetHeight; td.inputs.maxHeight = widgetHeight;
+    div.inputs.height = '100%'; div.inputs.maxHeight = widgetHeight; div.inputs.minHeight = 'auto'; div.inputs.overflow = 'hidden';
+  }
   const spanTitle = div.nestedComponents[0];
   const ds = div.nestedComponents[1];
   const dr = div.nestedComponents[2];
@@ -246,15 +260,30 @@ const kpi4 = makeKpiTile({
 });
 
 const chartW = makeWideWidget({ titleText: 'Esposizione per fornitore', ds_route: 'vw_aging_debiti_fornitori', action: 'chart', colspan: 4 });
-const tableW = makeWideWidget({ titleText: 'Dettaglio fornitori', ds_route: 'vw_aging_debiti_fornitori', action: 'list', colspan: 4 });
+const tableW = makeWideWidget({ titleText: 'Dettaglio fornitori', ds_route: 'vw_aging_debiti_fornitori', action: 'list', colspan: 4, fillResidual: true });
 
 const tr1 = JSON.parse(JSON.stringify(root.nestedComponents[0]));
 tr1.nestedComponents[0].inputs.colSpan = '4';
 uniquify(tr1);
-const tr2 = JSON.parse(JSON.stringify(root.nestedComponents[1])); tr2.nestedComponents = [kpi1, kpi2, kpi3, kpi4]; if (tr2.uniqueName) tr2.uniqueName += '_tr2';
-const tr3 = JSON.parse(JSON.stringify(root.nestedComponents[1])); tr3.nestedComponents = [chartW]; if (tr3.uniqueName) tr3.uniqueName += '_tr3';
-const tr4 = JSON.parse(JSON.stringify(root.nestedComponents[1])); tr4.nestedComponents = [tableW]; if (tr4.uniqueName) tr4.uniqueName += '_tr4';
+const tr2 = JSON.parse(JSON.stringify(root.nestedComponents[1])); tr2.nestedComponents = [kpi1, kpi2, kpi3, kpi4]; if (tr2.uniqueName) tr2.uniqueName += '_tr2'; if (tr2.inputs?.uniqueName) tr2.inputs.uniqueName += '_tr2';
+const tr3 = JSON.parse(JSON.stringify(root.nestedComponents[1])); tr3.nestedComponents = [chartW]; if (tr3.uniqueName) tr3.uniqueName += '_tr3'; if (tr3.inputs?.uniqueName) tr3.inputs.uniqueName += '_tr3';
+const tr4 = JSON.parse(JSON.stringify(root.nestedComponents[1])); tr4.nestedComponents = [tableW]; if (tr4.uniqueName) tr4.uniqueName += '_tr4'; if (tr4.inputs?.uniqueName) tr4.inputs.uniqueName += '_tr4';
 root.nestedComponents = [tr1, tr2, tr3, tr4];
+
+// FIX 2026-05-08: TABLE → flex column per honorare height cap viewport.
+// Pattern: skills/dashboard-replicate-custom-ui.
+if (root.inputs) {
+  root.inputs.display = 'flex'; root.inputs.flexDirection = 'column';
+  root.inputs.height = 'calc(100vh - 50px)'; root.inputs.maxHeight = 'calc(100vh - 50px)';
+  root.inputs.width = '100%';
+}
+function setFlexItem(tr, residual) {
+  if (!tr.inputs) tr.inputs = {};
+  tr.inputs.display = 'flex'; tr.inputs.flexDirection = 'row';
+  if (residual) { tr.inputs.flex = '1 1 0'; tr.inputs.minHeight = '0'; delete tr.inputs.height; }
+  else { tr.inputs.flex = '0 0 auto'; delete tr.inputs.height; }
+}
+setFlexItem(tr1, false); setFlexItem(tr2, false); setFlexItem(tr3, false); setFlexItem(tr4, true);
 
 const json = JSON.stringify(tplPatched);
 console.log(`boardcontent built: ${json.length} chars`);

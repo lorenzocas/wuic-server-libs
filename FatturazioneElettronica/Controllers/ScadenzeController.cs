@@ -5,6 +5,7 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
+using FatturazioneElettronica.Helpers;
 
 namespace FatturazioneElettronica.Controllers;
 
@@ -32,6 +33,9 @@ public class ScadenzeController : ControllerBase
     [HttpPost("marca-pagate")]
     public IActionResult MarcaPagate([FromBody] MarcaPagateRequest? req)
     {
+        var gate = AuthGate.RequireAuth();
+        if (gate != null) return gate;
+
         var ids = req?.Ids ?? Array.Empty<int>();
         if (ids.Length == 0)
             return BadRequest(new { ok = false, error = "Nessun id selezionato" });

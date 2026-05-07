@@ -32,7 +32,7 @@ SELECT TOP 10
     MIN(f.data_documento) AS prima_fattura,
     MAX(f.data_documento) AS ultima_fattura
 FROM dbo.fatture_inviate f
-JOIN dbo.clienti c ON c.id = f.cliente_id
+JOIN dbo.clienti c ON c.id = f.cliente_id AND ISNULL(c.cancellato, 0) = 0
 WHERE ISNULL(f.cancellato, 0) = 0
   AND YEAR(f.data_documento) = YEAR(GETDATE())
   AND f.stato IN ('EMESSA', 'CONSEGNATA')
@@ -58,7 +58,7 @@ SELECT TOP 10
     MIN(f.data_documento) AS prima_fattura,
     MAX(f.data_documento) AS ultima_fattura
 FROM dbo.fatture_inviate f
-JOIN dbo.clienti c ON c.id = f.cliente_id
+JOIN dbo.clienti c ON c.id = f.cliente_id AND ISNULL(c.cancellato, 0) = 0
 WHERE ISNULL(f.cancellato, 0) = 0
   AND YEAR(f.data_documento) = YEAR(GETDATE())
   AND f.stato IN ('EMESSA', 'CONSEGNATA')

@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc;
+using FatturazioneElettronica.Helpers;
 
 namespace FatturazioneElettronica.Controllers;
 
@@ -28,6 +29,9 @@ public class ValidateController : ControllerBase
     [HttpGet("piva")]
     public IActionResult ValidatePIva([FromQuery] string? value)
     {
+        var gate = AuthGate.RequireAuth();
+        if (gate != null) return gate;
+
         if (string.IsNullOrWhiteSpace(value))
             return BadRequest(new { ok = false, error = "value obbligatorio" });
 
@@ -66,6 +70,9 @@ public class ValidateController : ControllerBase
     [HttpGet("cf")]
     public IActionResult ValidateCf([FromQuery] string? value)
     {
+        var gate = AuthGate.RequireAuth();
+        if (gate != null) return gate;
+
         if (string.IsNullOrWhiteSpace(value))
             return BadRequest(new { ok = false, error = "value obbligatorio" });
 

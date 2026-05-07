@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using Microsoft.AspNetCore.Mvc;
+using FatturazioneElettronica.Helpers;
 
 namespace FatturazioneElettronica.Controllers;
 
@@ -27,6 +28,9 @@ public class SearchController : ControllerBase
     [HttpGet("global")]
     public IActionResult Global([FromQuery] string? q, [FromQuery] int top = 5)
     {
+        var gate = AuthGate.RequireAuth();
+        if (gate != null) return gate;
+
         if (string.IsNullOrWhiteSpace(q) || q.Trim().Length < 2)
             return Ok(new { ok = true, results = Array.Empty<object>() });
 

@@ -120,7 +120,7 @@ SELECT
     SUM(b.importo_residuo) AS totale_esposizione,
     COUNT(*) AS num_scadenze
 FROM dbo.vw_aging_crediti_base b
-JOIN dbo.clienti c ON c.id = b.cliente_id
+JOIN dbo.clienti c ON c.id = b.cliente_id AND ISNULL(c.cancellato, 0) = 0
 GROUP BY c.id, c.codice, c.ragione_sociale;
 GO
 PRINT 'vw_aging_crediti_clienti creata.';

@@ -6,6 +6,7 @@ using System.Data.SqlClient;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using FatturazioneElettronica.Helpers;
 
 namespace FatturazioneElettronica.Controllers;
 
@@ -38,10 +39,13 @@ public class SavedSearchController : ControllerBase
     [HttpGet]
     public IActionResult List([FromQuery] string? route, [FromQuery(Name = "user_id")] int? userId)
     {
+        // user_id viene SEMPRE dal cookie auth, mai dal query/claim (IDOR defense).
+        var gate = AuthGate.RequireAuth(out var authUserId);
+        if (gate != null) return gate;
+        var uid = int.Parse(authUserId);
+
         if (string.IsNullOrWhiteSpace(route))
             return BadRequest(new { ok = false, error = "route obbligatoria" });
-        var uid = ResolveUserId(userId);
-        if (uid == null) return BadRequest(new { ok = false, error = "user_id non risolvibile" });
 
         try
         {
@@ -52,7 +56,7 @@ public class SavedSearchController : ControllerBase
                 "FROM dbo.user_saved_searches " +
                 "WHERE user_id = @uid AND route = @r " +
                 "ORDER BY label", cn);
-            cmd.Parameters.AddWithValue("@uid", uid.Value);
+            cmd.Parameters.AddWithValue("@uid", uid);
             cmd.Parameters.AddWithValue("@r", route.Trim());
 
             var rows = new List<object>();
@@ -68,7 +72,7 @@ public class SavedSearchController : ControllerBase
                     updated_at = reader["updated_at"] is DBNull ? null : (DateTime?)Convert.ToDateTime(reader["updated_at"])
                 });
             }
-            return Ok(new { ok = true, route = route.Trim(), user_id = uid.Value, results = rows });
+            return Ok(new { ok = true, route = route.Trim(), user_id = uid, results = rows });
         }
         catch (Exception ex)
         {
@@ -79,14 +83,16 @@ public class SavedSearchController : ControllerBase
     [HttpPost]
     public IActionResult Save([FromBody] SaveRequest? req)
     {
+        var gate = AuthGate.RequireAuth(out var authUserId);
+        if (gate != null) return gate;
+        var uid = int.Parse(authUserId);
+
         if (req == null || string.IsNullOrWhiteSpace(req.Route))
             return BadRequest(new { ok = false, error = "route obbligatoria" });
         if (string.IsNullOrWhiteSpace(req.Label))
             return BadRequest(new { ok = false, error = "label obbligatoria" });
         if (string.IsNullOrWhiteSpace(req.FilterJson))
             return BadRequest(new { ok = false, error = "filter_json obbligatorio" });
-        var uid = ResolveUserId(req.UserId);
-        if (uid == null) return BadRequest(new { ok = false, error = "user_id non risolvibile" });
 
         try
         {
@@ -96,7 +102,7 @@ public class SavedSearchController : ControllerBase
                 "INSERT INTO dbo.user_saved_searches (user_id, route, label, filter_json) " +
                 "OUTPUT INSERTED.id " +
                 "VALUES (@uid, @r, @l, @fj)", cn);
-            cmd.Parameters.AddWithValue("@uid", uid.Value);
+            cmd.Parameters.AddWithValue("@uid", uid);
             cmd.Parameters.AddWithValue("@r", req.Route.Trim());
             cmd.Parameters.AddWithValue("@l", req.Label.Trim());
             cmd.Parameters.AddWithValue("@fj", req.FilterJson);
@@ -113,8 +119,9 @@ public class SavedSearchController : ControllerBase
     [HttpDelete("{id}")]
     public IActionResult Delete([FromRoute] int id, [FromQuery(Name = "user_id")] int? userId)
     {
-        var uid = ResolveUserId(userId);
-        if (uid == null) return BadRequest(new { ok = false, error = "user_id non risolvibile" });
+        var gate = AuthGate.RequireAuth(out var authUserId);
+        if (gate != null) return gate;
+        var uid = int.Parse(authUserId);
 
         try
         {
@@ -123,7 +130,7 @@ public class SavedSearchController : ControllerBase
             using var cmd = new SqlCommand(
                 "DELETE FROM dbo.user_saved_searches WHERE id = @id AND user_id = @uid", cn);
             cmd.Parameters.AddWithValue("@id", id);
-            cmd.Parameters.AddWithValue("@uid", uid.Value);
+            cmd.Parameters.AddWithValue("@uid", uid);
             int rows = cmd.ExecuteNonQuery();
             return Ok(new { ok = true, deleted = rows });
         }

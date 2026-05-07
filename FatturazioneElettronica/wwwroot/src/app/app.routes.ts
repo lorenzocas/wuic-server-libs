@@ -45,6 +45,20 @@ export const appRoutes: Routes = [
     }
   },
 
+  // Workflow #21C: Popup riconciliazione movimenti bancari ↔ scadenze.
+  // Route invocata automaticamente post-upload movimenti (con ?batch=<id>),
+  // o manualmente per ri-fare matching su tutti i movimenti UNMATCHED.
+  // Backend: /api/riconciliazione/{suggestions,bulkApply}.
+  {
+    path: 'riconciliazione/popup',
+    loadComponent: () => import('./component/riconciliazione-popup/riconciliazione-popup.component')
+      .then(m => m.RiconciliazionePopupComponent),
+    data: {
+      breadcrumbs: 'Riconciliazione',
+      description: 'Popup matching movimenti bancari UNMATCHED a scadenze APERTE. Auto-suggest per importo + data, conferma/skip massivi, applicazione bulk delle riconciliazioni.'
+    }
+  },
+
   // Preview HTML stampabile della fattura. Complementa l'export XML SDI
   // (/api/sdi/generateXml) con un layout umano-leggibile per la stampa
   // o l'invio email al cliente. Carica i dati via stored
@@ -98,3 +112,4 @@ export const appRoutes: Routes = [
   // ──────── Route framework metadata-driven (auto-resolve) ────────
   ...wuicRoutes
 ];
+

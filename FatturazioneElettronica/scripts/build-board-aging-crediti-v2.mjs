@@ -151,7 +151,10 @@ function makeKpiTile({ labelText, ds_route, bindingBody, color }) {
   // serve altezza compatta ~120px.
   td.inputs.height = 'clamp(90px, 12vh, 130px)';
   td.inputs.maxHeight = 'clamp(90px, 12vh, 130px)';
-  td.inputs.width = '25%';
+  // FIX 2026-05-08 (flex layout): TR display:flex row + 4 KPI flex equi-distribuiti
+  td.inputs.flex = '1 1 0';
+  td.inputs.width = 'auto';
+  td.inputs.maxWidth = 'none';
   const div = td.nestedComponents[0];
   div.inputs.height = '100%';
   div.inputs.minHeight = 'auto';
@@ -162,6 +165,10 @@ function makeKpiTile({ labelText, ds_route, bindingBody, color }) {
   const spanTitle = div.nestedComponents[0];
   const ds = div.nestedComponents[1];
   const spanValueClone = JSON.parse(JSON.stringify(spanTitle)); // clone SPAN come blueprint per il valore
+  // FIX 2026-05-08: deep-clone eredita stesso uniqueName del titolo →
+  // dopo uniquify() i 2 SPAN avrebbero uniqueName IDENTICO. Append marker.
+  if (spanValueClone.inputs?.uniqueName) spanValueClone.inputs.uniqueName += '_VALUE';
+  if (spanValueClone.uniqueName) spanValueClone.uniqueName += '_VALUE';
   // Sostituisce il DATAREPEATER nel terzo slot
   div.nestedComponents[2] = spanValueClone;
 
@@ -194,19 +201,34 @@ function makeKpiTile({ labelText, ds_route, bindingBody, color }) {
 }
 
 // Helper: crea widget completo (chart o list) full-width con colspan=4
-function makeWideWidget({ titleText, ds_route, action, colspan, height }) {
+function makeWideWidget({ titleText, ds_route, action, colspan, height, fillResidual }) {
   const td = cloneTd();
   if (colspan && colspan > 1) td.inputs.colSpan = String(colspan);
-  // FIX altezza widget vh-based per fitting 1920x1080 + scaling responsive:
-  // chart clamp(280px, 38vh, 460px); list clamp(220px, 28vh, 340px).
-  // Total dashboard: ~80vh. Adatto a viewport piu' piccoli (min 280+220=500px) e piu' grandi.
-  const widgetHeight = height || (action === 'chart' ? 'clamp(300px, 40vh, 460px)' : 'clamp(160px, 20vh, 240px)');
-  td.inputs.height = widgetHeight;
-  td.inputs.maxHeight = widgetHeight;
-  td.inputs.width = '100%';
+  // FIX 2026-05-08 (flex layout): TR display:flex row, TD = flex:1 1 0 +
+  // reset maxWidth (template 2x2 lo ha a 50%). Pattern dashboard-replicate-custom-ui.
+  td.inputs.width = 'auto';
+  td.inputs.maxWidth = 'none';
+  td.inputs.flex = '1 1 0';
   const div = td.nestedComponents[0];
-  div.inputs.height = '100%';
-  div.inputs.minHeight = 'auto';
+  if (fillResidual) {
+    // TR4 grid residuale: DIV riempie il TD naturalmente, PrimeNG datatable
+    // gestisce il proprio scroll quando i record superano lo spazio.
+    td.inputs.height = '100%';
+    delete td.inputs.maxHeight;
+    div.inputs.height = '100%';
+    div.inputs.minHeight = height || 'clamp(160px, 20vh, 240px)';
+    delete div.inputs.maxHeight;
+    delete div.inputs.overflow;
+  } else {
+    // chart: clamp altezza fissa per fitting 1920x1080.
+    const widgetHeight = height || (action === 'chart' ? 'clamp(300px, 40vh, 460px)' : 'clamp(160px, 20vh, 240px)');
+    td.inputs.height = widgetHeight;
+    td.inputs.maxHeight = widgetHeight;
+    div.inputs.height = '100%';
+    div.inputs.maxHeight = widgetHeight;
+    div.inputs.minHeight = 'auto';
+    div.inputs.overflow = 'hidden';
+  }
   const spanTitle = div.nestedComponents[0];
   const ds = div.nestedComponents[1];
   const dr = div.nestedComponents[2];
@@ -258,12 +280,13 @@ const chartW = makeWideWidget({
   colspan: 4
 });
 
-// Tabella dettaglio (W4) full width colspan=4
+// Tabella dettaglio (W4) full width colspan=4 — fillResidual riempie TR4
 const tableW = makeWideWidget({
   titleText: 'Dettaglio per cliente',
   ds_route: 'vw_aging_crediti_clienti',
   action: 'list',
-  colspan: 4
+  colspan: 4,
+  fillResidual: true
 });
 
 // Costruisci il NUOVO array nestedComponents della TABLE root
@@ -292,6 +315,35 @@ if (tr4.uniqueName) tr4.uniqueName += '_tr4';
 if (tr4.inputs?.uniqueName) tr4.inputs.uniqueName += '_tr4';
 
 root.nestedComponents = [tr1, tr2, tr3, tr4];
+
+// === FIX 2026-05-08: TABLE → flex column per honorare height cap viewport ===
+// Pattern: skills/dashboard-replicate-custom-ui (sezione "Trappole verificate").
+// HTML <table>/<tr>/<td> ignorano height come MAX → table sfora viewport.
+// Soluzione: flex column su TABLE + flex row su TR + reset maxWidth/maxHeight.
+if (root.inputs) {
+  root.inputs.display = 'flex';
+  root.inputs.flexDirection = 'column';
+  root.inputs.height = 'calc(100vh - 50px)';
+  root.inputs.maxHeight = 'calc(100vh - 50px)';
+  root.inputs.width = '100%';
+}
+function setFlexItem(tr, residual) {
+  if (!tr.inputs) tr.inputs = {};
+  tr.inputs.display = 'flex';
+  tr.inputs.flexDirection = 'row';
+  if (residual) {
+    tr.inputs.flex = '1 1 0';
+    tr.inputs.minHeight = '0';
+    delete tr.inputs.height;
+  } else {
+    tr.inputs.flex = '0 0 auto';
+    delete tr.inputs.height;
+  }
+}
+setFlexItem(tr1, false);
+setFlexItem(tr2, false);
+setFlexItem(tr3, false);
+setFlexItem(tr4, true);
 
 const json = JSON.stringify(tplPatched);
 console.log(`boardcontent v2 built: ${json.length} chars (vs 288k v1)`);

@@ -5,6 +5,7 @@ using System.Data.SqlClient;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using FatturazioneElettronica.Helpers;
 
 namespace FatturazioneElettronica.Controllers;
 
@@ -43,12 +44,13 @@ public class BoardPrefController : ControllerBase
     [HttpGet]
     public IActionResult Get([FromQuery] string? route, [FromQuery(Name = "user_id")] int? userId)
     {
+        // user_id SEMPRE dal cookie auth (IDOR defense).
+        var gate = AuthGate.RequireAuth(out var authUserId);
+        if (gate != null) return gate;
+        var uid = int.Parse(authUserId);
+
         if (string.IsNullOrWhiteSpace(route))
             return BadRequest(new { ok = false, error = "route obbligatoria" });
-
-        var uid = ResolveUserId(userId);
-        if (uid == null)
-            return BadRequest(new { ok = false, error = "user_id non risolvibile" });
 
         try
         {
@@ -57,7 +59,7 @@ public class BoardPrefController : ControllerBase
             using var cmd = new SqlCommand(
                 "SELECT layout_json, updated_at FROM dbo.dom_board_user_pref WHERE user_id = @uid AND board_route = @r",
                 cn);
-            cmd.Parameters.AddWithValue("@uid", uid.Value);
+            cmd.Parameters.AddWithValue("@uid", uid);
             cmd.Parameters.AddWithValue("@r", route.Trim());
 
             using var reader = cmd.ExecuteReader();
@@ -82,14 +84,14 @@ public class BoardPrefController : ControllerBase
     [HttpPost]
     public IActionResult Save([FromBody] SavePrefRequest? req)
     {
+        var gate = AuthGate.RequireAuth(out var authUserId);
+        if (gate != null) return gate;
+        var uid = int.Parse(authUserId);
+
         if (req == null || string.IsNullOrWhiteSpace(req.Route))
             return BadRequest(new { ok = false, error = "route obbligatoria" });
         if (string.IsNullOrWhiteSpace(req.LayoutJson))
             return BadRequest(new { ok = false, error = "layout_json obbligatorio" });
-
-        var uid = ResolveUserId(req.UserId);
-        if (uid == null)
-            return BadRequest(new { ok = false, error = "user_id non risolvibile" });
 
         try
         {
@@ -103,12 +105,12 @@ public class BoardPrefController : ControllerBase
                 WHEN MATCHED THEN UPDATE SET layout_json = @lj, updated_at = GETDATE()
                 WHEN NOT MATCHED THEN INSERT (user_id, board_route, layout_json, updated_at)
                                       VALUES (@uid, @r, @lj, GETDATE());", cn);
-            cmd.Parameters.AddWithValue("@uid", uid.Value);
+            cmd.Parameters.AddWithValue("@uid", uid);
             cmd.Parameters.AddWithValue("@r", req.Route.Trim());
             cmd.Parameters.AddWithValue("@lj", req.LayoutJson);
 
             int rows = cmd.ExecuteNonQuery();
-            return Ok(new { ok = true, saved = rows, user_id = uid.Value, route = req.Route.Trim() });
+            return Ok(new { ok = true, saved = rows, user_id = uid, route = req.Route.Trim() });
         }
         catch (Exception ex)
         {
@@ -119,12 +121,12 @@ public class BoardPrefController : ControllerBase
     [HttpDelete]
     public IActionResult Delete([FromQuery] string? route, [FromQuery(Name = "user_id")] int? userId)
     {
+        var gate = AuthGate.RequireAuth(out var authUserId);
+        if (gate != null) return gate;
+        var uid = int.Parse(authUserId);
+
         if (string.IsNullOrWhiteSpace(route))
             return BadRequest(new { ok = false, error = "route obbligatoria" });
-
-        var uid = ResolveUserId(userId);
-        if (uid == null)
-            return BadRequest(new { ok = false, error = "user_id non risolvibile" });
 
         try
         {
@@ -132,7 +134,7 @@ public class BoardPrefController : ControllerBase
             cn.Open();
             using var cmd = new SqlCommand(
                 "DELETE FROM dbo.dom_board_user_pref WHERE user_id = @uid AND board_route = @r", cn);
-            cmd.Parameters.AddWithValue("@uid", uid.Value);
+            cmd.Parameters.AddWithValue("@uid", uid);
             cmd.Parameters.AddWithValue("@r", route.Trim());
             int rows = cmd.ExecuteNonQuery();
             return Ok(new { ok = true, deleted = rows });

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using Microsoft.AspNetCore.Mvc;
+using FatturazioneElettronica.Helpers;
 
 namespace FatturazioneElettronica.Controllers;
 
@@ -29,6 +30,9 @@ public class IvaController : ControllerBase
     [HttpGet("riepilogo")]
     public IActionResult Riepilogo([FromQuery] int? anno, [FromQuery] string? periodo)
     {
+        var gate = AuthGate.RequireAuth();
+        if (gate != null) return gate;
+
         if (!anno.HasValue || anno < 1900 || anno > 9999)
             return BadRequest(new { ok = false, error = "anno obbligatorio (1900..9999)" });
         var p = string.IsNullOrWhiteSpace(periodo) ? "YEAR" : periodo.Trim().ToUpperInvariant();

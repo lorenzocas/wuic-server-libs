@@ -39,7 +39,10 @@ import {
 import { ImageWrapperComponent } from './wuic-bridges/ui';
 import { WuicRagChatbotFabComponent, LazyFirstRunWizardComponent, WuicErrorDialogComponent } from './wuic-bridges/public';
 import { GlobalSearchComponent } from './component/global-search/global-search.component';
-import { BoardPrefComponent } from './component/board-pref/board-pref.component';
+// Workflow #15 BoardPref: DISABILITATO 2026-05-08 — widget catalog hardcoded
+// non riflette i widget reali della board. Vedi commento app.component.html
+// e IMPLEMENTATION_PLAN.md "Workflow #15 (deferred)".
+// import { BoardPrefComponent } from './component/board-pref/board-pref.component';
 import { QuickCreateComponent } from './component/quick-create/quick-create.component';
 // CustomListComponent template removed during rename-project cleanup;
 // designer custom tool registration kept disabled.
@@ -50,7 +53,7 @@ import { QuickCreateComponent } from './component/quick-create/quick-create.comp
     CommonModule, RouterOutlet, NgComponentOutlet, ToggleSwitchModule, SelectModule,
     FormsModule, DialogModule, ButtonModule, TranslateModule, TooltipModule, ToastModule,
     ConfirmDialogModule, FieldsetModule, WuicRagChatbotFabComponent, LazyFirstRunWizardComponent,
-    WuicErrorDialogComponent, GlobalSearchComponent, BoardPrefComponent, QuickCreateComponent,
+    WuicErrorDialogComponent, GlobalSearchComponent, /* BoardPrefComponent (#15 deferred), */ QuickCreateComponent,
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
@@ -116,6 +119,29 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     WtoolboxService.dialogService = dialogSrv;
     WtoolboxService.translationService = translationService;
     WtoolboxService.errorHandler = this.globalHandler;
+
+    // Helper globale per aprire dialog post-upload (workflow #21C):
+    // l'action callback su movimenti_bancari/list (md_action_type=10) chiama
+    // window.WuicAppHelpers.openRiconciliazioneDialog(batchId) per mostrare
+    // il popup riconciliazione SOPRA la list senza cambiare route.
+    (window as any).WuicAppHelpers = (window as any).WuicAppHelpers || {};
+    (window as any).WuicAppHelpers.openRiconciliazioneDialog = async (batchId: string, onClose?: (result: any) => void) => {
+      const { RiconciliazionePopupComponent } = await import('./component/riconciliazione-popup/riconciliazione-popup.component');
+      const ref = dialogSrv.open(RiconciliazionePopupComponent, {
+        data: { batch_id: batchId },
+        header: 'Riconciliazione movimenti bancari',
+        width: '90vw',
+        height: '85vh',
+        modal: true,
+        dismissableMask: false,
+        closable: true,
+        contentStyle: { 'overflow': 'auto', 'padding': '0' }
+      });
+      if (onClose && ref?.onClose) {
+        ref.onClose.subscribe((result: any) => onClose(result));
+      }
+      return ref;
+    };
 
     // GlobalHandler.messageNotification subscription moved into the lib
     // `<wuic-error-dialog>` component (Commit 9b). The dialog renders + the

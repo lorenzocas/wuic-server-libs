@@ -7,6 +7,7 @@ using System.IO;
 using System.Text;
 using System.Xml;
 using Microsoft.AspNetCore.Mvc;
+using FatturazioneElettronica.Helpers;
 
 namespace FatturazioneElettronica.Controllers;
 
@@ -41,6 +42,9 @@ public class ComunicazioniController : ControllerBase
     [HttpGet("lipe")]
     public IActionResult GetLipe([FromQuery] int anno, [FromQuery] int trimestre)
     {
+        var gate = AuthGate.RequireAuth();
+        if (gate != null) return gate;
+
         if (trimestre < 1 || trimestre > 4)
             return BadRequest(new { ok = false, error = "trimestre deve essere 1..4" });
 
@@ -60,6 +64,9 @@ public class ComunicazioniController : ControllerBase
     [HttpGet("lipeXml")]
     public IActionResult GetLipeXml([FromQuery] int anno, [FromQuery] int trimestre)
     {
+        var gate = AuthGate.RequireAuth();
+        if (gate != null) return gate;
+
         var lipeData = GetLipeRaw(anno, trimestre);
         if (lipeData == null) return NotFound(new { ok = false, error = "Nessun dato per il trimestre" });
 
@@ -96,6 +103,9 @@ public class ComunicazioniController : ControllerBase
     [HttpGet("esterometro")]
     public IActionResult GetEsterometro([FromQuery] int anno, [FromQuery] int mese)
     {
+        var gate = AuthGate.RequireAuth();
+        if (gate != null) return gate;
+
         if (mese < 1 || mese > 12)
             return BadRequest(new { ok = false, error = "mese deve essere 1..12" });
 

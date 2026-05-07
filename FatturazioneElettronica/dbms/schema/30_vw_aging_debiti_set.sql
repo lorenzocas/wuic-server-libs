@@ -99,7 +99,7 @@ SELECT
     SUM(b.importo_residuo) AS totale_esposizione,
     COUNT(*) AS num_scadenze
 FROM dbo.vw_aging_debiti_base b
-JOIN dbo.fornitori f ON f.id = b.fornitore_id
+JOIN dbo.fornitori f ON f.id = b.fornitore_id AND ISNULL(f.cancellato, 0) = 0
 GROUP BY f.id, f.codice, f.ragione_sociale;
 GO
 

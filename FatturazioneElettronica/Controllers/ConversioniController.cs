@@ -3,6 +3,7 @@ using ConfigurationManager = System.Configuration.ConfigurationManager;
 using System.Data;
 using System.Data.SqlClient;
 using Microsoft.AspNetCore.Mvc;
+using FatturazioneElettronica.Helpers;
 
 namespace FatturazioneElettronica.Controllers;
 
@@ -44,6 +45,10 @@ public class ConversioniController : ControllerBase
     [HttpPost("genera-solleciti")]
     public IActionResult GeneraSolleciti([FromBody] GeneraSollecitiRequest? req)
     {
+        // Genera record email_log batch → admin gate (effetti reali downstream).
+        var gate = AuthGate.RequireAdmin();
+        if (gate != null) return gate;
+
         try
         {
             using var cn = new SqlConnection(DataConn);
@@ -70,6 +75,9 @@ public class ConversioniController : ControllerBase
     [HttpPost("preventivo-to-fattura")]
     public IActionResult PreventivoToFattura([FromBody] PreventivoToFatturaRequest req)
     {
+        var gate = AuthGate.RequireAuth();
+        if (gate != null) return gate;
+
         if (req.PreventivoId <= 0)
             return BadRequest(new { ok = false, error = "preventivo_id mancante" });
 
