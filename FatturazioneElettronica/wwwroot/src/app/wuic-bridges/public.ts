@@ -3,6 +3,7 @@ export { ListGridComponent, type ListGridBeforeRowRenderEvent, type ListGridAfte
 export { ParametricDialogComponent } from 'wuic-framework-lib-src/component/parametric-dialog/parametric-dialog.component';
 export { PagerComponent } from 'wuic-framework-lib-src/component/pager/pager.component';
 export { DataRepeaterComponent } from 'wuic-framework-lib-src/component/data-repeater/data-repeater.component';
+export { FieldEditorComponent } from 'wuic-framework-lib-src/component/field/field-editor/field-editor.component';
 export { LazyChartListComponent } from 'wuic-framework-lib-src/component/chart-list/chart-list.lazy.component';
 export { TreeListComponent } from 'wuic-framework-lib-src/component/tree-list/tree-list.component';
 export { LazySpreadsheetListSfComponent } from 'wuic-framework-lib-src/component/spreadsheet-list-sf/spreadsheet-list-sf.lazy.component';

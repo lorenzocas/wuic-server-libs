@@ -347,6 +347,27 @@ html.theme-high-contrast app-root {
         height: auto;
         flex: 1 1 auto;
         min-height: 0;
+        // 2026-05-07: display:flex column per propagare lo stretch al
+        // .form-edit-wrapper figlio (il wrapper ha 'flex: 1 1 auto'
+        // ma se il parent non e' flex column non si stira -> spazio
+        // vuoto sotto la toolbar save/reset/cancel quando il form e'
+        // piu' corto del dialog).
+        display: flex;
+        flex-direction: column;
+    }
+
+    // 2026-05-07: il <ng-component> host del template dinamico
+    // (md_edit_template/md_detail_template) e' figlio diretto di
+    // .form-edit-wrapper (flex column). Senza queste regole il
+    // ng-component e' display:block -> il <form> figlio non si stira
+    // su tutta l'altezza disponibile e resta spazio vuoto sotto la
+    // toolbar save/reset/cancel.
+    .form-edit-wrapper > ng-component {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
     }
 
     .p-tablist {

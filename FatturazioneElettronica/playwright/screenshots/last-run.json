@@ -1,35 +1,89 @@
 {
   "config": {
-    "baseUrl": "http://localhost:4202",
+    "baseUrl": "http://localhost:4201",
     "backendBaseUrl": "http://localhost:5100",
     "user": "admin_test",
     "password": "Test123!",
     "apiUser": "admin_test_2",
     "apiPassword": "Test123!",
-    "filter": "^30",
+    "filter": "^4[0-7]-",
     "bail": false,
     "headed": false,
     "outDir": "C:\\src\\Wuic\\FatturazioneElettronica\\playwright\\screenshots"
   },
   "results": [
     {
-      "file": "30-aging-crediti.mjs",
-      "id": "30",
-      "name": "Aging crediti dashboard (framework-first: 3 viste + boardcontent + 4 KPI tile + stacked bar + table)",
+      "file": "40-fatture-inviate-insert.mjs",
+      "id": "40",
+      "name": "Fatture inviate - insert end-to-end via UI",
+      "status": "fail",
+      "error": "locator.waitFor: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('wuic-list-grid tbody tr:has-text(\"26/2026\"), .p-datatable-tbody tr:has-text(\"26/2026\")').first() to be visible\u001b[22m\n",
+      "stack": "locator.waitFor: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('wuic-list-grid tbody tr:has-text(\"26/2026\"), .p-datatable-tbody tr:has-text(\"26/2026\")').first() to be visible\u001b[22m\n\n    at saveAndVerifyGridRow (C:\\src\\Wuic\\FatturazioneElettronica\\playwright\\_shared\\document-insert-flow.mjs:272:6)",
+      "screenshot": "C:\\src\\Wuic\\FatturazioneElettronica\\playwright\\screenshots\\FAIL_40_1778217874023.png",
+      "durationMs": 13267
+    },
+    {
+      "file": "41-preventivi-insert.mjs",
+      "id": "41",
+      "name": "Preventivi - insert end-to-end via UI",
       "status": "pass",
-      "out": {
-        "idA": 175,
-        "idB": 176,
-        "idC": 177,
-        "scadenze": 5,
-        "dashboard_url": "/#/aging_crediti/dashboard"
-      },
-      "durationMs": 6445
+      "durationMs": 6142
+    },
+    {
+      "file": "42-ordini-insert.mjs",
+      "id": "42",
+      "name": "Ordini - insert end-to-end via UI",
+      "status": "fail",
+      "error": "locator.waitFor: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('wuic-list-grid tbody tr:has-text(\"13/2026\"), .p-datatable-tbody tr:has-text(\"13/2026\")').first() to be visible\u001b[22m\n",
+      "stack": "locator.waitFor: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('wuic-list-grid tbody tr:has-text(\"13/2026\"), .p-datatable-tbody tr:has-text(\"13/2026\")').first() to be visible\u001b[22m\n\n    at saveAndVerifyGridRow (C:\\src\\Wuic\\FatturazioneElettronica\\playwright\\_shared\\document-insert-flow.mjs:272:6)",
+      "screenshot": "C:\\src\\Wuic\\FatturazioneElettronica\\playwright\\screenshots\\FAIL_42_1778217891029.png",
+      "durationMs": 10856
+    },
+    {
+      "file": "43-ddt-insert.mjs",
+      "id": "43",
+      "name": "DDT - insert end-to-end via UI",
+      "status": "pass",
+      "durationMs": 6727
+    },
+    {
+      "file": "44-proforma-insert.mjs",
+      "id": "44",
+      "name": "Proforma - insert end-to-end via UI",
+      "status": "fail",
+      "error": "locator.waitFor: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('wuic-list-grid tbody tr:has-text(\"12/2026\"), .p-datatable-tbody tr:has-text(\"12/2026\")').first() to be visible\u001b[22m\n",
+      "stack": "locator.waitFor: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('wuic-list-grid tbody tr:has-text(\"12/2026\"), .p-datatable-tbody tr:has-text(\"12/2026\")').first() to be visible\u001b[22m\n\n    at saveAndVerifyGridRow (C:\\src\\Wuic\\FatturazioneElettronica\\playwright\\_shared\\document-insert-flow.mjs:272:6)",
+      "screenshot": "C:\\src\\Wuic\\FatturazioneElettronica\\playwright\\screenshots\\FAIL_44_1778217908815.png",
+      "durationMs": 11059
+    },
+    {
+      "file": "45-ordini-acquisto-insert.mjs",
+      "id": "45",
+      "name": "Ordini acquisto - insert end-to-end via UI",
+      "status": "fail",
+      "error": "locator.waitFor: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('wuic-list-grid tbody tr:has-text(\"12/2026\"), .p-datatable-tbody tr:has-text(\"12/2026\")').first() to be visible\u001b[22m\n",
+      "stack": "locator.waitFor: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('wuic-list-grid tbody tr:has-text(\"12/2026\"), .p-datatable-tbody tr:has-text(\"12/2026\")').first() to be visible\u001b[22m\n\n    at saveAndVerifyGridRow (C:\\src\\Wuic\\FatturazioneElettronica\\playwright\\_shared\\document-insert-flow.mjs:272:6)",
+      "screenshot": "C:\\src\\Wuic\\FatturazioneElettronica\\playwright\\screenshots\\FAIL_45_1778217919842.png",
+      "durationMs": 11031
+    },
+    {
+      "file": "46-fatture-ricevute-insert.mjs",
+      "id": "46",
+      "name": "Fatture ricevute - insert end-to-end via UI",
+      "status": "pass",
+      "durationMs": 7690
+    },
+    {
+      "file": "47-ordini-elettronici-insert.mjs",
+      "id": "47",
+      "name": "Ordini elettronici - insert end-to-end via UI",
+      "status": "pass",
+      "durationMs": 7302
     }
   ],
-  "pass": 1,
-  "fail": 0,
+  "pass": 4,
+  "fail": 4,
   "skip": 0,
-  "total": 1,
-  "runAt": "2026-05-06T23:02:35.440Z"
+  "total": 8,
+  "runAt": "2026-05-08T05:25:35.155Z"
 }

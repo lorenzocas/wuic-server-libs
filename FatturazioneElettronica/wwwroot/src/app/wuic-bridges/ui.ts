@@ -2,6 +2,7 @@ export { LazyMetaMenuComponent } from 'wuic-framework-lib-src/component/meta-men
 export { LazyDataSourceComponent } from 'wuic-framework-lib-src/component/data-source/data-source.lazy.component';
 export { LazyDataActionButtonComponent } from 'wuic-framework-lib-src/component/data-action-button/data-action-button.lazy.component';
 export { LazyFieldEditorComponent } from 'wuic-framework-lib-src/component/field/field-editor/field-editor.lazy.component';
+export { FieldEditorComponent } from 'wuic-framework-lib-src/component/field/field-editor/field-editor.component';
 export { LazyImageWrapperComponent } from 'wuic-framework-lib-src/component/image-wrapper/image-wrapper.lazy.component';
 export { ImageWrapperComponent } from 'wuic-framework-lib-src/component/image-wrapper/image-wrapper.component';
 export { CallbackPipe } from 'wuic-framework-lib-src/pipe/callback.pipe';

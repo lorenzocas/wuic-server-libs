@@ -17,6 +17,7 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { TableModule } from 'primeng/table';
 import { FieldsetModule } from 'primeng/fieldset';
+import { TabsModule } from 'primeng/tabs';
 
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Subscription } from 'rxjs';
@@ -37,6 +38,8 @@ import {
   PRIMARY_PALETTES, ThemeOption, LicenseFeatureService
 } from './wuic-bridges/core';
 import { ImageWrapperComponent } from './wuic-bridges/ui';
+import { DataRepeaterComponent, DataSourceComponent } from './wuic-bridges/public';
+import { DocumentEditFormComponent } from './components/document-edit-form/document-edit-form.component';
 import { WuicRagChatbotFabComponent, LazyFirstRunWizardComponent, WuicErrorDialogComponent } from './wuic-bridges/public';
 import { GlobalSearchComponent } from './component/global-search/global-search.component';
 // Workflow #15 BoardPref: DISABILITATO 2026-05-08 — widget catalog hardcoded
@@ -194,7 +197,7 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
         itemCountThreshold: 6
       },
       gridRowImports: [ButtonModule, TableModule, CommonModule, NgClass, NgStyle, FormsModule, ui.LazyDataActionButtonComponent, ui.LazyDataSourceComponent, ui.VisibleFieldListPipe, ui.CallbackPipe, ui.CallbackPipe2, ui.IsSelectedRowPipe, ui.FormatGridViewValuePipe, ui.GetSrcUploadPreviewPipe, ui.LazyFieldEditorComponent, ui.LazyImageWrapperComponent, ImageWrapperComponent, ui.WuicFrozenColumnDirective, ui.WuicRowTogglerDirective],
-      dynamicFormImports: [CommonModule, ui.LazyDataActionButtonComponent, ui.LazyDataSourceComponent, ui.VisibleFieldListPipe, TableModule, ButtonModule, ui.LazyFieldEditorComponent, ImageWrapperComponent],
+      dynamicFormImports: [CommonModule, ui.LazyDataActionButtonComponent, ui.LazyDataSourceComponent, ui.VisibleFieldListPipe, TableModule, ButtonModule, ui.LazyFieldEditorComponent, ImageWrapperComponent, TabsModule, FieldsetModule, DataRepeaterComponent, DataSourceComponent, DocumentEditFormComponent],
     });
 
     // CustomListComponent removed during rename-project cleanup; archetype customlist disabled.

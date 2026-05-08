@@ -1,0 +1,185 @@
+<form novalidate class="document-edit-form">
+  <div class="form-scroll">
+
+    <!-- Riga 1: Dati documento + Dati controparte -->
+    <div class="row g-3 form-row">
+      <div class="col-lg-6 col-md-12">
+        <fieldset class="card-section h-100">
+          <legend>Dati documento</legend>
+          <div class="row g-3">
+            <ng-container *ngFor="let f of documentFields">
+              <ng-container *ngIf="getMetaColumn(f) as col">
+                <div class="col-lg-6 col-md-12 mb-2">
+                  <wuic-field-editor [record]="record" [field]="col" [metaInfo]="metaInfo"
+                                     [readOnly]="readOnly" [forceShowLabel]="true"></wuic-field-editor>
+                </div>
+              </ng-container>
+            </ng-container>
+          </div>
+        </fieldset>
+      </div>
+
+      <div class="col-lg-6 col-md-12">
+        <fieldset class="card-section h-100">
+          <legend>{{ controparteTitle }}</legend>
+          <div class="row g-3">
+            <ng-container *ngFor="let f of controparteFields">
+              <ng-container *ngIf="getMetaColumn(f) as col">
+                <div class="col-12 mb-2">
+                  <wuic-field-editor [record]="record" [field]="col" [metaInfo]="metaInfo"
+                                     [readOnly]="readOnly" [forceShowLabel]="true"></wuic-field-editor>
+                </div>
+              </ng-container>
+            </ng-container>
+          </div>
+        </fieldset>
+      </div>
+    </div>
+
+    <!-- Riga 2: Prodotti e servizi (nested grid righe inline editable, solo dopo Save) -->
+    <div class="row g-3 form-row" *ngIf="showProdottiCard">
+      <div class="col-12">
+        <fieldset class="card-section">
+          <legend>Prodotti e servizi</legend>
+          <div class="nested-grid-host">
+            <wuic-data-source #righeDs
+                              [autoload]="true"
+                              [routeFromRouting]="false"
+                              [hardcodedRoute]="prodottiRoute"
+                              [parentRecord]="record"
+                              [parentMetaInfo]="metaInfo"></wuic-data-source>
+            <wuic-data-repeater [hardcodedAction]="'list'"
+                                [hardcodedDatasource]="righeDs"
+                                class="nested-grid-repeater"></wuic-data-repeater>
+          </div>
+        </fieldset>
+      </div>
+    </div>
+
+    <!-- Insert mode: placeholder Prodotti e servizi (record senza id, nested non caricabili) -->
+    <div class="row g-3 form-row" *ngIf="!hasParentId && metaInfo?.nestedRoutes?.[prodottiNestedIndex]">
+      <div class="col-12">
+        <fieldset class="card-section">
+          <legend>Prodotti e servizi</legend>
+          <div class="nested-grid-placeholder">
+            Salva la testata del documento per gestire le righe.
+          </div>
+        </fieldset>
+      </div>
+    </div>
+
+    <!-- Riga 3: Pagamento OR Stato | Calcolo -->
+    <div class="row g-3 form-row" *ngIf="showPagamentoCard || showStatoCard || calcoloFields.length">
+      <ng-container *ngIf="showPagamentoCard">
+        <div class="col-lg-6 col-md-12">
+          <fieldset class="card-section h-100">
+            <legend>{{ pagamentoTitle }}</legend>
+            <div class="row g-3">
+              <ng-container *ngFor="let f of pagamentoFields">
+                <ng-container *ngIf="getMetaColumn(f) as col">
+                  <div class="col-12 mb-2">
+                    <wuic-field-editor [record]="record" [field]="col" [metaInfo]="metaInfo"
+                                       [readOnly]="readOnly" [forceShowLabel]="true"></wuic-field-editor>
+                  </div>
+                </ng-container>
+              </ng-container>
+            </div>
+          </fieldset>
+        </div>
+      </ng-container>
+
+      <ng-container *ngIf="showStatoCard && !showPagamentoCard">
+        <div class="col-lg-6 col-md-12">
+          <fieldset class="card-section h-100">
+            <legend>{{ statoTitle }}</legend>
+            <div class="row g-3">
+              <ng-container *ngFor="let f of statoFields">
+                <ng-container *ngIf="getMetaColumn(f) as col">
+                  <div class="col-12 mb-2">
+                    <wuic-field-editor [record]="record" [field]="col" [metaInfo]="metaInfo"
+                                       [readOnly]="readOnly" [forceShowLabel]="true"></wuic-field-editor>
+                  </div>
+                </ng-container>
+              </ng-container>
+            </div>
+          </fieldset>
+        </div>
+      </ng-container>
+
+      <div class="col-lg-6 col-md-12" *ngIf="calcoloFields.length">
+        <fieldset class="card-section h-100">
+          <legend>{{ calcoloTitle }}</legend>
+          <div class="row g-3">
+            <ng-container *ngFor="let f of calcoloFields">
+              <ng-container *ngIf="getMetaColumn(f) as col">
+                <div class="col-lg-6 col-md-12 mb-2">
+                  <wuic-field-editor [record]="record" [field]="col" [metaInfo]="metaInfo"
+                                     [readOnly]="readOnly" [forceShowLabel]="true"></wuic-field-editor>
+                </div>
+              </ng-container>
+            </ng-container>
+          </div>
+        </fieldset>
+      </div>
+    </div>
+
+    <!-- Riga 4: Stato e SDI (solo se statoSdiFields valorizzato) -->
+    <div class="row g-3 form-row" *ngIf="showStatoSdiCard">
+      <div class="col-12">
+        <fieldset class="card-section">
+          <legend>Stato e SDI</legend>
+          <div class="row g-3">
+            <ng-container *ngFor="let f of statoSdiFields">
+              <ng-container *ngIf="getMetaColumn(f) as col">
+                <div class="col-lg-3 col-md-6 mb-2">
+                  <wuic-field-editor [record]="record" [field]="col" [metaInfo]="metaInfo"
+                                     [readOnly]="readOnly" [forceShowLabel]="true"></wuic-field-editor>
+                </div>
+              </ng-container>
+            </ng-container>
+          </div>
+        </fieldset>
+      </div>
+    </div>
+
+    <!-- Riga 5: Scadenze (nestedRoutes[scadenzeNestedIndex]) -->
+    <div class="row g-3 form-row" *ngIf="showScadenzeCard">
+      <div class="col-12">
+        <fieldset class="card-section">
+          <legend>Scadenze</legend>
+          <div class="nested-grid-host">
+            <wuic-data-source #scadenzeDs
+                              [autoload]="true"
+                              [routeFromRouting]="false"
+                              [hardcodedRoute]="scadenzeRoute"
+                              [parentRecord]="record"
+                              [parentMetaInfo]="metaInfo"></wuic-data-source>
+            <wuic-data-repeater [hardcodedAction]="'list'"
+                                [hardcodedDatasource]="scadenzeDs"
+                                class="nested-grid-repeater"></wuic-data-repeater>
+          </div>
+        </fieldset>
+      </div>
+    </div>
+
+    <!-- Riga 6: Note -->
+    <div class="row g-3 form-row" *ngIf="showNoteCard">
+      <div class="col-12">
+        <fieldset class="card-section">
+          <legend>Note</legend>
+          <div class="row g-3">
+            <ng-container *ngFor="let f of noteFields">
+              <ng-container *ngIf="getMetaColumn(f) as col">
+                <div class="col-12 mb-2">
+                  <wuic-field-editor [record]="record" [field]="col" [metaInfo]="metaInfo"
+                                     [readOnly]="readOnly" [forceShowLabel]="true"></wuic-field-editor>
+                </div>
+              </ng-container>
+            </ng-container>
+          </div>
+        </fieldset>
+      </div>
+    </div>
+
+  </div>
+</form>
