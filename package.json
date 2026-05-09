@@ -4,6 +4,7 @@
   "workspaces": [
     "KonvergenceCore/wwwroot/my-workspace",
     "WuicTest/wwwroot",
-    "CrmApp/wwwroot"
+    "CrmApp/wwwroot",
+    "FatturazioneElettronica/wwwroot"
   ]
 }

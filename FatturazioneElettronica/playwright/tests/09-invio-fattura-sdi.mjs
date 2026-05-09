@@ -49,13 +49,13 @@ export async function run(ctx) {
   ));
   log(`fattura ${fatturaId} pronta`);
 
-  // 2) generate XML via REST direct (SdiController)
-  const genRes = await fetch(`${apiBase}/api/sdi/generateXml`, {
+  // 2) generate XML via REST direct (SdiController). Uso `api.endpoint`
+  //    invece di raw fetch perche' il controller usa AuthGate.RequireAdmin
+  //    e il cookie k-user va passato dall'authenticated requestContext.
+  const genJson = await api.endpoint('/api/sdi/generateXml', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ FatturaId: fatturaId })
+    body: { FatturaId: fatturaId }
   });
-  const genJson = await genRes.json();
   assert(genJson.ok === true, `generateXml fail: ${JSON.stringify(genJson)}`);
   assert(genJson.file_xml, 'file_xml non ritornato');
   log(`XML generato: ${genJson.file_xml} (${genJson.xml_size_bytes} bytes)`);
@@ -73,13 +73,11 @@ export async function run(ctx) {
   assert(xml.includes('http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2'), 'namespace SDI mancante');
   assert(xml.includes('FormatoTrasmissione') && xml.includes('FPR12'), 'FormatoTrasmissione FPR12 mancante');
 
-  // 5) markAsSent
-  const mark = await fetch(`${apiBase}/api/sdi/markAsSent`, {
+  // 5) markAsSent (admin-gated → authenticated endpoint)
+  const markJson = await api.endpoint('/api/sdi/markAsSent', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ FatturaId: fatturaId, SdiId: 'IT_E2E_TEST', SdiMessaggio: 'Test E2E' })
+    body: { FatturaId: fatturaId, SdiId: 'IT_E2E_TEST', SdiMessaggio: 'Test E2E' }
   });
-  const markJson = await mark.json();
   assert(markJson.ok === true && markJson.rows_updated === 1, `markAsSent fail: ${JSON.stringify(markJson)}`);
 
   // 6) verifica DB

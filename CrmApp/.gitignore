@@ -332,3 +332,7 @@ wwwroot/Reports/cache/**
 .vscode/
 .dotnet/**
 .local-package-sync.stamp
+
+# Host-binding license auto-generated at build time from RSA + .snk secrets.
+# See skills/license-issuing/SKILL.md (in KonvergenceCore) for details.
+host-binding-license.lic

@@ -23,4 +23,91 @@
   <ItemGroup Condition="'$(UseWuicCoreNuget)' == 'true'">
     <PackageReference Include="WuicCore" Version="$(WuicCoreNugetVersion)" />
   </ItemGroup>
+
+  <!-- SDI invio reale: firma CADES-BES + validazione XSD + provider SOAP/REST.
+       BouncyCastle.Cryptography per CMS/PKCS7 detached signature (rebrand
+       moderno di Portable.BouncyCastle, v2.x supporta .NET 10).
+       System.ServiceModel.* per SOAP client (Aruba PEC).
+       MailKit per IMAP poller delle notifiche SDI sulla casella PEC mittente
+       (DirectPec free path: SDI risponde alla PEC del mittente con AT/RC/NS/
+       MC/NE/DT, il poller le scarica e le passa al parser). -->
+  <ItemGroup>
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.4.0" />
+    <PackageReference Include="System.ServiceModel.Http" Version="8.1.0" />
+    <PackageReference Include="System.ServiceModel.Primitives" Version="8.1.0" />
+    <PackageReference Include="MailKit" Version="4.7.1.1" />
+  </ItemGroup>
+
+  <!-- XSD schema files FatturaPA v1.2 (Schema_VFPR12.xsd + xmldsig-core-schema.xsd).
+       Source: https://www.fatturapa.gov.it/it/norme-e-regole/documentazione-fatturapa
+       Copiati nel publish output per essere caricati da FatturaPaXsdValidator. -->
+  <ItemGroup>
+    <Content Include="Services\Sdi\Schemas\**\*.xsd">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <!--
+    Host-binding license for the WUIC framework runtime
+    (skill: license-issuing § "Host-binding licenses for bundled free apps").
+
+    Two cooperating mechanisms identify this assembly as an authorized "free
+    bundled" host of the framework:
+
+      1. Strong-name signing with `wuic-strong-name.snk`. The resulting
+         AssemblyName has PublicKeyToken = 803e91d55e6d2981. Only Lorenzo's
+         admin workstation has the .snk, so no third party can produce an
+         assembly with the same PKT (it would require the corresponding RSA
+         private key embedded in the .snk).
+
+      2. An embedded `host-binding-license.lic`, signed with the same RSA key
+         used for user licenses (license-private.pem). The validator at runtime
+         verifies the RSA signature, then cross-checks the entry assembly has
+         the matching PKT + Name + version range.
+
+    Both bricks are required: copying the .lic without the .snk fails (PKT
+    mismatch), strong-naming with a different .snk fails (signature mismatch).
+
+    Skip-by-default: if either secret is absent (forks, CI without admin creds),
+    strong-name signing turns off and the .lic is not generated. Build still
+    succeeds — the resulting binary just falls through to the standard
+    fingerprint license check at runtime, which is the existing behavior for
+    paid customers.
+  -->
+  <PropertyGroup>
+    <_WuicStrongNameKey>$(MSBuildProjectDirectory)\..\KonvergenceCore\secrets\license-keys\wuic-strong-name.snk</_WuicStrongNameKey>
+    <_WuicLicensePrivateKey>$(MSBuildProjectDirectory)\..\KonvergenceCore\secrets\license-keys\license-private.pem</_WuicLicensePrivateKey>
+    <_WuicHostBindingScript>$(MSBuildProjectDirectory)\..\KonvergenceCore\scripts\license-issue-host-binding.ps1</_WuicHostBindingScript>
+    <_WuicHostBindingLic>$(MSBuildProjectDirectory)\host-binding-license.lic</_WuicHostBindingLic>
+
+    <SignAssembly Condition="Exists('$(_WuicStrongNameKey)')">true</SignAssembly>
+    <AssemblyOriginatorKeyFile Condition="Exists('$(_WuicStrongNameKey)')">$(_WuicStrongNameKey)</AssemblyOriginatorKeyFile>
+    <DelaySign>false</DelaySign>
+  </PropertyGroup>
+
+  <!--
+    The .lic generation runs in BeforeBuild, but `<EmbeddedResource>` items in
+    static `<ItemGroup>` blocks are evaluated BEFORE BeforeBuild fires. Result
+    on first-ever build: Exists() returns false, the resource isn't included,
+    the dll ships without an embedded host-binding license.
+
+    Fix: declare the `<EmbeddedResource>` INSIDE the target, AFTER the script
+    has produced the .lic. ItemGroup-inside-Target is dynamic — adds to the
+    items collection at target-execution time, in plenty of time for CoreCompile.
+  -->
+  <Target Name="GenerateWuicHostBindingLicense"
+          BeforeTargets="BeforeBuild"
+          Condition="Exists('$(_WuicStrongNameKey)') AND Exists('$(_WuicLicensePrivateKey)') AND Exists('$(_WuicHostBindingScript)')">
+    <Message Text="Generating host-binding license for FatturazioneElettronica..." Importance="normal" />
+    <Exec Command="pwsh -NoProfile -ExecutionPolicy Bypass -File &quot;$(_WuicHostBindingScript)&quot; -AppId fatturazione-elettronica -StrongNameKeyPath &quot;$(_WuicStrongNameKey)&quot; -HostAssemblyName FatturazioneElettronica -OutputPath &quot;$(_WuicHostBindingLic)&quot; -PrivateKeyPemPath &quot;$(_WuicLicensePrivateKey)&quot;"
+          ConsoleToMSBuild="true"
+          StandardOutputImportance="low"
+          StandardErrorImportance="high"
+          IgnoreExitCode="false" />
+    <ItemGroup>
+      <EmbeddedResource Include="$(_WuicHostBindingLic)" Condition="Exists('$(_WuicHostBindingLic)')">
+        <LogicalName>WUIC.HostBindingLicense</LogicalName>
+      </EmbeddedResource>
+    </ItemGroup>
+  </Target>
 </Project>

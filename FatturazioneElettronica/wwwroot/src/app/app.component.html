@@ -20,8 +20,7 @@
         @if (showRightHeaderBlock) {
         <div class="app-shell-theme">
             <div class="app-shell-theme-card border-1 border-300 border-round p-3 surface-100 shadow-2">
-                <div class="app-shell-theme-select mb-2"
-                     style="display: flex; align-items: center; gap: 6px;">
+                <div class="app-shell-theme-select mb-2" style="display: flex; align-items: center; gap: 6px;">
                     <p-select [options]="availableThemes" optionLabel="label" optionValue="value"
                         [ngModel]="selectedTheme" (ngModelChange)="onThemeChange($event)"
                         [style]="{ width: '140px', height: '35px' }" placeholder="Tema" appendTo="body">
@@ -45,26 +44,17 @@
 
                     <!-- Workflow #12: trigger inline per global-search palette.
                          Sostituisce il vecchio FAB bottom-right (visivamente piu' integrato). -->
-                    <button id="app_global_search_fab"
-                            type="button"
-                            (click)="openGlobalSearch()"
-                            class="app-shell-search-icon-btn"
-                            title="Cerca (Ctrl+K)"
-                            aria-label="Cerca globale"
-                            style="width:35px; height:35px; border-radius:50%; border:1px solid #cbd5e1;
+                    <button id="app_global_search_fab" type="button" (click)="openGlobalSearch()"
+                        class="app-shell-search-icon-btn" title="Cerca (Ctrl+K)" aria-label="Cerca globale" style="width:25px; height:25px; border-radius:50%; border:1px solid #cbd5e1;
                                    background:white; cursor:pointer; display:flex; align-items:center;
                                    justify-content:center; color:#475569; flex-shrink:0;">
                         <i class="pi pi-search" style="font-size:14px"></i>
                     </button>
 
                     <!-- Workflow #16: trigger inline per quick-create modal. -->
-                    <button id="app_quick_create_fab"
-                            type="button"
-                            (click)="openQuickCreate()"
-                            class="app-shell-quickcreate-icon-btn"
-                            title="Crea nuovo (Alt+N)"
-                            aria-label="Crea nuovo record"
-                            style="width:35px; height:35px; border-radius:50%; border:none;
+                    <button id="app_quick_create_fab" type="button" (click)="openQuickCreate()"
+                        class="app-shell-quickcreate-icon-btn" title="Crea nuovo (Alt+N)" aria-label="Crea nuovo record"
+                        style="width:25px; height:25px; border-radius:50%; border:none;
                                    background:#10b981; color:white; cursor:pointer; display:flex;
                                    align-items:center; justify-content:center; flex-shrink:0;
                                    box-shadow:0 1px 3px rgba(0,0,0,0.1);">
@@ -86,8 +76,7 @@
                     [pTooltip]="isHighContrastTheme() ? ('La variante chiaro/scuro e inclusa nella scelta del tema ad alto contrasto dal dropdown.') : null"
                     tooltipPosition="bottom">
                     <p-toggleswitch [ngModel]="isDarkMode" (ngModelChange)="toggleLightDark()"
-                        [disabled]="isHighContrastTheme()"
-                        [ariaLabel]="'Tema scuro'" />
+                        [disabled]="isHighContrastTheme()" [ariaLabel]="'Tema scuro'" />
                 </div>
             </div>
         </div>

@@ -177,6 +177,18 @@ internal static class Program
                 webBuilder.UseStartup<WuicCore.Startup>();
                 webBuilder.UseSetting(WebHostDefaults.ApplicationKey, typeof(Program).Assembly.GetName().Name!);
 
+                // SDI services: pipeline XSD → CADES-BES sign → provider submit
+                // + notifiche IMAP poller + conservazione sostitutiva +
+                // comunicazioni periodiche (LIPE, Esterometro, CU).
+                // Vedi FatturazioneElettronica/Services/Sdi/* + Services/FiscalReports/*.
+                webBuilder.ConfigureServices((ctx, services) =>
+                {
+                    FatturazioneElettronica.Services.Sdi.SdiServiceCollectionExtensions
+                        .AddSdiServices(services, ctx.Configuration);
+                    FatturazioneElettronica.Services.FiscalReports.FiscalReportsServiceCollectionExtensions
+                        .AddFiscalReportsServices(services, ctx.Configuration);
+                });
+
                 // Do NOT call UseKestrel() / UseIISIntegration() / UseUrls() here.
                 //
                 // ConfigureWebHostDefaults already wires both servers conditionally:

@@ -1,0 +1,949 @@
+@use 'styles/styles' as styles;
+
+/*
+ * Stacking order delle parti sticky della list-grid:
+ *   thead (sticky top:0)              -> z-index 10  (sopra TUTTO)
+ *   tfoot (sticky bottom:0, SUM row)  -> z-index 10  (sopra le frozen body)
+ *   body td.p-datatable-frozen-column -> z-index auto (PrimeNG default)
+ *
+ * PrimeNG di default mette thead z=2 e tfoot z=1, valori troppo bassi
+ * quando ci sono altre cell sticky (es. frozen body):
+ * 1) thead z=2 puo' essere coperto dalle cell body sticky con z-index uguale.
+ * 2) tfoot z=1 < sticky body -> body vince -> SUM nel footer coperto
+ *    dalla cella sticky frozen.
+ *
+ * Fix: alziamo header/footer a z=10 con `!important` per battere la
+ * specificity di PrimeNG (`.p-datatable .p-datatable-tfoot`). Cosi' header
+ * e footer restano SEMPRE on top di tutto, incluse le sticky frozen body.
+ *
+ * Le sticky frozen body cells sono ora gestite dalla directive standalone
+ * `[wuicFrozenColumn]` (wuic-frozen-column.directive.ts) che applica la
+ * classe `p-datatable-frozen-column` (ereditando le regole CSS PrimeNG
+ * `position: sticky`, `background: inherit`) e calcola `style.left` inline
+ * sommando le offsetWidth delle sibling precedenti. Niente CSS extra
+ * richiesto qui.
+ */
+thead.p-datatable-thead,
+tfoot.p-datatable-tfoot {
+    z-index: 10 !important;
+}
+
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+/* You can add global styles to this file, and also import other style files */
+
+/* NOTE: PrimeIcons font-display override rimosso — i path relative a node_modules
+ * non sono risolvibili dal css-resource loader di Angular CLI/esbuild in prod.
+ * Re-implementazione prevista in un secondo giro usando il pattern con @font-face
+ * che carica via `assets` registrati in angular.json, oppure tramite patch-package
+ * su node_modules/primeicons/primeicons.css per aggiungere `font-display: swap`
+ * in-place al @font-face originale. */
+
+html,
+body {
+    height: 100%;
+    min-height: 100dvh;
+    overflow: hidden;
+}
+
+app-root {
+    display: block;
+    height: 100%;
+    min-height: 100dvh;
+}
+
+.busy-indicator {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    .pi-spinner {
+        font-size: 5rem;
+    }
+}
+
+.p-submenu-list {
+    z-index: 9999;
+}
+
+.p-button:focus {
+    box-shadow: none;
+}
+
+/* High contrast accessibility mode (WCAG-oriented), activated by html/body.theme-high-contrast */
+:is(html, body).theme-high-contrast {
+    color-scheme: light;
+    --hc-bg: #ffffff;
+    --hc-fg: #000000;
+    --hc-accent: #0038a8;
+    --hc-hover-bg: #e6eefc;
+    --hc-border: #000000;
+    --hc-focus: #ffbf00;
+    --hc-disabled-bg: #f0f0f0;
+    --hc-disabled-fg: #404040;
+    --hc-disabled-border: #666666;
+}
+
+/* High contrast DARK variant. Attivata quando e' presente anche `.theme-dark`
+   (tema "Alto Contrasto Dark" selezionato dal dropdown, vedi theme-catalog.ts).
+   Valori scelti secondo lo standard WCAG per HC dark:
+   - bg #000000 nero puro (massima non-riflettanza per fotofobia)
+   - fg #ffffff bianco puro (contrasto 21:1)
+   - accent #ffff00 giallo per link (WCAG-compliant su bg nero, visibilita' daltonici)
+   - focus #ffff00 outline giallo (standard browser HC)
+   - hover un dark-lighter per feedback senza perdere contrasto
+   I nomi var restano gli stessi quindi tutte le regole `:is(html,body).theme-high-contrast ...`
+   esistenti usano automaticamente i valori invertiti. */
+:is(html, body).theme-high-contrast.theme-dark {
+    color-scheme: dark;
+    --hc-bg: #000000;
+    --hc-fg: #ffffff;
+    --hc-accent: #ffff00;
+    --hc-hover-bg: #1f1f1f;
+    --hc-border: #ffffff;
+    --hc-focus: #ffff00;
+    --hc-disabled-bg: #1a1a1a;
+    --hc-disabled-fg: #7a7a7a;
+    --hc-disabled-border: #5a5a5a;
+}
+
+:is(html, body).theme-high-contrast,
+:is(html, body).theme-high-contrast .p-component {
+    --p-primary-color: var(--hc-accent);
+    --p-surface-0: var(--hc-bg);
+    --p-surface-50: var(--hc-bg);
+    --p-surface-100: var(--hc-bg);
+    --p-surface-200: var(--hc-bg);
+    --p-surface-900: var(--hc-fg);
+    --p-text-color: var(--hc-fg);
+    --p-content-background: var(--hc-bg);
+    --p-content-border-color: var(--hc-border);
+}
+
+/* Body/html/app-root: in HC le CSS var sopra settano `--p-*` ma il `body` di
+   default non consuma tali var per il suo `background-color`. In dark variant
+   senza questo override il body resta bianco mentre le surfaces PrimeNG sono
+   nere → flicker visivo e contrasto rotto. Forziamo bg/color sul body stesso
+   (e su app-root per coprire il caso in cui app-root copra tutto il viewport). */
+:is(html, body).theme-high-contrast,
+html.theme-high-contrast body,
+html.theme-high-contrast app-root {
+    background: var(--hc-bg) !important;
+    color: var(--hc-fg) !important;
+}
+
+:is(html, body).theme-high-contrast :is(.p-inputtext,
+    .p-select,
+    .p-select-label,
+    .p-button,
+    .p-dialog,
+    .p-card,
+    .p-datatable,
+    .p-dropdown,
+    .p-multiselect,
+    .p-autocomplete-input,
+    .p-checkbox-box,
+    .p-radiobutton-box,
+    .p-inputnumber-input,
+    .p-paginator,
+    .p-select-overlay,
+    .p-dropdown-panel,
+    .p-multiselect-panel,
+    .p-autocomplete-panel,
+    .p-datepicker,
+    .p-datepicker-panel,
+    .p-popover,
+    .p-overlaypanel,
+    .p-menu,
+    .p-menu-overlay,
+    .p-contextmenu,
+    .p-tieredmenu,
+    .p-toast,
+    .p-toast-message) {
+    background: var(--hc-bg) !important;
+    color: var(--hc-fg) !important;
+    border-color: var(--hc-border) !important;
+    border-width: 2px !important;
+}
+
+:is(html, body).theme-high-contrast :is(a,
+    .p-button-label,
+    .p-menuitem-text,
+    .p-select-option,
+    .p-inputtext,
+    .pi) {
+    color: var(--hc-fg) !important;
+}
+
+:is(html, body).theme-high-contrast a {
+    color: var(--hc-accent) !important;
+    text-decoration: underline;
+}
+
+:is(html, body).theme-high-contrast :is(.p-button:hover,
+    .p-select:not(.p-disabled):hover,
+    .p-select-option:hover,
+    .p-menuitem-link:hover,
+    .p-menubar-item-link:not(.p-disabled):hover,
+    .p-datatable .p-datatable-tbody>tr:hover>td) {
+    background: var(--hc-hover-bg) !important;
+    color: var(--hc-fg) !important;
+    border-color: var(--hc-border) !important;
+}
+
+:is(html, body).theme-high-contrast :is(.p-disabled,
+    .p-inputtext:disabled,
+    .p-button:disabled,
+    .p-select.p-disabled,
+    .p-select-option.p-disabled,
+    [aria-disabled='true']) {
+    background: var(--hc-disabled-bg) !important;
+    color: var(--hc-disabled-fg) !important;
+    border-color: var(--hc-disabled-border) !important;
+    opacity: 1 !important;
+}
+
+/* Readonly fields — trattati con stile "disabled" in HC (sia light che dark
+   variant via `--hc-disabled-*`) cosi' l'utente capisce a colpo d'occhio che
+   non sono editabili. I selettori HTML `[readonly]` / `[aria-readonly='true']`
+   non erano coperti dalla regola sopra: senza override i readonly rendering
+   era quello "normal input" (bg `--hc-bg` + fg `--hc-fg`) — in HC dark il bg
+   scuro su un readonly si confonde col container. Regole analoghe agli hover
+   stoppate (il readonly non deve mostrare feedback di hover). */
+:is(html, body).theme-high-contrast :is(input[readonly],
+    textarea[readonly],
+    .p-inputtext[readonly],
+    .p-inputtext[aria-readonly='true'],
+    [aria-readonly='true'],
+    .p-select[readonly],
+    .p-select[aria-readonly='true'],
+    .p-autocomplete-input[readonly],
+    .p-datepicker-input[readonly],
+    .p-inputnumber-input[readonly],
+    .disabled-textfield,
+    span.disabled-textfield) {
+    background: var(--hc-disabled-bg) !important;
+    color: var(--hc-disabled-fg) !important;
+    border-color: var(--hc-disabled-border) !important;
+    opacity: 1 !important;
+    cursor: default !important;
+}
+:is(html, body).theme-high-contrast :is(input[readonly],
+    textarea[readonly],
+    .p-inputtext[readonly],
+    [aria-readonly='true'],
+    .disabled-textfield):hover {
+    background: var(--hc-disabled-bg) !important;
+    color: var(--hc-disabled-fg) !important;
+    border-color: var(--hc-disabled-border) !important;
+}
+
+:is(html, body).theme-high-contrast :is(a[href],
+    button,
+    input,
+    select,
+    textarea,
+    [tabindex]:not([tabindex='-1']),
+    [role='button'],
+    .p-button,
+    .p-select,
+    .p-inputtext,
+    .p-checkbox-box,
+    .p-radiobutton-box,
+    .p-focus):focus-visible {
+    outline: 4px solid var(--hc-focus) !important;
+    outline-offset: 2px !important;
+    box-shadow: 0 0 0 2px var(--hc-fg) !important;
+}
+
+:is(html, body).theme-high-contrast :is(a[href],
+    button,
+    input,
+    select,
+    textarea,
+    [tabindex]:not([tabindex='-1']),
+    [role='button'],
+    .p-button,
+    .p-select,
+    .p-inputtext):focus:not(:focus-visible) {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+:is(html, body).theme-high-contrast {
+    background: var(--hc-bg) !important;
+    color: var(--hc-fg) !important;
+}
+
+:is(html, body).theme-high-contrast :is(.p-menubar,
+    .p-menubar-root-list,
+    .app-shell-theme-card,
+    .p-datatable-thead>tr>th,
+    .p-datatable-tbody>tr>td,
+    .p-dialog-header,
+    .p-dialog-content,
+    .p-dialog-footer) {
+    background: var(--hc-bg) !important;
+    color: var(--hc-fg) !important;
+    border-color: var(--hc-border) !important;
+}
+
+:is(html, body).theme-high-contrast :is(.p-button.p-button-icon-only,
+    .p-button .p-button-icon,
+    .p-button .pi,
+    .notification-bell-btn) {
+    color: var(--hc-fg) !important;
+    border-color: var(--hc-border) !important;
+}
+
+:is(html, body).theme-high-contrast .p-button.p-button-icon-only {
+    min-width: 2.25rem;
+    min-height: 2.25rem;
+}
+
+:is(html, body).theme-high-contrast :is(.p-inputtext::placeholder,
+    .p-inputnumber-input::placeholder) {
+    color: #1f2937 !important;
+    opacity: 1 !important;
+}
+
+:is(html, body).theme-high-contrast .p-slider .p-slider-handle {
+    border: 2px solid var(--hc-border) !important;
+    background: var(--hc-bg) !important;
+}
+
+:is(html, body).theme-high-contrast .p-slider .p-slider-range {
+    background: var(--hc-accent) !important;
+}
+
+/*#region MenuBar*/
+
+.p-menubar-submenu {
+    z-index: 1400 !important;
+}
+
+/*#endregion MenuBar*/
+
+/*#region EditFormComponent*/
+
+.edit-form-content.p-dialog {
+    width: #{styles.$widget_edit_popup_width};
+    height: #{styles.$widget_edit_popup_height};
+    max-height: calc(100dvh - 1rem);
+    display: flex;
+    flex-direction: column;
+}
+
+.edit-form-content {
+    .p-dialog-content {
+        overflow: hidden;
+        padding-bottom: 16px;
+        height: auto;
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+    .p-tablist {
+        display: inline-table;
+        height: 32px;
+    }
+
+    .p-tabpanels {
+        height: 100%;
+        overflow: hidden;
+        border-left: solid 1px #e5e7eb;
+        border-right: solid 1px #e5e7eb;
+        padding: 0 0 0 10px;
+    }
+
+    .p-tabpanel {
+        overflow-y: auto;
+        overflow-x: hidden;
+        height: 100%;
+    }
+
+    .p-tabpanel>div.row {
+        height: 100%;
+        overflow: auto;
+        width: 100%;
+        padding-bottom: 30px;
+        --bs-gutter-x: 0 !important;
+        padding-top: 5px;
+    }
+
+    .p-tabs.p-component {
+        height: calc(100% - 2px);
+        border-width: 2px;
+    }
+}
+
+/* High contrast: i bordi grigio chiaro hardcoded di .edit-form-content
+   (linee sopra: solid 1px #e5e7eb) sono invisibili in HC dark e troppo
+   tenui in HC light. Forziamo la palette HC a 2px solid var(--hc-border). */
+:is(html, body).theme-high-contrast .edit-form-content {
+    .p-tabpanels {
+        border-left: 2px solid var(--hc-border);
+        border-right: 2px solid var(--hc-border);
+    }
+}
+
+wuic-edit-form {
+    height: 100%;
+    display: block;
+}
+
+.form-edit-wrapper {
+    height: 100%;
+
+}
+
+p-tabview {
+    height: 100%;
+    display: block;
+}
+
+.edit-form-button-bar li {
+    display: inline-block;
+    margin-right: 10px;
+}
+
+.p-element.p-autocomplete-input,
+.p-autocomplete.p-component.p-inputwrapper.p-autocomplete-dd {
+    width: 100%;
+}
+
+p-inputnumber,
+.p-inputnumber.p-component {
+    width: 100%;
+}
+
+/* TabView visual style for dashboard runtime + designer (theme-aware) */
+:is(wuic-dashboard, wuic-designer) {
+    .p-tabview {
+        border: 1px solid var(--p-content-border-color, var(--surface-border));
+        border-radius: var(--p-border-radius, 6px);
+        background: var(--p-content-background, var(--surface-card));
+        color: var(--p-text-color, var(--text-color));
+        overflow: hidden;
+    }
+
+    .p-tabview-nav-container {
+        border-bottom: 1px solid var(--p-content-border-color, var(--surface-border));
+        background: var(--p-content-background, var(--surface-card));
+    }
+
+    .p-tabview-nav {
+        margin: 0;
+        padding: 0 0.35rem;
+        gap: 0;
+    }
+
+    .p-tabview-nav li {
+        list-style: none;
+        position: relative;
+    }
+
+    .p-tabview-nav li .p-tabview-nav-link {
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        color: var(--p-text-color, var(--text-color));
+        font-weight: 600;
+        padding: 0.6rem 0.9rem;
+        transition: background-color 120ms ease, box-shadow 120ms ease, color 120ms ease;
+        box-shadow: none;
+        opacity: 0.8;
+    }
+
+    .p-tabview-nav li+li::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0.55rem;
+        bottom: 0.55rem;
+        width: 1px;
+        background: var(--p-content-border-color, var(--surface-border));
+    }
+
+    .p-tabview-nav li.p-highlight .p-tabview-nav-link {
+        background: color-mix(in srgb, var(--p-primary-color, #3b82f6) 12%, var(--p-content-background, var(--surface-card)));
+        color: var(--p-primary-color, #3b82f6);
+        box-shadow: inset 0 -2px 0 var(--p-primary-color, #3b82f6), 0 2px 6px color-mix(in srgb, var(--p-primary-color, #3b82f6) 20%, transparent);
+        opacity: 1;
+    }
+
+    .p-tabview-panels {
+        border-top: 1px solid var(--p-content-border-color, var(--surface-border));
+        background: var(--p-content-background, var(--surface-card));
+        padding: 0.65rem;
+        min-height: 120px;
+    }
+
+    .p-tabview-panel {
+        border: 1px solid color-mix(in srgb, var(--p-content-border-color, var(--surface-border)) 75%, transparent);
+        border-radius: var(--p-border-radius, 6px);
+        background: var(--p-content-background, var(--surface-card));
+        min-height: 90px;
+        padding: 0.5rem;
+    }
+}
+
+/*#endregion EditFormComponent*/
+
+/*#region ListGridComponent*/
+
+.p-datatable {
+
+    .p-datatable-tbody>tr>td,
+    .p-datatable-thead>tr>th {
+        padding: 0.2rem 0.2rem;
+
+        .p-splitbutton.p-component {
+            height: 20px;
+
+            .p-splitbutton-button {
+                display: none;
+            }
+        }
+    }
+
+    .p-datatable-thead>tr>th .wuic-column-filter-wrap {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 4px;
+    }
+
+    .p-datatable-thead>tr>th .wuic-column-filter-wrap.wuic-column-filter-wrap-active {
+        background-color: rgba(59, 130, 246, 0.14) !important;
+        border-radius: 4px;
+        padding: 1px;
+    }
+}
+
+.list-grid-long-description-container {
+    flex: 0 0 auto;
+    padding-bottom: 10px;
+    text-align: center;
+    font-size: 30px;
+    font-weight: bold;
+
+}
+
+.list-grid-container {
+    width: 100%;
+    height: calc(100% - 50px);
+}
+
+i.page-header {
+    font-size: 3rem;
+}
+
+sortalticon {
+    display: none;
+}
+
+// .grid-caption-bar p-button:not(:first-child) {
+//     margin-left: 10px;
+// }
+
+.nested-grid-container {
+    margin: auto;
+    padding: 10px;
+    background-color: silver;
+}
+
+.p-splitbutton.p-component {
+    height: 30px;
+}
+
+.list-grid-cell-text-content {
+    display: block;
+    overflow: hidden;
+    max-height: 50px;
+    width: inherit;
+    white-space: normal;
+}
+
+.grid-color-cell {
+    width: 20px;
+    height: 20px;
+    border: solid 1px black;
+}
+
+/*#endregion ListGridComponent*/
+
+/*#region MetadataEditor*/
+
+.metadata-editor.p-menubar.p-component {
+    height: 47px;
+}
+
+wuic-metadata-editor {
+    display: inline-block;
+}
+
+.p-menubar.metadata-editor .p-menubar-submenu {
+    max-height: min(60dvh, calc(100dvh - 8rem)) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    overscroll-behavior: contain;
+}
+
+/*#endregion MetadataEditor*/
+
+/*#region FilterBar*/
+
+.wuic-filter-bar {
+    border: solid 1px #e5e7eb;
+    border-radius: 6px;
+    padding: 0px;
+
+    .filter-item {
+        // display: inline-flex;
+        float: left;
+        margin-right: 10px;
+        padding: 10px;
+    }
+
+    .filter-buttons {
+        // display: inline;
+        float: right;
+        margin-right: 10px;
+        margin-top: 30px;
+
+        button {
+            vertical-align: text-top !important;
+            margin-right: 10px;
+        }
+    }
+
+    .p-inputtext.p-component {
+        width: 100%;
+    }
+
+    .filter-operators {
+        width: 100%;
+    }
+
+    .p-tabview .p-tabview-panels {
+        padding: 0;
+        min-height: 141px;
+    }
+}
+
+/*#endregion FilterBar*/
+
+/*#region Scheduler-FullCalendar*/
+
+full-calendar {
+    width: 100%;
+    height: 100%;
+}
+
+.scheduler-item {
+    background-color: var(--primary-color);
+
+    .item-description {
+        color: white;
+        // display: block;
+        padding: 5px;
+    }
+}
+
+/*#endregion Scheduler-FullCalendar*/
+
+/*#region CodeEditor*/
+
+.editor-widget.suggest-widget {
+    z-index: 20000 !important;
+}
+
+wuic-code-editor:hover .editor-btn {
+    visibility: visible;
+}
+
+/*#endregion CodeEditor*/
+
+/*#region Message and Toast*/
+
+.p-confirm-dialog-message {
+    display: block;
+    max-height: 100px;
+}
+
+/*#endregion CodeEditor*/
+
+/*#region Spreadsheet*/
+
+.jss_input.jss_focus {
+    display: none !important;
+}
+
+.spreadsheet-autocomplete-item:hover,
+.spreadsheet-autocomplete-item.selected {
+    background-color: blue;
+    color: white;
+}
+
+/*#endregion Spreadsheet*/
+
+/*#region Dynamic-template*/
+
+.dynamic-template {
+    width: 100%;
+}
+
+/*#endregion Dynamic-template*/
+
+/*#region MapComponent*/
+
+.gm-style-iw-d {
+    overflow: visible !important;
+    padding: 10px;
+}
+
+.gm-style-iw.gm-style-iw-c {
+    overflow: visible !important;
+}
+
+/*#endregion MapComponent*/
+
+/*#region TreeListComponent*/
+
+.p-tree.p-component {
+    height: 100%;
+}
+
+/*#endregion TreeListComponent*/
+
+/*#region Carousel*/
+
+p-image {
+    display: inline-block;
+}
+
+.p-carousel-container,
+.p-carousel-content,
+.p-carousel.p-component.p-carousel-horizontal,
+.p-carousel-items-container {
+    height: 100%;
+}
+
+.p-carousel-item {
+    margin: auto;
+}
+
+/*#endregion Carousel*/
+
+/*#region Designer*/
+
+.ngx-draggable::selection {
+    background: transparent;
+}
+
+.ngx-draggable::-moz-selection {
+    background: transparent;
+}
+
+.ngx-dragging::selection {
+    background: transparent;
+}
+
+.ngx-dragging::-moz-selection {
+    background: transparent;
+}
+
+.ngx-draggable {
+    cursor: move;
+}
+
+.ngx-dragging {
+    cursor: move;
+    -webkit-transition: none !important;
+    -moz-transition: none !important;
+    -o-transition: none !important;
+    transition: none !important;
+}
+
+$handle-border-size: 7px;
+$handle-border-offset: -5px;
+
+$handle-corner-size: 12px;
+$handle-corner-offset: 1px;
+
+.ng-resizable {
+    position: relative;
+}
+
+.ng-resizable-handle {
+    position: absolute;
+    font-size: 0.1px;
+    -ms-touch-action: none;
+    touch-action: none;
+    display: none;
+
+    &.ng-resizable-e {
+        cursor: e-resize;
+        width: $handle-border-size;
+        right: $handle-border-offset;
+        height: 100%;
+        top: 0;
+    }
+
+    &.ng-resizable-w {
+        cursor: w-resize;
+        width: $handle-border-size;
+        left: $handle-border-offset;
+        height: 100%;
+        top: 0;
+    }
+
+    &.ng-resizable-s {
+        cursor: s-resize;
+        height: $handle-border-size;
+        bottom: $handle-border-offset;
+        width: 100%;
+        left: 0;
+    }
+
+    &.ng-resizable-n {
+        cursor: n-resize;
+        height: $handle-border-size;
+        top: $handle-border-offset;
+        width: 100%;
+        left: 0;
+    }
+
+    &.ng-resizable-se {
+        cursor: se-resize;
+        width: $handle-corner-size;
+        height: $handle-corner-size;
+        right: $handle-corner-offset;
+        bottom: $handle-corner-offset;
+    }
+
+    &.ng-resizable-sw {
+        cursor: sw-resize;
+        width: $handle-corner-size;
+        height: $handle-corner-size;
+        left: $handle-corner-offset;
+        bottom: $handle-corner-offset;
+    }
+
+    &.ng-resizable-ne {
+        cursor: ne-resize;
+        width: $handle-corner-size;
+        height: $handle-corner-size;
+        right: $handle-corner-offset;
+        top: $handle-corner-offset;
+    }
+
+    &.ng-resizable-nw {
+        cursor: nw-resize;
+        width: $handle-corner-size;
+        height: $handle-corner-size;
+        left: $handle-corner-offset;
+        top: $handle-corner-offset;
+    }
+}
+
+body.wuic-designer-edit-mode *:hover>.ng-resizable-handle {
+    display: block;
+}
+
+
+.ng-resizable-diagonal {
+    box-sizing: border-box;
+    width: 0;
+    height: 0;
+    border-bottom: $handle-corner-size solid #aaa;
+    border-left: $handle-corner-size solid transparent;
+}
+
+/*#endregion Designer*/
+
+/*#region custom-css*/
+
+.test-row {
+    background-color: red !important;
+}
+
+.test-cell {
+    background-color: green !important;
+    color: white !important;
+}
+
+/*#endregion custom-css*/
+
+/* CRM conditional row styles (metadata-driven) */
+.p-datatable .p-datatable-tbody>tr.row-danger {
+    --p-datatable-row-background: #fecaca;
+    --p-datatable-row-color: var(--p-text-color, #111827);
+}
+
+.p-datatable .p-datatable-tbody>tr.row-warning {
+    --p-datatable-row-background: #fed7aa;
+    --p-datatable-row-color: var(--p-text-color, #111827);
+}
+
+.p-datatable .p-datatable-tbody>tr.row-success {
+    --p-datatable-row-background: #bbf7d0;
+    --p-datatable-row-color: var(--p-text-color, #111827);
+}
+
+/* Fallback for themes/components that color cells directly */
+.p-datatable .p-datatable-tbody>tr.row-danger>td,
+.p-datatable .p-datatable-tbody>tr>td.row-danger {
+    background-color: #fecaca !important;
+    color: var(--p-text-color, #111827) !important;
+}
+
+.p-datatable .p-datatable-tbody>tr.row-warning>td,
+.p-datatable .p-datatable-tbody>tr>td.row-warning {
+    background-color: #fed7aa !important;
+    color: var(--p-text-color, #111827) !important;
+}
+
+.p-datatable .p-datatable-tbody>tr.row-success>td,
+.p-datatable .p-datatable-tbody>tr>td.row-success {
+    background-color: #bbf7d0 !important;
+    color: var(--p-text-color, #111827) !important;
+}
+
+
+.wuic-progress-dialog .p-progressbar .p-progressbar-value,
+.wuic-progress-dialog .p-progressbar-value {
+    transition: none !important;
+    animation: none !important;
+}
+
+.html-input-designer {
+    width: 110px;
+    height: 100px;
+    background-color: transparent;
+    color: inherit;
+    border-bottom-style: solid;
+    border-width: 1px;
+    border-bottom-color: inherit;
+    border-left-style: solid;
+    border-left-width: 1px;
+    border-left-color: inherit;
+    border-right-style: solid;
+    border-right-width: 1px;
+    border-right-color: inherit;
+    border-top-style: solid;
+    border-top-width: 1px;
+    border-top-color: inherit
+}
+
+.html-input-bindable-designer {
+    display: inline-block;
+    background-color: transparent;
+    color: inherit;
+}

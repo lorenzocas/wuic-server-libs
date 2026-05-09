@@ -1,6 +1,19 @@
 <form novalidate class="document-edit-form">
   <div class="form-scroll">
 
+    <!-- Riga 0: Splitbutton "Crea da..." (visibile solo in __new + se importSourceTypes valorizzato) [v2] -->
+    <div class="row g-3 form-row" *ngIf="showImportSplitButton">
+      <div class="col-12 d-flex justify-content-end">
+        <p-splitButton label="Crea da documento esistente"
+                       icon="pi pi-copy"
+                       severity="secondary"
+                       [model]="splitButtonItems"
+                       (onClick)="onSplitPrimaryClick()"
+                       size="small"
+                       appendTo="body"></p-splitButton>
+      </div>
+    </div>
+
     <!-- Riga 1: Dati documento + Dati controparte -->
     <div class="row g-3 form-row">
       <div class="col-lg-6 col-md-12">
@@ -37,13 +50,17 @@
     </div>
 
     <!-- Riga 2: Prodotti e servizi (nested grid righe inline editable, solo dopo Save) -->
+    <!-- Nested grid righe: visibile sia in Edit (autoload da DB con FK)
+         sia in Insert (autoload=false, righe in-memory aggiunte via
+         "Aggiungi" del list-grid restano __new=true e vengono persistite
+         al batch save insieme alla testata). -->
     <div class="row g-3 form-row" *ngIf="showProdottiCard">
       <div class="col-12">
         <fieldset class="card-section">
           <legend>Prodotti e servizi</legend>
           <div class="nested-grid-host">
             <wuic-data-source #righeDs
-                              [autoload]="true"
+                              [autoload]="hasParentId"
                               [routeFromRouting]="false"
                               [hardcodedRoute]="prodottiRoute"
                               [parentRecord]="record"
@@ -51,18 +68,6 @@
             <wuic-data-repeater [hardcodedAction]="'list'"
                                 [hardcodedDatasource]="righeDs"
                                 class="nested-grid-repeater"></wuic-data-repeater>
-          </div>
-        </fieldset>
-      </div>
-    </div>
-
-    <!-- Insert mode: placeholder Prodotti e servizi (record senza id, nested non caricabili) -->
-    <div class="row g-3 form-row" *ngIf="!hasParentId && metaInfo?.nestedRoutes?.[prodottiNestedIndex]">
-      <div class="col-12">
-        <fieldset class="card-section">
-          <legend>Prodotti e servizi</legend>
-          <div class="nested-grid-placeholder">
-            Salva la testata del documento per gestire le righe.
           </div>
         </fieldset>
       </div>
@@ -142,14 +147,22 @@
       </div>
     </div>
 
-    <!-- Riga 5: Scadenze (nestedRoutes[scadenzeNestedIndex]) -->
+    <!-- Riga 5: Scadenze (nestedRoutes[scadenzeNestedIndex]).
+         Stesso pattern di Prodotti: visibile sempre, autoload solo in Edit. -->
     <div class="row g-3 form-row" *ngIf="showScadenzeCard">
       <div class="col-12">
         <fieldset class="card-section">
           <legend>Scadenze</legend>
+          <div class="d-flex justify-content-end mb-2">
+            <p-button label="Genera scadenze da pagamento"
+                      icon="pi pi-calendar-plus"
+                      severity="secondary"
+                      size="small"
+                      (onClick)="openPagamentiDialog()"></p-button>
+          </div>
           <div class="nested-grid-host">
             <wuic-data-source #scadenzeDs
-                              [autoload]="true"
+                              [autoload]="hasParentId"
                               [routeFromRouting]="false"
                               [hardcodedRoute]="scadenzeRoute"
                               [parentRecord]="record"
@@ -182,4 +195,34 @@
     </div>
 
   </div>
+
+  <!-- Dialog: scegli tipo pagamento per generare scadenze automaticamente -->
+  <p-dialog [(visible)]="pagamentiDialogVisible"
+            [modal]="true"
+            [style]="{ width: '70vw', height: '70vh' }"
+            [contentStyle]="{ overflow: 'auto' }"
+            header="Seleziona tipo pagamento per generare scadenze">
+    <div class="pagamenti-dialog-host" *ngIf="pagamentiDialogVisible">
+      <wuic-data-source #pagamentiDs
+                        [hardcodedRoute]="'pagamenti'"
+                        [autoload]="true"></wuic-data-source>
+      <wuic-list-grid [hardcodedDatasource]="pagamentiDs"
+                      [rowCustomSelect]="onPagamentoSelected"></wuic-list-grid>
+    </div>
+  </p-dialog>
+
+  <!-- Dialog: scegli documento sorgente per la conversione -->
+  <p-dialog [(visible)]="importDialogVisible"
+            [modal]="true"
+            [style]="{ width: '80vw', height: '80vh' }"
+            [contentStyle]="{ overflow: 'auto' }"
+            [header]="importSelectedType ? ('Seleziona ' + importSelectedType.label.toLowerCase()) : 'Seleziona documento'">
+    <div class="import-dialog-host" *ngIf="importDialogVisible && importSelectedType">
+      <wuic-data-source #importDs
+                        [hardcodedRoute]="importSelectedType.route"
+                        [autoload]="true"></wuic-data-source>
+      <wuic-list-grid [hardcodedDatasource]="importDs"
+                      [rowCustomSelect]="onImportSourceSelected"></wuic-list-grid>
+    </div>
+  </p-dialog>
 </form>

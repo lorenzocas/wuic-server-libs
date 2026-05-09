@@ -1,0 +1,12 @@
+{
+  "fatturaId": 333,
+  "fileName": "IT12345678901_00002.xml",
+  "sha256": "1e312286b54b55c604a2bf76088772edc29b3e6874d1558c4e508722b4575164",
+  "fileSizeBytes": 2847,
+  "sealedAt": "2026-05-09T09:18:59.1289729Z",
+  "sealedBy": "100285",
+  "retentionUntil": "2036-05-09T09:18:59.1289729Z",
+  "tsaUrl": "https://freetsa.org/tsr",
+  "tsSerial": "4b5f87a",
+  "metadataJson": "{\u0022numero\u0022:\u00222/2026\u0022,\u0022anno\u0022:2026,\u0022totale\u0022:122.0000,\u0022cliente\u0022:\u0022Industrial Solutions S.p.A. (e2e)\u0022,\u0022cliente_piva\u0022:\u002212345678901\u0022}"
+}

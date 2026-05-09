@@ -1,0 +1,318 @@
+{
+  "includeFrameworkDocsRoutes": true,
+  "profiles": [
+    {
+      "route": "#/ngdeep-showcase",
+      "tags": ["list-grid", "filter-bar", "spreadsheet-list", "carousel-list", "scheduler-list", "map-list", "tree-list", "kanban-list", "datarepeater", "field-widget", "image-wrapper", "import-export", "notification-bell", "code-editor"],
+      "waitForAny": ["wuic-list-grid", "wuic-spreadsheet-list"],
+      "waitAfterMs": 4000,
+      "actions": [
+        { "type": "wait", "ms": 2000 },
+        { "type": "hoverIfExists", "selector": "wuic-list-grid tbody tr" },
+        { "type": "clickAllIfExists", "selector": "wuic-list-grid .p-column-filter-menu-button", "max": 2 },
+        { "type": "clickIfExists", "selector": "wuic-list-grid .p-row-toggler", "index": 0 },
+        { "type": "hoverIfExists", "selector": ".wuic-spreadsheet-host .jss_header" },
+        { "type": "hoverIfExists", "selector": ".wuic-spreadsheet-host .jss_row" },
+        { "type": "clickIfExists", "selector": "wuic-image-wrapper p-image img", "index": 0 },
+        { "type": "wait", "ms": 500 }
+      ]
+    },
+    {
+      "route": "#/cities-list-grid",
+      "tags": ["list-grid", "filter-bar"],
+      "waitForAny": ["wuic-list-grid"],
+      "waitAfterMs": 2500,
+      "actions": [
+        { "type": "wait", "ms": 1500 },
+        { "type": "hoverIfExists", "selector": "wuic-list-grid tbody tr" },
+        { "type": "clickAllIfExists", "selector": "wuic-list-grid .p-column-filter-menu-button", "max": 2 },
+        { "type": "clickIfExists", "selector": "wuic-list-grid .p-row-toggler", "index": 0 },
+        { "type": "wait", "ms": 300 }
+      ]
+    },
+    {
+      "route": "#/cities-chart",
+      "tags": ["chart-list"],
+      "waitForAny": ["wuic-chart-list"],
+      "waitAfterMs": 2000
+    },
+    {
+      "route": "#/schedules-scheduler",
+      "tags": ["scheduler-list"],
+      "waitForAny": ["wuic-scheduler-list"],
+      "waitAfterMs": 2000,
+      "actions": [
+        { "type": "clickIfExists", "selector": ".fc-next-button", "index": 0 },
+        { "type": "clickIfExists", "selector": ".fc-dayGridMonth-button", "index": 0 },
+        { "type": "wait", "ms": 300 }
+      ]
+    },
+    {
+      "route": "#/cities-map",
+      "tags": ["map-list"],
+      "waitForAny": ["wuic-map-list"],
+      "waitAfterMs": 3000,
+      "actions": [
+        { "type": "clickIfExists", "selector": ".gm-style div[role='button']", "index": 0 },
+        { "type": "wait", "ms": 500 }
+      ]
+    },
+    {
+      "route": "#/uploadsample-carousel",
+      "tags": ["carousel-list"],
+      "waitForAny": ["wuic-carousel-list"],
+      "waitAfterMs": 2000,
+      "actions": [
+        { "type": "clickIfExists", "selector": ".p-carousel-next-button, .p-carousel-next", "index": 0 },
+        { "type": "wait", "ms": 300 }
+      ]
+    },
+    {
+      "route": "#/cities-spreadsheet",
+      "tags": ["spreadsheet-list"],
+      "waitForAny": ["wuic-spreadsheet-list"],
+      "waitAfterMs": 2000,
+      "actions": [
+        { "type": "hoverIfExists", "selector": ".wuic-spreadsheet-host .jss_header" },
+        { "type": "hoverIfExists", "selector": ".wuic-spreadsheet-host .jss_row" },
+        { "type": "clickIfExists", "selector": ".wuic-spreadsheet-host .jss_toolbar .jtoolbar-item", "index": 0 },
+        { "type": "clickIfExists", "selector": ".wuic-spreadsheet-host div.jss_filters_icon", "index": 0 },
+        { "type": "rightClickIfExists", "selector": ".wuic-spreadsheet-host .jss_content td", "index": 0 },
+        { "type": "pressIfExists", "selector": ".wuic-spreadsheet-host .jss_content td", "key": "Enter" },
+        { "type": "wait", "ms": 300 }
+      ]
+    },
+    {
+      "route": "#/kanban-task",
+      "tags": ["kanban-list"],
+      "waitForAny": ["wuic-kanban-list"],
+      "waitAfterMs": 2000
+    },
+    {
+      "route": "#/tree-sample",
+      "tags": ["tree-list"],
+      "waitForAny": ["wuic-tree-list"],
+      "waitAfterMs": 2000,
+      "actions": [
+        { "type": "clickIfExists", "selector": ".p-tree-node-toggle-button, .p-tree-toggler", "index": 0 },
+        { "type": "wait", "ms": 300 }
+      ]
+    },
+    {
+      "route": "#/cities-edit",
+      "tags": ["bounded-repeater", "field-widget", "parametric-dialog"],
+      "waitAfterMs": 2500,
+      "actions": [
+        { "type": "wait", "ms": 1500 },
+        { "type": "clickIfExists", "selector": ".p-tablist .p-tab", "index": 1, "timeoutMs": 2000 },
+        { "type": "wait", "ms": 300 }
+      ]
+    },
+    {
+      "route": "#/cities-wizard",
+      "tags": ["wizard", "parametric-dialog", "field-widget"],
+      "waitAfterMs": 2500,
+      "actions": [
+        { "type": "wait", "ms": 1500 }
+      ]
+    },
+    {
+      "route": "#/cities-data-repeater-events",
+      "tags": ["datarepeater", "list-grid"],
+      "waitForAny": ["wuic-data-repeater"],
+      "waitAfterMs": 2500,
+      "actions": [
+        { "type": "wait", "ms": 1500 }
+      ]
+    },
+    {
+      "route": "#/custom-cities-list",
+      "tags": ["list-grid"],
+      "waitForAny": ["wuic-list-grid"],
+      "waitAfterMs": 2000
+    },
+    {
+      "route": "#/pivot-builder",
+      "tags": ["pivot-builder"],
+      "waitForAny": ["wuic-pivot-builder"],
+      "waitAfterMs": 2000,
+      "actions": [
+        { "type": "clickIfExists", "selector": "wuic-pivot-builder .p-tab", "index": 0 },
+        { "type": "clickIfExists", "selector": "wuic-pivot-builder .pivot-actions-row button", "index": 0 },
+        { "type": "clickIfExists", "selector": ".p-accordionpanel-header, .p-accordion-header", "index": 0 },
+        { "type": "wait", "ms": 400 }
+      ]
+    },
+    {
+      "route": "#/workflow-designer",
+      "tags": ["workflow-designer"],
+      "waitForAny": ["wuic-workflow-designer, wuic-workflow-designer-route"],
+      "waitAfterMs": 2000,
+      "actions": [
+        { "type": "rightClickIfExists", "selector": ".workflow-canvas [data-wf-node-type], .workflow-canvas .node", "index": 0 },
+        { "type": "clickIfExists", "selector": ".p-contextmenu .p-menu-item-content", "index": 0 },
+        { "type": "wait", "ms": 300 }
+      ]
+    },
+    {
+      "route": "#/designer",
+      "tags": ["designer"],
+      "waitForAny": ["wuic-designer-route, wuic-designer"],
+      "waitAfterMs": 2000,
+      "actions": [
+        { "type": "clickIfExists", "selector": ".hierarchy-tree-wrap .p-tree-node-content", "index": 0 },
+        { "type": "hoverIfExists", "selector": ".designer-footer-hover-target" },
+        { "type": "wait", "ms": 300 }
+      ]
+    },
+    {
+      "route": "#/framework-docs/list-grid",
+      "tags": ["list-grid", "filter-bar"]
+    },
+    {
+      "route": "#/framework-docs/spreadsheet-list",
+      "tags": ["spreadsheet-list"]
+    },
+    {
+      "route": "#/framework-docs/carousel-list",
+      "tags": ["carousel-list"]
+    },
+    {
+      "route": "#/framework-docs/scheduler-list",
+      "tags": ["scheduler-list"]
+    },
+    {
+      "route": "#/framework-docs/tree-list",
+      "tags": ["tree-list"]
+    },
+    {
+      "route": "#/framework-docs/map-list",
+      "tags": ["map-list"]
+    },
+    {
+      "route": "#/framework-docs/datarepeater",
+      "tags": ["datarepeater"]
+    },
+    {
+      "route": "#/framework-docs/filter-bar",
+      "tags": ["filter-bar"]
+    },
+    {
+      "route": "#/framework-docs/pivot-builder",
+      "tags": ["pivot-builder"],
+      "actions": [
+        { "type": "clickIfExists", "selector": ".pivot-builder .p-tab", "index": 0 },
+        { "type": "wait", "ms": 200 }
+      ]
+    },
+    {
+      "route": "#/framework-docs/workflow-designer",
+      "tags": ["workflow-designer"],
+      "actions": [
+        { "type": "rightClickIfExists", "selector": ".workflow-canvas [data-wf-node-type], .workflow-canvas .node", "index": 0 },
+        { "type": "wait", "ms": 200 }
+      ]
+    },
+    {
+      "route": "#/framework-docs/designer",
+      "tags": ["designer"],
+      "actions": [
+        { "type": "clickIfExists", "selector": ".hierarchy-tree-wrap .p-tree-node-content", "index": 0 },
+        { "type": "wait", "ms": 200 }
+      ]
+    },
+    {
+      "route": "#/framework-docs/field-widget-code-editor",
+      "tags": ["code-editor"]
+    },
+    {
+      "route": "#/framework-docs/field-widget-dictionary",
+      "tags": ["dictionary-editor"]
+    },
+    {
+      "route": "#/framework-docs/field-widget-others",
+      "tags": ["field-widget"]
+    },
+    {
+      "route": "#/framework-docs/themes",
+      "tags": ["themes"]
+    },
+    {
+      "route": "#/framework-docs/parametric-dialog",
+      "tags": ["parametric-dialog", "field-widget"]
+    },
+    {
+      "route": "#/framework-docs/kanban-list",
+      "tags": ["kanban-list"]
+    },
+    {
+      "route": "#/framework-docs/chart-list",
+      "tags": ["chart-list"]
+    },
+    {
+      "route": "#/framework-docs/component-injection",
+      "tags": ["field-widget", "datarepeater"]
+    },
+    {
+      "route": "#/framework-docs/field-widget-lookup",
+      "tags": ["field-widget", "lookup-table"]
+    },
+    {
+      "route": "#/framework-docs/field-widget-upload",
+      "tags": ["field-widget", "image-wrapper"]
+    },
+    {
+      "route": "#/framework-docs/field-widget-button",
+      "tags": ["field-widget"]
+    },
+    {
+      "route": "#/framework-docs/field-widget-number",
+      "tags": ["field-widget"]
+    },
+    {
+      "route": "#/framework-docs/field-widget-html-area",
+      "tags": ["field-widget"]
+    },
+    {
+      "route": "#/framework-docs/pager",
+      "tags": ["field-widget"]
+    },
+    {
+      "route": "#/framework-docs/report-designer",
+      "tags": ["report-designer"]
+    },
+    {
+      "route": "#/framework-docs/wizard",
+      "tags": ["wizard", "parametric-dialog"]
+    }
+  ],
+  "sourcePolicies": [
+    { "match": "/component/list-grid/", "policy": "required", "tags": ["list-grid"] },
+    { "match": "/component/filter-bar/", "policy": "required", "tags": ["filter-bar"] },
+    { "match": "/component/chart-list/", "policy": "required", "tags": ["chart-list"] },
+    { "match": "/component/scheduler-list/", "policy": "required", "tags": ["scheduler-list"] },
+    { "match": "/component/map-list/", "policy": "required", "tags": ["map-list"] },
+    { "match": "/component/carousel-list/", "policy": "required", "tags": ["carousel-list"] },
+    { "match": "/component/spreadsheet-list/", "policy": "required", "tags": ["spreadsheet-list"] },
+    { "match": "/component/kanban-list/", "policy": "required", "tags": ["kanban-list"] },
+    { "match": "/component/tree-list/", "policy": "required", "tags": ["tree-list"] },
+    { "match": "/component/data-repeater/", "policy": "required", "tags": ["datarepeater"] },
+    { "match": "/component/pivot-builder/", "policy": "required", "tags": ["pivot-builder"] },
+    { "match": "/component/workflow-designer/", "policy": "required", "tags": ["workflow-designer"] },
+    { "match": "/component/designer/", "policy": "required", "tags": ["designer"] },
+    { "match": "/component/framework-docs/", "policy": "required", "tags": ["framework-docs"] },
+    { "match": "/component/image-wrapper/", "policy": "required", "tags": ["image-wrapper"] },
+    { "match": "/component/import-export-button/", "policy": "required", "tags": ["import-export"] },
+    { "match": "/component/notification-bell/", "policy": "required", "tags": ["notification-bell"] },
+    { "match": "/component/parametric-dialog/", "policy": "required", "tags": ["parametric-dialog"] },
+    { "match": "/component/pager/", "policy": "required", "tags": ["field-widget"] },
+    { "match": "/component/field/", "policy": "stateful", "tags": ["field-widget"] },
+    { "match": "/component/code-editor/", "policy": "stateful", "tags": ["code-editor"] },
+    { "match": "/component/metadata-editor/", "policy": "stateful", "tags": ["metadata-editor"] },
+    { "match": "/component/report-designer/", "policy": "stateful", "tags": ["report-designer"] },
+    { "match": "/component/report-viewer/", "policy": "stateful", "tags": ["report-viewer"] },
+    { "match": "/component/lookup-table/", "policy": "stateful", "tags": ["lookup-table"] },
+    { "match": "/component/meta-menu/", "policy": "stateful", "tags": ["meta-menu"] },
+    { "match": "/component/import-dialog/", "policy": "optional", "tags": ["import"] }
+  ]
+}

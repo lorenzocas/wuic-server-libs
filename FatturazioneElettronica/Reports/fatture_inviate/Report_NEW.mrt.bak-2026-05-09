@@ -1,0 +1,1209 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<StiSerializer version="1.02" type="Net" application="StiReport">
+  <CalculationMode>Interpretation</CalculationMode>
+  <Dictionary Ref="1" type="Dictionary" isKey="true">
+    <BusinessObjects isList="true" count="0" />
+    <Databases isList="true" count="1">
+      <Connessione Ref="2" type="Stimulsoft.Report.Dictionary.StiSqlDatabase" isKey="true">
+        <Alias>Connessione</Alias>
+        <ConnectionStringEncrypted>9HT5KEZKu93iWr346T2k29Fa90hPS3u8YlvlmOrEsU/ccM3ryEvq8eYTzfRkXGEf2GD7z0dR0/FpTr3JYxikj98a9cLJXUPIRhWhvepU43/VePUJTWjT3eNG2clqJacv0SDZiU9ZS8hqTP3MYgAlXtwa1UjdWavVclxlzGIA7EbVOPfLRk2jgUVh7dzpEKQPw1rRCcxKIqRhTf2Y6hTgP8RqzStNTJMZYVzorGcsZX/2cLUJYUtLCX9McdzxBKQP1RTziU9W8vniQaGcTgiiXg==</ConnectionStringEncrypted>
+        <Name>Connessione</Name>
+      </Connessione>
+    </Databases>
+    <DataSources isList="true" count="3">
+      <fatture_inviate Ref="3" type="Stimulsoft.Report.Dictionary.StiSqlSource" isKey="true">
+        <Alias>fatture_inviate</Alias>
+        <Columns isList="true" count="34">
+          <value>anno,System.Double</value>
+          <value>banche___descrizione__banca_id,banche,System.String</value>
+          <value>banca_id,banca_id_id_lookup,System.Double</value>
+          <value>bollo_valore,System.Double</value>
+          <value>cancellato,System.String</value>
+          <value>causale,System.String</value>
+          <value>causali___descrizione__causale_id,causali,System.String</value>
+          <value>causale_id,causale_id_id_lookup,System.Double</value>
+          <value>clienti___ragione_sociale__cliente_id,clienti,System.String</value>
+          <value>cliente_id,cliente_id_id_lookup,System.Double</value>
+          <value>data_creazione,System.DateTime</value>
+          <value>data_documento,System.DateTime</value>
+          <value>data_modifica,System.DateTime</value>
+          <value>file_xml,System.String</value>
+          <value>id,System.Double</value>
+          <value>imponibile,System.Double</value>
+          <value>iva,System.Double</value>
+          <value>note,System.String</value>
+          <value>numero,System.String</value>
+          <value>ordini___numero__riferimento_ordine_id,ordini,System.String</value>
+          <value>riferimento_ordine_id,riferimento_ordine_id_id_lookup,System.Double</value>
+          <value>pagamenti___descrizione__pagamento_id,pagamenti,System.String</value>
+          <value>pagamento_id,pagamento_id_id_lookup,System.Double</value>
+          <value>progressivo,System.Double</value>
+          <value>riferimento_ordine,System.String</value>
+          <value>sconto_globale_perc,System.Double</value>
+          <value>sdi_id,System.String</value>
+          <value>sdi_messaggio,System.String</value>
+          <value>serie,System.String</value>
+          <value>stato,System.String</value>
+          <value>stato_sdi,System.String</value>
+          <value>totale,System.Double</value>
+          <value>utente_creazione,System.Double</value>
+          <value>utente_modifica,System.Double</value>
+        </Columns>
+        <CommandTimeout>300</CommandTimeout>
+        <Dictionary isRef="1" />
+        <Key>5eb6cc4c6fef4c8192f01a98a0babca4</Key>
+        <Name>fatture_inviate</Name>
+        <NameInSource>Connessione</NameInSource>
+        <Parameters isList="true" count="0" />
+        <SqlCommand>SELECT [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[id] AS [id], [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[numero] AS [numero], [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[serie] AS [serie], [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[progressivo] AS [progressivo], [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[anno] AS [anno], [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[data_documento] AS [data_documento],  [cliente_id_clienti].[ragione_sociale] AS [clienti___ragione_sociale__cliente_id], [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[cliente_id] AS [cliente_id],  [pagamento_id_pagamenti].[descrizione] AS [pagamenti___descrizione__pagamento_id], [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[pagamento_id] AS [pagamento_id],  [banca_id_banche].[descrizione] AS [banche___descrizione__banca_id], [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[banca_id] AS [banca_id], [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[causale] AS [causale], [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[riferimento_ordine] AS [riferimento_ordine], [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[bollo_valore] AS [bollo_valore], [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[sconto_globale_perc] AS [sconto_globale_perc], [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[imponibile] AS [imponibile], [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[iva] AS [iva], [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[totale] AS [totale], [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[stato] AS [stato], [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[stato_sdi] AS [stato_sdi], [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[sdi_id] AS [sdi_id], [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[sdi_messaggio] AS [sdi_messaggio], [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[file_xml] AS [file_xml], [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[note] AS [note], [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[cancellato] AS [cancellato], [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[data_creazione] AS [data_creazione], [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[data_modifica] AS [data_modifica], [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[utente_creazione] AS [utente_creazione], [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[utente_modifica] AS [utente_modifica],  ''  AS [btn_anteprima_pdf],  ''  AS [print_action],  [causale_id_causali].[descrizione] AS [causali___descrizione__causale_id], [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[causale_id] AS [causale_id],  [riferimento_ordine_id_ordini].[numero] + ' ' +  CAST(CONVERT(char(11), [riferimento_ordine_id_ordini].[data_documento], 113) as VARCHAR(20)) AS [ordini___numero__riferimento_ordine_id], [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[riferimento_ordine_id] AS [riferimento_ordine_id] FROM [FatturazioneElettronica_Data].[dbo].[fatture_inviate]   LEFT JOIN [FatturazioneElettronica_Data].[dbo].[clienti] AS [cliente_id_clienti] ON [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[cliente_id] = [cliente_id_clienti].[id]   LEFT JOIN [FatturazioneElettronica_Data].[dbo].[pagamenti] AS [pagamento_id_pagamenti] ON [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[pagamento_id] = [pagamento_id_pagamenti].[id]   LEFT JOIN [FatturazioneElettronica_Data].[dbo].[banche] AS [banca_id_banche] ON [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[banca_id] = [banca_id_banche].[id]   LEFT JOIN [FatturazioneElettronica_Data].[dbo].[causali] AS [causale_id_causali] ON [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[causale_id] = [causale_id_causali].[id]   LEFT JOIN [FatturazioneElettronica_Data].[dbo].[ordini] AS [riferimento_ordine_id_ordini] ON [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[riferimento_ordine_id] = [riferimento_ordine_id_ordini].[id]     where  coalesce([FatturazioneElettronica_Data].[dbo].[fatture_inviate].[cancellato],0) = 0 AND [FatturazioneElettronica_Data].[dbo].[fatture_inviate].[id] = @fattura_id </SqlCommand>
+      </fatture_inviate>
+      <fatture_inviate_righe Ref="4" type="Stimulsoft.Report.Dictionary.StiSqlSource" isKey="true">
+        <Alias>fatture_inviate_righe</Alias>
+        <Columns isList="true" count="17">
+          <value>codici_iva___descrizione__codice_iva_id,codici_x0020_iva,System.String</value>
+          <value>codice_iva_id,codice_iva_id_id_lookup,System.Double</value>
+          <value>descrizione,System.String</value>
+          <value>fatture_inviate___numero__fattura_id,fatture_x0020_inviate,System.String</value>
+          <value>fattura_id,fattura_id_id_lookup,System.Double</value>
+          <value>id,System.Double</value>
+          <value>imponibile_riga,System.Double</value>
+          <value>iva_riga,System.Double</value>
+          <value>prezzo_unitario,System.Double</value>
+          <value>prodotti___descrizione__prodotto_id,prodotti,System.String</value>
+          <value>prodotto_id,prodotto_id_id_lookup,System.Double</value>
+          <value>quantita,System.Double</value>
+          <value>riga,System.Double</value>
+          <value>sconto_perc,System.Double</value>
+          <value>totale_riga,System.Double</value>
+          <value>unita_misura___codice__unita_misura_id,unita_x0020_misura,System.String</value>
+          <value>unita_misura_id,unita_misura_id_id_lookup,System.Double</value>
+        </Columns>
+        <CommandTimeout>300</CommandTimeout>
+        <Dictionary isRef="1" />
+        <Key>6bad7c723b9242b88d6a60a202306b14</Key>
+        <Name>fatture_inviate_righe</Name>
+        <NameInSource>Connessione</NameInSource>
+        <Parameters isList="true" count="0" />
+        <SqlCommand>SELECT [FatturazioneElettronica_Data].[dbo].[fatture_inviate_righe].[id] AS [id],  [fattura_id_fatture_inviate].[numero] AS [fatture_inviate___numero__fattura_id], [FatturazioneElettronica_Data].[dbo].[fatture_inviate_righe].[fattura_id] AS [fattura_id], [FatturazioneElettronica_Data].[dbo].[fatture_inviate_righe].[riga] AS [riga],  [prodotto_id_prodotti].[codice] + ' - ' +  [prodotto_id_prodotti].[descrizione] AS [prodotti___descrizione__prodotto_id], [FatturazioneElettronica_Data].[dbo].[fatture_inviate_righe].[prodotto_id] AS [prodotto_id], [FatturazioneElettronica_Data].[dbo].[fatture_inviate_righe].[descrizione] AS [descrizione], [FatturazioneElettronica_Data].[dbo].[fatture_inviate_righe].[quantita] AS [quantita],  [unita_misura_id_unita_misura].[codice] AS [unita_misura___codice__unita_misura_id], [FatturazioneElettronica_Data].[dbo].[fatture_inviate_righe].[unita_misura_id] AS [unita_misura_id], [FatturazioneElettronica_Data].[dbo].[fatture_inviate_righe].[prezzo_unitario] AS [prezzo_unitario], [FatturazioneElettronica_Data].[dbo].[fatture_inviate_righe].[sconto_perc] AS [sconto_perc],  [codice_iva_id_codici_iva].[descrizione] AS [codici_iva___descrizione__codice_iva_id], [FatturazioneElettronica_Data].[dbo].[fatture_inviate_righe].[codice_iva_id] AS [codice_iva_id], [FatturazioneElettronica_Data].[dbo].[fatture_inviate_righe].[imponibile_riga] AS [imponibile_riga], [FatturazioneElettronica_Data].[dbo].[fatture_inviate_righe].[iva_riga] AS [iva_riga], [FatturazioneElettronica_Data].[dbo].[fatture_inviate_righe].[totale_riga] AS [totale_riga] FROM [FatturazioneElettronica_Data].[dbo].[fatture_inviate_righe]   LEFT JOIN [FatturazioneElettronica_Data].[dbo].[fatture_inviate] AS [fattura_id_fatture_inviate] ON [FatturazioneElettronica_Data].[dbo].[fatture_inviate_righe].[fattura_id] = [fattura_id_fatture_inviate].[id]   LEFT JOIN [FatturazioneElettronica_Data].[dbo].[prodotti] AS [prodotto_id_prodotti] ON [FatturazioneElettronica_Data].[dbo].[fatture_inviate_righe].[prodotto_id] = [prodotto_id_prodotti].[id]   LEFT JOIN [FatturazioneElettronica_Data].[dbo].[unita_misura] AS [unita_misura_id_unita_misura] ON [FatturazioneElettronica_Data].[dbo].[fatture_inviate_righe].[unita_misura_id] = [unita_misura_id_unita_misura].[id]   LEFT JOIN [FatturazioneElettronica_Data].[dbo].[codici_iva] AS [codice_iva_id_codici_iva] ON [FatturazioneElettronica_Data].[dbo].[fatture_inviate_righe].[codice_iva_id] = [codice_iva_id_codici_iva].[id]     WHERE [FatturazioneElettronica_Data].[dbo].[fatture_inviate_righe].[fattura_id] = @fattura_id ORDER BY [FatturazioneElettronica_Data].[dbo].[fatture_inviate_righe].riga ASC </SqlCommand>
+      </fatture_inviate_righe>
+      <scadenze Ref="5" type="Stimulsoft.Report.Dictionary.StiSqlSource" isKey="true">
+        <Alias>scadenze</Alias>
+        <Columns isList="true" count="24">
+          <value>banche___descrizione__banca_id,banche,System.String</value>
+          <value>banca_id,banca_id_id_lookup,System.Double</value>
+          <value>cancellato,System.String</value>
+          <value>clienti___ragione_sociale__cliente_id,clienti,System.String</value>
+          <value>cliente_id,cliente_id_id_lookup,System.Double</value>
+          <value>data_creazione,System.DateTime</value>
+          <value>data_pagamento,System.DateTime</value>
+          <value>data_scadenza,System.DateTime</value>
+          <value>fatture_inviate___numero__fattura_inviata_id,fatture_x0020_inviate,System.String</value>
+          <value>fattura_inviata_id,fattura_inviata_id_id_lookup,System.Double</value>
+          <value>fatture_ricevute___numero_fornitore__fattura_ricevuta_id,fatture_x0020_ricevute,System.String</value>
+          <value>fattura_ricevuta_id,fattura_ricevuta_id_id_lookup,System.Double</value>
+          <value>fornitori___ragione_sociale__fornitore_id,fornitori,System.String</value>
+          <value>fornitore_id,fornitore_id_id_lookup,System.Double</value>
+          <value>id,System.Double</value>
+          <value>importo,System.Double</value>
+          <value>importo_pagato,System.Double</value>
+          <value>note,System.String</value>
+          <value>pagamenti___descrizione__pagamento_id,pagamenti,System.String</value>
+          <value>pagamento_id,pagamento_id_id_lookup,System.Double</value>
+          <value>rata_n,System.Double</value>
+          <value>rata_totale,System.Double</value>
+          <value>stato,System.String</value>
+          <value>tipo,System.String</value>
+        </Columns>
+        <CommandTimeout>300</CommandTimeout>
+        <Dictionary isRef="1" />
+        <Key>60b9e7dbe3244711bdb376e43977e041</Key>
+        <Name>scadenze</Name>
+        <NameInSource>Connessione</NameInSource>
+        <Parameters isList="true" count="0" />
+        <SqlCommand>SELECT [FatturazioneElettronica_Data].[dbo].[scadenze].[id] AS [id], [FatturazioneElettronica_Data].[dbo].[scadenze].[tipo] AS [tipo],  [fattura_inviata_id_fatture_inviate].[numero] AS [fatture_inviate___numero__fattura_inviata_id], [FatturazioneElettronica_Data].[dbo].[scadenze].[fattura_inviata_id] AS [fattura_inviata_id],  [fattura_ricevuta_id_fatture_ricevute].[numero_fornitore] AS [fatture_ricevute___numero_fornitore__fattura_ricevuta_id], [FatturazioneElettronica_Data].[dbo].[scadenze].[fattura_ricevuta_id] AS [fattura_ricevuta_id],  [cliente_id_clienti].[ragione_sociale] AS [clienti___ragione_sociale__cliente_id], [FatturazioneElettronica_Data].[dbo].[scadenze].[cliente_id] AS [cliente_id],  [fornitore_id_fornitori].[ragione_sociale] AS [fornitori___ragione_sociale__fornitore_id], [FatturazioneElettronica_Data].[dbo].[scadenze].[fornitore_id] AS [fornitore_id], [FatturazioneElettronica_Data].[dbo].[scadenze].[data_scadenza] AS [data_scadenza], [FatturazioneElettronica_Data].[dbo].[scadenze].[importo] AS [importo], [FatturazioneElettronica_Data].[dbo].[scadenze].[importo_pagato] AS [importo_pagato],  [pagamento_id_pagamenti].[descrizione] AS [pagamenti___descrizione__pagamento_id], [FatturazioneElettronica_Data].[dbo].[scadenze].[pagamento_id] AS [pagamento_id],  [banca_id_banche].[descrizione] AS [banche___descrizione__banca_id], [FatturazioneElettronica_Data].[dbo].[scadenze].[banca_id] AS [banca_id], [FatturazioneElettronica_Data].[dbo].[scadenze].[stato] AS [stato], [FatturazioneElettronica_Data].[dbo].[scadenze].[data_pagamento] AS [data_pagamento], [FatturazioneElettronica_Data].[dbo].[scadenze].[rata_n] AS [rata_n], [FatturazioneElettronica_Data].[dbo].[scadenze].[rata_totale] AS [rata_totale], [FatturazioneElettronica_Data].[dbo].[scadenze].[note] AS [note], [FatturazioneElettronica_Data].[dbo].[scadenze].[cancellato] AS [cancellato], [FatturazioneElettronica_Data].[dbo].[scadenze].[data_creazione] AS [data_creazione] FROM [FatturazioneElettronica_Data].[dbo].[scadenze]   LEFT JOIN [FatturazioneElettronica_Data].[dbo].[fatture_inviate] AS [fattura_inviata_id_fatture_inviate] ON [FatturazioneElettronica_Data].[dbo].[scadenze].[fattura_inviata_id] = [fattura_inviata_id_fatture_inviate].[id]   LEFT JOIN [FatturazioneElettronica_Data].[dbo].[fatture_ricevute] AS [fattura_ricevuta_id_fatture_ricevute] ON [FatturazioneElettronica_Data].[dbo].[scadenze].[fattura_ricevuta_id] = [fattura_ricevuta_id_fatture_ricevute].[id]   LEFT JOIN [FatturazioneElettronica_Data].[dbo].[clienti] AS [cliente_id_clienti] ON [FatturazioneElettronica_Data].[dbo].[scadenze].[cliente_id] = [cliente_id_clienti].[id]   LEFT JOIN [FatturazioneElettronica_Data].[dbo].[fornitori] AS [fornitore_id_fornitori] ON [FatturazioneElettronica_Data].[dbo].[scadenze].[fornitore_id] = [fornitore_id_fornitori].[id]   LEFT JOIN [FatturazioneElettronica_Data].[dbo].[pagamenti] AS [pagamento_id_pagamenti] ON [FatturazioneElettronica_Data].[dbo].[scadenze].[pagamento_id] = [pagamento_id_pagamenti].[id]   LEFT JOIN [FatturazioneElettronica_Data].[dbo].[banche] AS [banca_id_banche] ON [FatturazioneElettronica_Data].[dbo].[scadenze].[banca_id] = [banca_id_banche].[id]     where  coalesce([FatturazioneElettronica_Data].[dbo].[scadenze].[cancellato],0) = 0 AND [FatturazioneElettronica_Data].[dbo].[scadenze].[fattura_inviata_id] = @fattura_id ORDER BY [FatturazioneElettronica_Data].[dbo].[scadenze].rata_n ASC </SqlCommand>
+      </scadenze>
+    </DataSources>
+    <Relations isList="true" count="2">
+      <fatture_inviate_fatture_inviate_righe Ref="6" type="DataRelation" isKey="true">
+        <Alias>fatture_inviate_fatture_inviate_righe</Alias>
+        <ChildColumns isList="true" count="1">
+          <value>fattura_id</value>
+        </ChildColumns>
+        <ChildSource isRef="4" />
+        <Dictionary isRef="1" />
+        <Name>fatture_inviate_fatture_inviate_righe</Name>
+        <NameInSource>fatture_inviate_fatture_inviate_righe</NameInSource>
+        <ParentColumns isList="true" count="1">
+          <value>id</value>
+        </ParentColumns>
+        <ParentSource isRef="3" />
+      </fatture_inviate_fatture_inviate_righe>
+      <fatture_inviate_scadenze Ref="7" type="DataRelation" isKey="true">
+        <Alias>fatture_inviate_scadenze</Alias>
+        <ChildColumns isList="true" count="1">
+          <value>fattura_inviata_id</value>
+        </ChildColumns>
+        <ChildSource isRef="5" />
+        <Dictionary isRef="1" />
+        <Name>fatture_inviate_scadenze</Name>
+        <NameInSource>fatture_inviate_scadenze</NameInSource>
+        <ParentColumns isList="true" count="1">
+          <value>id</value>
+        </ParentColumns>
+        <ParentSource isRef="3" />
+      </fatture_inviate_scadenze>
+    </Relations>
+    <Report isRef="0" />
+    <Resources isList="true" count="0" />
+    <UserFunctions isList="true" count="0" />
+    <Variables isList="true" count="1">
+      <value>,fattura_id,fattura_id,,System.Int32,_x0030_,False,False,False,False,_x003C__x003F_xml_x0020_version_x003D__x0022_1.0_x0022__x0020_encoding_x003D__x0022_utf-16_x0022__x0020_standalone_x003D__x0022_no_x0022__x003F__x003E__x003C_StiSerializer_x0020_application_x003D__x0022_State_x0022__x003E__x003C_DateTimeType_x003E_DateAndTime_x003C__x002F_DateTimeType_x003E__x003C_SortDirection_x003E_None_x003C__x002F_SortDirection_x003E__x003C_BindingVariable_x0020_isNull_x003D__x0022_true_x0022__x0020__x002F__x003E__x003C_Keys_x0020_isList_x003D__x0022_true_x0022__x0020_count_x003D__x0022_0_x0022__x0020__x002F__x003E__x003C_Values_x0020_isList_x003D__x0022_true_x0022__x0020_count_x003D__x0022_0_x0022__x0020__x002F__x003E__x003C_CheckedStates_x0020_isList_x003D__x0022_true_x0022__x0020_count_x003D__x0022_0_x0022__x0020__x002F__x003E__x003C__x002F_StiSerializer_x003E_,,True</value>
+    </Variables>
+  </Dictionary>
+  <EngineVersion>EngineV2</EngineVersion>
+  <GlobalizationStrings isList="true" count="0" />
+  <Key>30f97278ee6941778aed5daf7338f57c</Key>
+  <MetaTags isList="true" count="0" />
+  <Pages isList="true" count="1">
+    <Page1 Ref="8" type="Page" isKey="true">
+      <Border>None;Black;2;Solid;False;4;Black</Border>
+      <Brush>Transparent</Brush>
+      <Components isList="true" count="8">
+        <ReportTitleBand2 Ref="9" type="ReportTitleBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>0,0.4,19,1</ClientRectangle>
+          <Components isList="true" count="1">
+            <TitleNumero Ref="101" type="Text" isKey="true">
+              <Border>All;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>0,0,19,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,16,Bold</Font>
+              <HorAlignment>Center</HorAlignment>
+              <Name>TitleNumero</Name>
+              <Page isRef="8" />
+              <Parent isRef="9" />
+              <Text>{"FATTURA N. " + fatture_inviate.numero + "  del  " + fatture_inviate.data_documento.ToString("dd/MM/yyyy")}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+              <VertAlignment>Center</VertAlignment>
+            </TitleNumero>
+          </Components>
+          <Conditions isList="true" count="0" />
+          <Expressions isList="true" count="0" />
+          <Name>ReportTitleBand2</Name>
+          <Page isRef="8" />
+          <Parent isRef="8" />
+        </ReportTitleBand2>
+        <fatture_inviate_header Ref="10" type="HeaderBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>0,1.8,19,0.6</ClientRectangle>
+          <Components isList="true" count="0" />
+          <Conditions isList="true" count="0" />
+          <Expressions isList="true" count="0" />
+          <Name>fatture_inviate_header</Name>
+          <Page isRef="8" />
+          <Parent isRef="8" />
+        </fatture_inviate_header>
+        <fatture_inviate_data Ref="11" type="DataBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <BusinessObjectGuid isNull="true" />
+          <ClientRectangle>0,1.6,19,2</ClientRectangle>
+          <Components isList="true" count="14">
+            <LblCliente Ref="102" type="Text" isKey="true">
+              <Border>All;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>0,0,2.5,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8,Bold</Font>
+              <HorAlignment>Left</HorAlignment>
+              <Name>LblCliente</Name>
+              <Page isRef="8" />
+              <Parent isRef="11" />
+              <Text>Cliente:</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Text</Type>
+              <VertAlignment>Center</VertAlignment>
+            </LblCliente>
+            <TxtCliente Ref="103" type="Text" isKey="true">
+              <Border>None;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>2.5,0,7,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <HorAlignment>Left</HorAlignment>
+              <Name>TxtCliente</Name>
+              <Page isRef="8" />
+              <Parent isRef="11" />
+              <Text>{fatture_inviate.clienti___ragione_sociale__cliente_id}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+              <VertAlignment>Center</VertAlignment>
+            </TxtCliente>
+            <LblPagamento Ref="104" type="Text" isKey="true">
+              <Border>All;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>9.5,0,2.5,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8,Bold</Font>
+              <HorAlignment>Left</HorAlignment>
+              <Name>LblPagamento</Name>
+              <Page isRef="8" />
+              <Parent isRef="11" />
+              <Text>Pagamento:</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Text</Type>
+              <VertAlignment>Center</VertAlignment>
+            </LblPagamento>
+            <TxtPagamento Ref="105" type="Text" isKey="true">
+              <Border>None;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>12,0,7,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <HorAlignment>Left</HorAlignment>
+              <Name>TxtPagamento</Name>
+              <Page isRef="8" />
+              <Parent isRef="11" />
+              <Text>{fatture_inviate.pagamenti___descrizione__pagamento_id}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+              <VertAlignment>Center</VertAlignment>
+            </TxtPagamento>
+            <LblPiva Ref="106" type="Text" isKey="true">
+              <Border>All;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>0,0.5,2.5,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8,Bold</Font>
+              <HorAlignment>Left</HorAlignment>
+              <Name>LblPiva</Name>
+              <Page isRef="8" />
+              <Parent isRef="11" />
+              <Text>P.IVA:</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Text</Type>
+              <VertAlignment>Center</VertAlignment>
+            </LblPiva>
+            <TxtPiva Ref="107" type="Text" isKey="true">
+              <Border>None;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>2.5,0.5,7,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <HorAlignment>Left</HorAlignment>
+              <Name>TxtPiva</Name>
+              <Page isRef="8" />
+              <Parent isRef="11" />
+              <Text> </Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Text</Type>
+              <VertAlignment>Center</VertAlignment>
+            </TxtPiva>
+            <LblBanca Ref="108" type="Text" isKey="true">
+              <Border>All;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>9.5,0.5,2.5,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8,Bold</Font>
+              <HorAlignment>Left</HorAlignment>
+              <Name>LblBanca</Name>
+              <Page isRef="8" />
+              <Parent isRef="11" />
+              <Text>Banca:</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Text</Type>
+              <VertAlignment>Center</VertAlignment>
+            </LblBanca>
+            <TxtBanca Ref="109" type="Text" isKey="true">
+              <Border>None;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>12,0.5,7,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <HorAlignment>Left</HorAlignment>
+              <Name>TxtBanca</Name>
+              <Page isRef="8" />
+              <Parent isRef="11" />
+              <Text>{fatture_inviate.banche___descrizione__banca_id}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+              <VertAlignment>Center</VertAlignment>
+            </TxtBanca>
+            <LblCausale Ref="110" type="Text" isKey="true">
+              <Border>All;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>0,1.0,2.5,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8,Bold</Font>
+              <HorAlignment>Left</HorAlignment>
+              <Name>LblCausale</Name>
+              <Page isRef="8" />
+              <Parent isRef="11" />
+              <Text>Causale:</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Text</Type>
+              <VertAlignment>Center</VertAlignment>
+            </LblCausale>
+            <TxtCausale Ref="111" type="Text" isKey="true">
+              <Border>None;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>2.5,1.0,7,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <HorAlignment>Left</HorAlignment>
+              <Name>TxtCausale</Name>
+              <Page isRef="8" />
+              <Parent isRef="11" />
+              <Text>{fatture_inviate.causale}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+              <VertAlignment>Center</VertAlignment>
+            </TxtCausale>
+            <LblRifOrdine Ref="112" type="Text" isKey="true">
+              <Border>All;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>9.5,1.0,2.5,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8,Bold</Font>
+              <HorAlignment>Left</HorAlignment>
+              <Name>LblRifOrdine</Name>
+              <Page isRef="8" />
+              <Parent isRef="11" />
+              <Text>Rif. ordine:</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Text</Type>
+              <VertAlignment>Center</VertAlignment>
+            </LblRifOrdine>
+            <TxtRifOrdine Ref="113" type="Text" isKey="true">
+              <Border>None;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>12,1.0,7,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <HorAlignment>Left</HorAlignment>
+              <Name>TxtRifOrdine</Name>
+              <Page isRef="8" />
+              <Parent isRef="11" />
+              <Text>{fatture_inviate.riferimento_ordine}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+              <VertAlignment>Center</VertAlignment>
+            </TxtRifOrdine>
+            <LblNote Ref="114" type="Text" isKey="true">
+              <Border>All;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>0,1.5,2.5,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8,Bold</Font>
+              <HorAlignment>Left</HorAlignment>
+              <Name>LblNote</Name>
+              <Page isRef="8" />
+              <Parent isRef="11" />
+              <Text>Note:</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Text</Type>
+              <VertAlignment>Center</VertAlignment>
+            </LblNote>
+            <TxtNote Ref="115" type="Text" isKey="true">
+              <Border>None;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>2.5,1.5,16.5,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <HorAlignment>Left</HorAlignment>
+              <Name>TxtNote</Name>
+              <Page isRef="8" />
+              <Parent isRef="11" />
+              <Text>{fatture_inviate.note}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+              <VertAlignment>Center</VertAlignment>
+            </TxtNote>
+          </Components>
+          <Conditions isList="true" count="0" />
+          <DataSourceName>fatture_inviate</DataSourceName>
+          <Expressions isList="true" count="0" />
+          <Filters isList="true" count="0" />
+          <Name>fatture_inviate_data</Name>
+          <Page isRef="8" />
+          <Parent isRef="8" />
+          <PrintIfDetailEmpty>True</PrintIfDetailEmpty>
+          <Sort isList="true" count="0" />
+        </fatture_inviate_data>
+        <fatture_inviate_righe_header Ref="13" type="HeaderBand" isKey="true">
+          <Brush>LightGray</Brush>
+          <ClientRectangle>0,3.8,19,0.6</ClientRectangle>
+          <Components isList="true" count="9">
+            <HRiga Ref="116" type="Text" isKey="true">
+              <Border>All;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>0,0,1,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8,Bold</Font>
+              <HorAlignment>Center</HorAlignment>
+              <Name>HRiga</Name>
+              <Page isRef="8" />
+              <Parent isRef="13" />
+              <Text>N.</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Text</Type>
+              <VertAlignment>Center</VertAlignment>
+            </HRiga>
+            <HProdotto Ref="117" type="Text" isKey="true">
+              <Border>All;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>1,0,5,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8,Bold</Font>
+              <HorAlignment>Left</HorAlignment>
+              <Name>HProdotto</Name>
+              <Page isRef="8" />
+              <Parent isRef="13" />
+              <Text>Prodotto</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Text</Type>
+              <VertAlignment>Center</VertAlignment>
+            </HProdotto>
+            <HDescrizione Ref="118" type="Text" isKey="true">
+              <Border>All;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>6,0,4,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8,Bold</Font>
+              <HorAlignment>Left</HorAlignment>
+              <Name>HDescrizione</Name>
+              <Page isRef="8" />
+              <Parent isRef="13" />
+              <Text>Descrizione</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Text</Type>
+              <VertAlignment>Center</VertAlignment>
+            </HDescrizione>
+            <HQta Ref="119" type="Text" isKey="true">
+              <Border>All;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>10,0,1.5,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8,Bold</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>HQta</Name>
+              <Page isRef="8" />
+              <Parent isRef="13" />
+              <Text>Qta</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Text</Type>
+              <VertAlignment>Center</VertAlignment>
+            </HQta>
+            <HUM Ref="120" type="Text" isKey="true">
+              <Border>All;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>11.5,0,1,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8,Bold</Font>
+              <HorAlignment>Center</HorAlignment>
+              <Name>HUM</Name>
+              <Page isRef="8" />
+              <Parent isRef="13" />
+              <Text>UM</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Text</Type>
+              <VertAlignment>Center</VertAlignment>
+            </HUM>
+            <HPrezzo Ref="121" type="Text" isKey="true">
+              <Border>All;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>12.5,0,2,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8,Bold</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>HPrezzo</Name>
+              <Page isRef="8" />
+              <Parent isRef="13" />
+              <Text>Prezzo</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Text</Type>
+              <VertAlignment>Center</VertAlignment>
+            </HPrezzo>
+            <HSconto Ref="122" type="Text" isKey="true">
+              <Border>All;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>14.5,0,1.5,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8,Bold</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>HSconto</Name>
+              <Page isRef="8" />
+              <Parent isRef="13" />
+              <Text>Sc.%</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Text</Type>
+              <VertAlignment>Center</VertAlignment>
+            </HSconto>
+            <HIva Ref="123" type="Text" isKey="true">
+              <Border>All;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>16,0,1.5,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8,Bold</Font>
+              <HorAlignment>Center</HorAlignment>
+              <Name>HIva</Name>
+              <Page isRef="8" />
+              <Parent isRef="13" />
+              <Text>IVA</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Text</Type>
+              <VertAlignment>Center</VertAlignment>
+            </HIva>
+            <HTotRiga Ref="124" type="Text" isKey="true">
+              <Border>All;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>17.5,0,1.5,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8,Bold</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>HTotRiga</Name>
+              <Page isRef="8" />
+              <Parent isRef="13" />
+              <Text>Totale</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Text</Type>
+              <VertAlignment>Center</VertAlignment>
+            </HTotRiga>
+          </Components>
+          <Conditions isList="true" count="0" />
+          <Expressions isList="true" count="0" />
+          <Name>fatture_inviate_righe_header</Name>
+          <Page isRef="8" />
+          <Parent isRef="8" />
+        </fatture_inviate_righe_header>
+        <fatture_inviate_righe_data Ref="14" type="DataBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <BusinessObjectGuid isNull="true" />
+          <ClientRectangle>0,4.4,19,0.6</ClientRectangle>
+          <Components isList="true" count="9">
+            <DRiga Ref="125" type="Text" isKey="true">
+              <Border>None;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>0,0,1,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <HorAlignment>Center</HorAlignment>
+              <Name>DRiga</Name>
+              <Page isRef="8" />
+              <Parent isRef="14" />
+              <Text>{fatture_inviate_righe.riga}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+              <VertAlignment>Center</VertAlignment>
+            </DRiga>
+            <DProdotto Ref="126" type="Text" isKey="true">
+              <Border>None;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>1,0,5,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <HorAlignment>Left</HorAlignment>
+              <Name>DProdotto</Name>
+              <Page isRef="8" />
+              <Parent isRef="14" />
+              <Text>{fatture_inviate_righe.prodotti___descrizione__prodotto_id}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+              <VertAlignment>Center</VertAlignment>
+            </DProdotto>
+            <DDescrizione Ref="127" type="Text" isKey="true">
+              <Border>None;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>6,0,4,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <HorAlignment>Left</HorAlignment>
+              <Name>DDescrizione</Name>
+              <Page isRef="8" />
+              <Parent isRef="14" />
+              <Text>{fatture_inviate_righe.descrizione}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+              <VertAlignment>Center</VertAlignment>
+            </DDescrizione>
+            <DQta Ref="128" type="Text" isKey="true">
+              <Border>None;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>10,0,1.5,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>DQta</Name>
+              <Page isRef="8" />
+              <Parent isRef="14" />
+              <Text>{fatture_inviate_righe.quantita.ToString("N2")}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+              <VertAlignment>Center</VertAlignment>
+            </DQta>
+            <DUM Ref="129" type="Text" isKey="true">
+              <Border>None;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>11.5,0,1,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <HorAlignment>Center</HorAlignment>
+              <Name>DUM</Name>
+              <Page isRef="8" />
+              <Parent isRef="14" />
+              <Text>{fatture_inviate_righe.unita_misura___codice__unita_misura_id}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+              <VertAlignment>Center</VertAlignment>
+            </DUM>
+            <DPrezzo Ref="130" type="Text" isKey="true">
+              <Border>None;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>12.5,0,2,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>DPrezzo</Name>
+              <Page isRef="8" />
+              <Parent isRef="14" />
+              <Text>{fatture_inviate_righe.prezzo_unitario.ToString("N2")}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+              <VertAlignment>Center</VertAlignment>
+            </DPrezzo>
+            <DSconto Ref="131" type="Text" isKey="true">
+              <Border>None;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>14.5,0,1.5,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>DSconto</Name>
+              <Page isRef="8" />
+              <Parent isRef="14" />
+              <Text>{fatture_inviate_righe.sconto_perc.ToString("N2")}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+              <VertAlignment>Center</VertAlignment>
+            </DSconto>
+            <DIva Ref="132" type="Text" isKey="true">
+              <Border>None;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>16,0,1.5,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <HorAlignment>Center</HorAlignment>
+              <Name>DIva</Name>
+              <Page isRef="8" />
+              <Parent isRef="14" />
+              <Text>{fatture_inviate_righe.codici_iva___descrizione__codice_iva_id}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+              <VertAlignment>Center</VertAlignment>
+            </DIva>
+            <DTotRiga Ref="133" type="Text" isKey="true">
+              <Border>None;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>17.5,0,1.5,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>DTotRiga</Name>
+              <Page isRef="8" />
+              <Parent isRef="14" />
+              <Text>{fatture_inviate_righe.totale_riga.ToString("N2")}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+              <VertAlignment>Center</VertAlignment>
+            </DTotRiga>
+          </Components>
+          <Conditions isList="true" count="0" />
+          <DataSourceName>fatture_inviate_righe</DataSourceName>
+          <Expressions isList="true" count="0" />
+          <Filters isList="true" count="0" />
+          <Name>fatture_inviate_righe_data</Name>
+          <Page isRef="8" />
+          <Parent isRef="8" />
+          <PrintIfDetailEmpty>True</PrintIfDetailEmpty>
+          <Sort isList="true" count="0" />
+        </fatture_inviate_righe_data>
+        <scadenze_header Ref="15" type="HeaderBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>0,5.5,19,1</ClientRectangle>
+          <Components isList="true" count="6">
+            <SHTitle Ref="134" type="Text" isKey="true">
+              <Border>All;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>0,0,19,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,9,Bold</Font>
+              <HorAlignment>Left</HorAlignment>
+              <Name>SHTitle</Name>
+              <Page isRef="8" />
+              <Parent isRef="15" />
+              <Text>SCADENZE</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Text</Type>
+              <VertAlignment>Center</VertAlignment>
+            </SHTitle>
+            <SHRata Ref="135" type="Text" isKey="true">
+              <Border>All;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>0,0.5,1.5,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8,Bold</Font>
+              <HorAlignment>Center</HorAlignment>
+              <Name>SHRata</Name>
+              <Page isRef="8" />
+              <Parent isRef="15" />
+              <Text>Rata</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Text</Type>
+              <VertAlignment>Center</VertAlignment>
+            </SHRata>
+            <SHData Ref="136" type="Text" isKey="true">
+              <Border>All;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>1.5,0.5,3,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8,Bold</Font>
+              <HorAlignment>Center</HorAlignment>
+              <Name>SHData</Name>
+              <Page isRef="8" />
+              <Parent isRef="15" />
+              <Text>Data scadenza</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Text</Type>
+              <VertAlignment>Center</VertAlignment>
+            </SHData>
+            <SHImporto Ref="137" type="Text" isKey="true">
+              <Border>All;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>4.5,0.5,3,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8,Bold</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>SHImporto</Name>
+              <Page isRef="8" />
+              <Parent isRef="15" />
+              <Text>Importo</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Text</Type>
+              <VertAlignment>Center</VertAlignment>
+            </SHImporto>
+            <SHPagamento Ref="138" type="Text" isKey="true">
+              <Border>All;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>7.5,0.5,7,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8,Bold</Font>
+              <HorAlignment>Left</HorAlignment>
+              <Name>SHPagamento</Name>
+              <Page isRef="8" />
+              <Parent isRef="15" />
+              <Text>Pagamento</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Text</Type>
+              <VertAlignment>Center</VertAlignment>
+            </SHPagamento>
+            <SHStato Ref="139" type="Text" isKey="true">
+              <Border>All;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>14.5,0.5,4.5,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8,Bold</Font>
+              <HorAlignment>Center</HorAlignment>
+              <Name>SHStato</Name>
+              <Page isRef="8" />
+              <Parent isRef="15" />
+              <Text>Stato</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Text</Type>
+              <VertAlignment>Center</VertAlignment>
+            </SHStato>
+          </Components>
+          <Conditions isList="true" count="0" />
+          <Expressions isList="true" count="0" />
+          <Name>scadenze_header</Name>
+          <Page isRef="8" />
+          <Parent isRef="8" />
+        </scadenze_header>
+        <scadenze_data Ref="16" type="DataBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <BusinessObjectGuid isNull="true" />
+          <ClientRectangle>0,6.6,19,0.5</ClientRectangle>
+          <Components isList="true" count="5">
+            <SDRata Ref="140" type="Text" isKey="true">
+              <Border>None;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>0,0,1.5,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <HorAlignment>Center</HorAlignment>
+              <Name>SDRata</Name>
+              <Page isRef="8" />
+              <Parent isRef="16" />
+              <Text>{scadenze.rata_n + " / " + scadenze.rata_totale}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+              <VertAlignment>Center</VertAlignment>
+            </SDRata>
+            <SDData Ref="141" type="Text" isKey="true">
+              <Border>None;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>1.5,0,3,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <HorAlignment>Center</HorAlignment>
+              <Name>SDData</Name>
+              <Page isRef="8" />
+              <Parent isRef="16" />
+              <Text>{scadenze.data_scadenza.ToString("dd/MM/yyyy")}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+              <VertAlignment>Center</VertAlignment>
+            </SDData>
+            <SDImporto Ref="142" type="Text" isKey="true">
+              <Border>None;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>4.5,0,3,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>SDImporto</Name>
+              <Page isRef="8" />
+              <Parent isRef="16" />
+              <Text>{scadenze.importo.ToString("N2")}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+              <VertAlignment>Center</VertAlignment>
+            </SDImporto>
+            <SDPagamento Ref="143" type="Text" isKey="true">
+              <Border>None;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>7.5,0,7,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <HorAlignment>Left</HorAlignment>
+              <Name>SDPagamento</Name>
+              <Page isRef="8" />
+              <Parent isRef="16" />
+              <Text>{scadenze.pagamenti___descrizione__pagamento_id}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+              <VertAlignment>Center</VertAlignment>
+            </SDPagamento>
+            <SDStato Ref="144" type="Text" isKey="true">
+              <Border>None;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>14.5,0,4.5,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <HorAlignment>Center</HorAlignment>
+              <Name>SDStato</Name>
+              <Page isRef="8" />
+              <Parent isRef="16" />
+              <Text>{scadenze.stato}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+              <VertAlignment>Center</VertAlignment>
+            </SDStato>
+          </Components>
+          <Conditions isList="true" count="0" />
+          <DataSourceName>scadenze</DataSourceName>
+          <Expressions isList="true" count="0" />
+          <Filters isList="true" count="0" />
+          <Name>scadenze_data</Name>
+          <Page isRef="8" />
+          <Parent isRef="8" />
+          <PrintIfDetailEmpty>True</PrintIfDetailEmpty>
+          <Sort isList="true" count="0" />
+        </scadenze_data>
+        <ReportSummaryBand1 Ref="200" type="ReportSummaryBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>0,7.4,19,3.4</ClientRectangle>
+          <Components isList="true" count="11">
+            <SUMTitle Ref="145" type="Text" isKey="true">
+              <Border>All;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>0,0,19,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,9,Bold</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>SUMTitle</Name>
+              <Page isRef="8" />
+              <Parent isRef="200" />
+              <Text>TOTALI DOCUMENTO</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Text</Type>
+              <VertAlignment>Center</VertAlignment>
+            </SUMTitle>
+            <SUMLblImp Ref="146" type="Text" isKey="true">
+              <Border>All;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>12,0.6,4,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8,Bold</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>SUMLblImp</Name>
+              <Page isRef="8" />
+              <Parent isRef="200" />
+              <Text>Imponibile:</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Text</Type>
+              <VertAlignment>Center</VertAlignment>
+            </SUMLblImp>
+            <SUMValImp Ref="147" type="Text" isKey="true">
+              <Border>None;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>16,0.6,3,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>SUMValImp</Name>
+              <Page isRef="8" />
+              <Parent isRef="200" />
+              <Text>{fatture_inviate.imponibile.ToString("N2")}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+              <VertAlignment>Center</VertAlignment>
+            </SUMValImp>
+            <SUMLblIva Ref="148" type="Text" isKey="true">
+              <Border>All;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>12,1.1,4,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8,Bold</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>SUMLblIva</Name>
+              <Page isRef="8" />
+              <Parent isRef="200" />
+              <Text>IVA:</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Text</Type>
+              <VertAlignment>Center</VertAlignment>
+            </SUMLblIva>
+            <SUMValIva Ref="149" type="Text" isKey="true">
+              <Border>None;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>16,1.1,3,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>SUMValIva</Name>
+              <Page isRef="8" />
+              <Parent isRef="200" />
+              <Text>{fatture_inviate.iva.ToString("N2")}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+              <VertAlignment>Center</VertAlignment>
+            </SUMValIva>
+            <SUMLblBollo Ref="150" type="Text" isKey="true">
+              <Border>All;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>12,1.6,4,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8,Bold</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>SUMLblBollo</Name>
+              <Page isRef="8" />
+              <Parent isRef="200" />
+              <Text>Bollo:</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Text</Type>
+              <VertAlignment>Center</VertAlignment>
+            </SUMLblBollo>
+            <SUMValBollo Ref="151" type="Text" isKey="true">
+              <Border>None;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>16,1.6,3,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>SUMValBollo</Name>
+              <Page isRef="8" />
+              <Parent isRef="200" />
+              <Text>{fatture_inviate.bollo_valore.ToString("N2")}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+              <VertAlignment>Center</VertAlignment>
+            </SUMValBollo>
+            <SUMLblScGlob Ref="152" type="Text" isKey="true">
+              <Border>All;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>12,2.1,4,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8,Bold</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>SUMLblScGlob</Name>
+              <Page isRef="8" />
+              <Parent isRef="200" />
+              <Text>Sconto globale %:</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Text</Type>
+              <VertAlignment>Center</VertAlignment>
+            </SUMLblScGlob>
+            <SUMValScGlob Ref="153" type="Text" isKey="true">
+              <Border>None;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>16,2.1,3,0.5</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>SUMValScGlob</Name>
+              <Page isRef="8" />
+              <Parent isRef="200" />
+              <Text>{fatture_inviate.sconto_globale_perc.ToString("N2")}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+              <VertAlignment>Center</VertAlignment>
+            </SUMValScGlob>
+            <SUMLblTot Ref="154" type="Text" isKey="true">
+              <Border>All;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>12,2.6,4,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,10,Bold</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>SUMLblTot</Name>
+              <Page isRef="8" />
+              <Parent isRef="200" />
+              <Text>TOTALE FATTURA:</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Text</Type>
+              <VertAlignment>Center</VertAlignment>
+            </SUMLblTot>
+            <SUMValTot Ref="155" type="Text" isKey="true">
+              <Border>All;Black;1;Solid;False;4;Black</Border>
+              <Brush>Transparent</Brush>
+              <ClientRectangle>16,2.6,3,0.6</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Expressions isList="true" count="0" />
+              <Font>Arial,10,Bold</Font>
+              <HorAlignment>Right</HorAlignment>
+              <Name>SUMValTot</Name>
+              <Page isRef="8" />
+              <Parent isRef="200" />
+              <Text>{fatture_inviate.totale.ToString("N2")}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+              <VertAlignment>Center</VertAlignment>
+            </SUMValTot>
+          </Components>
+          <Conditions isList="true" count="0" />
+          <Expressions isList="true" count="0" />
+          <Name>ReportSummaryBand1</Name>
+          <Page isRef="8" />
+          <Parent isRef="8" />
+        </ReportSummaryBand1>
+      </Components>
+      <Conditions isList="true" count="0" />
+      <Expressions isList="true" count="0" />
+      <Guid>ccb85a4bee8449ce90d2095654ed1539</Guid>
+      <Margins>1,1,1,1</Margins>
+      <Name>Page1</Name>
+      <PageHeight>29.7</PageHeight>
+      <PageWidth>21</PageWidth>
+      <Report isRef="0" />
+    </Page1>
+  </Pages>
+  <ReferencedAssemblies isList="true" count="8">
+    <value>System.Dll</value>
+    <value>System.Drawing.Dll</value>
+    <value>System.Windows.Forms.Dll</value>
+    <value>System.Data.Dll</value>
+    <value>System.Xml.Dll</value>
+    <value>Stimulsoft.Controls.Dll</value>
+    <value>Stimulsoft.Base.Dll</value>
+    <value>Stimulsoft.Report.Dll</value>
+  </ReferencedAssemblies>
+  <ReportAlias>Report</ReportAlias>
+  <ReportChanged>5/8/2026 6:55:51 PM</ReportChanged>
+  <ReportCreated>5/8/2026 6:55:51 PM</ReportCreated>
+  <ReportFile>C:\src\Wuic\FatturazioneElettronica\Reports\fatture_inviate\Report_20260508_185550.mrt</ReportFile>
+  <ReportGuid>0beb6144695344caab709a83e03c5cfd</ReportGuid>
+  <ReportName>Report</ReportName>
+  <ReportUnit>Centimeters</ReportUnit>
+  <ReportVersion>2026.1.7.0</ReportVersion>
+  <Script>using System;
+using System.Drawing;
+using System.Windows.Forms;
+using System.Data;
+using Stimulsoft.Controls;
+using Stimulsoft.Base.Drawing;
+using Stimulsoft.Report;
+using Stimulsoft.Report.Dialogs;
+using Stimulsoft.Report.Components;
+
+namespace Reports
+{
+    public class Report : Stimulsoft.Report.StiReport
+    {
+        public Report()        {
+            this.InitializeComponent();
+        }
+
+        #region StiReport Designer generated code - do not modify
+        #endregion StiReport Designer generated code - do not modify
+    }
+}
+</Script>
+  <ScriptLanguage>CSharp</ScriptLanguage>
+  <Styles isList="true" count="0" />
+  <UsePlatformDependentScript>False</UsePlatformDependentScript>
+</StiSerializer>

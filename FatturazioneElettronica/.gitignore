@@ -340,3 +340,7 @@ wwwroot/Reports/cache/**
 # usera' il pacchetto npm `wuic-framework-lib` da node_modules.
 wwwroot/lib-src
 wwwroot/lib-src/**
+
+# Host-binding license auto-generated at build time from RSA + .snk secrets.
+# See skills/license-issuing/SKILL.md (in KonvergenceCore) for details.
+host-binding-license.lic

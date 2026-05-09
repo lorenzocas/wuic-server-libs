@@ -16,4 +16,47 @@
   <ItemGroup>
     <ProjectReference Include="..\KonvergenceCore\KonvergenceCore.csproj" />
   </ItemGroup>
+
+  <!--
+    Host-binding license — see FatturazioneElettronica.csproj for the full
+    rationale. This block is mechanically identical except for AppId +
+    HostAssemblyName, both of which match the values declared in
+    skills/license-issuing/SKILL.md § "Host-binding licenses for bundled free apps".
+  -->
+  <PropertyGroup>
+    <_WuicStrongNameKey>$(MSBuildProjectDirectory)\..\KonvergenceCore\secrets\license-keys\wuic-strong-name.snk</_WuicStrongNameKey>
+    <_WuicLicensePrivateKey>$(MSBuildProjectDirectory)\..\KonvergenceCore\secrets\license-keys\license-private.pem</_WuicLicensePrivateKey>
+    <_WuicHostBindingScript>$(MSBuildProjectDirectory)\..\KonvergenceCore\scripts\license-issue-host-binding.ps1</_WuicHostBindingScript>
+    <_WuicHostBindingLic>$(MSBuildProjectDirectory)\host-binding-license.lic</_WuicHostBindingLic>
+
+    <SignAssembly Condition="Exists('$(_WuicStrongNameKey)')">true</SignAssembly>
+    <AssemblyOriginatorKeyFile Condition="Exists('$(_WuicStrongNameKey)')">$(_WuicStrongNameKey)</AssemblyOriginatorKeyFile>
+    <DelaySign>false</DelaySign>
+  </PropertyGroup>
+
+  <!--
+    The .lic generation runs in BeforeBuild, but `<EmbeddedResource>` items in
+    static `<ItemGroup>` blocks are evaluated BEFORE BeforeBuild fires. Result
+    on first-ever build: Exists() returns false, the resource isn't included,
+    the dll ships without an embedded host-binding license.
+
+    Fix: declare the `<EmbeddedResource>` INSIDE the target, AFTER the script
+    has produced the .lic. ItemGroup-inside-Target is dynamic — adds to the
+    items collection at target-execution time, in plenty of time for CoreCompile.
+  -->
+  <Target Name="GenerateWuicHostBindingLicense"
+          BeforeTargets="BeforeBuild"
+          Condition="Exists('$(_WuicStrongNameKey)') AND Exists('$(_WuicLicensePrivateKey)') AND Exists('$(_WuicHostBindingScript)')">
+    <Message Text="Generating host-binding license for CrmApp..." Importance="normal" />
+    <Exec Command="pwsh -NoProfile -ExecutionPolicy Bypass -File &quot;$(_WuicHostBindingScript)&quot; -AppId crm-app -StrongNameKeyPath &quot;$(_WuicStrongNameKey)&quot; -HostAssemblyName CrmApp -OutputPath &quot;$(_WuicHostBindingLic)&quot; -PrivateKeyPemPath &quot;$(_WuicLicensePrivateKey)&quot;"
+          ConsoleToMSBuild="true"
+          StandardOutputImportance="low"
+          StandardErrorImportance="high"
+          IgnoreExitCode="false" />
+    <ItemGroup>
+      <EmbeddedResource Include="$(_WuicHostBindingLic)" Condition="Exists('$(_WuicHostBindingLic)')">
+        <LogicalName>WUIC.HostBindingLicense</LogicalName>
+      </EmbeddedResource>
+    </ItemGroup>
+  </Target>
 </Project>
