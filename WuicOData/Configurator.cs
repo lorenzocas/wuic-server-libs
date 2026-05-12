@@ -276,6 +276,47 @@ namespace WuicOData
         {
             try
             {
+                // Pre-load delle dipendenze TRANSITIVE del provider mysql
+                // (2026-05-12). Senza questo, quando `MySqlOdataConfigurator.ConfigureDynamicContextOptions`
+                // viene invocato via reflection e internamente chiama `UseMySql(...)`
+                // (extension method di Pomelo.EntityFrameworkCore.MySql), il .NET
+                // runtime tenta di risolvere `Pomelo.EntityFrameworkCore.MySql.dll`
+                // dal directory probe path del CALLER (WuicOData), ma `Assembly.LoadFrom`
+                // su mysql.dll NON propaga la probing path per le dipendenze
+                // transitive — classico problema di plugin loading. Risultato:
+                // `FileNotFoundException: Pomelo.EntityFrameworkCore.MySql, Version=8.0.2.0`
+                // anche se la DLL Pomelo e' fisicamente accanto a WuicCore.dll.
+                //
+                // Fix: pre-caricare ESPLICITAMENTE le DLL EFCore-Pomelo dal bin
+                // di WuicCore prima di tentare l'invoke del configurator. Una
+                // volta caricate via Assembly.LoadFrom, sono visibili al loader
+                // e la risoluzione tipi/extension methods funziona.
+                //
+                // Gated SOLO al provider mysql (questo metodo gira solo quando
+                // AppSettings:dbms=mysql, vedi line 127 di questo file). Niente
+                // overhead per mssql.
+                string[] companionDlls = new[]
+                {
+                    "Pomelo.EntityFrameworkCore.MySql.dll",
+                    "MySqlConnector.dll",
+                    "MySql.Data.dll"
+                };
+                string[] companionProbeDirs = new[]
+                {
+                    AppContext.BaseDirectory,
+                    Path.Combine(AppContext.BaseDirectory, "bin")
+                };
+                foreach (var dll in companionDlls)
+                {
+                    foreach (var dir in companionProbeDirs)
+                    {
+                        string p = Path.Combine(dir, dll);
+                        if (!File.Exists(p)) continue;
+                        try { System.Reflection.Assembly.LoadFrom(p); } catch { /* non bloccante */ }
+                        break; // companion trovato, salta agli altri probe dir
+                    }
+                }
+
                 Type t = null;
                 foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
                 {
