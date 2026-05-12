@@ -17,7 +17,7 @@
     -->
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <PackageId>Wuic.MySqlProvider</PackageId>
-    <Version>1.0.19</Version>
+    <Version>1.0.20</Version>
     <Authors>Wuic</Authors>
     <Description>Wuic MySQL provider for metadata/data runtime.</Description>
     <EnableObfuscationOnPack Condition="'$(EnableObfuscationOnPack)' == ''">true</EnableObfuscationOnPack>
@@ -46,6 +46,50 @@
   <ItemGroup>
     <ProjectReference Include="..\KonvergenceCore\KonvergenceCore.csproj" />
   </ItemGroup>
+
+  <!--
+    Sync runtime deps in KonvergenceCore/bin (2026-05-12).
+
+    Architettura plugin: KonvergenceCore.csproj NON referenzia mysql.csproj
+    (sarebbe circular — mysql.csproj referenzia KonvergenceCore.csproj). Il
+    provider mysql viene caricato a runtime via reflection da
+    [WuicOData/Configurator.cs:TryConfigureMySql] e [MetaService.cs:getMetaQueryProvider].
+
+    Conseguenza: NuGet restore di KonvergenceCore NON tira dentro le dipendenze
+    di mysql (Pomelo.EntityFrameworkCore.MySql, MySqlConnector, EFCore Pomelo
+    deps). In dev (`dotnet run` su bin/Debug) il backend trova mysql.dll ma
+    non Pomelo → TryConfigureMySql lancia `FileNotFoundException` sull'invoke
+    di `MySqlOdataConfigurator.ConfigureDynamicContextOptions`. Sintomo: tutti
+    i test e2e odata su mysql falliscono con HTTP 500 "TryConfigureMySql failed:
+    System.Reflection..." anche se i test CRUD funzionano (CRUD usa MySql.Data
+    raw, non Pomelo).
+
+    Soluzione: dopo aver buildato mysql in Debug/Release, copia le DLL
+    SPECIFICHE del provider (Pomelo + MySqlConnector + mysql.dll stessa)
+    nella cartella bin di KonvergenceCore, cosi' il backend in dev le trova
+    senza un publish completo. EXCLUDE KonvergenceCore.dll, Wuic.Webcore.dll
+    e tutti i .dll gia' presenti nel bin host (per non sovrascrivere binaries
+    appartenenti ad altri progetti del workspace).
+  -->
+  <Target Name="SyncProviderDepsToKonvergenceCoreBin" AfterTargets="Build">
+    <PropertyGroup>
+      <KCBinDir>$(MSBuildProjectDirectory)\..\KonvergenceCore\bin\$(Configuration)\$(TargetFramework)\</KCBinDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <!-- DLL specifiche del provider mysql che il backend ha bisogno per OData/EFCore -->
+      <ProviderRuntimeDlls Include="$(OutputPath)mysql.dll" />
+      <ProviderRuntimeDlls Include="$(OutputPath)mysql.pdb" Condition="Exists('$(OutputPath)mysql.pdb')" />
+      <ProviderRuntimeDlls Include="$(OutputPath)Pomelo.EntityFrameworkCore.MySql.dll" Condition="Exists('$(OutputPath)Pomelo.EntityFrameworkCore.MySql.dll')" />
+      <ProviderRuntimeDlls Include="$(OutputPath)MySqlConnector.dll" Condition="Exists('$(OutputPath)MySqlConnector.dll')" />
+      <ProviderRuntimeDlls Include="$(OutputPath)MySql.Data.dll" Condition="Exists('$(OutputPath)MySql.Data.dll')" />
+    </ItemGroup>
+    <Message Text="[mysql.csproj] Syncing provider deps to KonvergenceCore bin: $(KCBinDir)" Importance="high" Condition="Exists('$(KCBinDir)')" />
+    <Copy SourceFiles="@(ProviderRuntimeDlls)"
+          DestinationFolder="$(KCBinDir)"
+          SkipUnchangedFiles="true"
+          Condition="Exists('$(KCBinDir)')" />
+    <Message Text="[mysql.csproj] WARNING: KonvergenceCore bin not found at '$(KCBinDir)' — build KonvergenceCore first, then re-build mysql to sync." Importance="high" Condition="!Exists('$(KCBinDir)')" />
+  </Target>
 
   <ItemGroup>
     <PackageReference Include="MySql.Data" Version="9.0.0" />

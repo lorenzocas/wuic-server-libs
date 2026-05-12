@@ -5,6 +5,7 @@
     "KonvergenceCore/wwwroot/my-workspace",
     "WuicTest/wwwroot",
     "CrmApp/wwwroot",
-    "FatturazioneElettronica/wwwroot"
+    "FatturazioneElettronica/wwwroot",
+    "FlottaMezzi/wwwroot"
   ]
 }
