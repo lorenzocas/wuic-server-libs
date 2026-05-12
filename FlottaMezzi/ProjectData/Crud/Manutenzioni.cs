@@ -1,0 +1,87 @@
+using System;
+using System.Collections.Generic;
+using System.Text;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
+using metaModelRaw;
+using WEB_UI_CRAFTER.Helpers;
+using WEB_UI_CRAFTER.ProjectData.Servizi;
+
+namespace WEB_UI_CRAFTER.ProjectData.Crud;
+
+/// <summary>
+/// Handler CRUD per route 'manutenzioni'.
+/// Validazione km_alla_manutenzione vs km_attuali del mezzo associato.
+/// </summary>
+public class Manutenzioni : ICrudRouteHandler
+{
+    public string RouteName => "manutenzioni";
+    public IReadOnlyCollection<string> RouteAliases => Array.Empty<string>();
+    public int Priority => 10;
+    public bool Enabled => true;
+
+    public void Initialize(IServiceProvider? serviceProvider) { }
+
+    public void OnError(string hookName, Exception exception) { }
+
+    public void beforeInsert(string route, Dictionary<string, object> entity, string userId)
+    {
+        ValidateKm(entity, isInsert: true);
+    }
+
+    public void beforeUpdate(string route, Dictionary<string, object> entity, string userId)
+    {
+        ValidateKm(entity, isInsert: false);
+    }
+
+    public void beforeDelete(string route, Dictionary<string, object> entity, string userId) { }
+    public void beforeRestore(string route, Dictionary<string, object> entity, string userId) { }
+
+    public void customizeInsert(ref string query, string route, Dictionary<string, object> entity, string userId) { }
+    public void customizeUpdate(ref string query, string route, Dictionary<string, object> entity, string userId) { }
+    public void customizeDelete(ref string query, string route, Dictionary<string, object> entity, string userId) { }
+    public void customizeRestore(ref string query, string route, Dictionary<string, object> entity, string userId) { }
+
+    public void afterInsert(string route, Dictionary<string, object> entity, string userId) { }
+    public void afterUpdate(string route, Dictionary<string, object> entity, string userId) { }
+    public void afterDelete(string route, Dictionary<string, object> entity, string userId) { }
+    public void afterRestore(string route, Dictionary<string, object> entity, string userId) { }
+
+    public void customizeSelect(ref string selectFields, ref string joinClause, ref string whereClause,
+        ref string orderByClause, user utente, _Metadati_Tabelle tableMetadata, ref string customSelectClause,
+        string parentRoute = "", SerializableDictionary<string, object> currentRecord = default!,
+        FilterInfos filterInfo = default!, List<SortInfo> sortInfo = default!, PageInfo pageInfo = default!) { }
+
+    public void customizeCountSelect(ref string selectFields, ref string joinClause, ref string whereClause,
+        ref string orderByClause, user utente, _Metadati_Tabelle tableMetadata, ref string safeTableName,
+        ref string customCount, FilterInfos filterInfo = default!, List<SortInfo> sortInfo = default!,
+        PageInfo pageInfo = default!) { }
+
+    public bool customizeExcelField(string fieldName, string routeName, string type, dynamic metaInfo,
+        SpreadsheetDocument spreadsheet, Worksheet worksheet, uint columnIndex, uint rowIndex, object value) => false;
+
+    public Cell customizeExcelFieldCell(string fieldName, string routeName, string type, dynamic metaInfo,
+        uint columnIndex, uint rowIndex, object value, uint defaultStyleIndex) => null;
+
+    public void customizeRowImport(string routeName, dynamic metaInfo, Dictionary<string, object> record,
+        uploadOptions uploadOption, long recordCounter, string fileName, StringBuilder log) { }
+
+    /// <summary>
+    /// Lancia eccezione se km_alla_manutenzione e' impostato e supera 10x i km
+    /// attuali (anomalia tipografica). Non blocca se km_alla_manutenzione e' NULL.
+    /// </summary>
+    private static void ValidateKm(Dictionary<string, object> entity, bool isInsert)
+    {
+        if (!entity.TryGetValue("km_alla_manutenzione", out var kmObj) || kmObj == null)
+            return;
+        if (!int.TryParse(kmObj.ToString(), out var km)) return;
+        if (km < 0)
+        {
+            throw new ArgumentException("km_alla_manutenzione non puo' essere negativo");
+        }
+        if (km > 5_000_000)
+        {
+            throw new ArgumentException($"km_alla_manutenzione={km} non plausibile (max 5.000.000)");
+        }
+    }
+}

@@ -1,0 +1,80 @@
+{
+  "config": {
+    "baseUrl": "http://localhost:4200",
+    "backendBaseUrl": "http://localhost:5100",
+    "user": "admin_test",
+    "password": "Test123!",
+    "apiUser": "admin_test_2",
+    "apiPassword": "Test123!",
+    "filter": "^(0[8]|1[1-5])",
+    "bail": false,
+    "headed": false,
+    "outDir": "C:\\src\\Wuic\\FlottaMezzi\\playwright\\screenshots"
+  },
+  "results": [
+    {
+      "file": "08-dashboard-home-render.mjs",
+      "id": "08",
+      "name": "Dashboard render: home",
+      "status": "pass",
+      "out": {
+        "tiles": 2
+      },
+      "durationMs": 2174
+    },
+    {
+      "file": "11-permessi-readonly.mjs",
+      "id": "11",
+      "name": "Permessi readonly: insert mezzi NEGATO",
+      "status": "pass",
+      "out": {
+        "denied": true
+      },
+      "durationMs": 123
+    },
+    {
+      "file": "12-dashboard-mezzi-mappa-render.mjs",
+      "id": "12",
+      "name": "Dashboard render: mezzi_mappa (map)",
+      "status": "pass",
+      "out": {
+        "hasMap": 0
+      },
+      "durationMs": 2428
+    },
+    {
+      "file": "13-dashboard-aging-render.mjs",
+      "id": "13",
+      "name": "Dashboard render: aging_scadenze",
+      "status": "pass",
+      "out": {
+        "tiles": 1
+      },
+      "durationMs": 1736
+    },
+    {
+      "file": "14-dashboard-costi-forecast-render.mjs",
+      "id": "14",
+      "name": "Dashboard render: costi_forecast",
+      "status": "pass",
+      "out": {
+        "tiles": 2
+      },
+      "durationMs": 2050
+    },
+    {
+      "file": "15-dashboard-top-mezzi-render.mjs",
+      "id": "15",
+      "name": "Dashboard render: top_mezzi",
+      "status": "pass",
+      "out": {
+        "tiles": 2
+      },
+      "durationMs": 2059
+    }
+  ],
+  "pass": 6,
+  "fail": 0,
+  "total": 6,
+  "runAt": "2026-05-09T16:17:09.748Z"
+}

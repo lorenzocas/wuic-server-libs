@@ -1,0 +1,7 @@
+{
+  "Db": "FatturazioneElettronica_Data",
+  "Table": "email_template",
+  "Column": "body_html",
+  "Count": 4,
+  "Samples": "<p>Gentile {{cliente.ragione_sociale}},</p>\n<p>in allegato la fattura n. <strong | <p>Gentile {{cliente.ragione_sociale}},</p>\n<p>verifichiamo che la fattura <stro | <p>Spettabile {{cliente.ragione_sociale}},</p>\n<p>la fattura <strong>n. {{numero"
+}

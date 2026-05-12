@@ -1,0 +1,9 @@
+﻿{
+  "archetypes": {
+    "map": {
+      "advancedFilter": true,
+      "center": null,
+      "zoom": 8
+    }
+  }
+}
