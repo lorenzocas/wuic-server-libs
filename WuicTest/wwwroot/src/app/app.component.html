@@ -18,6 +18,11 @@
             <ng-container *ngIf="metaMenuComponent" [ngComponentOutlet]="metaMenuComponent"></ng-container>
         </div>
         @if (showRightHeaderBlock) {
+        <!-- Multi-tenant azienda switcher: widget standalone self-contained.
+             Visibilita' gestita internamente al widget (early-return per non-
+             superadmin / flag off) via `:host([hidden])`. Nessun wrapper
+             esterno: l'host element collassa interamente quando non applicabile. -->
+        <wuic-azienda-switcher></wuic-azienda-switcher>
         <div class="app-shell-theme">
             <div class="app-shell-theme-card border-1 border-300 border-round p-3 surface-100 shadow-2">
                 <div class="app-shell-theme-select mb-2">

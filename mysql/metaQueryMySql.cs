@@ -648,11 +648,47 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
             string connectionString = null;
             MySqlConnection connection;
 
+            // Multi-tenant: i nomi standard sono alias del default → applichiamo
+            // comunque il tenant routing. Mirror della MSSQL.
+            bool isDefaultName = !string.IsNullOrEmpty(connectionName)
+                && (string.Equals(connectionName, "MetaDataSQLConnection", System.StringComparison.OrdinalIgnoreCase)
+                 || string.Equals(connectionName, "DataSQLConnection", System.StringComparison.OrdinalIgnoreCase));
+
             if (string.IsNullOrEmpty(connectionString))
             {
-                if (string.IsNullOrEmpty(connectionName))
+                if (string.IsNullOrEmpty(connectionName) || isDefaultName)
                 {
                     connectionString = ConfigHelper.ResolveConnectionString(isMetaDataQuery ? "MetaDataSQLConnection" : "DataSQLConnection");
+
+                    // -------------------------------------------------------
+                    // Multi-tenant routing (flag-gated, opt-in).
+                    // Specchio del blocco MSSQL in `metaQuery.GetOpenConnection`.
+                    // Quando attivo e c'e' un tenant valido in `TenantScope` o
+                    // sull'utente passato, sostituisce la connection string
+                    // default con quella dell'azienda da `aziende_connessioni`
+                    // (lookup eseguito sempre sul DB primario via
+                    // `MultiTenantHelpers` per evitare ricorsione).
+                    // -------------------------------------------------------
+                    if (WEB_UI_CRAFTER.Helpers.MultiTenantHelpers.IsMultiConnectionEnabled())
+                    {
+                        int idAzienda = 0;
+                        if (u != null && u.has_azienda_id && u.azienda_id > 0)
+                        {
+                            idAzienda = u.azienda_id;
+                        }
+                        else
+                        {
+                            idAzienda = TenantScope.CurrentAziendaId;
+                        }
+
+                        if (idAzienda > 0)
+                        {
+                            string tenantCs = WEB_UI_CRAFTER.Helpers.MultiTenantHelpers
+                                .ResolveTenantConnectionString(idAzienda, isMetaDataQuery);
+                            if (!string.IsNullOrWhiteSpace(tenantCs))
+                                connectionString = tenantCs;
+                        }
+                    }
                 }
                 else
                 {
@@ -704,6 +740,27 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                 throw new Exception("Connection string not defined. Please install first!");
 
             return new MySqlConnection(connectionString);
+        }
+
+        /// <summary>
+        /// Apre una connection MySQL gia' opened sulla connection string LETTERALE
+        /// passata. Specchio di <c>metaQuery.OpenConnectionToConnectionString</c>
+        /// (MSSQL). Diversamente da <see cref="CreateOpenConnection(string)"/>
+        /// (che NON apre nonostante il nome) questa funzione chiama <c>Open()</c>
+        /// e ritorna la connection pronta all'uso, simmetrica al wrapper MSSQL.
+        ///
+        /// Esposta al csproj KonvergenceCore via <c>MySqlProviderGateway</c> +
+        /// reflection — l'istanziazione concreta di <see cref="MySqlConnection"/>
+        /// resta confinata in questo assembly satellite (nessuna fuga del
+        /// NuGet <c>MySql.Data</c> verso il main project).
+        /// </summary>
+        public static DbConnection OpenConnectionToConnectionString(string connectionString)
+        {
+            if (string.IsNullOrWhiteSpace(connectionString))
+                throw new Exception("Connection string not defined.");
+            var conn = new MySqlConnection(connectionString);
+            conn.Open();
+            return conn;
         }
 
         public static void ExecuteMySqlScript(DbConnection connection, string script)

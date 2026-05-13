@@ -37,7 +37,7 @@ import {
   PRIMARY_PALETTES, ThemeOption, LicenseFeatureService
 } from './wuic-bridges/core';
 import { ImageWrapperComponent } from './wuic-bridges/ui';
-import { WuicRagChatbotFabComponent, LazyFirstRunWizardComponent, WuicErrorDialogComponent } from './wuic-bridges/public';
+import { WuicRagChatbotFabComponent, LazyFirstRunWizardComponent, WuicErrorDialogComponent, WuicAziendaSwitcherComponent } from './wuic-bridges/public';
 import { CustomListComponent } from './component/custom-list/custom-list.component';
 
 @Component({
@@ -46,7 +46,7 @@ import { CustomListComponent } from './component/custom-list/custom-list.compone
     CommonModule, RouterOutlet, NgComponentOutlet, ToggleSwitchModule, SelectModule,
     FormsModule, DialogModule, ButtonModule, TranslateModule, TooltipModule, ToastModule,
     ConfirmDialogModule, FieldsetModule, WuicRagChatbotFabComponent, LazyFirstRunWizardComponent,
-    WuicErrorDialogComponent,
+    WuicErrorDialogComponent, WuicAziendaSwitcherComponent,
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
