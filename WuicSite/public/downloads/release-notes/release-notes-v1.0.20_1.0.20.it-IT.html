@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Release Notes v1.0.20_1.0.20 - WUIC Framework</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; color: #1e293b; background: #ffffff; line-height: 1.6; overflow-wrap: anywhere; word-wrap: break-word; }
+a { color: #6366f1; text-decoration: none; }
+a:hover { color: #4f46e5; text-decoration: underline; }
+
+/* Site-style header (mini-navbar) */
+.rn-header { background: rgba(255, 255, 255, 0.95); border-bottom: 1px solid #e2e8f0; backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 10; }
+.rn-header-inner { max-width: 1200px; margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.rn-brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: #0f172a; font-size: 1.15rem; }
+.rn-brand-bolt { display: inline-block; width: 24px; height: 24px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M13 2L3 14h7l-1 8 10-12h-7l1-8z'/></svg>") center/contain no-repeat; mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M13 2L3 14h7l-1 8 10-12h-7l1-8z'/></svg>") center/contain no-repeat; }
+.rn-back { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border: 1px solid #c7d2fe; border-radius: 6px; color: #4f46e5; background: #eef2ff; font-size: 0.9rem; transition: background 0.15s, border-color 0.15s; }
+.rn-back:hover { background: #e0e7ff; border-color: #a5b4fc; text-decoration: none; }
+
+/* Article container: same width as Site .container */
+.rn-article { max-width: 880px; margin: 0 auto; padding: 48px 24px 80px; }
+
+/* Headings: site palette */
+h1, h2, h3, h4 { color: #0f172a; line-height: 1.25; font-weight: 700; }
+h1 { font-size: 2rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; margin-bottom: 1.25rem; }
+h2 { font-size: 1.4rem; margin-top: 2.25rem; margin-bottom: 0.75rem; }
+h3 { font-size: 1.125rem; margin-top: 1.5rem; margin-bottom: 0.5rem; color: #334155; }
+
+p { margin: 0.75rem 0; color: #334155; }
+strong { color: #0f172a; font-weight: 600; }
+
+ul, ol { padding-left: 1.4rem; margin: 0.75rem 0; }
+li { margin: 0.25rem 0; color: #334155; }
+
+hr { border: 0; border-top: 1px solid #e2e8f0; margin: 2.5rem 0; }
+
+/* Inline code: tinta indigo che richiama il brand */
+code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.9em; }
+code { background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; padding: 0.1em 0.4em; border-radius: 4px; word-break: break-word; }
+pre { background: #f8fafc; border: 1px solid #e2e8f0; padding: 1rem 1.25rem; border-radius: 8px; overflow-x: auto; max-width: 100%; margin: 1rem 0; }
+pre code { background: transparent; color: #1e293b; border: 0; padding: 0; word-break: normal; }
+
+/* Tables: scrollabili, header indigo-tint */
+.table-wrap { overflow-x: auto; max-width: 100%; margin: 1.25rem 0; border: 1px solid #e2e8f0; border-radius: 8px; }
+table { border-collapse: collapse; width: max-content; min-width: 100%; background: #ffffff; }
+th, td { border-bottom: 1px solid #e2e8f0; padding: 0.65rem 0.95rem; text-align: left; vertical-align: top; font-size: 0.95rem; }
+th { background: #f8fafc; color: #0f172a; font-weight: 600; border-bottom-color: #cbd5e1; }
+tr:last-child td { border-bottom: 0; }
+td { color: #334155; }
+
+/* Blockquote: brand accent */
+blockquote { border-left: 3px solid #6366f1; margin: 1.25rem 0; padding: 0.6rem 1.1rem; color: #475569; background: #eef2ff; border-radius: 0 6px 6px 0; }
+blockquote p { color: #475569; }
+
+img { max-width: 100%; height: auto; border-radius: 6px; }
+</style>
+<script>
+// Wrap tables post-render in scroll container (markdown converter emits raw <table>).
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('table').forEach(t => {
+    if (t.parentElement && t.parentElement.classList.contains('table-wrap')) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+});
+</script>
+</head>
+<body>
+<header class="rn-header">
+  <div class="rn-header-inner">
+    <a href="/" class="rn-brand"><span class="rn-brand-bolt"></span><span>WUIC</span></a>
+    <a href="/downloads" class="rn-back">&larr; Torna ai download</a>
+  </div>
+</header>
+<article class="rn-article">
+<h1 id="release-notes-wuic-framework-v1.0.20">Release Notes — WUIC Framework v1.0.20</h1>
+<p><strong>Data</strong>: 12 maggio 2026
+<strong>Versione precedente pubblicata</strong>: 1.0.19 (4 maggio 2026)
+<strong>Backend</strong>: .NET 10 + IIS / Linux nginx
+<strong>Frontend</strong>: Angular 21</p>
+<hr />
+<p>Release di consolidamento dopo la 1.0.19, focalizzata su bug fix con impact diretto su editor e visualizzazione (INSERT con trigger <code>INSTEAD OF</code>, campi numerici azzerati al blur, calendar vuoto alla prima navigazione, preservazione SQL custom nei report) e su un giro di allineamento del componente mappa alle nuove API Google Maps: completamento delle opzioni dell'archetype <code>map</code>, migrazione a <code>Routes API</code> per lo snap-to-roads, rimozione della dipendenza dalla drawing library deprecata.</p>
+<hr />
+<h2 id="bug-fix-degni-di-nota">🐛 Bug fix degni di nota</h2>
+<ul>
+<li><strong>INSERT con trigger <code>INSTEAD OF</code></strong>: tabelle con trigger <code>INSTEAD OF INSERT</code> perdevano il PK ritornato dallo statement esterno (<code>OUTPUT INSERTED.&lt;pk&gt;</code> ritornava <code>0</code> o NULL perché il trigger dirottava l'INSERT). Fix: la INSERT generata da <code>_Metadati_methods</code> usa ora una table variable (<code>@__inserted_pk</code> con <code>OUTPUT ... INTO</code>) come canale primario e fallback a <code>IDENT_CURRENT('&lt;table&gt;')</code> quando il trigger consuma lo statement. Risolve anche il SQL Server msg 334 (<code>OUTPUT INSERTED</code> senza <code>INTO</code> non è ammesso su tabelle con trigger abilitati).</li>
+<li><strong>field-editor number — reset a 0 al blur</strong>: quando la colonna metadata aveva <code>mc_min_value</code> o <code>mc_max_value</code> valorizzati, il campo numerico veniva azzerato al blur invece di mantenere il valore digitato. Il guard di range scattava prima del round-trip di parsing, leggendo un valore intermedio non-numerico e collassando a 0. Comportamento corretto: il valore viene confermato e clampato sui limiti solo se effettivamente fuori range, altrimenti resta invariato.</li>
+<li><strong>Archetype <code>map</code> — opzioni completate</strong>: l'archetype del componente mappa ha tre nuove proprietà che chiudono gap UX comuni:
+<ul>
+<li><code>polyline</code> — overlay polyline per tracciamento percorsi (record GPS storicizzati). Raggruppamento per campo (<code>groupByField</code>), ordinamento (<code>orderByField</code>), colore per record/per gruppo, opzionale snap-to-roads, dots waypoint distinti dal path interpolato.</li>
+<li><code>clickableIcons</code> — pass-through a <code>google.maps.MapOptions.clickableIcons</code>. Quando <code>false</code>, Google Maps non apre la propria info window built-in sui POI (negozi, fermate, indirizzi), che altrimenti intercettava i click destinati ai marker custom dell'app.</li>
+<li><code>markerColorField</code> — colore del <code>PinElement</code> letto da un campo del record (CSS <code>#rrggbb</code>). Ignorato se il record ha già una <code>customMarkerImageSrcField</code> valorizzata (immagine/SVG ha precedenza).</li>
+</ul>
+</li>
+<li><strong>Google Maps Directions API — deprecato</strong>: <code>DirectionsService</code> è deprecato a partire dal 2026-02-25. Lo snap-to-roads delle polyline usa ora la nuova Routes API (<code>google.maps.routes.Route.computeRoutes</code>), con fallback automatico a <code>DirectionsService</code> legacy (funzionante fino al 2027-02-25) per key non ancora migrate. Travel mode legacy → routes mapping invariato (<code>DRIVING</code>/<code>WALKING</code>/<code>BICYCLING</code>). Batching automatico a 25 waypoint per chiamata.</li>
+<li><strong>Google Maps Drawing API — rimosso</strong>: la drawing library (<code>google.maps.drawing</code>) è deprecata dal 2025-08 e rimossa nelle versioni di Maps JavaScript API rilasciate da maggio 2026. La logica <code>DrawingManager</code> su <code>MapListComponent</code> era solo <code>console.log</code> stub (nessuna feature reale di disegno persistita) ed è stata rimossa. <code>PointFilterComponent</code> (filtro geo per area/cerchio nelle list-grid) è stato riscritto con click+mousemove handler manuali — stessa UX (poligono via click multipli, cerchio via centro+raggio, chiusura dblclick), indipendente dalla libreria deprecata.</li>
+<li><strong>Report — preservazione query SQL custom via sentinel <code>__autogenerated</code></strong>: i report con SQL custom che alias-avano colonne non registrate nei metadata perdevano join/colonne perché la dynamic query auto-generata sovrascriveva la query utente. Fix cross-DBMS (MSSQL, MySQL, PostgreSQL, Oracle): ogni SELECT auto-generato inserisce ora <code>1 AS [__autogenerated]</code> come prima colonna; la pipeline metadata riconosce il token a runtime e preserva la query custom quando il sentinel <strong>non</strong> è presente. Permette layout Stimulsoft che leggono colonne non registrate come metadata (tipico in template fatturazione/PEC dove il SQL deriva colonne computed).</li>
+<li><strong>Calendar — eventi non visibili alla prima navigazione</strong>: <code>&lt;wuic-scheduler-list&gt;</code> mostrava un calendario vuoto quando l'utente navigava direttamente a <code>#/&lt;route&gt;/scheduler</code> (l'inizializzazione di FullCalendar avveniva con <code>data=[]</code> prima della risposta async; un F5 lo popolava perché la cache di sessione consegnava i dati prima del mount). Fix: sincronizzazione esplicita degli eventi via API (<code>removeAllEvents()</code> + <code>addEvent()</code>) dopo il render del calendario, bypassando il binding <code>[events]=&quot;data&quot;</code> non affidabile del wrapper FullCalendar 6.x Angular su update post-mount.</li>
+</ul>
+<hr />
+<h2 id="pacchetti-aggiornati">📦 Pacchetti aggiornati</h2>
+<table>
+<thead>
+<tr>
+<th>Package</th>
+<th>Da</th>
+<th>A</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WuicCore</td>
+<td>1.0.19</td>
+<td>1.0.20</td>
+</tr>
+<tr>
+<td>Wuic.Webcore</td>
+<td>1.0.19</td>
+<td>1.0.20</td>
+</tr>
+<tr>
+<td>WuicOData</td>
+<td>1.0.19</td>
+<td>1.0.20</td>
+</tr>
+<tr>
+<td>RuntimeEfCore</td>
+<td>1.0.19</td>
+<td>1.0.20</td>
+</tr>
+<tr>
+<td>wuic-framework-lib (NPM)</td>
+<td>1.0.19</td>
+<td>1.0.20</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="aggiornamenti-operativi-raccomandati-per-chi-aggiorna">🔧 Aggiornamenti operativi raccomandati per chi aggiorna</h2>
+<ol>
+<li>Eseguire <code>dotnet ef database update</code> se si è su EF migrations.</li>
+<li>Se si usa lo snap-to-roads sulle polyline mappa: verificare che la propria Google Maps API key abbia la <strong>Routes API</strong> abilitata oltre alla Directions API. Senza Routes API il framework cade sul legacy <code>DirectionsService</code>, che continua a funzionare ma è in finestra di deprecation (sunset 2027-02-25).</li>
+<li>Se si dipendeva dalla drawing toolbar standard di <code>MapListComponent</code> (zero use case noti, gli handler erano stub): la toolbar è stata rimossa. Nessuna azione richiesta per i filtri geo nelle list-grid — <code>PointFilterComponent</code> mantiene la stessa UX con implementazione interna.</li>
+<li>Per usare il nuovo overlay polyline su una route mappa: aggiungere a <code>md_props_bag.archetypes.map.polyline</code> la configurazione <code>{ enabled: true, groupByField, orderByField, ... }</code> via designer o patch metadata.</li>
+</ol>
+
+</article>
+</body>
+</html>

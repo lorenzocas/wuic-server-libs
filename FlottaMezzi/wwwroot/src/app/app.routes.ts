@@ -21,6 +21,22 @@ export const appRoutes: Routes = [
     }
   },
 
+  // ──────── Manuale applicativo (HTML statico in iframe) ────────
+  // Wrapper Angular standalone (manuale-viewer.component.ts) che renderizza
+  // /assets/manuale.html in iframe full-viewport + topbar con link
+  // "apri in nuova scheda" / "scarica". L'URL e' marcato come trusted
+  // resource via DomSanitizer (asset same-origin, no input utente).
+  // Voce di menu corrispondente: _metadati__menu con mm_uri_menu='#/manuale'.
+  {
+    path: 'manuale',
+    loadComponent: () => import('./component/manuale-viewer/manuale-viewer.component')
+      .then((m) => m.ManualeViewerComponent),
+    data: {
+      breadcrumbs: 'manuale',
+      description: 'Manuale d\'uso e configurazione di FlottaMezzi.'
+    }
+  },
+
   // ──────── Route framework metadata-driven (auto-resolve) ────────
   ...wuicRoutes
 ];

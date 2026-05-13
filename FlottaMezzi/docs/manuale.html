@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlottaMezzi — Manuale d'uso e configurazione</title>
+<style>
+  :root {
+    --bg: linear-gradient(145deg, #f7f9ff 0%, #edf3ff 40%, #fefbf4 100%);
+    --panel: rgba(255, 255, 255, 0.86);
+    --text: #18304a;
+    --muted: #4d6278;
+    --accent: #0d6efd;
+    --accent-soft: rgba(13, 110, 253, 0.12);
+    --border: #dce7fb;
+    --code-bg: #f1f5fb;
+    --code-border: #d6e1f5;
+    --table-stripe: rgba(13, 110, 253, 0.04);
+    --warn-bg: #fff8e5;
+    --warn-border: #f5d77a;
+    --warn-text: #6a4c00;
+    --tip-bg: #e6f7ed;
+    --tip-border: #8fd1a9;
+    --tip-text: #1d6b3a;
+  }
+  [data-theme="dark"] {
+    --bg: linear-gradient(145deg, #121b2a 0%, #0f2233 55%, #222134 100%);
+    --panel: rgba(22, 35, 55, 0.92);
+    --text: #dbe8ff;
+    --muted: #9eb4d2;
+    --accent: #7eb2ff;
+    --accent-soft: rgba(126, 178, 255, 0.18);
+    --border: #294869;
+    --code-bg: #18293f;
+    --code-border: #2a4569;
+    --table-stripe: rgba(126, 178, 255, 0.06);
+    --warn-bg: #3a2f0e;
+    --warn-border: #876a1c;
+    --warn-text: #ffe19a;
+    --tip-bg: #143524;
+    --tip-border: #2d6a48;
+    --tip-text: #a3e1be;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .sidebar {
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    backdrop-filter: blur(10px);
+    padding: 22px 18px 28px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+  .brand {
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .brand h1 {
+    margin: 0;
+    font-size: 1.2rem;
+    color: var(--accent);
+  }
+  .brand p {
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-size: 0.86rem;
+  }
+  .theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 12px;
+    padding: 6px 10px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 500;
+    user-select: none;
+  }
+  .theme-toggle:hover {
+    background: var(--accent);
+    color: white;
+  }
+  .nav h3 {
+    margin: 18px 0 8px;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    font-weight: 600;
+  }
+  .nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 6px;
+  }
+  .nav li { margin: 0; }
+  .nav a {
+    display: block;
+    padding: 7px 12px;
+    border-radius: 8px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 0.92rem;
+    transition: background 0.15s;
+  }
+  .nav a:hover,
+  .nav a.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .content {
+    overflow-y: auto;
+    padding: 32px 44px 80px;
+    scrollbar-width: thin;
+  }
+  .content > section {
+    max-width: 920px;
+    margin: 0 auto 36px;
+  }
+  h1.title {
+    font-size: 2rem;
+    margin: 0 0 4px;
+    color: var(--text);
+  }
+  .subtitle {
+    color: var(--muted);
+    margin: 0 0 28px;
+    font-size: 1rem;
+  }
+  h2 {
+    margin: 36px 0 14px;
+    font-size: 1.5rem;
+    color: var(--accent);
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--border);
+    scroll-margin-top: 20px;
+  }
+  h3 {
+    margin: 24px 0 10px;
+    font-size: 1.15rem;
+    color: var(--text);
+    scroll-margin-top: 20px;
+  }
+  h4 {
+    margin: 18px 0 8px;
+    font-size: 1.02rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+  }
+  p { margin: 0 0 12px; }
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.88em;
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    color: var(--accent);
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-size: 0.85rem;
+    line-height: 1.55;
+  }
+  pre code {
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: var(--text);
+    font-size: inherit;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 14px 0;
+    background: var(--panel);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  th, td {
+    text-align: left;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+    vertical-align: top;
+  }
+  th {
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  tbody tr:nth-child(even) { background: var(--table-stripe); }
+  tbody tr:last-child td { border-bottom: none; }
+  ul, ol { margin: 8px 0 14px; padding-left: 24px; }
+  li { margin: 4px 0; }
+  .callout {
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 14px 0;
+    border-left: 4px solid var(--accent);
+    background: var(--accent-soft);
+  }
+  .callout.warn {
+    background: var(--warn-bg);
+    border-left-color: var(--warn-border);
+    color: var(--warn-text);
+  }
+  .callout.tip {
+    background: var(--tip-bg);
+    border-left-color: var(--tip-border);
+    color: var(--tip-text);
+  }
+  .callout-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+    font-size: 0.92rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .role-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .role-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .role-card .role-name {
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .role-card .role-desc {
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .kbd {
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-family: monospace;
+    font-size: 0.82em;
+    color: var(--text);
+  }
+  hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 28px 0;
+  }
+  a { color: var(--accent); }
+  a:hover { text-decoration: underline; }
+  .anchor-link {
+    text-decoration: none;
+    color: var(--muted);
+    opacity: 0;
+    transition: opacity 0.15s;
+    margin-left: 6px;
+    font-size: 0.7em;
+  }
+  h2:hover .anchor-link, h3:hover .anchor-link { opacity: 1; }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { position: sticky; top: 0; max-height: 40vh; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="sidebar">
+  <div class="brand">
+    <h1>FlottaMezzi</h1>
+    <p>Manuale d'uso e configurazione</p>
+    <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode">
+      <span id="themeIcon">🌙</span> <span id="themeLabel">Dark</span>
+    </button>
+  </div>
+
+  <nav class="nav">
+    <h3>Introduzione</h3>
+    <ul>
+      <li><a href="#overview">Panoramica</a></li>
+      <li><a href="#stack">Stack tecnologico</a></li>
+      <li><a href="#quickstart">Avvio rapido</a></li>
+    </ul>
+
+    <h3>Configurazione</h3>
+    <ul>
+      <li><a href="#appsettings">appsettings.json</a></li>
+      <li><a href="#db-connections">Connessioni DB</a></li>
+      <li><a href="#google-maps">Google Maps API</a></li>
+      <li><a href="#scheduler-config">Scheduler</a></li>
+      <li><a href="#setup-iniziale">Setup iniziale</a></li>
+    </ul>
+
+    <h3>Ruoli e accesso</h3>
+    <ul>
+      <li><a href="#ruoli">Ruoli applicativi</a></li>
+      <li><a href="#utenti-seed">Utenti di prova</a></li>
+      <li><a href="#permessi">Permessi metadata</a></li>
+    </ul>
+
+    <h3>Anagrafiche</h3>
+    <ul>
+      <li><a href="#mezzi">Mezzi</a></li>
+      <li><a href="#conducenti">Conducenti</a></li>
+      <li><a href="#manutenzioni">Manutenzioni</a></li>
+      <li><a href="#rifornimenti">Rifornimenti</a></li>
+      <li><a href="#contratti">Contratti assicurativi</a></li>
+      <li><a href="#revisioni">Revisioni</a></li>
+      <li><a href="#sinistri">Sinistri</a></li>
+      <li><a href="#lookup">Tabelle lookup</a></li>
+    </ul>
+
+    <h3>Cruscotto</h3>
+    <ul>
+      <li><a href="#dash-home">Home</a></li>
+      <li><a href="#dash-mappa">Mezzi sulla mappa</a></li>
+      <li><a href="#dash-aging">Aging scadenze</a></li>
+      <li><a href="#dash-forecast">Forecast costi</a></li>
+      <li><a href="#dash-top">Top mezzi</a></li>
+    </ul>
+
+    <h3>Automazioni</h3>
+    <ul>
+      <li><a href="#triggers">Trigger DB</a></li>
+      <li><a href="#crud-hooks">Hook CRUD</a></li>
+      <li><a href="#scheduler-jobs">Job schedulati</a></li>
+    </ul>
+
+    <h3>API custom</h3>
+    <ul>
+      <li><a href="#api-geolocation">Geolocation</a></li>
+      <li><a href="#api-reporting">Reporting</a></li>
+      <li><a href="#api-jobs">Jobs interni</a></li>
+      <li><a href="#api-actions">Actions toolbar</a></li>
+    </ul>
+
+    <h3>Personalizzazione</h3>
+    <ul>
+      <li><a href="#marker-custom">Marker mezzi</a></li>
+      <li><a href="#stili-condizionali">Stili condizionali</a></li>
+      <li><a href="#suggest">Suggest fields</a></li>
+    </ul>
+
+    <h3>Operations</h3>
+    <ul>
+      <li><a href="#backup">Backup e restore</a></li>
+      <li><a href="#troubleshooting">Troubleshooting</a></li>
+      <li><a href="#changelog">Note di versione</a></li>
+    </ul>
+  </nav>
+</aside>
+
+<main class="content">
+
+<section id="overview">
+  <h1 class="title">FlottaMezzi</h1>
+  <p class="subtitle">Applicazione WUIC per la gestione completa di una flotta di veicoli aziendali — anagrafiche, manutenzione, rifornimenti, scadenze documentali, geolocalizzazione e reportistica.</p>
+
+  <h2>Panoramica<a class="anchor-link" href="#overview">#</a></h2>
+  <p>FlottaMezzi è un'applicazione costruita sul framework WUIC (metadata-driven) che copre l'intero ciclo di vita di un parco mezzi:</p>
+  <ul>
+    <li><strong>Anagrafiche</strong> di mezzi, conducenti, contratti assicurativi.</li>
+    <li><strong>Operatività quotidiana</strong>: registrazione rifornimenti, manutenzioni, revisioni periodiche, sinistri.</li>
+    <li><strong>Monitoraggio scadenze</strong>: patenti, assicurazioni, revisioni — con notifiche bell e alert visivi.</li>
+    <li><strong>Geolocalizzazione</strong> dei mezzi su mappa Google Maps con tracciamento posizione storica e polyline percorso.</li>
+    <li><strong>Reportistica</strong> e dashboard analitiche (aging scadenze, forecast costi, classifica mezzi per costo/km).</li>
+    <li><strong>Multi-ruolo</strong>: admin, gestore flotta, autista, meccanico, sola lettura.</li>
+  </ul>
+
+  <h2 id="stack">Stack tecnologico<a class="anchor-link" href="#stack">#</a></h2>
+  <table>
+    <thead><tr><th>Componente</th><th>Tecnologia</th></tr></thead>
+    <tbody>
+      <tr><td>Backend</td><td>.NET 9 (ASP.NET Core), framework WUIC</td></tr>
+      <tr><td>Frontend</td><td>Angular 19 + PrimeNG (libreria <code>wuic-framework-lib</code>)</td></tr>
+      <tr><td>Database</td><td>SQL Server (istanza locale o remota)</td></tr>
+      <tr><td>Mappe</td><td>Google Maps JavaScript API + Routes API</td></tr>
+      <tr><td>Test E2E</td><td>Playwright (suite <code>FlottaMezzi/playwright/</code>)</td></tr>
+      <tr><td>Auth</td><td>Cookie-based (<code>k-user</code>) con sessione lato server</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="quickstart">Avvio rapido<a class="anchor-link" href="#quickstart">#</a></h2>
+  <ol>
+    <li>Verificare che esistano i due database <code>FlottaMezzi_Metadata</code> e <code>FlottaMezzi_Data</code> sull'istanza SQL Server configurata.</li>
+    <li>Avviare il backend: <code>dotnet run</code> da <code>C:\src\Wuic\FlottaMezzi</code>.</li>
+    <li>Avviare il frontend (dev): <code>npm run serve:npm</code> da <code>C:\src\Wuic\FlottaMezzi\wwwroot</code>.</li>
+    <li>Aprire <a href="http://localhost:4200">http://localhost:4200</a> e fare login con <code>admin / admin</code> (o uno degli utenti seed di test).</li>
+  </ol>
+</section>
+
+<hr>
+
+<section id="appsettings">
+  <h2>Configurazione — <code>appsettings.json</code><a class="anchor-link" href="#appsettings">#</a></h2>
+  <p>I file di configurazione principali sono:</p>
+  <table>
+    <thead><tr><th>File</th><th>Quando si usa</th></tr></thead>
+    <tbody>
+      <tr><td><code>appsettings.json</code></td><td>Base, caricato sempre. Contiene valori di default.</td></tr>
+      <tr><td><code>appsettings.Development.json</code></td><td>Override per ambiente Development (locale). <strong>Mai committare segreti reali</strong>.</td></tr>
+      <tr><td><code>appsettings.mssql.json</code> / <code>appsettings.mysql.json</code></td><td>Override per provider DBMS specifico.</td></tr>
+    </tbody>
+  </table>
+
+  <h3 id="db-connections">Connessioni database</h3>
+  <p>Sotto la sezione <code>ConnectionStrings</code>:</p>
+<pre><code>"ConnectionStrings": {
+  "MetaDataSQLConnection": "Data Source=localhost\\sqlexpress;Initial Catalog=FlottaMezzi_Metadata;User ID=sa;Password=***;Encrypt=False;TrustServerCertificate=True",
+  "DataSQLConnection":     "Data Source=localhost\\sqlexpress;Initial Catalog=FlottaMezzi_Data;User ID=sa;Password=***;Encrypt=False;TrustServerCertificate=True"
+}</code></pre>
+  <ul>
+    <li><strong><code>MetaDataSQLConnection</code></strong>: DB <em>metadati</em>. Contiene route, dashboard (<code>dom_board</code>), tabelle e colonne metadata WUIC, utenti, ruoli, scheduler, menu.</li>
+    <li><strong><code>DataSQLConnection</code></strong>: DB <em>dati applicativi</em>. Contiene le tabelle business (mezzi, conducenti, manutenzioni, ecc.) e le view di aggregazione per le dashboard.</li>
+  </ul>
+  <div class="callout warn">
+    <div class="callout-title">⚠ Convenzione importante</div>
+    Non scambiare i due DB: tabelle business <strong>solo</strong> su <code>FlottaMezzi_Data</code>, metadata WUIC <strong>solo</strong> su <code>FlottaMezzi_Metadata</code>.
+  </div>
+
+  <h3 id="google-maps">Google Maps API</h3>
+  <p>La sezione <code>GoogleMaps</code> in <code>appsettings.json</code>:</p>
+<pre><code>"GoogleMaps": {
+  "ApiKey": "AIzaSy...la-tua-chiave..."
+}</code></pre>
+  <p>La chiave deve avere abilitate le seguenti API nel Google Cloud Console:</p>
+  <ul>
+    <li><strong>Maps JavaScript API</strong> — rendering della mappa + marker e polyline.</li>
+    <li><strong>Routes API</strong> — snap-to-roads dei percorsi GPS (sostituisce <code>DirectionsService</code> deprecata).</li>
+    <li><strong>Directions API</strong> (fallback) — usata se Routes API non disponibile.</li>
+  </ul>
+  <div class="callout tip">
+    <div class="callout-title">💡 Tip</div>
+    Per dev locale puoi limitare la chiave a <code>localhost:4200</code> e <code>localhost:5000</code> nelle restrizioni HTTP referrer.
+  </div>
+
+  <h3 id="scheduler-config">Scheduler interno</h3>
+  <p>Il framework gestisce job ricorrenti tramite la tabella <code>dbo.scheduler</code> sul DB metadati (<strong>non</strong> Quartz/Hangfire/BackgroundService). FlottaMezzi seeda 2 job:</p>
+  <table>
+    <thead><tr><th>Job</th><th>Ora</th><th>Tipo</th><th>Azione</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>flottamezzi_check_scadenze</code></td>
+        <td>07:00 ogni giorno</td>
+        <td>HTTP (2)</td>
+        <td><code>POST /api/flotta/CheckScadenze</code> — scan patenti/assicurazioni/revisioni in scadenza &lt; 30gg, enqueue notifiche bell al <code>gestore_flotta</code>.</td>
+      </tr>
+      <tr>
+        <td><code>flottamezzi_aggrega_costi</code></td>
+        <td>02:00 ogni giorno</td>
+        <td>HTTP (2)</td>
+        <td><code>POST /api/flotta/AggregaCosti</code> — rigenera vista <code>vw_costi_per_mese</code> usata dalla dashboard forecast.</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>Per disabilitare temporaneamente un job: <code>UPDATE dbo.scheduler SET enabled=0 WHERE event_name='flottamezzi_check_scadenze'</code>.</p>
+
+  <h3 id="setup-iniziale">Setup iniziale di un nuovo ambiente</h3>
+  <ol>
+    <li>Creare i DB SQL: <code>CREATE DATABASE FlottaMezzi_Metadata</code>, <code>CREATE DATABASE FlottaMezzi_Data</code>.</li>
+    <li>Eseguire lo script di clone metadati (da <code>metadataDB</code> template) — vedi <code>skills/app-creation/scripts/new-app.ps1</code>.</li>
+    <li>Applicare gli script DDL in <code>dbms/schema/</code> in ordine numerico: <code>01-lookup-tables.sql</code>, <code>02-anagrafiche.sql</code>, <code>03-triggers.sql</code>, <code>04-views.sql</code>, <code>09_mezzi_posizioni.sql</code>, ...</li>
+    <li>Seed dati: <code>dbms/seed/seed-data.sql</code> (lookup + esempi) + <code>09_mezzi_posizioni_seed.sql</code> (storia GPS demo).</li>
+    <li>Seed ruoli + utenti di prova: <code>scripts/seed-roles-users.ps1</code>.</li>
+    <li>Seed menu e dashboard: <code>scripts/seed-menu-flotta.sql</code> + <code>scripts/seed-dashboards.ps1</code>.</li>
+    <li>Seed scheduler: <code>scripts/2026-05-09-scheduler-jobs.sql</code>.</li>
+    <li>Compilare backend: <code>dotnet build</code>. Compilare frontend: <code>npm install</code> + <code>npm run build</code>.</li>
+  </ol>
+</section>
+
+<hr>
+
+<section id="ruoli">
+  <h2>Ruoli applicativi<a class="anchor-link" href="#ruoli">#</a></h2>
+  <div class="role-grid">
+    <div class="role-card">
+      <div class="role-name">admin</div>
+      <div class="role-desc">Accesso completo. Gestione utenti, configurazione, designer metadata, override permessi.</div>
+    </div>
+    <div class="role-card">
+      <div class="role-name">gestore_flotta</div>
+      <div class="role-desc">CRUD su tutte le anagrafiche flotta, scadenze, contratti. Visualizza tutte le dashboard.</div>
+    </div>
+    <div class="role-card">
+      <div class="role-name">autista</div>
+      <div class="role-desc">Inserimento <strong>solo</strong> rifornimenti. Visualizza in sola lettura mezzi/contratti/sinistri.</div>
+    </div>
+    <div class="role-card">
+      <div class="role-name">meccanico</div>
+      <div class="role-desc">Insert/edit su manutenzioni e revisioni. Read-only sul resto.</div>
+    </div>
+    <div class="role-card">
+      <div class="role-name">readonly</div>
+      <div class="role-desc">Sola visualizzazione di tutte le route, nessuna modifica.</div>
+    </div>
+  </div>
+
+  <h3 id="utenti-seed">Utenti di prova (seed)</h3>
+  <table>
+    <thead><tr><th>Username</th><th>Password</th><th>Ruolo</th><th>isAdmin</th></tr></thead>
+    <tbody>
+      <tr><td><code>admin</code></td><td><code>admin</code></td><td>Admin</td><td>1</td></tr>
+      <tr><td><code>admin_test</code></td><td><code>Test123!</code></td><td>Admin</td><td>1</td></tr>
+      <tr><td><code>admin_test_2</code></td><td><code>Test123!</code></td><td>Admin</td><td>1</td></tr>
+      <tr><td><code>gestore_flotta_test</code></td><td><code>Test123!</code></td><td>gestore_flotta</td><td>0</td></tr>
+      <tr><td><code>autista_test</code></td><td><code>Test123!</code></td><td>autista</td><td>0</td></tr>
+      <tr><td><code>meccanico_test</code></td><td><code>Test123!</code></td><td>meccanico</td><td>0</td></tr>
+      <tr><td><code>readonly_test</code></td><td><code>Test123!</code></td><td>readonly</td><td>0</td></tr>
+    </tbody>
+  </table>
+  <div class="callout warn">
+    <div class="callout-title">⚠ Produzione</div>
+    Cambiare la password di <code>admin</code> al primo deploy e disabilitare/eliminare gli utenti <code>*_test</code>.
+  </div>
+
+  <h3 id="permessi">Permessi metadata</h3>
+  <p>I permessi sono espressi nella tabella <code>_mtdt__tnt__trzzzioni__tabelle</code> (tabella-level) e <code>_mtdt__tnt__trzzzioni__colonne</code> (colonna-level) del DB metadati. Esempio: per il ruolo <code>autista</code> (id_ruolo=19):</p>
+<pre><code>UPDATE _mtdt__tnt__trzzzioni__tabelle
+SET md_editable=0, md_insertable=0, md_deletable=0
+WHERE ruoloid=19
+  AND md_id IN (SELECT md_id FROM _metadati__tabelle
+                WHERE mdroutename IN ('mezzi','contratti_assicurativi','sinistri'));</code></pre>
+  <p>Dopo qualunque modifica permessi, invalidare la cache metadata:</p>
+<pre><code>POST /api/Meta/AsmxProxy/MetaService.invalidateMetadataRuntime</code></pre>
+</section>
+
+<hr>
+
+<section id="mezzi">
+  <h2>Anagrafiche<a class="anchor-link" href="#anagrafiche">#</a></h2>
+
+  <h3 id="mezzi">Mezzi (<code>mezzi</code>)</h3>
+  <p>URL: <code>#/mezzi/list</code> · DB: <code>FlottaMezzi_Data.dbo.mezzi</code></p>
+  <p>Anagrafica del veicolo. Campi principali:</p>
+  <table>
+    <thead><tr><th>Campo</th><th>Tipo</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td><code>targa</code></td><td>varchar(10)</td><td>UNIQUE. Validazione regex <code>^[A-Z]{2}\d{3}[A-Z]{2}$</code> (formato italiano).</td></tr>
+      <tr><td><code>tipo_mezzo_id</code></td><td>FK lookup</td><td>auto / furgone / camion / motociclo.</td></tr>
+      <tr><td><code>marca</code>, <code>modello</code>, <code>anno</code>, <code>telaio</code>, <code>alimentazione</code></td><td>—</td><td>Dati identificativi.</td></tr>
+      <tr><td><code>km_attuali</code></td><td>int</td><td>Aggiornato automaticamente dal trigger sui rifornimenti.</td></tr>
+      <tr><td><code>stato_mezzo_id</code></td><td>FK lookup</td><td>attivo / fermo / in_riparazione / dismesso.</td></tr>
+      <tr><td><code>data_immatricolazione</code></td><td>date</td><td></td></tr>
+      <tr><td><code>conducente_assegnato_id</code></td><td>FK conducenti</td><td>Opzionale.</td></tr>
+      <tr><td><code>latitudine</code>, <code>longitudine</code>, <code>data_ultima_posizione</code></td><td>float / datetime</td><td>Aggiornati dall'endpoint <code>UpdatePosition</code>.</td></tr>
+      <tr><td><code>colore_marker</code></td><td>varchar(7)</td><td>HEX color (es. <code>#1F77B4</code>) per il marker sulla mappa.</td></tr>
+      <tr><td><code>svg_marker</code></td><td>nvarchar(max)</td><td>SVG inline o URL immagine. Override del colore se valorizzato.</td></tr>
+    </tbody>
+  </table>
+
+  <h3 id="conducenti">Conducenti (<code>conducenti</code>)</h3>
+  <p>URL: <code>#/conducenti/list</code></p>
+  <ul>
+    <li><code>nome</code>, <code>cognome</code>, <code>codice_fiscale</code> (validazione regex 16 char), <code>numero_patente</code>, <code>scadenza_patente</code>, <code>telefono</code>, <code>email</code>.</li>
+    <li><code>mezzo_assegnato_id</code>: FK al mezzo predefinito (relazione bidirezionale aggiornata da hook L4 <code>Conducenti.cs</code>).</li>
+  </ul>
+
+  <h3 id="manutenzioni">Manutenzioni (<code>manutenzioni</code>)</h3>
+  <p>URL: <code>#/manutenzioni/list</code></p>
+  <ul>
+    <li><code>mezzo_id</code>, <code>tipo_manutenzione_id</code> (lookup: ordinaria / straordinaria / revisione / gomme), <code>data</code>, <code>km_alla_manutenzione</code>, <code>descrizione</code>, <code>costo</code>, <code>officina</code>, <code>fattura_numero</code>.</li>
+    <li>Hook <code>beforeInsert</code>: valida che <code>km_alla_manutenzione &gt;= mezzi.km_attuali</code>.</li>
+    <li>Hook <code>afterInsert</code>: aggiorna <code>mezzi.data_ultima_manutenzione</code>.</li>
+  </ul>
+
+  <h3 id="rifornimenti">Rifornimenti (<code>rifornimenti</code>)</h3>
+  <p>URL: <code>#/rifornimenti/list</code></p>
+  <ul>
+    <li><code>mezzo_id</code>, <code>conducente_id</code>, <code>data</code>, <code>litri</code>, <code>costo_totale</code>, <code>prezzo_litro</code>, <code>km_veicolo</code>, <code>distributore</code>.</li>
+    <li>Il prezzo per litro è mostrato in lista come <code>€/L</code> (carattere euro UTF-8).</li>
+    <li>Trigger DB <code>tr_rifornimenti_aggiorna_km</code> aggiorna <code>mezzi.km_attuali</code> al massimo <code>km_veicolo</code> per il mezzo.</li>
+  </ul>
+
+  <h3 id="contratti">Contratti assicurativi (<code>contratti_assicurativi</code>)</h3>
+  <p>URL: <code>#/contratti_assicurativi/list</code></p>
+  <ul>
+    <li><code>mezzo_id</code>, <code>compagnia</code>, <code>numero_polizza</code>, <code>data_inizio</code>, <code>data_scadenza</code>, <code>costo_annuo</code>, <code>tipo_copertura</code>.</li>
+    <li>Suggest sul campo <code>compagnia</code> (callback metadata) per autocompletamento basato su contratti esistenti.</li>
+  </ul>
+
+  <h3 id="revisioni">Revisioni (<code>revisioni</code>)</h3>
+  <p>URL: <code>#/revisioni/list</code></p>
+  <ul>
+    <li><code>mezzo_id</code>, <code>data</code>, <code>esito</code> (positivo / negativo / con prescrizione), <code>scadenza_prossima</code>, <code>centro_revisione</code>, <code>costo</code>.</li>
+  </ul>
+
+  <h3 id="sinistri">Sinistri (<code>sinistri</code>)</h3>
+  <p>URL: <code>#/sinistri/list</code></p>
+  <ul>
+    <li><code>mezzo_id</code>, <code>conducente_id</code>, <code>data</code>, <code>descrizione</code>, <code>controparte</code>, <code>costo_stimato</code>, <code>stato_pratica</code>.</li>
+    <li>Trigger DB <code>tr_sinistri_stato_mezzo</code>: all'<code>INSERT</code> di un sinistro, imposta <code>mezzi.stato_mezzo_id</code> a <code>in_riparazione</code>.</li>
+  </ul>
+
+  <h3 id="lookup">Tabelle lookup</h3>
+  <table>
+    <thead><tr><th>Route</th><th>Tabella</th><th>Valori tipici</th></tr></thead>
+    <tbody>
+      <tr><td><code>tipo_mezzo</code></td><td><code>tipo_mezzo</code></td><td>auto, furgone, camion, motociclo</td></tr>
+      <tr><td><code>stato_mezzo</code></td><td><code>stato_mezzo</code></td><td>attivo, fermo, in_riparazione, dismesso</td></tr>
+      <tr><td><code>tipo_manutenzione</code></td><td><code>tipo_manutenzione</code></td><td>ordinaria, straordinaria, revisione, gomme</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<hr>
+
+<section id="dash-home">
+  <h2>Cruscotto<a class="anchor-link" href="#cruscotto">#</a></h2>
+
+  <h3 id="dash-home">Home (<code>home</code>)</h3>
+  <p>URL: <code>#/home/dashboard</code> — landing principale dell'app.</p>
+  <p>Tile 2x2:</p>
+  <ul>
+    <li><strong>Bar chart mezzi per stato</strong> — view <code>vw_dash_mezzi_per_stato</code>.</li>
+    <li><strong>Pie chart scadenze imminenti</strong> — view <code>vw_dash_scadenze_imminenti</code> (UNION patenti + assicurazioni + revisioni &lt; 30gg).</li>
+    <li><strong>Top 10 manutenzioni recenti</strong> — lista ordinata per <code>data DESC</code>.</li>
+    <li><strong>Top 10 rifornimenti recenti</strong> — lista ordinata per <code>data DESC</code>.</li>
+  </ul>
+
+  <h3 id="dash-mappa">Mezzi sulla mappa (<code>mezzi_mappa</code>)</h3>
+  <p>URL: <code>#/mezzi_mappa/map</code> — archetipo <strong>map</strong> WUIC.</p>
+  <ul>
+    <li>Marker per ogni mezzo con <code>latitudine</code>+<code>longitudine</code> valorizzati. Colore o SVG configurabili per mezzo (vedi <a href="#marker-custom">Marker mezzi</a>).</li>
+    <li>Click sul marker → <code>infoWindow</code> con targa, modello, conducente assegnato, ultimo aggiornamento posizione.</li>
+    <li><strong>Polyline overlay</strong>: traccia il percorso di ogni mezzo dai punti storici in <code>mezzi_posizioni</code> (raggruppati per <code>mezzo_id</code>, ordinati per <code>timestamp</code>).</li>
+    <li><strong>Snap-to-roads</strong> automatico via Google Routes API. Fallback: <code>DirectionsService</code> se Routes non disponibile.</li>
+    <li><strong>Waypoint dots</strong>: cerchi cliccabili nei punti GPS originali (pre-interpolazione) — click apre infoWindow con <code>targa</code> + <code>timestamp</code> esatto.</li>
+    <li>Filtro by-bounds disattivato di default (carica tutti i marker). Attivare quando i mezzi superano 200 unità.</li>
+  </ul>
+
+  <h3 id="dash-aging">Aging scadenze (<code>aging_scadenze</code>)</h3>
+  <p>URL: <code>#/aging_scadenze/dashboard</code></p>
+  <ul>
+    <li>4 KPI: <em>totale in scadenza 30gg</em>, <em>già scaduti</em>, <em>documenti monitorati</em>, <em>% scaduti</em> (rosso se &gt; 10%).</li>
+    <li>Stacked bar chart per <strong>fascia</strong> (&lt; 0gg, 0-30, 30-90, 90-180, &gt; 180) stack per <strong>tipo documento</strong>.</li>
+    <li>Tabella dettaglio: top 20 mezzi con scadenza &lt; 30gg.</li>
+  </ul>
+  <p>View: <code>vw_aging_scadenze</code>, <code>vw_aging_scadenze_per_fascia</code>.</p>
+
+  <h3 id="dash-forecast">Forecast costi (<code>costi_forecast</code>)</h3>
+  <p>URL: <code>#/costi_forecast/dashboard</code></p>
+  <ul>
+    <li>2 KPI: <em>costo medio mensile</em> (ultimi 12 mesi), <em>costo proiettato 90gg</em>.</li>
+    <li>Line chart storico ultimi 18 mesi (<code>vw_costi_storici_mensili</code>).</li>
+    <li>Line chart forecast 3 mesi avanti, tratteggiato (<code>vw_costi_forecast</code>, proiezione lineare).</li>
+    <li>Asse X formattato come <code>MM/yyyy</code> via <code>vw_costi_per_mese.etichetta_mese</code>.</li>
+  </ul>
+
+  <h3 id="dash-top">Top mezzi (<code>top_mezzi</code>)</h3>
+  <p>URL: <code>#/top_mezzi/dashboard</code></p>
+  <ul>
+    <li>Bar chart top 10 mezzi per costo (somma manutenzioni + rifornimenti + sinistri anno corrente) — <code>vw_top_mezzi_per_costo</code>.</li>
+    <li>Bar chart top 10 mezzi per km percorsi (delta <code>km_attuali</code>) — <code>vw_top_mezzi_per_km</code>.</li>
+    <li>Tabella detailed: targa, modello, conducente, costo totale, km anno, costo per km.</li>
+  </ul>
+</section>
+
+<hr>
+
+<section id="triggers">
+  <h2>Automazioni<a class="anchor-link" href="#automazioni">#</a></h2>
+
+  <h3 id="triggers">Trigger DB</h3>
+  <table>
+    <thead><tr><th>Trigger</th><th>Tabella</th><th>Evento</th><th>Azione</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>tr_rifornimenti_aggiorna_km</code></td>
+        <td><code>rifornimenti</code></td>
+        <td>AFTER INSERT/UPDATE</td>
+        <td>Imposta <code>mezzi.km_attuali = MAX(km_veicolo)</code> per il mezzo. Marker idempotenza: <code>note='AUTO_GENERATED'</code>.</td>
+      </tr>
+      <tr>
+        <td><code>tr_sinistri_stato_mezzo</code></td>
+        <td><code>sinistri</code></td>
+        <td>AFTER INSERT</td>
+        <td>Imposta <code>mezzi.stato_mezzo_id</code> al lookup <code>in_riparazione</code>.</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>Pattern: <code>SET NOCOUNT ON</code>, <code>IF NOT UPDATE(...) RETURN</code>, <code>ANSI_NULLS</code>/<code>QUOTED_IDENTIFIER</code> ON al momento del CREATE.</p>
+
+  <h3 id="crud-hooks">Hook CRUD lato server</h3>
+  <p>File in <code>ProjectData/Crud/</code>. Discovery automatica via reflection (<code>UtilityHost.cs</code>).</p>
+  <table>
+    <thead><tr><th>File</th><th>Hook</th><th>Cosa fa</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>Manutenzioni.cs</code></td>
+        <td><code>beforeInsert</code></td>
+        <td>Valida <code>km_alla_manutenzione &gt;= mezzi.km_attuali</code>. Throw eccezione con messaggio localizzato se fail.</td>
+      </tr>
+      <tr>
+        <td><code>Manutenzioni.cs</code></td>
+        <td><code>afterInsert</code></td>
+        <td>Aggiorna <code>mezzi.data_ultima_manutenzione</code> con la <code>data</code> della manutenzione appena inserita.</td>
+      </tr>
+      <tr>
+        <td><code>Mezzi.cs</code></td>
+        <td><code>beforeUpdate</code></td>
+        <td>Validazione targa + normalizzazione campi geo.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 id="scheduler-jobs">Job schedulati</h3>
+  <p>Vedi <a href="#scheduler-config">Scheduler interno</a>. I 2 job seedati invocano endpoint HTTP del backend stesso (no <code>BackgroundService</code>, no Hangfire/Quartz).</p>
+  <ul>
+    <li><strong>flottamezzi_check_scadenze</strong> (07:00): scan documenti in scadenza, enqueue notifiche bell al ruolo <code>gestore_flotta</code>.</li>
+    <li><strong>flottamezzi_aggrega_costi</strong> (02:00): rinfresca aggregato <code>vw_costi_per_mese</code> usato dalla dashboard forecast.</li>
+  </ul>
+  <div class="callout warn">
+    <div class="callout-title">⚠ Anti-pattern</div>
+    <strong>Vietato</strong> introdurre <code>BackgroundService</code>, <code>IHostedService</code>, Quartz, Hangfire o Task Scheduler Windows. Tutti i job devono passare per la tabella <code>dbo.scheduler</code> del DB metadati.
+  </div>
+</section>
+
+<hr>
+
+<section id="api-geolocation">
+  <h2>API custom<a class="anchor-link" href="#api-custom">#</a></h2>
+
+  <h3 id="api-geolocation">GeolocationController</h3>
+  <p>Route: <code>/api/Geolocation/[action]</code></p>
+  <table>
+    <thead><tr><th>Endpoint</th><th>Body</th><th>Auth</th><th>Cosa fa</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>POST /api/Geolocation/UpdatePosition</code></td>
+        <td><code>{ mezzo_id, latitudine, longitudine, timestamp }</code></td>
+        <td><code>admin</code>, <code>gestore_flotta</code>, <code>autista</code></td>
+        <td>UPDATE <code>mezzi.latitudine</code>, <code>longitudine</code>, <code>data_ultima_posizione</code>. INSERT history row in <code>mezzi_posizioni</code>. Trigger notifica bell se fuori bbox configurato (anti-furto).</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 id="api-reporting">ReportingController</h3>
+  <p>Route: <code>/api/Reporting/[action]</code></p>
+  <table>
+    <thead><tr><th>Endpoint</th><th>Body</th><th>Auth</th><th>Cosa fa</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>POST /api/Reporting/ReportCostiMezzo</code></td>
+        <td><code>{ mezzo_id, data_inizio, data_fine }</code></td>
+        <td><code>admin</code>, <code>gestore_flotta</code></td>
+        <td>Aggrega costi (manutenzioni + rifornimenti + sinistri) per mezzo nel range. Ritorna JSON o PDF Stimulsoft (<code>Reports/*.mrt</code>) se param <code>format=pdf</code>.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 id="api-jobs">FlottaJobsController</h3>
+  <p>Route: <code>/api/flotta/[action]</code> — usato dagli scheduler.</p>
+  <table>
+    <thead><tr><th>Endpoint</th><th>Auth</th><th>Cosa fa</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>POST /api/flotta/CheckScadenze</code></td>
+        <td>service-account</td>
+        <td>Scan scadenze 30gg, enqueue notifiche bell.</td>
+      </tr>
+      <tr>
+        <td><code>POST /api/flotta/AggregaCosti</code></td>
+        <td>service-account</td>
+        <td>Refresh aggregato <code>vw_costi_per_mese</code>.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 id="api-actions">FlottaMezziActionsController</h3>
+  <p>Route: <code>/api/FlottaMezziActions</code> — handler per le toolbar action custom (regola: <strong>dispatcher</strong> singolo che instrada via <code>actionKey</code>).</p>
+<pre><code>POST /api/FlottaMezziActions/Execute
+Body: { "actionKey": "assegna_conducente", "payload": { ... } }</code></pre>
+  <p>Action registrate:</p>
+  <ul>
+    <li><code>assegna_conducente</code> — dialog di selezione conducente, assegna a un mezzo.</li>
+    <li><code>genera_libretto_pdf</code> — genera PDF libretto mezzo via <code>ReportingController</code>.</li>
+  </ul>
+</section>
+
+<hr>
+
+<section id="marker-custom">
+  <h2>Personalizzazione<a class="anchor-link" href="#personalizzazione">#</a></h2>
+
+  <h3 id="marker-custom">Marker mezzi sulla mappa</h3>
+  <p>Per ogni mezzo è possibile personalizzare l'aspetto del marker sulla dashboard <code>mezzi_mappa</code>.</p>
+  <h4>Opzione 1 — Colore (campo <code>colore_marker</code>)</h4>
+  <p>Inserire un valore HEX (es. <code>#1F77B4</code>, <code>#FF6B35</code>) nel form di edit del mezzo. Il marker viene reso con <code>PinElement</code> Google Maps con quel colore di sfondo.</p>
+  <h4>Opzione 2 — SVG inline o URL immagine (campo <code>svg_marker</code>)</h4>
+  <p>Inserire SVG inline o URL di un'immagine. Esempio SVG inline:</p>
+<pre><code>&lt;svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32"&gt;
+  &lt;path d="M5 11l1.5-4.5h11L19 11..." fill="#0d6efd"/&gt;
+&lt;/svg&gt;</code></pre>
+  <p>Esempio URL:</p>
+<pre><code>https://cdn.example.com/icons/truck.png</code></pre>
+  <p><strong>Priorità</strong>: <code>svg_marker</code> &gt; <code>colore_marker</code> &gt; default (PinElement blu).</p>
+  <div class="callout tip">
+    <div class="callout-title">💡 Tip</div>
+    Per icone differenziate per <code>tipo_mezzo</code>, popolare <code>svg_marker</code> dal lookup <code>tipo_mezzo.icona_svg</code> via trigger o hook <code>afterInsert</code> personalizzato.
+  </div>
+
+  <h3 id="stili-condizionali">Stili condizionali nelle liste</h3>
+  <p>Configurabili in <code>_metadati__u_i__stili__tabelle</code> con coppia <code>must_attribute_name</code> (classe CSS) + <code>must_attribute_value</code> (callback JS che ritorna boolean).</p>
+  <p>Stili applicati di default su <code>mezzi</code>:</p>
+  <table>
+    <thead><tr><th>Classe CSS</th><th>Condizione</th></tr></thead>
+    <tbody>
+      <tr><td><code>row-warning</code> (giallo)</td><td>Patente conducente assegnato in scadenza &lt; 30gg.</td></tr>
+      <tr><td><code>row-danger</code> (rosso)</td><td>Assicurazione o revisione scaduta.</td></tr>
+    </tbody>
+  </table>
+
+  <h3 id="suggest">Suggest fields</h3>
+  <p>Campi con autocompletamento da valori precedenti (configurati via <code>mc_suggest_value_callback</code> in metadata):</p>
+  <ul>
+    <li><code>contratti_assicurativi.compagnia</code> — suggerisce compagnie già usate.</li>
+    <li><code>manutenzioni.officina</code> — suggerisce officine già usate.</li>
+    <li><code>rifornimenti.distributore</code> — suggerisce distributori già usati.</li>
+  </ul>
+</section>
+
+<hr>
+
+<section id="backup">
+  <h2>Operations<a class="anchor-link" href="#operations">#</a></h2>
+
+  <h3 id="backup">Backup e restore</h3>
+  <p>Backup dei due DB con strategia separata:</p>
+<pre><code>BACKUP DATABASE FlottaMezzi_Metadata
+  TO DISK = 'D:\backup\FlottaMezzi_Metadata.bak' WITH FORMAT, INIT, COMPRESSION;
+
+BACKUP DATABASE FlottaMezzi_Data
+  TO DISK = 'D:\backup\FlottaMezzi_Data.bak' WITH FORMAT, INIT, COMPRESSION;</code></pre>
+  <p>Restore con override (es. su staging):</p>
+<pre><code>RESTORE DATABASE FlottaMezzi_Metadata
+  FROM DISK = 'D:\backup\FlottaMezzi_Metadata.bak'
+  WITH REPLACE,
+       MOVE 'FlottaMezzi_Metadata'     TO 'D:\mssql\FlottaMezzi_Metadata.mdf',
+       MOVE 'FlottaMezzi_Metadata_log' TO 'D:\mssql\FlottaMezzi_Metadata_log.ldf';</code></pre>
+  <p>Dopo il restore, <strong>obbligatorio</strong>:</p>
+  <ul>
+    <li><code>POST /api/Meta/AsmxProxy/MetaService.invalidateMetadataRuntime</code> per riallineare la cache metadata in memoria.</li>
+    <li>Verificare la nuova <code>projectMetadataVersion</code> via <code>MetaService.getProjectMetadataVersion</code>.</li>
+  </ul>
+
+  <h3 id="troubleshooting">Troubleshooting</h3>
+  <table>
+    <thead><tr><th>Sintomo</th><th>Causa probabile</th><th>Azione</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Mappa vuota / marker non visibili</td>
+        <td>API key Google Maps invalida o Maps JS API non abilitata</td>
+        <td>Verificare <code>appsettings.json</code> → <code>GoogleMaps.ApiKey</code> e abilitazione API nel Cloud Console.</td>
+      </tr>
+      <tr>
+        <td>Polyline non si curva sulle strade</td>
+        <td>Routes API non abilitata (snap-to-roads fallisce silenzioso)</td>
+        <td>Abilitare Routes API. In console browser cercare <code>"Routes API"</code> error / 403.</td>
+      </tr>
+      <tr>
+        <td>Notifiche bell scadenze non arrivano</td>
+        <td>Scheduler <code>flottamezzi_check_scadenze</code> disabilitato o backend down alle 07:00</td>
+        <td><code>SELECT enabled, last_ex_succeded, last_execution FROM dbo.scheduler WHERE event_name='flottamezzi_check_scadenze'</code>.</td>
+      </tr>
+      <tr>
+        <td>Modifiche metadata non visibili nella UI</td>
+        <td>Cache metadata runtime non invalidata</td>
+        <td>Chiamare <code>MetaService.invalidateMetadataRuntime</code> dopo ogni patch metadata diretta in SQL.</td>
+      </tr>
+      <tr>
+        <td>Trigger DB non aggiorna <code>km_attuali</code></td>
+        <td><code>ANSI_NULLS</code>/<code>QUOTED_IDENTIFIER</code> non ON al momento del CREATE TRIGGER</td>
+        <td>Ricreare il trigger preceduto da <code>SET ANSI_NULLS ON; SET QUOTED_IDENTIFIER ON;</code> nello stesso batch.</td>
+      </tr>
+      <tr>
+        <td>Caratteri non-ASCII corrotti in dati seed (es. <code>â‚¬/L</code> invece di <code>€/L</code>)</td>
+        <td>SQL script salvato in UTF-8 senza BOM e <code>sqlcmd</code> lo legge come CP1252</td>
+        <td>Usare PowerShell <code>SqlClient</code> con parametri UTF-16 LE, oppure salvare lo script con BOM (<code>UTF-8-BOM</code>).</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 id="changelog">Note di versione</h3>
+  <ul>
+    <li><strong>v1.0</strong> — Release iniziale (2026-05-09): anagrafiche, dashboard, geolocalizzazione, scheduler.</li>
+    <li><strong>v1.1</strong> — Storia GPS in <code>mezzi_posizioni</code> + polyline + waypoint dots cliccabili.</li>
+    <li><strong>v1.2</strong> — Personalizzazione marker (colore + SVG) + snap-to-roads via Routes API.</li>
+  </ul>
+</section>
+
+</main>
+</div>
+
+<script>
+  // Theme toggle (persists in localStorage)
+  const root = document.documentElement;
+  const btn = document.getElementById('themeToggle');
+  const icon = document.getElementById('themeIcon');
+  const label = document.getElementById('themeLabel');
+  function applyTheme(theme) {
+    root.setAttribute('data-theme', theme);
+    icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+    label.textContent = theme === 'dark' ? 'Light' : 'Dark';
+  }
+  applyTheme(localStorage.getItem('flotta_manual_theme') || 'light');
+  btn.addEventListener('click', () => {
+    const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('flotta_manual_theme', next);
+    applyTheme(next);
+  });
+
+  // Active link highlighting on scroll
+  const links = document.querySelectorAll('.nav a[href^="#"]');
+  const sections = Array.from(links).map(l => document.querySelector(l.getAttribute('href'))).filter(Boolean);
+  const content = document.querySelector('.content');
+  function updateActive() {
+    const scrollPos = content.scrollTop + 60;
+    let active = sections[0];
+    for (const s of sections) {
+      if (s.offsetTop <= scrollPos) active = s;
+    }
+    links.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + active.id));
+  }
+  content.addEventListener('scroll', updateActive, { passive: true });
+  updateActive();
+
+  // Smooth scroll for nav links
+  links.forEach(l => l.addEventListener('click', (e) => {
+    const target = document.querySelector(l.getAttribute('href'));
+    if (target) {
+      e.preventDefault();
+      content.scrollTo({ top: target.offsetTop - 20, behavior: 'smooth' });
+      history.replaceState(null, '', l.getAttribute('href'));
+    }
+  }));
+</script>
+</body>
+</html>

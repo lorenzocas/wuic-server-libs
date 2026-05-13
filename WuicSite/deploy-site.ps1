@@ -467,10 +467,40 @@ Write-Host "    maintenance web.config active"
 
 $siteUploadOk = $false
 try {
+    # Bug fix 2026-05-12: il browser bundle build via `ng build` copia
+    # `public/downloads/*` dentro `dist/WuicSite/browser/downloads/*`. Cio'
+    # include `releases.json`, `latest.json` e `.archive-state.json`, che
+    # sono SERVER-MANAGED (riscritti dal prep script remoto al passo 3).
+    # Se lo SCP del browser bundle li ricopia sul server, sovrascrive la
+    # copia live con un mirror locale potenzialmente stale (caso reale:
+    # deploy 2026-05-12 con -SkipZip ha pushato un releases.json stale
+    # del 4 maggio sopra quello live, rimuovendo la entry 1.0.20).
+    # Strategia: prima dello SCP/robocopy, rimuovi i file server-managed
+    # dalla copia LOCALE del bundle, cosi' non risalgono.
+    $serverManagedFiles = @(
+        'releases.json',
+        'latest.json',
+        '.archive-state.json'
+    )
+    $distDownloadsDir = Join-Path $distDir 'downloads'
+    if (Test-Path $distDownloadsDir) {
+        foreach ($fn in $serverManagedFiles) {
+            $p = Join-Path $distDownloadsDir $fn
+            if (Test-Path -LiteralPath $p) {
+                Remove-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue
+                Write-Sub "rimosso da bundle prima dell'upload (server-managed): downloads/$fn"
+            }
+        }
+    }
+
     $uncPath = "\\${Server}\$($SitePath -replace ':', '$')"
     if (Test-Path $uncPath -ErrorAction SilentlyContinue) {
         Write-Host "  Modalita' UNC: $uncPath" -ForegroundColor DarkGray
-        robocopy $distDir $uncPath /MIR /NJH /NJS /NDL /NP /R:2 /W:1 /XF web.config web.config.maintenance web.config.production.bak maintenance.html
+        # /XF anche sui file server-managed come ulteriore safety net
+        # (se il delete sopra fallisce per qualche motivo, robocopy non li
+        # ricopia comunque). Il nome `releases.json` matcha ricorsivamente
+        # tutte le occorrenze, inclusa quella sotto downloads/.
+        robocopy $distDir $uncPath /MIR /NJH /NJS /NDL /NP /R:2 /W:1 /XF web.config web.config.maintenance web.config.production.bak maintenance.html releases.json latest.json .archive-state.json
         if ($LASTEXITCODE -ge 8) { throw "robocopy sito fallito (exit code $LASTEXITCODE)" }
     } else {
         Write-Host "  Modalita' SCP" -ForegroundColor DarkGray
@@ -1262,12 +1292,34 @@ $rendered
                         if ($entry.PSObject.Properties.Name -contains 'releaseNotesUrl' -and $entry.releaseNotesUrl) {
                             $syntheticReleaseNotesUrl = [string]$entry.releaseNotesUrl
                         }
+                        $syntheticDate = if ($entry.date) { $entry.date } else { (Get-Date -Format 'yyyy-MM-dd') }
+                        # Bug fix 2026-05-12: NON usare (Get-Date) qui. Il sort
+                        # successivo per timestampUtc DESC mette tutte le synthetic
+                        # "ricostruite oggi" davanti alle release vere preservate
+                        # da un releases.json precedente — che hanno timestampUtc
+                        # storico. Risultato: una release vera con timestamp di
+                        # pochi secondi piu' vecchio delle synthetic scivola in
+                        # coda e viene tagliata via dalla rotation top-5.
+                        # Caso reale: 1.0.19 (timestampUtc=2026-05-04T13:01:55Z,
+                        # vero) vs 1.0.3 / 0.9.0 / 0.8.8 / 0.7.4 (timestampUtc
+                        # 2026-05-04T13:02:00Z, synthetic dal deploy di 1.0.19)
+                        # → al deploy di 1.0.20, le 4 synthetic appaiono piu'
+                        # recenti e 1.0.19 viene droppata dal manifest.
+                        # Fix: timestampUtc = mezzogiorno UTC della date. Ordering
+                        # stabile e semanticamente coerente con quando la release
+                        # e' stata pubblicata (la date e' la data autoritativa
+                        # del rilascio, non il momento della ricostruzione).
+                        $syntheticTimestamp = try {
+                            ([datetime]::ParseExact($syntheticDate, 'yyyy-MM-dd', $null).AddHours(12)).ToUniversalTime().ToString('o')
+                        } catch {
+                            (Get-Date).ToUniversalTime().ToString('o')
+                        }
                         $existingReleases += [ordered]@{
                             key              = $oldKey
                             server           = $sVer
                             client           = $cVer
-                            date             = if ($entry.date) { $entry.date } else { (Get-Date -Format 'yyyy-MM-dd') }
-                            timestampUtc     = (Get-Date).ToUniversalTime().ToString('o')
+                            date             = $syntheticDate
+                            timestampUtc     = $syntheticTimestamp
                             files            = $syntheticFiles
                             releaseNotesUrl  = $syntheticReleaseNotesUrl
                             releaseNotesUrls = $syntheticReleaseNotesUrls

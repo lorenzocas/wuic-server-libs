@@ -97,6 +97,21 @@ export const appRoutes: Routes = [
     }
   },
 
+  // Manuale utente — wrapper Angular sul file HTML statico
+  //   wwwroot/public/docs/manuale.html (servito dal dev server e dall'host IIS).
+  // Vedi `component/manuale-viewer/manuale-viewer.component.ts` per il rendering
+  // iframe + topbar con link "apri in nuova scheda".
+  // Voce di menu in `_metadati__menu` con mm_uri_menu='manuale'.
+  {
+    path: 'manuale',
+    loadComponent: () => import('./component/manuale-viewer/manuale-viewer.component')
+      .then(m => m.ManualeViewerComponent),
+    data: {
+      breadcrumbs: 'Manuale',
+      description: 'Manuale utente e guida alla configurazione di FatturazioneElettronica.'
+    }
+  },
+
   // ──────── Sistema / error pages ────────
 
   {

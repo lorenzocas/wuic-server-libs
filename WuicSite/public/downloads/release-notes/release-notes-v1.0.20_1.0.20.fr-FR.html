@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Release Notes v1.0.20_1.0.20 - WUIC Framework</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; color: #1e293b; background: #ffffff; line-height: 1.6; overflow-wrap: anywhere; word-wrap: break-word; }
+a { color: #6366f1; text-decoration: none; }
+a:hover { color: #4f46e5; text-decoration: underline; }
+
+/* Site-style header (mini-navbar) */
+.rn-header { background: rgba(255, 255, 255, 0.95); border-bottom: 1px solid #e2e8f0; backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 10; }
+.rn-header-inner { max-width: 1200px; margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.rn-brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: #0f172a; font-size: 1.15rem; }
+.rn-brand-bolt { display: inline-block; width: 24px; height: 24px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M13 2L3 14h7l-1 8 10-12h-7l1-8z'/></svg>") center/contain no-repeat; mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M13 2L3 14h7l-1 8 10-12h-7l1-8z'/></svg>") center/contain no-repeat; }
+.rn-back { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border: 1px solid #c7d2fe; border-radius: 6px; color: #4f46e5; background: #eef2ff; font-size: 0.9rem; transition: background 0.15s, border-color 0.15s; }
+.rn-back:hover { background: #e0e7ff; border-color: #a5b4fc; text-decoration: none; }
+
+/* Article container: same width as Site .container */
+.rn-article { max-width: 880px; margin: 0 auto; padding: 48px 24px 80px; }
+
+/* Headings: site palette */
+h1, h2, h3, h4 { color: #0f172a; line-height: 1.25; font-weight: 700; }
+h1 { font-size: 2rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; margin-bottom: 1.25rem; }
+h2 { font-size: 1.4rem; margin-top: 2.25rem; margin-bottom: 0.75rem; }
+h3 { font-size: 1.125rem; margin-top: 1.5rem; margin-bottom: 0.5rem; color: #334155; }
+
+p { margin: 0.75rem 0; color: #334155; }
+strong { color: #0f172a; font-weight: 600; }
+
+ul, ol { padding-left: 1.4rem; margin: 0.75rem 0; }
+li { margin: 0.25rem 0; color: #334155; }
+
+hr { border: 0; border-top: 1px solid #e2e8f0; margin: 2.5rem 0; }
+
+/* Inline code: tinta indigo che richiama il brand */
+code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.9em; }
+code { background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; padding: 0.1em 0.4em; border-radius: 4px; word-break: break-word; }
+pre { background: #f8fafc; border: 1px solid #e2e8f0; padding: 1rem 1.25rem; border-radius: 8px; overflow-x: auto; max-width: 100%; margin: 1rem 0; }
+pre code { background: transparent; color: #1e293b; border: 0; padding: 0; word-break: normal; }
+
+/* Tables: scrollabili, header indigo-tint */
+.table-wrap { overflow-x: auto; max-width: 100%; margin: 1.25rem 0; border: 1px solid #e2e8f0; border-radius: 8px; }
+table { border-collapse: collapse; width: max-content; min-width: 100%; background: #ffffff; }
+th, td { border-bottom: 1px solid #e2e8f0; padding: 0.65rem 0.95rem; text-align: left; vertical-align: top; font-size: 0.95rem; }
+th { background: #f8fafc; color: #0f172a; font-weight: 600; border-bottom-color: #cbd5e1; }
+tr:last-child td { border-bottom: 0; }
+td { color: #334155; }
+
+/* Blockquote: brand accent */
+blockquote { border-left: 3px solid #6366f1; margin: 1.25rem 0; padding: 0.6rem 1.1rem; color: #475569; background: #eef2ff; border-radius: 0 6px 6px 0; }
+blockquote p { color: #475569; }
+
+img { max-width: 100%; height: auto; border-radius: 6px; }
+</style>
+<script>
+// Wrap tables post-render in scroll container (markdown converter emits raw <table>).
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('table').forEach(t => {
+    if (t.parentElement && t.parentElement.classList.contains('table-wrap')) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+});
+</script>
+</head>
+<body>
+<header class="rn-header">
+  <div class="rn-header-inner">
+    <a href="/" class="rn-brand"><span class="rn-brand-bolt"></span><span>WUIC</span></a>
+    <a href="/downloads" class="rn-back">&larr; Retour aux t&eacute;l&eacute;chargements</a>
+  </div>
+</header>
+<article class="rn-article">
+<h1 id="notes-de-version-wuic-framework-v1.0.20">Notes de version — WUIC Framework v1.0.20</h1>
+<p><strong>Date</strong> : 12 mai 2026
+<strong>Version précédente publiée</strong> : 1.0.19 (4 mai 2026)
+<strong>Backend</strong> : .NET 10 + IIS / Linux nginx
+<strong>Frontend</strong> : Angular 21</p>
+<hr />
+<p>Version de consolidation après la 1.0.19, centrée sur des corrections de bugs ayant un impact direct sur l'édition et l'affichage (INSERT avec triggers <code>INSTEAD OF</code>, champs numériques remis à 0 au blur, calendrier vide à la première navigation, préservation du SQL custom dans les rapports) et sur un alignement du composant carte avec les nouvelles API Google Maps : finalisation des options de l'archetype <code>map</code>, migration vers la Routes API pour le snap-to-roads, suppression de la dépendance à la drawing library dépréciée.</p>
+<hr />
+<h2 id="corrections-de-bugs-notables">🐛 Corrections de bugs notables</h2>
+<ul>
+<li><strong>INSERT avec triggers <code>INSTEAD OF</code></strong> : les tables avec triggers <code>INSTEAD OF INSERT</code> perdaient la PK retournée par l'instruction externe (<code>OUTPUT INSERTED.&lt;pk&gt;</code> retournait <code>0</code> ou NULL car le trigger détournait l'INSERT). Correctif : l'INSERT généré par <code>_Metadati_methods</code> utilise désormais une variable de table (<code>@__inserted_pk</code> avec <code>OUTPUT ... INTO</code>) comme canal principal et revient sur <code>IDENT_CURRENT('&lt;table&gt;')</code> quand le trigger consomme l'instruction externe. Résout également le SQL Server msg 334 (<code>OUTPUT INSERTED</code> sans <code>INTO</code> n'est pas autorisé sur des tables avec triggers activés).</li>
+<li><strong>field-editor number — reset à 0 au blur</strong> : lorsque la colonne de métadonnées avait <code>mc_min_value</code> ou <code>mc_max_value</code> définis, le champ numérique était remis à 0 au blur au lieu de conserver la valeur saisie. La vérification de plage se déclenchait avant le roundtrip de parsing, lisant une valeur intermédiaire non numérique et la rabattant à 0. Comportement correct : la valeur est confirmée et clampée aux limites uniquement si elle est effectivement hors plage, sinon elle reste inchangée.</li>
+<li><strong>Archetype <code>map</code> — options complétées</strong> : l'archetype du composant carte reçoit trois propriétés qui comblent des manques UX courants :
+<ul>
+<li><code>polyline</code> — overlay polyline pour le suivi de trajets (enregistrements GPS historisés). Regroupement par champ (<code>groupByField</code>), tri (<code>orderByField</code>), couleur par enregistrement/par groupe, snap-to-roads optionnel, dots de waypoint distincts du path interpolé.</li>
+<li><code>clickableIcons</code> — pass-through à <code>google.maps.MapOptions.clickableIcons</code>. Quand <code>false</code>, Google Maps n'ouvre plus sa propre info window intégrée sur les POIs (boutiques, arrêts, adresses), qui interceptait sinon les clics destinés aux marker custom.</li>
+<li><code>markerColorField</code> — couleur du <code>PinElement</code> lue depuis un champ du record (CSS <code>#rrggbb</code>). Ignoré si le record a déjà <code>customMarkerImageSrcField</code> défini (l'image/SVG est prioritaire).</li>
+</ul>
+</li>
+<li><strong>Google Maps Directions API — dépréciée</strong> : <code>DirectionsService</code> est déprécié depuis le 2026-02-25. Le snap-to-roads des polylines utilise désormais la nouvelle Routes API (<code>google.maps.routes.Route.computeRoutes</code>), avec fallback automatique sur le legacy <code>DirectionsService</code> (fonctionnel jusqu'au 2027-02-25) pour les clés non encore migrées. Mapping legacy travel mode → routes inchangé (<code>DRIVING</code>/<code>WALKING</code>/<code>BICYCLING</code>). Batching automatique à 25 waypoints par appel.</li>
+<li><strong>Google Maps Drawing API — supprimée</strong> : la drawing library (<code>google.maps.drawing</code>) est dépréciée depuis 2025-08 et supprimée dans les versions de Maps JavaScript API publiées à partir de mai 2026. La logique <code>DrawingManager</code> sur <code>MapListComponent</code> n'était que des stubs <code>console.log</code> (aucune feature de dessin réellement persistée) et a été retirée. <code>PointFilterComponent</code> (filtre géo par zone/cercle dans les list-grids) a été réécrit avec des handlers manuels click+mousemove — même UX (polygone via plusieurs clics, cercle via centre+rayon, double-clic pour fermer), indépendant de la library dépréciée.</li>
+<li><strong>Rapports — préservation du SQL custom via le sentinel <code>__autogenerated</code></strong> : les rapports avec un SQL custom qui aliasaient des colonnes non enregistrées dans les métadonnées perdaient les joins/colonnes, car la dynamic query auto-générée écrasait la query utilisateur. Correctif cross-DBMS (MSSQL, MySQL, PostgreSQL, Oracle) : chaque SELECT auto-généré injecte désormais <code>1 AS [__autogenerated]</code> comme première colonne ; la pipeline de métadonnées détecte le token au runtime et préserve la query custom lorsque le sentinel <strong>n'est pas</strong> présent. Permet des layouts Stimulsoft qui lisent des colonnes non enregistrées en tant que métadonnées (typique dans les templates de facturation/PEC où le SQL dérive des colonnes calculées).</li>
+<li><strong>Calendrier — événements invisibles à la première navigation</strong> : <code>&lt;wuic-scheduler-list&gt;</code> affichait un calendrier vide quand l'utilisateur naviguait directement vers <code>#/&lt;route&gt;/scheduler</code> (FullCalendar s'initialisait avec <code>data=[]</code> avant l'arrivée de la réponse async ; un F5 le peuplait car le cache de session livrait les données avant le mount). Correctif : synchronisation explicite des événements via API (<code>removeAllEvents()</code> + <code>addEvent()</code>) après le rendu du calendrier, contournant le binding <code>[events]=&quot;data&quot;</code> peu fiable du wrapper FullCalendar 6.x Angular sur les updates post-mount.</li>
+</ul>
+<hr />
+<h2 id="paquets-mis-a-jour">📦 Paquets mis à jour</h2>
+<table>
+<thead>
+<tr>
+<th>Paquet</th>
+<th>De</th>
+<th>À</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WuicCore</td>
+<td>1.0.19</td>
+<td>1.0.20</td>
+</tr>
+<tr>
+<td>Wuic.Webcore</td>
+<td>1.0.19</td>
+<td>1.0.20</td>
+</tr>
+<tr>
+<td>WuicOData</td>
+<td>1.0.19</td>
+<td>1.0.20</td>
+</tr>
+<tr>
+<td>RuntimeEfCore</td>
+<td>1.0.19</td>
+<td>1.0.20</td>
+</tr>
+<tr>
+<td>wuic-framework-lib (NPM)</td>
+<td>1.0.19</td>
+<td>1.0.20</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="actions-operationnelles-recommandees-pour-la-mise-a-jour">🔧 Actions opérationnelles recommandées pour la mise à jour</h2>
+<ol>
+<li>Exécuter <code>dotnet ef database update</code> si vous utilisez les migrations EF.</li>
+<li>Si vous utilisez le snap-to-roads sur les polylines de carte : vérifiez que votre clé Google Maps API a la <strong>Routes API</strong> activée en plus de la Directions API. Sans la Routes API, le framework retombe sur le legacy <code>DirectionsService</code>, encore fonctionnel mais dans la fenêtre de dépréciation (sunset 2027-02-25).</li>
+<li>Si vous dépendiez de la drawing toolbar standard de <code>MapListComponent</code> (aucun use case connu — les handlers étaient des stubs) : la toolbar a été retirée. Aucune action requise pour les filtres géo dans les list-grids — <code>PointFilterComponent</code> conserve la même UX avec une implémentation interne.</li>
+<li>Pour utiliser le nouveau overlay polyline sur une route carte : ajouter la configuration <code>{ enabled: true, groupByField, orderByField, ... }</code> à <code>md_props_bag.archetypes.map.polyline</code> via le designer ou un patch de métadonnées.</li>
+</ol>
+
+</article>
+</body>
+</html>

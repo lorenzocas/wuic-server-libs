@@ -1,0 +1,1976 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>FatturazioneElettronica — Manuale Utente e Configurazione</title>
+<link rel="stylesheet" href="https://unpkg.com/primeicons@7.0.0/primeicons.css" />
+<style>
+  /* ── Palette + base reset (mirror WuicSite/docs.scss) ─────────────── */
+  :root {
+    --c-bg: #ffffff;
+    --c-bg-soft: #f8fafc;
+    --c-border: #e2e8f0;
+    --c-fg: #0f172a;
+    --c-fg-soft: #475569;
+    --c-fg-mute: #64748b;
+    --c-fg-faint: #94a3b8;
+    --c-accent: #6366f1;
+    --c-accent-soft: #eef2ff;
+    --c-accent-dark: #4f46e5;
+    --c-code-bg: #0f172a;
+    --c-code-fg: #e2e8f0;
+    --c-code-key: #93c5fd;
+    --c-code-str: #fcd34d;
+    --c-code-cmt: #64748b;
+    --c-warn-bg: #fffbeb;
+    --c-warn-fg: #92400e;
+    --c-warn-bd: #fbbf24;
+    --c-info-bg: #eff6ff;
+    --c-info-fg: #1e40af;
+    --c-info-bd: #60a5fa;
+    --c-ok-bg: #ecfdf5;
+    --c-ok-fg: #065f46;
+    --c-ok-bd: #34d399;
+    --c-bad-bg: #fef2f2;
+    --c-bad-fg: #991b1b;
+    --c-bad-bd: #f87171;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--c-fg);
+    background: var(--c-bg);
+    line-height: 1.6;
+    font-size: 15px;
+  }
+  a { color: var(--c-accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code, pre, .mono { font-family: "JetBrains Mono", "Cascadia Mono", Consolas, "Liberation Mono", Menlo, monospace; }
+
+  /* ── Top bar (slim, fixed) ───────────────────────────────────────── */
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    height: 56px;
+    background: var(--c-bg);
+    border-bottom: 1px solid var(--c-border);
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 24px;
+  }
+  .topbar .brand {
+    font-weight: 700; font-size: 1.05rem; color: var(--c-fg);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .topbar .brand i { color: var(--c-accent); font-size: 1.2rem; }
+  .topbar .meta { color: var(--c-fg-mute); font-size: 0.85rem; }
+  .topbar .right { margin-left: auto; display: flex; gap: 12px; align-items: center; color: var(--c-fg-mute); font-size: 0.85rem; }
+
+  /* ── Two-column layout ───────────────────────────────────────────── */
+  .layout { display: grid; grid-template-columns: 280px 1fr; min-height: calc(100vh - 56px); }
+
+  /* ── Sidebar ─────────────────────────────────────────────────────── */
+  aside.sidebar {
+    background: var(--c-bg-soft);
+    border-right: 1px solid var(--c-border);
+    position: sticky; top: 56px;
+    height: calc(100vh - 56px);
+    overflow-y: auto;
+    padding: 20px 0;
+  }
+  .sidebar h3 {
+    font-size: 0.72rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.7px;
+    color: var(--c-fg-faint);
+    margin: 16px 16px 6px;
+  }
+  .sidebar ul { list-style: none; padding: 0; margin: 0 8px 12px; }
+  .sidebar li a {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 10px; border-radius: 6px;
+    color: var(--c-fg-soft); font-size: 0.88rem;
+    transition: background 0.15s, color 0.15s;
+  }
+  .sidebar li a i { color: var(--c-fg-faint); font-size: 0.9rem; width: 16px; text-align: center; }
+  .sidebar li a:hover { background: var(--c-accent-soft); color: var(--c-accent-dark); text-decoration: none; }
+  .sidebar li a:hover i { color: var(--c-accent); }
+
+  /* ── Main content area ───────────────────────────────────────────── */
+  main.content { padding: 32px 48px 80px; max-width: 1080px; }
+  main.content > section { scroll-margin-top: 72px; }
+  h1, h2, h3, h4 { color: var(--c-fg); }
+  h1 { font-size: 2.1rem; margin: 0 0 8px; }
+  h2 { font-size: 1.55rem; margin: 40px 0 12px; padding-bottom: 6px; border-bottom: 2px solid var(--c-accent-soft); }
+  h3 { font-size: 1.18rem; margin: 28px 0 8px; }
+  h4 { font-size: 1rem; margin: 18px 0 6px; color: var(--c-fg-soft); }
+  p { margin: 0 0 12px; }
+  ul, ol { margin: 0 0 12px; padding-left: 24px; }
+  li { margin: 4px 0; }
+
+  /* Breadcrumb */
+  .breadcrumb { color: var(--c-fg-mute); font-size: 0.85rem; margin-bottom: 4px; }
+  .breadcrumb i { font-size: 0.7rem; margin: 0 6px; color: var(--c-fg-faint); }
+
+  /* Tags / status pills */
+  .tag {
+    display: inline-block; padding: 2px 10px;
+    border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+    background: var(--c-accent-soft); color: var(--c-accent-dark);
+    margin-right: 6px; vertical-align: middle;
+  }
+  .tag.info  { background: var(--c-info-bg); color: var(--c-info-fg); }
+  .tag.warn  { background: var(--c-warn-bg); color: var(--c-warn-fg); }
+  .tag.ok    { background: var(--c-ok-bg);   color: var(--c-ok-fg); }
+  .tag.bad   { background: var(--c-bad-bg);  color: var(--c-bad-fg); }
+  .tag.mono  { font-family: "JetBrains Mono", Consolas, monospace; font-weight: 500; }
+
+  /* Callouts */
+  .callout {
+    border-left: 4px solid var(--c-info-bd);
+    background: var(--c-info-bg);
+    color: var(--c-info-fg);
+    padding: 12px 16px; border-radius: 0 8px 8px 0;
+    margin: 12px 0;
+  }
+  .callout.warn { border-color: var(--c-warn-bd); background: var(--c-warn-bg); color: var(--c-warn-fg); }
+  .callout.ok   { border-color: var(--c-ok-bd);   background: var(--c-ok-bg);   color: var(--c-ok-fg); }
+  .callout.bad  { border-color: var(--c-bad-bd);  background: var(--c-bad-bg);  color: var(--c-bad-fg); }
+  .callout strong { display: inline-flex; align-items: center; gap: 6px; }
+  .callout strong i { font-size: 0.95rem; }
+
+  /* Code blocks */
+  pre.code {
+    background: var(--c-code-bg);
+    color: var(--c-code-fg);
+    padding: 14px 16px; border-radius: 8px;
+    overflow-x: auto; font-size: 0.85rem; line-height: 1.5;
+    margin: 12px 0;
+  }
+  pre.code .k { color: var(--c-code-key); }
+  pre.code .s { color: var(--c-code-str); }
+  pre.code .c { color: var(--c-code-cmt); font-style: italic; }
+  code.inline {
+    background: var(--c-bg-soft);
+    border: 1px solid var(--c-border);
+    color: var(--c-accent-dark);
+    padding: 1px 6px; border-radius: 4px;
+    font-size: 0.85em;
+  }
+  .code-header {
+    background: #1e293b; color: #94a3b8;
+    padding: 6px 14px; font-size: 0.78rem;
+    border-radius: 8px 8px 0 0; margin-top: 12px;
+    font-family: "JetBrains Mono", Consolas, monospace;
+    border-bottom: 1px solid #334155;
+  }
+  .code-header + pre.code { margin-top: 0; border-radius: 0 0 8px 8px; }
+
+  /* Tables */
+  table.spec {
+    width: 100%; border-collapse: collapse; margin: 12px 0;
+    font-size: 0.9rem;
+  }
+  table.spec th {
+    background: var(--c-bg-soft);
+    text-align: left;
+    padding: 8px 12px; border: 1px solid var(--c-border);
+    font-weight: 600; color: var(--c-fg);
+  }
+  table.spec td {
+    padding: 8px 12px; border: 1px solid var(--c-border);
+    vertical-align: top;
+  }
+  table.spec td.k { font-family: "JetBrains Mono", Consolas, monospace; color: var(--c-accent-dark); white-space: nowrap; }
+  table.spec td.req { color: var(--c-bad-fg); font-weight: 600; }
+  table.spec td.opt { color: var(--c-fg-mute); }
+
+  /* Steps */
+  ol.steps { counter-reset: step; list-style: none; padding-left: 0; }
+  ol.steps li {
+    counter-increment: step;
+    position: relative; padding-left: 40px; margin-bottom: 16px;
+  }
+  ol.steps li::before {
+    content: counter(step);
+    position: absolute; left: 0; top: 0;
+    width: 28px; height: 28px;
+    background: var(--c-accent); color: white;
+    border-radius: 50%; display: flex;
+    align-items: center; justify-content: center;
+    font-weight: 700; font-size: 0.85rem;
+  }
+  ol.steps li h4 { margin-top: 0; }
+
+  /* TOC bar mobile */
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    aside.sidebar { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--c-border); }
+    main.content { padding: 24px 18px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><i class="pi pi-file-edit"></i> FatturazioneElettronica</div>
+  <div class="meta">Manuale Utente &amp; Configurazione · v1.0 · 12 maggio 2026</div>
+  <div class="right">
+    <span><i class="pi pi-bookmark"></i> guida operativa</span>
+  </div>
+</header>
+
+<div class="layout">
+
+<aside class="sidebar">
+  <h3>Per iniziare</h3>
+  <ul>
+    <li><a href="#introduzione"><i class="pi pi-info-circle"></i>Introduzione</a></li>
+    <li><a href="#architettura"><i class="pi pi-sitemap"></i>Architettura</a></li>
+    <li><a href="#prerequisiti"><i class="pi pi-check-square"></i>Prerequisiti</a></li>
+    <li><a href="#installazione"><i class="pi pi-download"></i>Installazione</a></li>
+    <li><a href="#first-run"><i class="pi pi-play-circle"></i>First run</a></li>
+  </ul>
+
+  <h3>Configurazione</h3>
+  <ul>
+    <li><a href="#cfg-appsettings"><i class="pi pi-cog"></i>appsettings.json</a></li>
+    <li><a href="#cfg-database"><i class="pi pi-database"></i>Database</a></li>
+    <li><a href="#cfg-sdi"><i class="pi pi-send"></i>Provider SDI</a></li>
+    <li><a href="#cfg-firma"><i class="pi pi-key"></i>Firma CADES‑BES</a></li>
+    <li><a href="#cfg-conservazione"><i class="pi pi-shield"></i>Conservazione</a></li>
+    <li><a href="#cfg-scheduler"><i class="pi pi-clock"></i>Scheduler</a></li>
+    <li><a href="#cfg-smtp"><i class="pi pi-envelope"></i>SMTP / Email</a></li>
+    <li><a href="#cfg-licenza"><i class="pi pi-id-card"></i>Licenza</a></li>
+    <li><a href="#cfg-secrets"><i class="pi pi-lock"></i>Secrets management</a></li>
+  </ul>
+
+  <h3>Uso quotidiano</h3>
+  <ul>
+    <li><a href="#anagrafiche"><i class="pi pi-users"></i>Anagrafiche</a></li>
+    <li><a href="#vendita"><i class="pi pi-shopping-bag"></i>Documenti vendita</a></li>
+    <li><a href="#acquisto"><i class="pi pi-shopping-cart"></i>Documenti acquisto</a></li>
+    <li><a href="#invio-sdi"><i class="pi pi-cloud-upload"></i>Invio SDI</a></li>
+    <li><a href="#ricezione-sdi"><i class="pi pi-cloud-download"></i>Ricezione SDI</a></li>
+    <li><a href="#conservazione"><i class="pi pi-database"></i>Conservazione</a></li>
+    <li><a href="#scadenze"><i class="pi pi-calendar"></i>Scadenze e pagamenti</a></li>
+    <li><a href="#riconciliazione"><i class="pi pi-link"></i>Riconciliazione</a></li>
+    <li><a href="#solleciti"><i class="pi pi-bell"></i>Solleciti</a></li>
+  </ul>
+
+  <h3>Report fiscali</h3>
+  <ul>
+    <li><a href="#report-lipe"><i class="pi pi-file-pdf"></i>LIPE</a></li>
+    <li><a href="#report-esterometro"><i class="pi pi-globe"></i>Esterometro</a></li>
+    <li><a href="#report-cu"><i class="pi pi-id-card"></i>Certificazione Unica</a></li>
+    <li><a href="#report-comunicazioni"><i class="pi pi-megaphone"></i>Comunicazioni periodiche</a></li>
+  </ul>
+
+  <h3>Dashboard</h3>
+  <ul>
+    <li><a href="#dash-finanze"><i class="pi pi-chart-line"></i>Dashboard Finanze</a></li>
+    <li><a href="#dash-top-clienti"><i class="pi pi-users"></i>Top clienti</a></li>
+    <li><a href="#dash-cashflow"><i class="pi pi-money-bill"></i>Cash flow</a></li>
+    <li><a href="#dash-aging"><i class="pi pi-history"></i>Aging crediti/debiti</a></li>
+  </ul>
+
+  <h3>Operations</h3>
+  <ul>
+    <li><a href="#backup"><i class="pi pi-save"></i>Backup &amp; restore</a></li>
+    <li><a href="#deploy"><i class="pi pi-server"></i>Deploy produzione</a></li>
+    <li><a href="#monitoring"><i class="pi pi-eye"></i>Monitoring &amp; log</a></li>
+    <li><a href="#troubleshooting"><i class="pi pi-question-circle"></i>Troubleshooting</a></li>
+    <li><a href="#faq"><i class="pi pi-comments"></i>FAQ</a></li>
+  </ul>
+</aside>
+
+<main class="content">
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="introduzione">
+  <div class="breadcrumb">Manuale <i class="pi pi-chevron-right"></i> Introduzione</div>
+  <h1>Manuale FatturazioneElettronica</h1>
+  <p style="font-size: 1.05rem; color: var(--c-fg-soft); max-width: 760px;">
+    Guida completa all'installazione, configurazione e uso dell'applicazione
+    <strong>FatturazioneElettronica</strong>: ciclo attivo (preventivi → ordini → DDT → fatture
+    inviate → SDI), ciclo passivo (ordini acquisto → fatture ricevute via SDI),
+    conservazione sostitutiva, report fiscali (LIPE, Esterometro, CU,
+    comunicazioni periodiche), dashboard analytics e scheduler.
+  </p>
+  <div style="margin-top: 16px;">
+    <span class="tag info">v1.0</span>
+    <span class="tag ok">production-ready</span>
+    <span class="tag">italiano</span>
+    <span class="tag">SDI v1.2</span>
+    <span class="tag">CADES‑BES</span>
+    <span class="tag">SQL Server + MySQL</span>
+  </div>
+
+  <h2 id="cosa-e">Cos'è FatturazioneElettronica</h2>
+  <p>
+    Applicazione di fatturazione elettronica conforme alla normativa italiana
+    (provvedimento Agenzia delle Entrate n. 89757/2018 e successivi). Costruita
+    sul framework <strong>WUIC</strong> (Web UI Crafter), eredita tutte le
+    funzionalità framework (designer dashboard, report designer Stimulsoft,
+    workflow, scheduler, notifiche real-time, multi-lingua, audit, RAG chatbot)
+    e aggiunge un dominio applicativo completo per la fatturazione.
+  </p>
+
+  <h3>Caratteristiche principali</h3>
+  <ul>
+    <li><strong>Ciclo attivo completo</strong>: preventivi → ordini di vendita
+        → DDT → fatture inviate, con conversione automatica fra documenti e
+        ricalcolo totali via stored procedure idempotenti.</li>
+    <li><strong>Invio SDI</strong> con 5 provider: <em>Direct PEC</em> (gratis,
+        usa la propria casella PEC) + 4 intermediari commerciali a pagamento
+        (Aruba, FatturePEC, Pec.it, Notarify) + <em>Mock</em> per ambienti
+        dev/test. Selezione automatica del provider in base alla sezione
+        <code class="inline">Sdi.*</code> configurata in <code class="inline">appsettings.json</code>.</li>
+    <li><strong>Firma CADES‑BES</strong> con certificato PKCS#12 (qualificato AgID
+        in produzione, self-signed dev tramite <code class="inline">scripts/generate-dev-sdi-cert.ps1</code>).</li>
+    <li><strong>Ricezione notifiche SDI</strong> automatica via 6 poller (Aruba PEC,
+        FatturePEC, Pec.it, Notarify REST, IMAP generico PEC, PEC italiana). Tracking
+        del cursore di paginazione in <code class="inline">sdi_provider_cursor</code> per
+        idempotenza fra restart.</li>
+    <li><strong>Conservazione sostitutiva</strong> a norma con 3 provider:
+        Filesystem locale (con timestamp RFC 3161), <em>InfoCert</em>, <em>Aruba</em>.
+        Index immutable+sealed in <code class="inline">conservazione_index</code>.</li>
+    <li><strong>Report fiscali</strong> XML generati server-side: LIPE
+        (liquidazione IVA periodica), Esterometro, CU (Certificazione Unica),
+        comunicazioni periodiche generiche.</li>
+    <li><strong>Scheduler integrato</strong>: invio massivo fatture, polling SDI,
+        generazione report periodici, solleciti scaduti, riconciliazione bancaria.
+        Configurabile via tabella <code class="inline">scheduler</code> con action_type
+        SQL / Webservice HTTP / Assembly method / Mailing list.</li>
+    <li><strong>Dashboard analytics</strong>: finanze, cash flow forecast, aging
+        crediti/debiti, top clienti, controllo fiscale.</li>
+    <li><strong>Multi-tenant ready</strong>: connection-by-user, tenant gate
+        opzionale via metadata standard WUIC.</li>
+  </ul>
+
+  <h3>Audience</h3>
+  <table class="spec">
+    <thead><tr><th>Profilo</th><th>Sezioni rilevanti</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Amministratore IT</strong></td>
+          <td>Installazione · First run · Configurazione · Deploy · Backup · Troubleshooting</td></tr>
+      <tr><td><strong>Operatore amministrativo</strong></td>
+          <td>Uso quotidiano · Anagrafiche · Documenti · Invio/Ricezione SDI · Report</td></tr>
+      <tr><td><strong>Commercialista / consulente fiscale</strong></td>
+          <td>Report fiscali (LIPE/Esterometro/CU) · Comunicazioni periodiche · Dashboard</td></tr>
+      <tr><td><strong>Sviluppatore / integrator</strong></td>
+          <td>Architettura · Database schema · API · Scheduler tasks · Provider SDI custom</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="architettura">
+  <h2>Architettura</h2>
+  <p>
+    FatturazioneElettronica è una <strong>WUIC application</strong>:
+    backend .NET 10 (ASP.NET Core MVC + OData + asmx-style proxy controllers),
+    metadata-driven UI Angular 21 (libreria <code class="inline">wuic-framework-lib</code>),
+    DB SQL Server (default) o MySQL.
+  </p>
+
+  <h3>Stack tecnologico</h3>
+  <table class="spec">
+    <thead><tr><th>Layer</th><th>Tecnologia</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td>Backend</td><td>.NET 10 / ASP.NET Core</td>
+          <td>Eredita <code class="inline">KonvergenceCore</code> (framework WUIC) come PackageReference</td></tr>
+      <tr><td>Frontend</td><td>Angular 21 + PrimeNG 17 + wuic-framework-lib</td>
+          <td>Build via <code class="inline">ng build</code>, deploy static in <code class="inline">wwwroot/</code></td></tr>
+      <tr><td>Database dati</td><td>SQL Server 2019+ o MySQL 5.7+ / MariaDB 10.4+</td>
+          <td>Provider mysql plugin-loaded via reflection (<code class="inline">mysql.dll</code>)</td></tr>
+      <tr><td>Database metadati</td><td>Stesso DBMS (catalog separato)</td>
+          <td>Tabelle <code class="inline">_metadati__tabelle</code>, <code class="inline">_metadati__colonne</code>, ecc.</td></tr>
+      <tr><td>SDI XML</td><td>Schema FatturaPA v1.2 (XSD validato server-side)</td>
+          <td><code class="inline">FatturaPaXsdValidator</code> + <code class="inline">Services/Sdi/Schemas/v1.2/Schema_VFPR12.xsd</code></td></tr>
+      <tr><td>Firma digitale</td><td>BouncyCastle (CADES‑BES, p7m)</td>
+          <td>Cert PKCS#12 caricato lazy al primo invio</td></tr>
+      <tr><td>Report</td><td>Stimulsoft Reports.NET (.mrt)</td>
+          <td>Designer integrato lato Angular, viewer server-side</td></tr>
+      <tr><td>Scheduler</td><td><code class="inline">SchedulerHostedService</code> (BackgroundService)</td>
+          <td>Tabella <code class="inline">scheduler</code> + <code class="inline">scheduler_execution</code> per audit</td></tr>
+      <tr><td>Notifications</td><td>SqlDependency (SQL Server) / polling (MySQL)</td>
+          <td>WebSocket push agli admin via <code class="inline">INotificationRepository</code></td></tr>
+    </tbody>
+  </table>
+
+  <h3>Componenti applicativi (custom FE)</h3>
+  <table class="spec">
+    <thead><tr><th>Cartella</th><th>Contenuto</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Controllers/</td>
+          <td>17 controller MVC dedicati: <code class="inline">SdiController</code>, <code class="inline">FiscalReportsController</code>, <code class="inline">ComunicazioniController</code>, <code class="inline">ContabilitaController</code>, <code class="inline">RiconciliazioneController</code>, <code class="inline">ScadenzeController</code>, <code class="inline">EmailController</code>, <code class="inline">ConversioniController</code>, ...</td></tr>
+      <tr><td class="k">Services/Sdi/</td>
+          <td>6 provider (DirectPec, ArubaPec, FatturePec, PecIt, Notarify, Mock) + firma CADES + validatore XSD + pipeline di submission</td></tr>
+      <tr><td class="k">Services/Sdi/Notifications/</td>
+          <td>6 poller di ritorno (1 per provider) + parser ricevute SDI + applier (transitiona ordini/fatture in base allo stato SDI)</td></tr>
+      <tr><td class="k">Services/Sdi/Conservation/</td>
+          <td>3 provider conservazione (Filesystem locale, InfoCert REST, Aruba SOAP)</td></tr>
+      <tr><td class="k">Services/FiscalReports/</td>
+          <td>4 generatori XML (LIPE, Esterometro, CU, Comunicazioni periodiche)</td></tr>
+      <tr><td class="k">dbms/schema/</td>
+          <td>~30 file SQL idempotenti: schema dati, trigger totali, stored procedure conversioni, view dashboard</td></tr>
+      <tr><td class="k">scripts/</td>
+          <td>Migration metadata (route registration, menu entries, lookup overrides, custom actions toolbar/row)</td></tr>
+      <tr><td class="k">Reports/</td>
+          <td>Report Stimulsoft (.mrt) per stampe documenti (fatture, DDT, preventivi)</td></tr>
+      <tr><td class="k">Conservazione/</td>
+          <td><strong>Output</strong> conservazione filesystem (XML + meta JSON + timestamp .tsr per anno/mese)</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Flusso end-to-end (esempio: vendita)</h3>
+  <ol class="steps">
+    <li><h4>Anagrafiche</h4>
+        Inserisci cliente, prodotti, listini, banche, codici IVA, unità di misura.</li>
+    <li><h4>Preventivo</h4>
+        Crea preventivo con righe; trigger <code class="inline">tr_preventivi_totali</code> ricalcola
+        imponibile/IVA/totale; può evolvere a ordine via stored
+        <code class="inline">sp_converti_preventivo_a_ordine</code>.</li>
+    <li><h4>Ordine</h4>
+        Workflow opzionale per approvazioni multi-step. Trigger
+        <code class="inline">tr_ordini_scadenze_auto</code> genera scadenze previste
+        in base al pagamento del cliente.</li>
+    <li><h4>DDT</h4>
+        Genera DDT da ordine (parziale o totale); trigger movimenta magazzino
+        e marca riga ordine come evasa. Scarico definitivo.</li>
+    <li><h4>Fattura inviata</h4>
+        Generata da DDT (fattura differita) o direttamente da ordine (fattura
+        accompagnatoria). Genera XML SDI conforme v1.2; firma CADES‑BES;
+        invio tramite il provider configurato.</li>
+    <li><h4>Notifiche SDI</h4>
+        Poller di ritorno riceve ricevute (RC, MC, NS, NE, NV, AT, ...).
+        <code class="inline">SdiNotificationApplier</code> traduce in transizioni di stato
+        sull'entità <code class="inline">fatture_inviate</code> (es. <em>inviata→accettata</em>).
+        Notifica bell all'operatore.</li>
+    <li><h4>Scadenze e pagamento</h4>
+        Le scadenze si attivano allo stato <em>APERTO</em> della fattura. Quando
+        l'incasso arriva (riconciliazione bancaria o input manuale), la scadenza
+        passa a <em>PAGATA</em> tramite <code class="inline">sp_marca_scadenze_pagate</code>.</li>
+    <li><h4>Conservazione sostitutiva</h4>
+        Job scheduler giornaliero/mensile prende XML + ricevuta SDI, applica
+        timestamp RFC 3161, deposita in <code class="inline">Conservazione/AAAA/MM/</code>
+        (Filesystem) o richiama API InfoCert/Aruba. Index immutable in
+        <code class="inline">conservazione_index</code>.</li>
+    <li><h4>Report fiscali periodici</h4>
+        Trimestrale LIPE, esterometro mensile (ora abolito ma supportato per
+        retro-compatibilità), CU annuale. XML pronto per upload Fisconline /
+        Entratel.</li>
+  </ol>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="prerequisiti">
+  <h2>Prerequisiti</h2>
+
+  <h3>Server (host backend)</h3>
+  <table class="spec">
+    <thead><tr><th>Componente</th><th>Versione minima</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td>.NET Runtime</td><td>.NET 10.0+</td><td>SDK su dev box, runtime ASP.NET Core su prod</td></tr>
+      <tr><td>SQL Server</td><td>2019+ (express OK)</td><td>OR MySQL 5.7+ / MariaDB 10.4+</td></tr>
+      <tr><td>IIS</td><td>10.0+ (Windows Server 2019+)</td><td>Solo se deploy IIS; alternativa Kestrel standalone o Docker</td></tr>
+      <tr><td>HTTPS</td><td>TLS 1.2+ obbligatorio in prod</td><td>Cert acme/Let's Encrypt OK per FE locale; per SDI no requisiti</td></tr>
+      <tr><td>RAM</td><td>4 GB minimo, 8 GB consigliato</td><td>Sale a 16 GB con dataset &gt; 100k fatture/anno</td></tr>
+      <tr><td>Disco</td><td>50 GB minimo + cartella conservazione</td><td>Conservazione cresce ~5 KB/fattura + 4 KB/ricevuta</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Provider SDI (almeno uno)</h3>
+  <table class="spec">
+    <thead><tr><th>Provider</th><th>Costo</th><th>Cosa serve</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Direct PEC</strong></td>
+          <td><span class="tag ok">5–30 €/anno</span></td>
+          <td>Una casella PEC (Aruba / Poste / Register.it / altro) con SMTPS abilitato</td></tr>
+      <tr><td>Aruba Fatturazione Elettronica</td>
+          <td><span class="tag warn">~5 €/mese</span></td>
+          <td>Account Aruba FE, username + password API</td></tr>
+      <tr><td>FatturePEC</td>
+          <td><span class="tag warn">~3 €/mese</span></td>
+          <td>API key</td></tr>
+      <tr><td>Pec.it</td>
+          <td><span class="tag warn">~4 €/mese</span></td>
+          <td>Bearer token OAuth</td></tr>
+      <tr><td>Notarify</td>
+          <td><span class="tag warn">su quote</span></td>
+          <td>API key + API secret</td></tr>
+      <tr><td>Mock</td>
+          <td><span class="tag info">gratis (solo dev)</span></td>
+          <td>Nessuna config: provider auto-selezionato se nessun altro è configurato</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Certificato firma CADES‑BES</h3>
+  <div class="callout">
+    <strong><i class="pi pi-info-circle"></i> Produzione</strong>:
+    occorre un <strong>certificato qualificato AgID</strong> in formato PKCS#12 (.p12 / .pfx)
+    emesso da una CA italiana riconosciuta (Aruba, InfoCert, Namirial, Sielte, …).
+    Senza certificato qualificato lo SDI <strong>scarta la fattura</strong> con esito
+    <em>EC02 — Firma non valida</em>.
+  </div>
+  <div class="callout ok">
+    <strong><i class="pi pi-check"></i> Dev / test</strong>: usa
+    <code class="inline">scripts/generate-dev-sdi-cert.ps1</code> per creare un cert
+    self-signed valido SOLO per il provider <code class="inline">Mock</code>. Mai con SDI reale.
+  </div>
+
+  <h3>PEC (per ricezione e Direct PEC)</h3>
+  <ul>
+    <li>SMTP TLS/SSL su porta 465 o 587 con credenziali (Aruba, Poste, Register.it, …)</li>
+    <li>IMAP/POP3 SSL per il poller di ricezione (se usato il poller IMAP)</li>
+    <li>Indirizzo SDI destinatario: <code class="inline">sdi01@pec.fatturapa.it</code> (Agenzia Entrate, fisso)</li>
+  </ul>
+
+  <h3>Licenza WUIC</h3>
+  <p>
+    L'app richiede una licenza WUIC tier <strong>Professional</strong> (o superiore) che includa
+    le feature <code class="inline">dashboard-designer</code>, <code class="inline">workflow-designer</code>,
+    <code class="inline">report-designer</code>. Vedi <a href="#cfg-licenza">Configurazione → Licenza</a>.
+  </p>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="installazione">
+  <h2>Installazione</h2>
+
+  <h3>1. Estrazione pacchetto</h3>
+  <p>Scarica <code class="inline">FatturazioneElettronica-iis-{version}.zip</code> o
+     <code class="inline">FatturazioneElettronica-src-{version}.zip</code>.</p>
+  <ul>
+    <li><strong>iis.zip</strong> = pubblicazione pronta da estrarre nella physical
+        path IIS (es. <code class="inline">C:\inetpub\FatturazioneElettronica</code>).</li>
+    <li><strong>src.zip</strong> = staging tree per <code class="inline">dotnet publish</code> locale
+        (utile per build custom o deploy linux/docker).</li>
+  </ul>
+
+  <h3>2. Configurazione IIS (Windows)</h3>
+  <ol class="steps">
+    <li><h4>Application Pool dedicato</h4>
+        Crea AppPool <code class="inline">FatturazioneElettronicaPool</code>:
+        <ul>
+          <li>.NET CLR version = <em>No managed code</em></li>
+          <li>Managed pipeline mode = <em>Integrated</em></li>
+          <li>Identity = <em>ApplicationPoolIdentity</em> (default) o account di servizio dedicato</li>
+          <li>Start mode = <em>AlwaysRunning</em> (consigliato per scheduler)</li>
+          <li>Idle Time-out = <em>0</em> (no idle shutdown)</li>
+        </ul>
+    </li>
+    <li><h4>Site IIS</h4>
+        <ul>
+          <li>Site name: <em>FatturazioneElettronica</em></li>
+          <li>Physical path: <em>la cartella estratta dal zip</em></li>
+          <li>Binding: <em>HTTPS</em> obbligatorio in prod, certificato del dominio aziendale</li>
+        </ul>
+    </li>
+    <li><h4>Permessi NTFS</h4>
+        L'identity dell'AppPool deve poter scrivere in:
+        <ul>
+          <li><code class="inline">Upload\</code> — allegati e XML SDI in uscita</li>
+          <li><code class="inline">Conservazione\</code> — output conservazione (per Filesystem)</li>
+          <li><code class="inline">logs\</code> — log applicativi</li>
+          <li><code class="inline">secrets\</code> — solo lettura, contiene cert PKCS#12 firma SDI</li>
+        </ul>
+    </li>
+    <li><h4>Modules</h4>
+        <code class="inline">AspNetCoreModuleV2</code> attivo (installato con ASP.NET Core
+        Hosting Bundle).</li>
+  </ol>
+
+  <h3>3. Deploy linux (alternativa)</h3>
+  <p>
+    Estrai <code class="inline">FatturazioneElettronica-linux-{version}.tar.gz</code> in
+    <code class="inline">/opt/wuiccore/app/</code>:
+  </p>
+  <div class="code-header">bash</div>
+<pre class="code">sudo tar -xzf FatturazioneElettronica-linux-1.0.0.tar.gz -C /opt/wuiccore/
+sudo cp /opt/wuiccore/app/scripts/wuiccore.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now wuiccore</pre>
+  <p>Vedi <a href="#deploy">Operations → Deploy</a> per i dettagli (reverse proxy
+     nginx, certificato Let's Encrypt, MariaDB systemd unit).</p>
+
+  <h3>4. Database</h3>
+  <p>Crea due database SQL Server (o MySQL):</p>
+  <div class="code-header">SQL Server</div>
+<pre class="code">CREATE DATABASE [FatturazioneElettronica_Data];
+CREATE DATABASE [FatturazioneElettronica_Metadata];
+-- Crea login + user dedicato con db_owner su entrambi (vedi sezione Database)</pre>
+  <p>Lo schema viene popolato al first-run (vedi sotto).</p>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="first-run">
+  <h2>First run</h2>
+
+  <p>Al primo avvio l'applicazione esegue uno <strong>setup wizard</strong> guidato che:</p>
+  <ol>
+    <li>Rileva DBMS disponibili (mssql / mysql) in base alle DLL provider presenti</li>
+    <li>Richiede credenziali DBA per creare/popolare i due DB (dati + metadati)</li>
+    <li>Esegue gli script <code class="inline">dbms/scripts/first-run/{minimal-metadata,tutorial-metadata,tutorial-data}.{mssql,mysql}.sql</code></li>
+    <li>Esegue tutti i file <code class="inline">dbms/schema/*.sql</code> in ordine alfabetico</li>
+    <li>Crea l'utente <em>admin/admin</em> di bootstrap (cambia subito la password!)</li>
+    <li>Setta <code class="inline">firstRun=false</code> in <code class="inline">appsettings.json</code></li>
+  </ol>
+
+  <h3>Pre-requisito: AppSettings.firstRun</h3>
+  <div class="code-header">appsettings.json (parziale)</div>
+<pre class="code">{
+  <span class="k">"AppSettings"</span>: {
+    <span class="k">"firstRun"</span>: <span class="s">"true"</span>,        <span class="c">// abilita il wizard</span>
+    <span class="k">"dbms"</span>: <span class="s">"mssql"</span>,            <span class="c">// mssql | mysql</span>
+    <span class="k">"meta-dbms"</span>: <span class="s">"mssql"</span>,
+    <span class="k">"preScaffold"</span>: <span class="s">"false"</span>
+  }
+}</pre>
+
+  <h3>Step-by-step</h3>
+  <ol class="steps">
+    <li><h4>Apri la URL del sito</h4>
+        <code class="inline">https://fatturazione.azienda.it/</code> — sei
+        re-indirizzato al setup wizard.</li>
+    <li><h4>Connessione DBMS</h4>
+        Server, porta, utente DBA, password DBA. Il wizard verifica la connessione
+        e crea i 2 DB se non esistono.</li>
+    <li><h4>Script bootstrap</h4>
+        Selezione <em>minimal-metadata + tutorial-data</em> (consigliato) oppure
+        solo minimal (per produzione vergine senza dati esempio).</li>
+    <li><h4>Account amministratore</h4>
+        Email, password, dominio. <strong>Memorizza la password</strong> — non è
+        recuperabile senza reset DB.</li>
+    <li><h4>Restart automatico</h4>
+        L'app si riavvia per applicare <code class="inline">firstRun=false</code>.
+        Reload del browser → login con account creato.</li>
+  </ol>
+
+  <div class="callout warn">
+    <strong><i class="pi pi-exclamation-triangle"></i> Importante</strong>:
+    se il wizard fallisce a metà (es. timeout connessione DB), <strong>droppa</strong>
+    i due database e riavvia. Lo script di bootstrap NON è idempotente —
+    eseguirlo due volte produce duplicate-key.
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="cfg-appsettings">
+  <h2>Configurazione · <code class="inline">appsettings.json</code></h2>
+  <p>
+    Il file <code class="inline">appsettings.json</code> (e l'overlay
+    <code class="inline">appsettings.Development.json</code> in dev) governa tutta
+    la configurazione runtime. Modifiche richiedono restart dell'AppPool /
+    servizio.
+  </p>
+
+  <h3>Sezioni principali</h3>
+  <table class="spec">
+    <thead><tr><th>Sezione</th><th>Scopo</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Logging</td><td>Livelli log (Debug/Info/Warning/Error)</td></tr>
+      <tr><td class="k">Authentication</td><td>OAuth / LDAP (opzionale, off di default)</td></tr>
+      <tr><td class="k">AppSettings</td><td>Cuore della configurazione: DBMS, licenza, SMTP, paths, flag</td></tr>
+      <tr><td class="k">ConnectionStrings</td><td>2 stringhe: <code class="inline">DataSQLConnection</code> + <code class="inline">MetaDataSQLConnection</code></td></tr>
+      <tr><td class="k">Sdi</td><td>Provider SDI + firma CADES + endpoint</td></tr>
+      <tr><td class="k">Scheduler</td><td>Tuning poll interval + max concurrent tasks</td></tr>
+      <tr><td class="k">SqlMapperRetry</td><td>Retry transient SQL exceptions</td></tr>
+      <tr><td class="k">Notifications</td><td>Mode SqlDependency (mssql) o Polling (mysql)</td></tr>
+      <tr><td class="k">RecordTranslations</td><td>Localizzazione record (i18n di valori utente)</td></tr>
+    </tbody>
+  </table>
+
+  <h3>AppSettings principali</h3>
+  <table class="spec">
+    <thead><tr><th>Chiave</th><th>Tipo</th><th>Descrizione</th></tr></thead>
+    <tbody>
+      <tr><td class="k">firstRun</td><td>"true" | "false"</td><td>Abilita il wizard di setup. <strong>Solo "false" in prod</strong>.</td></tr>
+      <tr><td class="k">dbms</td><td>"mssql" | "mysql"</td><td>DBMS dei dati applicativi</td></tr>
+      <tr><td class="k">meta-dbms</td><td>"mssql" | "mysql"</td><td>DBMS dei metadati (può differire dai dati)</td></tr>
+      <tr><td class="k">enableCookieAuthentication</td><td>"true"</td><td>Auth cookie <code class="inline">k-user</code>. Consigliato true in prod.</td></tr>
+      <tr><td class="k">sessionTimeoutMinutes</td><td>"60"</td><td>Timeout sessione (60 min default)</td></tr>
+      <tr><td class="k">uploadFolder</td><td>path assoluto</td><td>Cartella allegati + XML SDI (default: <code class="inline">Upload/</code>)</td></tr>
+      <tr><td class="k">customCrudHookClass</td><td>FQN classe</td><td>Hook custom CRUD: <code class="inline">WEB_UI_CRAFTER.ProjectData.Servizi.UtilityHost</code></td></tr>
+      <tr><td class="k">metadataSlimSerialization</td><td>"true"</td><td>Riduce payload metadati ~70%. Consigliato true.</td></tr>
+      <tr><td class="k">enableGuest</td><td>"false"</td><td>Accesso guest read-only (off di default)</td></tr>
+      <tr><td class="k">enableUserLanguageSwitch</td><td>"true"</td><td>Drop-down lingua (it/en/fr/es/de) nel topbar</td></tr>
+      <tr><td class="k">IsPwdEncripted</td><td>"true"</td><td>Password utente hashate. Mai disabilitare in prod.</td></tr>
+      <tr><td class="k">encriptionMethod</td><td>"SHA1" | "PBKDF2"</td><td>Algoritmo hash. PBKDF2 consigliato per nuove installazioni.</td></tr>
+      <tr><td class="k">autoGeneratedQueryTimeout</td><td>"120"</td><td>Timeout (s) per query auto-generate</td></tr>
+      <tr><td class="k">sqlVerbose</td><td>"false"</td><td>Log query SQL complete. Off in prod (performance).</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="cfg-database">
+  <h2>Configurazione · Database</h2>
+
+  <h3>Connection strings</h3>
+  <div class="code-header">appsettings.json — SQL Server</div>
+<pre class="code">{
+  <span class="k">"ConnectionStrings"</span>: {
+    <span class="k">"DataSQLConnection"</span>: <span class="s">"Data Source=sqlsrv\\PROD;Initial Catalog=FatturazioneElettronica_Data;User ID=fe_app;Password=__SET_DB_PASSWORD__;Encrypt=True;TrustServerCertificate=False"</span>,
+    <span class="k">"MetaDataSQLConnection"</span>: <span class="s">"Data Source=sqlsrv\\PROD;Initial Catalog=FatturazioneElettronica_Metadata;User ID=fe_app;Password=__SET_DB_PASSWORD__;Encrypt=True;TrustServerCertificate=False"</span>
+  }
+}</pre>
+
+  <div class="code-header">appsettings.json — MySQL</div>
+<pre class="code">{
+  <span class="k">"ConnectionStrings"</span>: {
+    <span class="k">"DataSQLConnection"</span>: <span class="s">"server=db.azienda.it;user id=fe_app;password=__SET_DB_PASSWORD__;database=fatturazioneelettronica_data;Port=3306;SslMode=Required;CharSet=utf8mb4;DefaultCommandTimeout=120"</span>,
+    <span class="k">"MetaDataSQLConnection"</span>: <span class="s">"server=db.azienda.it;user id=fe_app;password=__SET_DB_PASSWORD__;database=fatturazioneelettronica_metadata;Port=3306;SslMode=Required;CharSet=utf8mb4;DefaultCommandTimeout=120"</span>
+  }
+}</pre>
+
+  <h3>Permessi minimi</h3>
+  <p>L'utente DB applicativo (<em>fe_app</em>) deve avere:</p>
+  <ul>
+    <li><strong>db_owner</strong> sul DB metadati (creazione/alter route via designer)</li>
+    <li><strong>db_datareader + db_datawriter + EXECUTE</strong> sul DB dati</li>
+    <li>(MySQL) <code class="inline">SELECT, INSERT, UPDATE, DELETE, EXECUTE, CREATE TEMPORARY TABLES</code> minimo;
+        <code class="inline">CREATE, ALTER, DROP, INDEX</code> se si usa il designer DDL</li>
+  </ul>
+
+  <h3>Schema tabelle principali</h3>
+  <table class="spec">
+    <thead><tr><th>Area</th><th>Tabelle</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Anagrafiche</strong></td>
+          <td><code class="inline">clienti</code>, <code class="inline">fornitori</code>, <code class="inline">prodotti</code>, <code class="inline">listini</code>, <code class="inline">listini_prezzi</code>, <code class="inline">banche</code>, <code class="inline">codici_iva</code>, <code class="inline">unita_misura</code></td></tr>
+      <tr><td><strong>Vendite</strong></td>
+          <td><code class="inline">preventivi</code>, <code class="inline">preventivi_righe</code>, <code class="inline">ordini</code>, <code class="inline">ordini_righe</code>, <code class="inline">proforma</code>, <code class="inline">proforma_righe</code>, <code class="inline">ddt</code>, <code class="inline">ddt_righe</code>, <code class="inline">fatture_inviate</code>, <code class="inline">fatture_inviate_righe</code></td></tr>
+      <tr><td><strong>Acquisti</strong></td>
+          <td><code class="inline">ordini_acquisto</code>, <code class="inline">ordini_acquisto_righe</code>, <code class="inline">fatture_ricevute</code>, <code class="inline">fatture_ricevute_righe</code>, <code class="inline">ordini_elettronici</code>, <code class="inline">ordini_elettronici_righe</code></td></tr>
+      <tr><td><strong>Finanziario</strong></td>
+          <td><code class="inline">scadenze</code>, <code class="inline">pagamenti</code>, <code class="inline">movimenti_bancari</code>, <code class="inline">prima_nota</code>, <code class="inline">corrispettivi</code></td></tr>
+      <tr><td><strong>SDI / Conservazione</strong></td>
+          <td><code class="inline">sdi_notifications</code>, <code class="inline">sdi_provider_cursor</code>, <code class="inline">conservazione_index</code></td></tr>
+      <tr><td><strong>Reportistica / Comunicazioni</strong></td>
+          <td><code class="inline">comunicazioni_periodiche</code>, <code class="inline">email_log</code>, <code class="inline">email_template</code></td></tr>
+      <tr><td><strong>Utility</strong></td>
+          <td><code class="inline">dom_board_user_pref</code>, <code class="inline">user_saved_searches</code></td></tr>
+    </tbody>
+  </table>
+
+  <h3>Trigger automatici</h3>
+  <p>Lo schema definisce ~22 trigger che mantengono coerenza fra righe e testate:</p>
+  <ul>
+    <li><strong>Totali documenti</strong>: ogni INSERT/UPDATE/DELETE su <code class="inline">*_righe</code>
+        ricalcola imponibile/IVA/totale sulla testata.</li>
+    <li><strong>Scadenze auto</strong>: <code class="inline">tr_fatture_inviate_scadenze_auto</code>
+        genera scadenze in base a <em>pagamento_id</em> e <em>data_emissione</em>
+        quando la fattura passa a stato <em>APERTO</em>.</li>
+    <li><strong>Conservazione index</strong>: <code class="inline">conservazione_index</code> è
+        append-only (no UPDATE/DELETE permessi) — i trigger bloccano le mutazioni
+        per garantire la sealed-log property.</li>
+  </ul>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="cfg-sdi">
+  <h2>Configurazione · Provider SDI</h2>
+
+  <p>
+    L'app supporta <strong>5 provider</strong> + <strong>Mock</strong> di sviluppo.
+    Il provider attivo si seleziona <em>automaticamente</em> in base alla sottosezione
+    di <code class="inline">Sdi.*</code> configurata con credenziali valide.
+  </p>
+
+  <div class="callout warn">
+    <strong><i class="pi pi-exclamation-triangle"></i> Regola fondamentale</strong>:
+    deve esserci <strong>esattamente una</strong> sottosezione provider configurata.
+    Se nessuna → fallback su <code class="inline">MockSdiProvider</code> (solo dev).
+    Se &gt; 1 → errore di avvio.
+  </div>
+
+  <h3>Provider 1 · Direct PEC <span class="tag ok">gratis</span></h3>
+  <p>
+    Invio diretto al SDI tramite la <strong>tua casella PEC aziendale</strong>.
+    Non serve intermediario commerciale. Spesa: ~5–30 €/anno per la casella PEC.
+  </p>
+  <div class="code-header">appsettings.json</div>
+<pre class="code">{
+  <span class="k">"Sdi"</span>: {
+    <span class="k">"DirectPec"</span>: {
+      <span class="k">"PecFromAddress"</span>: <span class="s">"azienda@pec.aruba.it"</span>,
+      <span class="k">"SmtpUsername"</span>: <span class="s">"azienda@pec.aruba.it"</span>,
+      <span class="k">"SmtpPassword"</span>: <span class="s">"__SET_SDI_PEC_PASSWORD__"</span>,
+      <span class="k">"SmtpHost"</span>: <span class="s">"smtps.pec.aruba.it"</span>,
+      <span class="k">"SmtpPort"</span>: 465,
+      <span class="k">"EnableSsl"</span>: <span class="k">true</span>,
+      <span class="k">"SdiPecAddress"</span>: <span class="s">"sdi01@pec.fatturapa.it"</span>
+    }
+  }
+}</pre>
+
+  <table class="spec">
+    <thead><tr><th>Casella PEC</th><th>SMTP Host</th><th>Porta</th><th>SSL</th></tr></thead>
+    <tbody>
+      <tr><td>Aruba</td><td><code class="inline">smtps.pec.aruba.it</code></td><td>465</td><td>true</td></tr>
+      <tr><td>Poste</td><td><code class="inline">smtps.poste.it</code></td><td>465</td><td>true</td></tr>
+      <tr><td>Register.it</td><td><code class="inline">smtps.pec.register.it</code></td><td>465</td><td>true</td></tr>
+      <tr><td>Legalmail (InfoCert)</td><td><code class="inline">sendm.cert.legalmail.it</code></td><td>465</td><td>true</td></tr>
+      <tr><td>Namirial</td><td><code class="inline">smtps.sicurezzapostale.it</code></td><td>465</td><td>true</td></tr>
+    </tbody>
+  </table>
+
+  <p><strong>Poller di ricezione corrispondente</strong>:
+     <code class="inline">PecImapNotificationPoller</code> (IMAP) o
+     <code class="inline">PecItNotificationPoller</code> (Pec.it API).</p>
+
+  <h3>Provider 2 · Aruba Fatturazione Elettronica</h3>
+  <div class="code-header">appsettings.json</div>
+<pre class="code">{
+  <span class="k">"Sdi"</span>: {
+    <span class="k">"ArubaPec"</span>: {
+      <span class="k">"Username"</span>: <span class="s">"azienda_fe"</span>,
+      <span class="k">"Password"</span>: <span class="s">"__SET_SDI_ARUBA_PASSWORD__"</span>,
+      <span class="k">"Endpoint"</span>: <span class="s">"https://ws.fatturazione.aruba.it/services/invoice"</span>,
+      <span class="c">// dev/test: "https://wstest.fatturazione.aruba.it/services/invoice"</span>
+      <span class="k">"SoapAction"</span>: <span class="s">"sendInvoice"</span>
+    }
+  }
+}</pre>
+  <p>Provider corrispondente: <code class="inline">ArubaPecSdiProvider</code> (SOAP).
+     Poller: <code class="inline">ArubaPecNotificationPoller</code> (~5 minuti polling).</p>
+
+  <h3>Provider 3 · FatturePEC</h3>
+  <div class="code-header">appsettings.json</div>
+<pre class="code">{
+  <span class="k">"Sdi"</span>: {
+    <span class="k">"FatturePec"</span>: {
+      <span class="k">"ApiKey"</span>: <span class="s">"__SET_SDI_FATTUREPEC_APIKEY__"</span>,
+      <span class="k">"Endpoint"</span>: <span class="s">"https://api.fatturepec.com/v1/invoices/send"</span>
+    }
+  }
+}</pre>
+
+  <h3>Provider 4 · Pec.it</h3>
+  <div class="code-header">appsettings.json</div>
+<pre class="code">{
+  <span class="k">"Sdi"</span>: {
+    <span class="k">"PecIt"</span>: {
+      <span class="k">"BearerToken"</span>: <span class="s">"__SET_SDI_PECIT_TOKEN__"</span>,
+      <span class="k">"Endpoint"</span>: <span class="s">"https://api.pec.it/v1/sdi/submit"</span>
+    }
+  }
+}</pre>
+
+  <h3>Provider 5 · Notarify</h3>
+  <div class="code-header">appsettings.json</div>
+<pre class="code">{
+  <span class="k">"Sdi"</span>: {
+    <span class="k">"Notarify"</span>: {
+      <span class="k">"ApiKey"</span>: <span class="s">"__SET_SDI_NOTARIFY_APIKEY__"</span>,
+      <span class="k">"ApiSecret"</span>: <span class="s">"__SET_SDI_NOTARIFY_APISECRET__"</span>,
+      <span class="k">"Endpoint"</span>: <span class="s">"https://api.notarify.com/sdi/v1/send"</span>
+    }
+  }
+}</pre>
+
+  <h3>Provider Mock</h3>
+  <p>
+    Auto-selezionato se NESSUNA sottosezione provider è configurata.
+    L'XML viene <strong>scritto su disco</strong> in <code class="inline">Upload/sdi-out/</code>
+    senza nessuna submission reale.
+  </p>
+  <div class="callout warn">
+    <strong><i class="pi pi-exclamation-triangle"></i> Mai usare Mock in produzione</strong>:
+    le fatture restano in stato <em>BOZZA_SDI</em> a oltranza e gli adempimenti
+    fiscali falliscono. Solo per ambienti di sviluppo / test.
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="cfg-firma">
+  <h2>Configurazione · Firma CADES‑BES</h2>
+
+  <p>
+    Tutte le fatture inviate allo SDI devono essere firmate digitalmente in
+    formato <strong>CADES‑BES</strong> (PKCS#7 firmato, estensione
+    <em>.p7m</em>). FatturazioneElettronica usa
+    <code class="inline">CadesBesSigner</code> basato su BouncyCastle.
+  </p>
+
+  <h3>Certificato produzione (qualificato AgID)</h3>
+  <ol>
+    <li>Acquisisci un certificato di firma qualificato da una CA riconosciuta
+        (Aruba, InfoCert, Namirial, Sielte, Poste, Trust Italia).</li>
+    <li>Esportalo in formato <strong>PKCS#12</strong> (.p12 o .pfx) con la sua
+        catena di certificati e la chiave privata. La password di export
+        protegge il file.</li>
+    <li>Copialo in <code class="inline">FatturazioneElettronica/secrets/sdi-prod-cert.p12</code>
+        (permessi <em>read-only</em> per l'identity dell'AppPool).</li>
+    <li>Configura in <code class="inline">appsettings.json</code>:</li>
+  </ol>
+
+  <div class="code-header">appsettings.json</div>
+<pre class="code">{
+  <span class="k">"Sdi"</span>: {
+    <span class="k">"Signer"</span>: {
+      <span class="k">"Pkcs12Path"</span>: <span class="s">"C:\\path\\to\\sdi-prod-cert.p12"</span>,
+      <span class="k">"Pkcs12Password"</span>: <span class="s">"__SET_SIGNER_PASSWORD__"</span>,
+      <span class="k">"SignatureAlgorithm"</span>: <span class="s">"SHA256withRSA"</span>
+    }
+  }
+}</pre>
+
+  <h3>Certificato dev/test (self-signed)</h3>
+  <div class="callout warn">
+    <strong><i class="pi pi-exclamation-triangle"></i> Solo per Mock provider</strong>:
+    self-signed → SDI reale rifiuta con EC02. Usare solo con
+    <code class="inline">MockSdiProvider</code> per testing locale.
+  </div>
+  <div class="code-header">PowerShell</div>
+<pre class="code">cd C:\src\Wuic\FatturazioneElettronica
+pwsh -File scripts/generate-dev-sdi-cert.ps1 `
+     -OutputPath secrets/sdi-dev-cert.p12 `
+     -Password   "wuic-dev-sdi-cert" `
+     -ValidYears 5</pre>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="cfg-conservazione">
+  <h2>Configurazione · Conservazione sostitutiva</h2>
+
+  <p>
+    Per legge le fatture elettroniche devono essere conservate a norma per
+    <strong>10 anni</strong> con timestamp RFC 3161 e firma. FatturazioneElettronica
+    implementa 3 provider:
+  </p>
+
+  <h3>Provider Filesystem (locale, default)</h3>
+  <p>
+    Output in <code class="inline">FatturazioneElettronica/Conservazione/AAAA/MM/</code>:
+    XML originale + ricevuta SDI + meta JSON (<em>denominazione, P.IVA, data,
+    sha256, …</em>) + timestamp RFC 3161 (.tsr) ottenuto da una TSA pubblica
+    (Aruba TSA gratuita di default).
+  </p>
+  <div class="code-header">appsettings.json (estensione consigliata)</div>
+<pre class="code">{
+  <span class="k">"Conservazione"</span>: {
+    <span class="k">"Provider"</span>: <span class="s">"Filesystem"</span>,
+    <span class="k">"BasePath"</span>: <span class="s">"C:\\FatturazioneElettronica\\Conservazione"</span>,
+    <span class="k">"TsaUrl"</span>: <span class="s">"https://servizi.arubapec.it/tsa/ngrequest"</span>,
+    <span class="k">"TsaTimeoutSeconds"</span>: 30
+  }
+}</pre>
+
+  <h3>Provider InfoCert</h3>
+  <p>Conservazione delegata a InfoCert (servizio LegalDoc). Richiede contratto
+     attivo con InfoCert e API key:</p>
+  <div class="code-header">appsettings.json</div>
+<pre class="code">{
+  <span class="k">"Conservazione"</span>: {
+    <span class="k">"Provider"</span>: <span class="s">"InfoCert"</span>,
+    <span class="k">"InfoCert"</span>: {
+      <span class="k">"ApiKey"</span>: <span class="s">"__SET_INFOCERT_APIKEY__"</span>,
+      <span class="k">"ApiSecret"</span>: <span class="s">"__SET_INFOCERT_APISECRET__"</span>,
+      <span class="k">"Endpoint"</span>: <span class="s">"https://api.infocert.it/legaldoc/v2"</span>,
+      <span class="k">"VaultId"</span>: <span class="s">"azienda-fe-vault-001"</span>
+    }
+  }
+}</pre>
+
+  <h3>Provider Aruba</h3>
+  <p>Conservazione delegata ad Aruba (servizio DocFly):</p>
+  <div class="code-header">appsettings.json</div>
+<pre class="code">{
+  <span class="k">"Conservazione"</span>: {
+    <span class="k">"Provider"</span>: <span class="s">"Aruba"</span>,
+    <span class="k">"Aruba"</span>: {
+      <span class="k">"Username"</span>: <span class="s">"azienda_docfly"</span>,
+      <span class="k">"Password"</span>: <span class="s">"__SET_ARUBA_DOCFLY_PASSWORD__"</span>,
+      <span class="k">"Endpoint"</span>: <span class="s">"https://docfly.aruba.it/api/v1/preservation"</span>
+    }
+  }
+}</pre>
+
+  <h3>Index immutable</h3>
+  <p>
+    Tutte le conservazioni effettuate sono tracciate in
+    <code class="inline">conservazione_index</code> (append-only, no UPDATE/DELETE).
+    Questa tabella è la prova legale dell'avvenuta conservazione: ogni riga
+    contiene hash sha256 del contenuto + timestamp + provider usato + identifier
+    esterno (per InfoCert/Aruba).
+  </p>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="cfg-scheduler">
+  <h2>Configurazione · Scheduler</h2>
+
+  <p>
+    Lo <code class="inline">SchedulerHostedService</code> esegue task periodici
+    leggendo la tabella <code class="inline">scheduler</code> del DB metadati. È
+    abilitato in <code class="inline">appsettings.json</code>:
+  </p>
+
+  <div class="code-header">appsettings.json</div>
+<pre class="code">{
+  <span class="k">"Scheduler"</span>: {
+    <span class="k">"Enabled"</span>: <span class="k">true</span>,
+    <span class="k">"PollSeconds"</span>: 15,
+    <span class="k">"MaxTasksPerCycle"</span>: 20,
+    <span class="k">"RetryDelaySeconds"</span>: 60,
+    <span class="k">"SqlCommandTimeoutSeconds"</span>: 300
+  }
+}</pre>
+
+  <h3>Action types</h3>
+  <table class="spec">
+    <thead><tr><th>action_type</th><th>Significato</th><th>Formato action_cmd</th></tr></thead>
+    <tbody>
+      <tr><td><code class="inline">1</code> / <code class="inline">sql</code></td><td>Esegue una stored procedure o uno statement SQL</td><td><code class="inline">EXEC sp_genera_solleciti @gg_scadenza=30</code></td></tr>
+      <tr><td><code class="inline">2</code></td><td>Chiamata HTTP webservice</td><td><code class="inline">POST /api/Sdi/PollAllProviders</code></td></tr>
+      <tr><td><code class="inline">3</code></td><td>Metodo statico assembly</td><td><code class="inline">Assembly.dll!Namespace.Class.Method</code></td></tr>
+      <tr><td><code class="inline">4</code></td><td>Invio mailing list</td><td><code class="inline">mailing_list_id=42</code></td></tr>
+    </tbody>
+  </table>
+
+  <h3>Task default installati per FE</h3>
+  <table class="spec">
+    <thead><tr><th>event_name</th><th>Frequenza</th><th>Cosa fa</th></tr></thead>
+    <tbody>
+      <tr><td><code class="inline">fe_sdi_poller_all</code></td><td>ogni 5 minuti</td>
+          <td>Polling ricevute SDI da tutti i provider configurati</td></tr>
+      <tr><td><code class="inline">fe_solleciti_giornalieri</code></td><td>tutti i giorni alle 09:00</td>
+          <td>Genera email solleciti per fatture scadute &gt; N giorni</td></tr>
+      <tr><td><code class="inline">fe_conservazione_mensile</code></td><td>1° del mese 03:00</td>
+          <td>Conservazione massiva fatture del mese precedente</td></tr>
+      <tr><td><code class="inline">fe_lipe_trimestrale</code></td><td>16° del mese (post-IVA)</td>
+          <td>Genera LIPE XML pronto per upload Entratel</td></tr>
+      <tr><td><code class="inline">fe_riconciliazione_bancaria</code></td><td>giornaliero 02:00</td>
+          <td>Match automatico movimenti banca → scadenze (per importo + data)</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Audit esecuzioni</h3>
+  <p>Ogni run del task crea una row in <code class="inline">scheduler_execution</code> con:
+     start_time, end_time, esito (success / failed / skipped), error_message,
+     rows_affected. Utile per debug e monitoring.</p>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="cfg-smtp">
+  <h2>Configurazione · SMTP / Email</h2>
+
+  <p>
+    L'app invia email per: notifiche di ricezione fatture, solleciti, conferme
+    workflow, password reset. Configurazione in <code class="inline">AppSettings</code>:
+  </p>
+
+  <div class="code-header">appsettings.json</div>
+<pre class="code">{
+  <span class="k">"AppSettings"</span>: {
+    <span class="k">"email-host"</span>: <span class="s">"smtp.azienda.it"</span>,
+    <span class="k">"email-port"</span>: <span class="s">"587"</span>,
+    <span class="k">"email-ssl"</span>: <span class="s">"true"</span>,
+    <span class="k">"email-user"</span>: <span class="s">"noreply@azienda.it"</span>,
+    <span class="k">"email-pwd"</span>: <span class="s">"__SET_SMTP_PASSWORD__"</span>,
+    <span class="k">"email-sender-name-mailing"</span>: <span class="s">"Azienda SpA"</span>,
+    <span class="k">"email-sender-address-mailing"</span>: <span class="s">"fatturazione@azienda.it"</span>
+  }
+}</pre>
+
+  <h3>Test SMTP</h3>
+  <p>Dalla UI: <em>Profilo → Test email</em> oppure via API:</p>
+  <div class="code-header">HTTP</div>
+<pre class="code">POST /api/Email/SendTest
+Content-Type: application/json
+
+{ "to": "admin@azienda.it" }</pre>
+
+  <h3>Template email</h3>
+  <p>
+    Tabella <code class="inline">email_template</code> contiene template multi-lingua
+    (subject + body HTML/text). Variabili sostituite con sintassi
+    <code class="inline">{{nome_variabile}}</code> al render. Template predefiniti:
+    <em>sollecito-30gg</em>, <em>sollecito-60gg</em>, <em>conferma-ricezione-fattura</em>,
+    <em>notifica-pagamento-ricevuto</em>.
+  </p>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="cfg-licenza">
+  <h2>Configurazione · Licenza</h2>
+  <p>L'app richiede una licenza WUIC tier <strong>Professional</strong> con feature:</p>
+  <ul>
+    <li><code class="inline">dashboard-designer</code> — designer dashboard custom</li>
+    <li><code class="inline">workflow-designer</code> — workflow approvazioni ordini</li>
+    <li><code class="inline">report-designer</code> — designer report Stimulsoft</li>
+    <li><code class="inline">pivot-grid</code> — analytics avanzata</li>
+    <li><code class="inline">offline-crud</code> — operativi anche senza connessione</li>
+    <li><code class="inline">rag-chatbot</code> — assistente AI integrato (opzionale)</li>
+    <li><code class="inline">spreadsheet</code> — editing tabellare avanzato</li>
+  </ul>
+
+  <div class="code-header">appsettings.json — sezione licenza</div>
+<pre class="code">{
+  <span class="k">"AppSettings"</span>: {
+    <span class="k">"license-email"</span>: <span class="s">"licenza@azienda.it"</span>,
+    <span class="k">"license-payload"</span>: <span class="s">"eyJlbWFpbCI6...JlfX0="</span>,            <span class="c">// base64</span>
+    <span class="k">"license-signature"</span>: <span class="s">"lDzvaYV8MrDmvhMhkfXWZ6...=="</span>,
+    <span class="k">"license-public-key-pem"</span>: <span class="s">"-----BEGIN RSA PUBLIC KEY-----\n..."</span>
+  }
+}</pre>
+
+  <p>
+    Il payload base64 contiene: email, scadenza UTC, machine fingerprint(s),
+    scadenza manutenzione, tier, lista feature. La firma RSA è verificata
+    server-side ad ogni avvio.
+  </p>
+
+  <h3>Machine fingerprint</h3>
+  <p>
+    Il fingerprint è derivato da CPU id + MAC address + machine GUID. Per ottenerlo
+    su una nuova macchina:
+  </p>
+  <div class="code-header">PowerShell</div>
+<pre class="code">pwsh -File scripts/get-machine-fingerprint.ps1
+# output: sha256 hex (64 chars) -> da comunicare al licensee per emissione licenza</pre>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="cfg-secrets">
+  <h2>Configurazione · Secrets management</h2>
+
+  <p>
+    <strong>Mai committare</strong> password / API key in
+    <code class="inline">appsettings.json</code>. Il pacchetto di deploy contiene
+    placeholder <code class="inline">__SET_*__</code> che vanno popolati al deploy.
+  </p>
+
+  <h3>Placeholder usati</h3>
+  <table class="spec">
+    <thead><tr><th>Placeholder</th><th>Cosa va inserito</th></tr></thead>
+    <tbody>
+      <tr><td><code class="inline">__SET_DB_PASSWORD__</code></td><td>Password utente DB applicativo</td></tr>
+      <tr><td><code class="inline">__SET_SMTP_PASSWORD__</code></td><td>Password account SMTP</td></tr>
+      <tr><td><code class="inline">__SET_OAUTH_CLIENT_SECRET__</code></td><td>OAuth Google/AzureAD secret (se Authentication abilitato)</td></tr>
+      <tr><td><code class="inline">__SET_SIGNER_PASSWORD__</code></td><td>Password del .p12 firma CADES</td></tr>
+      <tr><td><code class="inline">__SET_SDI_PEC_PASSWORD__</code></td><td>Password casella PEC per Direct PEC</td></tr>
+      <tr><td><code class="inline">__SET_SDI_ARUBA_PASSWORD__</code></td><td>Password Aruba FE</td></tr>
+      <tr><td><code class="inline">__SET_SDI_FATTUREPEC_APIKEY__</code></td><td>API key FatturePEC</td></tr>
+      <tr><td><code class="inline">__SET_SDI_PECIT_TOKEN__</code></td><td>Bearer token Pec.it</td></tr>
+      <tr><td><code class="inline">__SET_SDI_NOTARIFY_APIKEY__</code></td><td>API key Notarify</td></tr>
+      <tr><td><code class="inline">__SET_SDI_NOTARIFY_APISECRET__</code></td><td>API secret Notarify</td></tr>
+      <tr><td><code class="inline">__SET_INFOCERT_APIKEY__</code></td><td>API key InfoCert LegalDoc</td></tr>
+      <tr><td><code class="inline">__SET_ARUBA_DOCFLY_PASSWORD__</code></td><td>Password Aruba DocFly conservazione</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Opzioni di gestione</h3>
+  <ul>
+    <li><strong>Plain in appsettings.{Environment}.json</strong> (overlay non in git)
+        — semplice ma non audit-friendly.</li>
+    <li><strong>Variabili d'ambiente</strong>:
+        <code class="inline">__</code> come separatore di sezione, es.
+        <code class="inline">ConnectionStrings__DataSQLConnection</code>. Override
+        automatico di .NET configuration provider.</li>
+    <li><strong>Azure Key Vault / AWS Secrets Manager</strong>: aggiungi il provider
+        cloud al builder in <code class="inline">Program.cs</code>.</li>
+    <li><strong>DPAPI (Windows)</strong>: cifra il file con
+        <code class="inline">dotnet user-secrets</code> o con un provider custom
+        DPAPI.</li>
+  </ul>
+
+  <h3>Audit anti-leak (pre-deploy)</h3>
+  <p>
+    Lo script di build <code class="inline">scripts/deploy-release-freapp.ps1</code>
+    include un <strong>audit a due fasi</strong>: (1) sanitize, sostituisce
+    secret literal con placeholder; (2) audit post-zip, riapre il pacchetto e
+    fallisce il build se trova ancora secret. Vedi
+    <a href="#deploy">Deploy produzione</a>.
+  </p>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="anagrafiche">
+  <h2>Anagrafiche</h2>
+
+  <p>Le anagrafiche sono il punto di partenza di qualsiasi flusso. Menu:
+     <em>Anagrafiche</em> → sotto-voci.</p>
+
+  <h3>Clienti</h3>
+  <p>Route <code class="inline">#/clienti/list</code>. Campi principali:</p>
+  <table class="spec">
+    <thead><tr><th>Campo</th><th>Obbligatorio</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td>Codice</td><td class="opt">no</td><td>Generato auto se vuoto (sequenza per anno)</td></tr>
+      <tr><td>Denominazione</td><td class="req">sì</td><td>Persona fisica o ragione sociale</td></tr>
+      <tr><td>Tipo soggetto</td><td class="req">sì</td><td>PRIVATO / IMPRESA / PA</td></tr>
+      <tr><td>P.IVA</td><td>sì (IMPRESA/PA)</td><td>11 cifre, validato</td></tr>
+      <tr><td>Codice fiscale</td><td>sì (PRIVATO)</td><td>16 caratteri alfanumerici</td></tr>
+      <tr><td>Indirizzo / CAP / Città / Provincia / Nazione</td><td class="req">sì</td><td>Obbligatorio per XML FatturaPA</td></tr>
+      <tr><td>Email + PEC</td><td>una delle due</td><td>PEC per ricezione SDI; email per comunicazioni</td></tr>
+      <tr><td>Codice destinatario SDI</td><td>opzionale</td><td>7 caratteri se cliente ha SDI gestionale; <code class="inline">0000000</code> se solo PEC</td></tr>
+      <tr><td>Listino predefinito</td><td>opzionale</td><td>Lookup verso <code class="inline">listini</code>; applicato in automatico ai nuovi documenti</td></tr>
+      <tr><td>Pagamento predefinito</td><td>opzionale</td><td>Per generazione automatica scadenze</td></tr>
+      <tr><td>IBAN</td><td>opzionale</td><td>Per incassi</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Fornitori</h3>
+  <p>Route <code class="inline">#/fornitori/list</code>. Stessa struttura di
+     <em>Clienti</em>, usata in ciclo passivo (ordini acquisto, fatture ricevute).</p>
+
+  <h3>Prodotti</h3>
+  <p>Route <code class="inline">#/prodotti/list</code>. Campi:</p>
+  <ul>
+    <li><strong>Codice + Descrizione</strong> — chiave primaria business.</li>
+    <li><strong>Tipologia</strong>: BENE / SERVIZIO. Trigger di magazzino
+        attivi solo su BENE.</li>
+    <li><strong>Unità di misura</strong> + <strong>Codice IVA</strong> default.</li>
+    <li><strong>Prezzo vendita / acquisto</strong> — fallback master se non c'è
+        listino specifico per il cliente.</li>
+    <li><strong>Categoria</strong>, <strong>marchio</strong>, <strong>codice barre</strong>
+        — opzionali, indicizzati per ricerca globale.</li>
+  </ul>
+
+  <h3>Listini prezzi</h3>
+  <p>
+    Route <code class="inline">#/listini/list</code>. Un listino è un set di
+    prezzi per cliente o segmento (es. <em>Premium</em>, <em>Standard</em>,
+    <em>Distributori</em>). Le righe sono in <code class="inline">listini_prezzi</code>
+    con UNIQUE su <code class="inline">(listino_id, prodotto_id)</code>.
+  </p>
+  <p>
+    La <strong>stored <code class="inline">sp_get_prezzo_listino_v2</code></strong>
+    risolve il prezzo applicando questa cascata:
+  </p>
+  <ol>
+    <li>Listino specifico del cliente (se assegnato)</li>
+    <li>Prezzo master del prodotto</li>
+  </ol>
+  <p>(con scadenza <code class="inline">valid_from / valid_to</code> per promozioni a termine).</p>
+
+  <h3>Banche, codici IVA, unità di misura</h3>
+  <p>
+    Anagrafiche di servizio. Caricate al first-run con i valori standard
+    italiani (22% / 10% / 4% / esenti / split payment; € / kg / litri / pezzi; …).
+    Editabili dall'admin.
+  </p>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="vendita">
+  <h2>Documenti vendita</h2>
+
+  <h3>Preventivo</h3>
+  <p>Route <code class="inline">#/preventivi/list</code>. Documento NON fiscale,
+     può essere convertito a ordine via custom action toolbar
+     <em>Converti in ordine</em> (stored <code class="inline">sp_converti_preventivo_a_ordine</code>).</p>
+
+  <h3>Ordine di vendita</h3>
+  <p>Route <code class="inline">#/ordini/list</code>. Stati possibili:</p>
+  <ul>
+    <li><strong>BOZZA</strong> — modificabile, righe ancora ricalcolabili</li>
+    <li><strong>APERTO</strong> — confermato, le scadenze previste si attivano</li>
+    <li><strong>EVASIONE</strong> — almeno un DDT generato</li>
+    <li><strong>EVASO</strong> — tutte le righe scaricate</li>
+    <li><strong>FATTURATO</strong> — esiste almeno una fattura collegata</li>
+    <li><strong>ANNULLATO</strong> — chiuso senza emissione</li>
+  </ul>
+
+  <h3>DDT</h3>
+  <p>
+    Route <code class="inline">#/ddt/list</code>. Generato da un ordine (parziale o
+    totale) via stored <code class="inline">sp_converti_ordine_a_ddt</code>. Trigger
+    di magazzino scarica le quantità. Numerazione separata, annuale, per causale
+    (vendita / reso / conto visione).
+  </p>
+
+  <h3>Fattura inviata</h3>
+  <p>
+    Route <code class="inline">#/fatture_inviate/list</code>. Generata da:
+  </p>
+  <ul>
+    <li><strong>DDT</strong> → fattura differita (raggruppando più DDT dello
+        stesso cliente del mese)</li>
+    <li><strong>Ordine</strong> → fattura accompagnatoria (servizi o consegna
+        contestuale)</li>
+    <li><strong>Manuale</strong> → fattura libera (riga senza riferimento documenti)</li>
+  </ul>
+
+  <h3>Stati fattura</h3>
+  <table class="spec">
+    <thead><tr><th>Stato</th><th>Significato</th></tr></thead>
+    <tbody>
+      <tr><td>BOZZA_SDI</td><td>Editabile, XML non ancora generato</td></tr>
+      <tr><td>VALIDATA</td><td>XML generato e validato XSD, pronto per invio</td></tr>
+      <tr><td>IN_INVIO</td><td>Invio SDI in corso (request in flight al provider)</td></tr>
+      <tr><td>INVIATA</td><td>SDI ha accettato il payload (RC ricevuta consegna)</td></tr>
+      <tr><td>ACCETTATA</td><td>Destinatario ha accettato la fattura (NS notifica accettazione)</td></tr>
+      <tr><td>SCARTATA</td><td>SDI ha scartato (NS errore o NV violazione)</td></tr>
+      <tr><td>DECORRENZA</td><td>Decorrenza termini — 15 giorni senza accettazione/rifiuto</td></tr>
+      <tr><td>STORNATA</td><td>Nota di credito emessa</td></tr>
+      <tr><td>APERTO</td><td>Stato contabile post-SDI, attiva scadenze</td></tr>
+      <tr><td>CHIUSO</td><td>Tutte le scadenze pagate</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Custom actions sulla griglia fatture</h3>
+  <p>Sulla list-grid <code class="inline">fatture_inviate</code> sono disponibili
+     queste azioni (toolbar + row):</p>
+  <ul>
+    <li><i class="pi pi-cloud-upload"></i> <strong>Invia SDI</strong> — row action, attivabile su BOZZA_SDI o VALIDATA</li>
+    <li><i class="pi pi-download"></i> <strong>Download XML</strong> — row action, scarica XML firmato</li>
+    <li><i class="pi pi-print"></i> <strong>Stampa</strong> — apre Report Stimulsoft (PDF)</li>
+    <li><i class="pi pi-envelope"></i> <strong>Invia per email</strong> — usa template <em>conferma-ricezione-fattura</em></li>
+    <li><i class="pi pi-times-circle"></i> <strong>Crea nota di credito</strong> — sequenza speciale tipo TD04</li>
+  </ul>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="acquisto">
+  <h2>Documenti acquisto</h2>
+
+  <h3>Ordine acquisto</h3>
+  <p>Route <code class="inline">#/ordini_acquisto/list</code>. Specularmente al ciclo
+     vendita; alimenta carico fornitore atteso e generazione fatture ricevute previste.</p>
+
+  <h3>Ordine elettronico (NSO / PA)</h3>
+  <p>
+    Route <code class="inline">#/ordini_elettronici/list</code>. Per pubbliche
+    amministrazioni che ricevono ordini elettronici via NSO (Nodo Smistamento
+    Ordini). Schema XML diverso da FatturaPA, gestito da
+    <code class="inline">NsoXmlGenerator</code> (parallel a SDI).
+  </p>
+
+  <h3>Fattura ricevuta</h3>
+  <p>
+    Route <code class="inline">#/fatture_ricevute/list</code>. Le fatture arrivano
+    da 3 canali:
+  </p>
+  <ul>
+    <li><strong>SDI</strong> — il poller di ricezione le inserisce automaticamente in
+        <code class="inline">fatture_ricevute</code> con stato <em>RICEVUTA_DA_SDI</em>.</li>
+    <li><strong>Upload XML manuale</strong> — admin carica file .xml o .p7m
+        (validato XSD, righe importate).</li>
+    <li><strong>Inserimento manuale</strong> — utile per fatture cartacee
+        recuperate (es. contabilità pregressa).</li>
+  </ul>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="invio-sdi">
+  <h2>Invio SDI — flusso operativo</h2>
+
+  <ol class="steps">
+    <li><h4>Fattura BOZZA_SDI</h4>
+        L'operatore crea/edita la fattura. Tutti i campi obbligatori
+        FatturaPA devono essere valorizzati (P.IVA cliente, indirizzo,
+        codice destinatario o PEC, aliquota IVA per riga).</li>
+    <li><h4>Validate</h4>
+        Click su <em>Valida XML</em> (toolbar): genera XML server-side,
+        valida contro <code class="inline">Schema_VFPR12.xsd</code>. Se ok →
+        stato <em>VALIDATA</em>; se errori → dialog con lista, fattura resta
+        in <em>BOZZA_SDI</em>.</li>
+    <li><h4>Firma + invio</h4>
+        Click su <em>Invia SDI</em> (row action): pipeline
+        <code class="inline">SdiSubmissionPipeline</code>:
+        <ol>
+          <li>Carica XML</li>
+          <li>Firma CADES-BES con cert PKCS#12 → produce .p7m</li>
+          <li>Invio al provider configurato</li>
+          <li>Salva submission_id in <code class="inline">fatture_inviate.sdi_submission_id</code></li>
+          <li>Stato → <em>IN_INVIO</em></li>
+        </ol>
+    </li>
+    <li><h4>Ricezione RC (ricevuta consegna)</h4>
+        Poller di ritorno riceve la RC entro pochi minuti.
+        <code class="inline">SdiNotificationApplier</code> transitiona la fattura a
+        <em>INVIATA</em>. Bell notification all'operatore.</li>
+    <li><h4>Esito SDI</h4>
+        Entro 15 giorni il destinatario invia <em>NS</em> (notifica accettazione/rifiuto)
+        oppure scatta <em>DT</em> (decorrenza termini). Stati possibili:
+        <em>ACCETTATA</em>, <em>SCARTATA</em>, <em>DECORRENZA</em>.</li>
+    <li><h4>Apertura contabile</h4>
+        Su <em>ACCETTATA</em> o <em>DECORRENZA</em>, transizione automatica a
+        <em>APERTO</em>. Trigger <code class="inline">tr_fatture_inviate_scadenze_auto</code>
+        genera le scadenze in base al pagamento del cliente.</li>
+  </ol>
+
+  <h3>Invio massivo</h3>
+  <p>
+    Toolbar action <em>Invia massivo selezionati</em>: applica il flusso 1→3 in
+    sequenza su tutte le fatture selezionate (multi-select grid). Ogni invio è
+    transazionale; gli errori vengono raccolti e mostrati nel summary finale.
+  </p>
+
+  <h3>Numerazione</h3>
+  <ul>
+    <li>Per <strong>sezionale</strong>: ogni sezionale ha sequenza separata annuale</li>
+    <li><strong>Numero</strong> = progressivo intero (1, 2, 3, …)</li>
+    <li><strong>NumeroEsterno</strong> = stringa "FT/2026/000001" composta da prefisso + anno + padding</li>
+    <li>Gap forbidden: il sistema RIFIUTA inserire fattura n+2 se n+1 non esiste
+        (vincolo civilistico)</li>
+  </ul>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="ricezione-sdi">
+  <h2>Ricezione SDI</h2>
+
+  <p>
+    Il <code class="inline">SdiNotificationHostedService</code> gira come
+    BackgroundService e schedula i poller in base alla configurazione provider.
+  </p>
+
+  <h3>Poller per provider</h3>
+  <table class="spec">
+    <thead><tr><th>Provider attivo</th><th>Poller usato</th><th>Frequenza default</th></tr></thead>
+    <tbody>
+      <tr><td>DirectPec</td><td><code class="inline">PecImapNotificationPoller</code></td><td>5 min</td></tr>
+      <tr><td>ArubaPec</td><td><code class="inline">ArubaPecNotificationPoller</code></td><td>5 min</td></tr>
+      <tr><td>FatturePec</td><td><code class="inline">FatturePecNotificationPoller</code></td><td>5 min</td></tr>
+      <tr><td>PecIt</td><td><code class="inline">PecItNotificationPoller</code></td><td>5 min</td></tr>
+      <tr><td>Notarify</td><td><code class="inline">NotarifyNotificationPoller</code></td><td>10 min</td></tr>
+      <tr><td>Mock (dev)</td><td><code class="inline">NullNotificationPoller</code></td><td>—</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Idempotenza</h3>
+  <p>
+    Ogni poller persiste il cursore di paginazione in
+    <code class="inline">sdi_provider_cursor</code> (last_message_id /
+    last_timestamp). Restart sicuro: riprende da dove era arrivato senza
+    duplicare notifiche già processate.
+  </p>
+
+  <h3>Parser ricevute</h3>
+  <p>
+    <code class="inline">SdiNotificationParser</code> riconosce i tipi SDI:
+  </p>
+  <table class="spec">
+    <thead><tr><th>Codice</th><th>Nome</th><th>Trigger</th></tr></thead>
+    <tbody>
+      <tr><td>RC</td><td>Ricevuta consegna</td><td>SDI → fattura consegnata al destinatario → stato <em>INVIATA</em></td></tr>
+      <tr><td>MC</td><td>Mancata consegna</td><td>SDI non ha trovato il canale del destinatario; richiede invio alternativo</td></tr>
+      <tr><td>NS</td><td>Notifica scarto</td><td>SDI ha scartato la fattura per errore formale → <em>SCARTATA</em></td></tr>
+      <tr><td>NE</td><td>Notifica esito</td><td>Destinatario ha accettato o rifiutato → <em>ACCETTATA</em> o <em>SCARTATA</em></td></tr>
+      <tr><td>NV</td><td>Notifica violazione</td><td>Errore semantico (P.IVA inesistente, ecc.)</td></tr>
+      <tr><td>AT</td><td>Attestazione trasmissione</td><td>Conferma trasmissione a destinatario PA</td></tr>
+      <tr><td>DT</td><td>Decorrenza termini</td><td>15 giorni senza NE → stato <em>DECORRENZA</em></td></tr>
+    </tbody>
+  </table>
+
+  <h3>Applier</h3>
+  <p>
+    <code class="inline">SdiNotificationApplier</code> traduce ogni ricevuta in:
+  </p>
+  <ul>
+    <li>UPDATE su <code class="inline">fatture_inviate.stato</code> (con transizione validata)</li>
+    <li>INSERT in <code class="inline">sdi_notifications</code> per audit completo</li>
+    <li>Bell notification all'utente creatore (con deep-link
+        <code class="inline">/fatture_inviate/edit/{id}</code>)</li>
+    <li>Se è ricezione di una fattura passiva (non una ricevuta di una mia attiva):
+        INSERT in <code class="inline">fatture_ricevute</code> con import righe</li>
+  </ul>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="conservazione">
+  <h2>Conservazione sostitutiva</h2>
+
+  <p>
+    La conservazione a norma è eseguita dal task scheduler
+    <code class="inline">fe_conservazione_mensile</code> (1° del mese alle 03:00).
+    Per ogni fattura del mese precedente:
+  </p>
+  <ol>
+    <li>Compone payload: XML originale + ricevuta SDI + meta JSON (P.IVA, denominazione, importo, hash sha256, …)</li>
+    <li>Richiede timestamp RFC 3161 alla TSA configurata</li>
+    <li>Per provider <em>Filesystem</em>: scrive in
+        <code class="inline">Conservazione/AAAA/MM/{numero}.xml + .meta.json + .tsr</code></li>
+    <li>Per provider <em>InfoCert</em> / <em>Aruba</em>: chiama API REST/SOAP e
+        ottiene identifier remoto</li>
+    <li>INSERT (immutable) in <code class="inline">conservazione_index</code> con
+        provider + path/identifier + hash + timestamp</li>
+  </ol>
+
+  <h3>Conservazione manuale</h3>
+  <p>
+    Toolbar action <em>Conserva ora</em> sulla griglia fatture: forza la
+    conservazione delle righe selezionate senza aspettare il task notturno.
+    Utile per chiusure intermedie.
+  </p>
+
+  <h3>Verifica conservazione (audit fiscale)</h3>
+  <p>Route <code class="inline">#/conservazione_index/list</code>:</p>
+  <ul>
+    <li>Lista immutabile di tutte le conservazioni</li>
+    <li>Filtro per data, provider, fattura</li>
+    <li>Download del bundle (XML + .tsr + meta) per ispezione esterna</li>
+    <li>Verifica timestamp: riprova la verifica della firma RFC 3161 contro la
+        TSA per provare che il documento esisteva a quella data</li>
+  </ul>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="scadenze">
+  <h2>Scadenze e pagamenti</h2>
+
+  <p>
+    Route <code class="inline">#/scadenze/list</code>. Le scadenze nascono
+    automaticamente alla transizione di una fattura allo stato <em>APERTO</em>
+    in base al piano di pagamento del cliente (es. <em>30/60/90 giorni
+    fine mese</em>).
+  </p>
+
+  <h3>Stati scadenza</h3>
+  <ul>
+    <li><strong>PREVISTA</strong> — generata, in attesa di scadere</li>
+    <li><strong>IN_SCADENZA</strong> — scadenza nei prossimi 7 giorni</li>
+    <li><strong>SCADUTA</strong> — data scadenza passata, non pagata</li>
+    <li><strong>PAGATA</strong> — incasso/pagamento registrato (totale)</li>
+    <li><strong>PARZIALE</strong> — pagamento parziale registrato</li>
+    <li><strong>INSOLUTA</strong> — flaggata dall'operatore (richiede sollecito o gestione legale)</li>
+  </ul>
+
+  <h3>Registrazione pagamenti</h3>
+  <p>Tre modi:</p>
+  <ol>
+    <li><strong>Manuale</strong> — drill su scadenza → tab <em>Pagamenti</em> → INSERT con importo, data, modalità, banca</li>
+    <li><strong>Da riconciliazione bancaria</strong> — il match automatico crea il pagamento (vedi sezione successiva)</li>
+    <li><strong>Massivo</strong> — toolbar action <em>Marca scadenze pagate</em>:
+        usa stored <code class="inline">sp_marca_scadenze_pagate</code> con
+        filtri (data limite, cliente, conto banca)</li>
+  </ol>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="riconciliazione">
+  <h2>Riconciliazione bancaria</h2>
+
+  <p>
+    Route <code class="inline">#/movimenti_bancari/list</code>. Import movimenti
+    via:
+  </p>
+  <ul>
+    <li><strong>CSV banca</strong> (formato UNICREDIT / Intesa / generico)</li>
+    <li><strong>CBI/PSD2</strong> via PsdConnector (opzionale, richiede AISP)</li>
+    <li><strong>Inserimento manuale</strong></li>
+  </ul>
+
+  <h3>Match automatico</h3>
+  <p>Il task <code class="inline">fe_riconciliazione_bancaria</code> matcha
+     movimenti → scadenze con questa euristica (in cascata):</p>
+  <ol>
+    <li><strong>Match esatto</strong>: importo + cliente (per IBAN/causale) + ±5 giorni dalla scadenza</li>
+    <li><strong>Match per causale</strong>: pattern <em>FT 2026/000123</em> o
+        <em>fatt n. 123</em> nella causale → matcha la fattura corrispondente</li>
+    <li><strong>Match parziale</strong>: stesso cliente, somma di più scadenze
+        uguale all'importo</li>
+  </ol>
+  <p>I match <strong>candidati</strong> sono mostrati in UI per conferma operatore
+     (riconciliazione assistita), evitando rischi di match sbagliato.</p>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="solleciti">
+  <h2>Solleciti</h2>
+
+  <p>
+    Task <code class="inline">fe_solleciti_giornalieri</code> chiama la stored
+    <code class="inline">sp_genera_solleciti</code> con parametro
+    <em>gg_scadenza</em> (default 30, 60, 90). Per ogni scadenza
+    <em>SCADUTA</em> da almeno N giorni e mai sollecitata o sollecitata oltre
+    M giorni fa:
+  </p>
+  <ol>
+    <li>Lookup template email per fascia (sollecito-30 / sollecito-60 / sollecito-90)</li>
+    <li>Render con dati cliente, scadenza, importo</li>
+    <li>Invio email + log in <code class="inline">email_log</code></li>
+    <li>UPDATE scadenza: <code class="inline">last_sollecito_at = now()</code>,
+        <code class="inline">livello_sollecito = N</code></li>
+  </ol>
+
+  <h3>Configurazione fasce</h3>
+  <p>I valori N (giorni di ritardo) sono editabili in <code class="inline">email_template</code>:</p>
+  <table class="spec">
+    <thead><tr><th>Template name</th><th>Trigger fascia gg</th><th>Tono</th></tr></thead>
+    <tbody>
+      <tr><td><code class="inline">sollecito-30gg</code></td><td>30</td><td>Cortese — promemoria</td></tr>
+      <tr><td><code class="inline">sollecito-60gg</code></td><td>60</td><td>Formale — invito al pagamento</td></tr>
+      <tr><td><code class="inline">sollecito-90gg</code></td><td>90</td><td>Severo — preavviso recupero crediti</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="report-lipe">
+  <h2>Report fiscale · LIPE</h2>
+
+  <p>
+    Liquidazione IVA Periodica trimestrale. Tracciato XML conforme
+    Agenzia Entrate (provv. 117418/2018 e successivi). Endpoint:
+    <code class="inline">POST /api/FiscalReports/GenerateLipe</code>.
+  </p>
+
+  <h3>Input</h3>
+  <ul>
+    <li>Anno (es. 2026)</li>
+    <li>Trimestre (1–4) — oppure mese (per liquidazione mensile)</li>
+    <li>P.IVA dichiarante (default: anagrafica azienda)</li>
+    <li>Codice fiscale firmatario (legale rappresentante)</li>
+  </ul>
+
+  <h3>Cosa fa il generatore</h3>
+  <ol>
+    <li>Esegue <code class="inline">sp_aggregato_lipe</code> per il periodo: aggrega
+        imponibile, IVA esigibile, IVA detraibile, IVA da versare/credito</li>
+    <li>Compone XML nel formato Entratel</li>
+    <li>Valida contro XSD ufficiale</li>
+    <li>Salva snapshot in <code class="inline">comunicazioni_periodiche</code> con
+        tipo <em>LIPE</em> e stato <em>GENERATA</em></li>
+  </ol>
+
+  <h3>Output</h3>
+  <p>XML pronto per upload Fisconline. La trasmissione finale (verso Entratel
+     o intermediario) <strong>non è automatica</strong> — l'operatore scarica
+     il file e lo carica manualmente o lo trasmette al commercialista.</p>
+
+  <div class="callout">
+    <strong><i class="pi pi-info-circle"></i> Auto-firma LIPE</strong>: in roadmap
+    iter2 l'integrazione con il servizio di firma Entratel via web-token
+    (eliminerà lo step manuale). Per ora si delega al commercialista.
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="report-esterometro">
+  <h2>Report fiscale · Esterometro</h2>
+
+  <p>
+    Comunicazione delle operazioni transfrontaliere. <strong>Abolito dal
+    1° luglio 2022</strong>, ma il generatore resta per:
+  </p>
+  <ul>
+    <li>Periodi pregressi (correzioni a operazioni 2021-H1 2022)</li>
+    <li>Software fiscali che ancora lo richiedono per audit interno</li>
+  </ul>
+  <p>Endpoint: <code class="inline">POST /api/FiscalReports/GenerateEsterometro</code>.</p>
+
+  <p><strong>Nota</strong>: per le operazioni post-1-lug-2022 verso fornitori
+     esteri si usa direttamente l'integratrice nel flusso SDI con
+     <em>TipoDocumento = TD17/TD18/TD19</em> (autofattura per acquisti
+     intracomunitari/extra-UE).</p>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="report-cu">
+  <h2>Report fiscale · Certificazione Unica (CU)</h2>
+
+  <p>
+    Generatore CU annuale per professionisti / collaboratori percipienti
+    redditi assimilati al lavoro dipendente. Conforme tracciato Entratel
+    annuale.
+  </p>
+  <p>Endpoint: <code class="inline">POST /api/FiscalReports/GenerateCu</code>.</p>
+
+  <h3>Input</h3>
+  <ul>
+    <li>Anno di riferimento</li>
+    <li>Lista percipienti (auto da <code class="inline">fornitori</code> con flag <em>professionista</em>)</li>
+    <li>Compensi totali per percipiente (auto da <code class="inline">fatture_ricevute</code> filtrate)</li>
+    <li>Ritenute d'acconto applicate (per riga fattura)</li>
+  </ul>
+
+  <h3>Output</h3>
+  <p>XML CU pronto per upload Entratel. Salvato in
+     <code class="inline">comunicazioni_periodiche</code> tipo <em>CU</em>.</p>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="report-comunicazioni">
+  <h2>Report · Comunicazioni periodiche</h2>
+
+  <p>
+    Route <code class="inline">#/comunicazioni_periodiche/list</code>. Repository
+    centralizzato di tutti i tracciati fiscali generati (LIPE, CU, Esterometro,
+    eventuali F24 / dichiarazioni IVA annuali). Per ogni comunicazione:
+  </p>
+  <ul>
+    <li><strong>Tipo</strong> (LIPE / CU / Esterometro / IVA Annuale)</li>
+    <li><strong>Periodo</strong> (Q1 2026, Anno 2025, ...)</li>
+    <li><strong>Stato</strong> (GENERATA / TRASMESSA / ACCETTATA / RIFIUTATA)</li>
+    <li><strong>XML</strong> (blob, scaricabile)</li>
+    <li><strong>Ricevuta Entratel</strong> (blob, se importata manualmente)</li>
+    <li><strong>Operatore</strong> + timestamp</li>
+  </ul>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="dash-finanze">
+  <h2>Dashboard · Finanze</h2>
+  <p>
+    Route <code class="inline">#/finanze/dashboard</code>. KPI:
+    fatturato YTD, IVA esigibile mese, fatturato per categoria, margine medio.
+    Filtri: sezionale, agente, area geografica.
+  </p>
+</section>
+
+<section id="dash-top-clienti">
+  <h2>Dashboard · Top clienti</h2>
+  <p>
+    Route <code class="inline">#/top_clienti/dashboard</code>. Bar chart top 10
+    clienti per fatturato YTD, con drill-down sui documenti del cliente.
+  </p>
+</section>
+
+<section id="dash-cashflow">
+  <h2>Dashboard · Cash flow</h2>
+  <p>
+    Route <code class="inline">#/cashflow_forecast/dashboard</code>. Proiezione
+    a 90 giorni: incassi attesi (scadenze attive non pagate) vs pagamenti
+    attesi (scadenze passive). Bar chart stacked giornaliero/settimanale.
+  </p>
+</section>
+
+<section id="dash-aging">
+  <h2>Dashboard · Aging crediti / debiti</h2>
+  <p>
+    Route <code class="inline">#/aging_crediti/dashboard</code> e
+    <code class="inline">#/aging_debiti/dashboard</code>. Distribuzione delle
+    scadenze in fasce di anzianità: 0-30, 31-60, 61-90, 91-180, &gt;180 gg.
+    Identifica esposizioni rischiose.
+  </p>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="backup">
+  <h2>Backup &amp; restore</h2>
+
+  <h3>Cosa salvare</h3>
+  <ol>
+    <li><strong>Entrambi i database</strong> (dati + metadati) — backup full
+        giornaliero, log ogni 15 min se SQL Server</li>
+    <li><strong>Cartella <code class="inline">Conservazione/</code></strong> — i .xml/.tsr
+        sono prova legale, perdita = mancato adempimento</li>
+    <li><strong>Cartella <code class="inline">Upload/</code></strong> — allegati documenti
+        (DDT firmati, scansioni cartacee, …)</li>
+    <li><strong>Cartella <code class="inline">secrets/</code></strong> — cert .p12 di firma
+        (necessario per riemetterli identicamente in DR)</li>
+    <li><strong>appsettings.{Production}.json</strong> — config completa (anche le
+        chiavi API)</li>
+  </ol>
+
+  <h3>Esempio policy SQL Server</h3>
+  <div class="code-header">T-SQL</div>
+<pre class="code">-- Full nightly
+BACKUP DATABASE FatturazioneElettronica_Data
+TO DISK = 'D:\Backups\fe_data_full.bak'
+WITH FORMAT, COMPRESSION, CHECKSUM;
+
+-- Log ogni 15 minuti
+BACKUP LOG FatturazioneElettronica_Data
+TO DISK = 'D:\Backups\fe_data_log.trn'
+WITH COMPRESSION, CHECKSUM;</pre>
+
+  <h3>Restore in DR</h3>
+  <ol>
+    <li>RESTORE DATABASE + RESTORE LOG fino al PIT desiderato</li>
+    <li>Ripristina <code class="inline">Conservazione/</code>, <code class="inline">Upload/</code>, <code class="inline">secrets/</code></li>
+    <li>Aggiorna <code class="inline">appsettings.Production.json</code> con i nuovi
+        path/connection string se diversi</li>
+    <li>Sostituisci/aggiorna licenza WUIC se la macchina ha fingerprint diverso</li>
+    <li>Restart AppPool / servizio; verifica health check</li>
+  </ol>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="deploy">
+  <h2>Deploy produzione</h2>
+
+  <h3>Pipeline build</h3>
+  <p>Lo script <code class="inline">scripts/deploy-release-freapp.ps1</code> esegue:</p>
+  <ol>
+    <li><code class="inline">dotnet build</code> + <code class="inline">dotnet publish</code> backend</li>
+    <li>Angular build (<code class="inline">ng build --configuration production</code>) frontend</li>
+    <li>Confluence/obfuscation via ConfuserEx 2 (mappa simboli per crash deobfuscation)</li>
+    <li>Drop DLL provider mysql + Pomelo + MySqlConnector in <code class="inline">bin/Debug/net10.0/</code></li>
+    <li>Drop firstRun SQL scripts in <code class="inline">dbms/scripts/first-run/</code></li>
+    <li><strong>Sanitize secrets</strong> in <code class="inline">appsettings*.json</code> → placeholder <code class="inline">__SET_*__</code></li>
+    <li>Compose zip <em>FatturazioneElettronica-iis-{version}.zip</em></li>
+    <li>Compose tar.gz <em>FatturazioneElettronica-linux-{version}.tar.gz</em></li>
+    <li><strong>Audit secrets post-zip</strong>: scansione completa del pacchetto, fail se trova literal</li>
+  </ol>
+
+  <h3>Upgrade da versione precedente</h3>
+  <ol>
+    <li>Backup DB + cartelle (vedi sezione Backup)</li>
+    <li>Stop AppPool / <code class="inline">systemctl stop wuiccore</code></li>
+    <li>Sostituisci binari (estrai nuovo zip preservando <code class="inline">appsettings.json</code>, <code class="inline">Upload/</code>, <code class="inline">Conservazione/</code>, <code class="inline">secrets/</code>)</li>
+    <li>Esegui script di migrazione: <code class="inline">pwsh scripts/migrate-db.ps1 -FromVersion X -ToVersion Y</code></li>
+    <li>Restart</li>
+    <li>Verifica smoke test login + lista fatture</li>
+  </ol>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="monitoring">
+  <h2>Monitoring &amp; log</h2>
+
+  <h3>Log files</h3>
+  <ul>
+    <li><code class="inline">logs/app-{date}.log</code> — log applicativo (rotation giornaliera)</li>
+    <li><code class="inline">logs/sdi-{date}.log</code> — log dedicato invio/ricezione SDI</li>
+    <li><code class="inline">logs/scheduler-{date}.log</code> — log scheduler task</li>
+    <li>Event Log Windows (su IIS): canale <em>Application</em>, source <em>ASP.NET Core</em></li>
+  </ul>
+
+  <h3>Health check endpoint</h3>
+  <p><code class="inline">GET /health</code> → JSON con stato DB, scheduler, provider SDI configurato.
+     Codice 200 = ok; 503 = uno o più subsystem down.</p>
+
+  <h3>KPI da monitorare</h3>
+  <table class="spec">
+    <thead><tr><th>Metrica</th><th>Soglia warning</th><th>Cosa fare</th></tr></thead>
+    <tbody>
+      <tr><td>Fatture in stato IN_INVIO &gt; 1h</td><td>&gt; 5</td><td>Verificare connettività provider SDI</td></tr>
+      <tr><td>Fatture SCARTATE ultimi 7gg</td><td>&gt; 2% del totale</td><td>Verificare anagrafiche destinatari, validazione</td></tr>
+      <tr><td>Task scheduler in errore</td><td>&gt; 0 consecutivi</td><td>Esaminare <code class="inline">scheduler_execution.error_message</code></td></tr>
+      <tr><td>Cartella Conservazione</td><td>&gt; 80% disco</td><td>Pianificare migrazione a NAS / cloud storage</td></tr>
+      <tr><td>Connection pool DB</td><td>&gt; 80% util</td><td>Aumentare max pool size o ottimizzare query lente</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="troubleshooting">
+  <h2>Troubleshooting</h2>
+
+  <h3>Sintomo: fattura resta in IN_INVIO &gt; 1 ora</h3>
+  <ol>
+    <li>Verifica connessione al provider: <code class="inline">curl -v {endpoint}</code></li>
+    <li>Log <code class="inline">logs/sdi-{date}.log</code>: cerca <em>SubmitException</em></li>
+    <li>Se errore <em>autenticazione</em>: rigenera token / verifica scadenza credenziali</li>
+    <li>Se errore <em>timeout</em>: aumenta <code class="inline">HttpClient.Timeout</code> nei provider</li>
+    <li>Forza retry: row action <em>Re-invia SDI</em> sulla fattura</li>
+  </ol>
+
+  <h3>Sintomo: fattura SCARTATA con errore EC02 (firma non valida)</h3>
+  <ul>
+    <li>Verifica <code class="inline">Sdi.Signer.Pkcs12Path</code> punta al cert <strong>qualificato</strong>, non al dev-cert</li>
+    <li>Cert scaduto? Controlla con <code class="inline">openssl pkcs12 -in cert.p12 -info -noout</code></li>
+    <li>Password .p12 errata? Errore di firma lato server prima dell'invio (log: <em>CadesBesSigner: invalid password</em>)</li>
+  </ul>
+
+  <h3>Sintomo: scheduler task non parte</h3>
+  <ol>
+    <li>Controlla <code class="inline">Scheduler.Enabled = true</code> in appsettings</li>
+    <li>Query <code class="inline">SELECT * FROM scheduler WHERE enabled=1</code> → task presente?</li>
+    <li>Query <code class="inline">SELECT TOP 20 * FROM scheduler_execution ORDER BY started_at DESC</code> → ultima esecuzione?</li>
+    <li>Log <code class="inline">logs/scheduler-{date}.log</code> per errori specifici</li>
+  </ol>
+
+  <h3>Sintomo: dashboard non si renderizza</h3>
+  <ol>
+    <li>F12 console browser → errori JS?</li>
+    <li>License con feature <code class="inline">dashboard-designer</code>?
+        <code class="inline">curl /api/Meta/AsmxProxy/MetaService.getLicenseStatus</code></li>
+    <li>Metadata cache stale? Eseguire
+        <code class="inline">/api/Meta/AsmxProxy/MetaService.invalidateMetadataRuntime</code></li>
+  </ol>
+
+  <h3>Sintomo: poller SDI duplica notifiche</h3>
+  <ul>
+    <li>Verifica <code class="inline">sdi_provider_cursor</code>: una riga per provider con last_id/last_timestamp valorizzati</li>
+    <li>Se vuota o reset: il poller riparte da zero. UPDATE manualmente il cursor se serve.</li>
+  </ul>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="faq">
+  <h2>FAQ</h2>
+
+  <h3>Quale provider SDI scegliere?</h3>
+  <p>
+    Per piccole-medie aziende (&lt; 500 fatture/anno) e PEC già attiva:
+    <strong>DirectPec</strong> è la scelta più economica e l'unica
+    completamente gratuita (a parte la PEC). Per volumi alti (&gt; 1000
+    fatture/anno) o per chi vuole un SLA contrattuale, valutare
+    <strong>ArubaPec</strong> o <strong>FatturePEC</strong> per la dashboard
+    di monitoring integrata e supporto dedicato.
+  </p>
+
+  <h3>Posso cambiare provider SDI senza perdere lo storico?</h3>
+  <p>
+    Sì. Lo storico è in DB ed è provider-agnostico. Disabilita la vecchia
+    sottosezione e abilita la nuova in <code class="inline">appsettings.json</code>,
+    poi restart. Le fatture <em>IN_INVIO</em> non ancora finalizzate vanno
+    re-inviate manualmente con il nuovo provider.
+  </p>
+
+  <h3>Cosa succede se cambio P.IVA aziendale?</h3>
+  <p>
+    Cambio di P.IVA richiede: (1) aggiornamento anagrafica azienda, (2) nuovo
+    certificato CADES con la nuova P.IVA in <em>commonName</em>, (3) eventuale
+    nuovo contratto con provider SDI / conservazione. <strong>Le fatture
+    già emesse non si toccano</strong>: P.IVA storica resta valida per la
+    fatturazione retroattiva.
+  </p>
+
+  <h3>Come gestire il passaggio di anno fiscale?</h3>
+  <p>
+    Le sequenze documenti sono per (sezionale, anno). Al 1° gennaio:
+  </p>
+  <ol>
+    <li>Il primo INSERT del nuovo anno crea automaticamente la nuova sequenza partendo da 1</li>
+    <li>Verifica eventuale gap dell'anno passato (esistono fatture sequenza N+1 senza N?) — il sistema lo blocca a runtime ma controllo formale è buona pratica</li>
+    <li>Genera LIPE 4° trimestre / Esterometro / CU dell'anno passato entro le scadenze legali</li>
+    <li>Esegui job di conservazione massiva per chiudere l'archivio dell'anno</li>
+  </ol>
+
+  <h3>Posso usare l'app multi-azienda?</h3>
+  <p>
+    Sì, con due approcci:
+  </p>
+  <ul>
+    <li><strong>Multi-tenant per DB</strong>: un'istanza app, una coppia DB
+        (dati+metadati) per azienda. Connection-by-user assegna l'utente
+        al tenant.</li>
+    <li><strong>Multi-tenant per riga</strong>: un'istanza app, un DB
+        condiviso con colonna <em>tenant_id</em> su tutte le entità. Richiede
+        custom tenant gate (vedi skill <code class="inline">app-creation</code>).</li>
+  </ul>
+
+  <h3>Come integro un sistema gestionale esterno?</h3>
+  <p>
+    Tre canali:
+  </p>
+  <ul>
+    <li><strong>REST AsmxProxy</strong>: <code class="inline">POST /api/Meta/AsmxProxy/MetaService.updateRecord</code>
+        per inserimento programmatico documenti. Autenticazione via cookie
+        <code class="inline">k-user</code> dopo login.</li>
+    <li><strong>OData</strong>: <code class="inline">GET /odata/clienti?$filter=...</code> per
+        export dati. Endpoint read-only di default; mutazioni via AsmxProxy.</li>
+    <li><strong>Import CSV/XML</strong>: route
+        <code class="inline">#/import/list</code> + endpoint
+        <code class="inline">POST /api/Conversioni/ImportXml</code> per upload massivo.</li>
+  </ul>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section style="margin-top: 60px; padding-top: 24px; border-top: 1px solid var(--c-border); color: var(--c-fg-mute); font-size: 0.85rem;">
+  <p>
+    <strong>FatturazioneElettronica · Manuale v1.0 · 12 maggio 2026</strong><br>
+    Costruita sul framework <a href="https://wuic-framework.com">WUIC</a> ·
+    Conforme normativa italiana SDI v1.2, CADES‑BES, conservazione a norma.
+  </p>
+  <p>
+    Per supporto: vedi le sezioni <a href="#troubleshooting">Troubleshooting</a> e
+    <a href="#faq">FAQ</a> · Documentazione framework:
+    <a href="https://wuic-framework.com/docs">wuic-framework.com/docs</a>.
+  </p>
+</section>
+
+</main>
+</div>
+
+</body>
+</html>
