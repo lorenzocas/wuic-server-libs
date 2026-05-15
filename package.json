@@ -6,6 +6,7 @@
     "WuicTest/wwwroot",
     "CrmApp/wwwroot",
     "FatturazioneElettronica/wwwroot",
-    "FlottaMezzi/wwwroot"
+    "FlottaMezzi/wwwroot",
+    "CostCnh/wwwroot"
   ]
 }

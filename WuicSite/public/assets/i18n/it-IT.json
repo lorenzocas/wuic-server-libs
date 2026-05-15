@@ -674,5 +674,209 @@
     "privacy":   { "title": "Informativa Privacy",                                       "description": "Informativa GDPR del sito wuic-framework.com: dati raccolti, finalità, base giuridica, diritti dell'interessato, contatti del titolare." },
     "cookies":   { "title": "Cookie Policy",                                             "description": "Tipologie di cookie usati (tecnici e di terze parti PayPal), finalità, gestione del consenso, riferimenti normativi italiani ed europei." },
     "terms":     { "title": "Termini e condizioni",                                      "description": "Termini di vendita delle licenze WUIC: oggetto, prezzi, modalità di pagamento, attivazione, supporto, garanzie e limitazioni." }
+  },
+  "sandbox": {
+    "hero": {
+      "eyebrow": "Demo live · si resetta ogni giorno",
+      "title": "Prova WUIC nel tuo browser",
+      "lede": "Un'istanza in hosting di WUIC che gira su .NET 10 + Angular 21 + SQL Server reali, con un dataset CRM di esempio. Niente installazione, niente registrazione. Le modifiche vengono ripristinate ogni giorno alle 04:00 UTC, così il visitatore successivo trova tutto pulito.",
+      "credentialsLabel": "Accedi con",
+      "usernameLabel": "utente",
+      "passwordLabel": "password",
+      "ctaOpen": "Apri il sandbox live",
+      "ctaGuided": "Preferisci una demo guidata?",
+      "note": "Si apre in una nuova scheda. Consigliato a schermo intero."
+    },
+    "things": {
+      "sectionTitle": "Cosa provare in 60 secondi",
+      "sectionLede": "Salta il login (compiliamo noi un utente demo) e parti da qui.",
+      "items": {
+        "designer": {
+          "title": "Apri il designer delle dashboard",
+          "description": "Trascina un widget sul canvas, collegalo a una route, guardalo materializzarsi in una dashboard a runtime. Il pulsante \"Salva\" scrive JSON in una tabella metadata — non c'è alcuno step di codegen."
+        },
+        "mobile": {
+          "title": "Riduci il browser a larghezza mobile",
+          "description": "Ogni lista collassa in uno stack di card e ogni form di edit si ri-impila verticalmente. Zero configurazione mobile per schermata — il framework la deriva dagli stessi metadata che governano il desktop."
+        },
+        "rag": {
+          "title": "Interroga il chatbot RAG integrato",
+          "description": "Prova \"dove viene gestito il logout?\" oppure \"come funziona il multi-tenant?\". Le risposte citano i sorgenti reali. Powered by Claude + un reranker BAAI/bge-m3 fine-tuned sul codebase del framework."
+        },
+        "wizard": {
+          "title": "Percorri un wizard a più step",
+          "description": "Apri una qualsiasi lista, clicca \"Nuovo\" su una route configurata come wizard, e attraversa validazioni + diramazioni condizionali. Il grafo è metadata, non codice scritto a mano."
+        },
+        "audit": {
+          "title": "Modifica un record, guarda l'audit",
+          "description": "Salva un contatto o un deal — la tua modifica vive nel DB demo fino al prossimo reset delle 04:00 UTC. Fino ad allora, ogni visitatore vede ciò che hai scritto."
+        },
+        "report": {
+          "title": "Apri un report built-in",
+          "description": "Menu Report → scegli qualunque voce. Export PDF ed Excel funzionano direttamente nel browser — niente Stimulsoft viewer da installare sul client."
+        }
+      }
+    },
+    "rules": {
+      "sectionTitle": "Regole della casa",
+      "sectionLede": "La demo è condivisa. Tre guardrail la mantengono usabile per tutti.",
+      "items": {
+        "readonly": {
+          "title": "Le tabelle di sistema sono in sola lettura",
+          "description": "Metadata, utenti, licenze, endpoint di scaffolding ritornano tutti HTTP 403 in scrittura. I dati CRM demo (contatti, deal, dashboard che crei) sono completamente editabili."
+        },
+        "rateLimit": {
+          "title": "Rate limit per IP",
+          "description": "60 mutazioni / minuto, 600 letture / minuto per IP. Un loop curl prende 429 invece di buttare giù la macchina. La UI del browser non si avvicina mai al limite."
+        },
+        "reset": {
+          "title": "Reset giornaliero alle 04:00 UTC",
+          "description": "Qualunque cosa tu (o chiunque altro) abbia creato o cancellato viene ripristinata di notte. Tratta il sandbox come una lavagna condivisa, non come ambiente di valutazione."
+        }
+      }
+    },
+    "faq": {
+      "sectionTitle": "Domande frequenti",
+      "sectionLede": "Leggi qui se qualcosa nel sandbox ti sorprende.",
+      "items": {
+        "login": {
+          "q": "Devo fare il login?",
+          "a": "No. Il sandbox ti fa accedere automaticamente come utente demo con accesso in lettura/scrittura ai dati demo. Le tabelle di sistema (metadata, utenti, licenza) sono in sola lettura."
+        },
+        "data": {
+          "q": "Cosa succede ai dati che creo?",
+          "a": "Le modifiche vivono nel database demo fino alle 04:00 UTC del giorno successivo, quando un job schedulato ripristina il dataset originale. Fino ad allora, chiunque visiti il sandbox vede le modifiche fatte dagli altri — trattalo come un blocco note condiviso."
+        },
+        "break": {
+          "q": "Posso rompere la demo?",
+          "a": "Puoi modificare i dati demo liberamente, ma le mutazioni sulle tabelle di sistema sono bloccate a livello API (HTTP 403). L'intera istanza è anche rate-limited per IP, quindi un loop curl prende solo 429 invece di buttare giù la macchina. Se qualcosa si rompe, il reset giornaliero la riporta a uno stato noto."
+        },
+        "sameCode": {
+          "q": "È lo stesso codice che ottengo scaricando WUIC?",
+          "a": "Sì — bit per bit. La demo è la build standard KonvergenceCore + WuicTest con un layer appsettings in più che abilita gli hardening di DemoMode. Nessun fork custom, nessuna feature solo-demo."
+        },
+        "fast": {
+          "q": "Quanto è veloce far girare la mia copia?",
+          "a": "Circa 5 minuti per un'installazione di valutazione su Windows. Scarica il framework dalla pagina Download, puntalo a un'istanza SQL Server che hai già, e il wizard firstRun fa il resto."
+        }
+      }
+    },
+    "cta": {
+      "title": "Pronto a fare un giro?",
+      "lede": "Due modi per entrare: gioca da solo col sandbox live, oppure facci accompagnarti.",
+      "ctaOpen": "Apri il sandbox live",
+      "ctaCompare": "Confronta WUIC con Retool, Refine, …"
+    }
+  },
+  "comparison": {
+    "hero": {
+      "eyebrow": "Confronto onesto",
+      "title": "WUIC vs Retool, Refine, Budibase, AppSmith",
+      "lede": "Uno sguardo affiancato a come WUIC si confronta con le alternative low-code e admin-panel più comuni. Niente marketing — matrice di feature, tradeoff reali visti nei team, e indicazioni esplicite su quando ciascuno strumento è la scelta migliore.",
+      "ctaSandbox": "Prova WUIC nel browser",
+      "ctaPricing": "Vedi i prezzi"
+    },
+    "verdict": {
+      "sectionTitle": "Verdetto rapido",
+      "sectionLede": "Cinque dimensioni su cui di solito gli evaluator filtrano prima.",
+      "columnDimension": "Dimensione",
+      "rows": {
+        "approach": { "label": "Approccio", "notes": { "wuic": "Metadata-driven", "retool": "Builder drag-and-drop", "refine": "Framework React code-first", "budibase": "Builder drag-and-drop", "appsmith": "Builder drag-and-drop" } },
+        "hosting":  { "label": "Modello di hosting", "notes": { "wuic": "Self-hosted (tuo IIS / Linux)", "retool": "Cloud SaaS — self-host su Enterprise", "refine": "Self-hosted (pacchetto npm)", "budibase": "Self-hosted o cloud", "appsmith": "Self-hosted o cloud" } },
+        "source":   { "label": "Codice sorgente", "notes": { "wuic": "Closed-source", "retool": "Closed-source", "refine": "MIT (open-source)", "budibase": "GPL-3.0", "appsmith": "Apache-2.0" } },
+        "ui":       { "label": "Stack UI", "notes": { "wuic": "Angular 21 + PrimeNG", "retool": "Proprietario", "refine": "React (qualsiasi UI lib)", "budibase": "Svelte (proprietario)", "appsmith": "Proprietario" } },
+        "best":     { "label": "Best for", "notes": { "wuic": "CRM / ERP enterprise da uno schema SQL", "retool": "Tool admin interni, prototipazione rapida", "refine": "Dev React che costruiscono UI admin custom", "budibase": "Non-dev che costruiscono form su PostgreSQL", "appsmith": "Tool interni con logica JS custom" } }
+      }
+    },
+    "features": {
+      "sectionTitle": "Confronto feature",
+      "sectionLede": "Dodici capacità concrete, valutate sulla documentazione pubblicata al momento della scrittura. ✓ completa, ~ parziale / limitata, ✗ non supportata.",
+      "columnFeature": "Feature",
+      "rows": {
+        "crud":        { "label": "CRUD automatico da tabella SQL", "detail": "Genera UI list/edit/detail + endpoint REST da uno schema database senza boilerplate." },
+        "designer":    { "label": "Designer dashboard (drag-and-drop)", "detail": "Designer visuale che produce una dashboard runtime, non solo uno screenshot." },
+        "workflow":    { "label": "Workflow visuale / engine di processi", "detail": "Workflow business multi-step con diramazioni condizionali, embedded nella stessa app." },
+        "reports":     { "label": "Report builder integrato (PDF/Excel)", "detail": "Designer per report tabellari e matriciali esportabili in PDF/Excel senza tool esterni." },
+        "mobile":      { "label": "Layout auto-responsive mobile", "detail": "Le tabelle collassano in stack di card su schermi piccoli senza config per componente." },
+        "rag":         { "label": "Chatbot RAG / AI integrato", "detail": "Assistente embeddable che risponde a domande su dati e codebase." },
+        "multitenant": { "label": "Autorizzazioni multi-tenant out-of-the-box", "detail": "Permessi a livello di riga e colonna guidati da metadata, non codice custom." },
+        "sqlServer":   { "label": "SQL Server first-class", "detail": "Supporto SQL Server nativo incluse stored procedure e Windows auth." },
+        "iis":         { "label": "Self-hosting su Windows / IIS", "detail": "Deploy su server Windows aziendale senza container o Linux." },
+        "angular":     { "label": "UI custom con pieno controllo Angular", "detail": "Scendi a componenti Angular nativi quando il framework non basta." },
+        "lockin":      { "label": "Rischio vendor lock-in", "detail": "Quanto sono legati i tuoi dati e UI alla piattaforma se smetti di pagarla / usarla?", "notes": { "wuic": "Runtime closed, ma dati + metadata restano nel tuo SQL — esportabili", "retool": "Alto — lock-in cloud, le app JS vivono dentro Retool", "refine": "Basso — il tuo codice è React puro", "budibase": "Medio — le app vivono in formato Budibase", "appsmith": "Medio — le app vivono in JSON AppSmith" } },
+        "pricing":     { "label": "Modello di pricing", "detail": "Come scala il licensing con team / utenti.", "notes": { "wuic": "Per-developer annuale (€600-€1200/dev)", "retool": "Per utente finale/mese — diventa caro in fretta", "refine": "Free (open-source); tier Enterprise opzionale", "budibase": "Per utente/mese + self-host gratis", "appsmith": "Free (community); tier business a consumo" } }
+      }
+    },
+    "choice": {
+      "sectionTitle": "Quando scegliere cosa",
+      "sectionLede": "Ognuno di questi tool ha uno sweet spot. Sceglierne uno giusto fin dall'inizio ti risparmia un anno di rework.",
+      "cards": {
+        "wuic": {
+          "title": "Scegli WUIC se…",
+          "bullets": [
+            "Parti da un database SQL e vuoi CRUD, dashboard, workflow e report auto-generati dallo schema.",
+            "Il tuo stack è .NET sul server, Angular sul client, e vuoi mantenerlo.",
+            "Deploi in ambienti Windows / IIS aziendali dove Docker non è sempre benvenuto.",
+            "Vuoi engine workflow + report integrati, non come bolt-on di terzi.",
+            "Apprezzi la configurazione metadata-driven più del TypeScript scritto a mano per schermata."
+          ]
+        },
+        "retool": {
+          "title": "Scegli Retool se…",
+          "bullets": [
+            "Devi collegare un pannello interno su un mix eterogeneo di REST API, tool SaaS e database SQL — in fretta.",
+            "I tuoi builder sono non-dev (o dev che vogliono shipping senza pipeline di deploy).",
+            "Sei contento di pagare per utente finale / mese per il guadagno di produttività.",
+            "Il SaaS è accettabile per i dati che il pannello tocca."
+          ]
+        },
+        "refine": {
+          "title": "Scegli Refine se…",
+          "bullets": [
+            "Il tuo team conosce React e vuole una UI scritta a mano con code review, non un builder visuale.",
+            "Open-source (MIT) è un requisito non negoziabile.",
+            "Sei a tuo agio nel costruire report, workflow e access control da solo."
+          ]
+        },
+        "budibase": {
+          "title": "Scegli Budibase se…",
+          "bullets": [
+            "Vuoi un builder drag-and-drop amichevole self-hostabile gratis, con licenza abbastanza permissiva.",
+            "La maggior parte delle app che costruisci sono form semplici su PostgreSQL / MySQL.",
+            "Personale non tecnico è il builder principale."
+          ]
+        },
+        "appsmith": {
+          "title": "Scegli AppSmith se…",
+          "bullets": [
+            "Ti piacciono i tool interni custom guidati da JS e apprezzi il licensing Apache-2.0.",
+            "Costruisci pannelli one-off e non hai bisogno di un'opinione forte sul data model.",
+            "Vuoi un'alternativa self-hosted a Retool con UX simile."
+          ]
+        }
+      }
+    },
+    "faq": {
+      "sectionTitle": "Domande frequenti",
+      "sectionLede": "Le domande che i team fanno davvero prima di valutare.",
+      "items": {
+        "retool":  { "q": "WUIC è davvero un'alternativa a Retool?", "a": "Per tool interni che girano su un database SQL, sì — WUIC e Retool occupano lo stesso spazio problema. La differenza chiave è l'approccio: Retool è un builder SaaS drag-and-drop che eccelle nel mettere una UI sopra qualunque datasource interrogabile; WUIC è un framework Angular self-hosted che deriva la UI dallo schema del tuo database e dai metadata. Se il team è prevalentemente fluente in SQL e vuoi CRUD/dashboard/workflow generati dallo schema, WUIC calza. Se il team è prevalentemente non-dev che costruisce pannelli one-off nel cloud, calza Retool." },
+        "closed":  { "q": "Perché dovrei scegliere un framework closed-source rispetto a Refine, Budibase o AppSmith?", "a": "Tre motivi che sentiamo dai team che scelgono WUIC: (1) molto meno codice scritto a mano per app — i metadata sostituiscono centinaia di file TS; (2) engine workflow + report production-grade nella scatola, dove i competitor open-source di solito hanno bisogno di bolt-on; (3) self-hosting di prima classe su Windows/IIS senza Docker, che conta ancora in molti ambienti aziendali. Il tradeoff è onesto: se avere il codice sorgente nel tuo repo non è negoziabile, i competitor open-source vincono quel round e dovresti sceglierne uno." },
+        "lockin":  { "q": "WUIC mi blocca dentro se voglio migrare via?", "a": "I dati applicativi vivono nel tuo database SQL — WUIC li legge, non li ospita. I metadata (definizioni route, visibilità colonne, logica delle azioni) vivono in due tabelle SQL anch'esse sotto il tuo controllo. La personalizzazione UI è codice Angular puro nel tuo repository. Il rischio di migrazione riguarda quindi soprattutto sostituire il runtime, non estrarre i dati. Non diremmo zero lock-in, ma è materialmente più basso dei competitor cloud SaaS." },
+        "lowcode": { "q": "Dove tracciate la linea fra WUIC e una piattaforma low-code?", "a": "WUIC è opinionato sulla generazione di UI da metadata, ma si fa da parte per tutto il resto: routing, servizi, componenti custom, deploy, SSO, observability — tutto Angular e .NET standard. Le piattaforme low-code tipicamente possiedono l'intero stack e ti vincolano alle loro primitive. Vediamo WUIC come un \"framework risparmia-codice\" più che low-code: meno digitazione, pieno controllo dello sviluppatore." },
+        "try":     { "q": "Posso provarlo prima di impegnarmi a una licenza?", "a": "Sì — ogni tier di licenza include una valutazione di 30 giorni. La licenza Developer annuale parte da €600/dev. Puoi anche prenotare una demo guidata nella pagina Get Started, oppure scaricare il framework dalla pagina Download e farlo girare su un'istanza SQL Server che hai già." }
+      }
+    },
+    "cta": {
+      "title": "Pronto a vederlo all'opera?",
+      "lede": "Prova il sandbox live nel tuo browser, oppure prenota una demo guidata. Entrambi partono in meno di un minuto.",
+      "ctaSandbox": "Apri il sandbox",
+      "ctaGuided": "Ottieni una demo guidata"
+    },
+    "rating": {
+      "full": "Supporto completo",
+      "partial": "Parziale / limitato",
+      "none": "Non supportato"
+    }
   }
 }

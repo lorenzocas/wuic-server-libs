@@ -1,0 +1,1226 @@
+[
+  {
+    "route": "#/ngdeep-showcase",
+    "scope": "live",
+    "url": "http://localhost:4200/#/ngdeep-showcase",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 5,
+    "skipped": false,
+    "health": {
+      "textLength": 1425,
+      "appRootChildren": 4,
+      "wuicRootCount": 0,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__ngdeep-showcase.png"
+  },
+  {
+    "route": "#/cities-list-grid",
+    "scope": "live",
+    "url": "http://localhost:4200/#/cities-list-grid",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 24,
+    "skipped": false,
+    "health": {
+      "textLength": 2836,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__cities-list-grid.png"
+  },
+  {
+    "route": "#/cities-chart",
+    "scope": "live",
+    "url": "http://localhost:4200/#/cities-chart",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 5,
+    "skipped": false,
+    "health": {
+      "textLength": 1477,
+      "appRootChildren": 4,
+      "wuicRootCount": 0,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__cities-chart.png"
+  },
+  {
+    "route": "#/schedules-scheduler",
+    "scope": "live",
+    "url": "http://localhost:4200/#/schedules-scheduler",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 8,
+    "skipped": false,
+    "health": {
+      "textLength": 1701,
+      "appRootChildren": 4,
+      "wuicRootCount": 0,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__schedules-scheduler.png"
+  },
+  {
+    "route": "#/cities-map",
+    "scope": "live",
+    "url": "http://localhost:4200/#/cities-map",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 6,
+    "skipped": false,
+    "health": {
+      "textLength": 1566,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__cities-map.png"
+  },
+  {
+    "route": "#/uploadsample-carousel",
+    "scope": "live",
+    "url": "http://localhost:4200/#/uploadsample-carousel",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 11,
+    "skipped": false,
+    "health": {
+      "textLength": 1471,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__uploadsample-carousel.png"
+  },
+  {
+    "route": "#/cities-spreadsheet",
+    "scope": "live",
+    "url": "http://localhost:4200/#/cities-spreadsheet",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 40,
+    "skipped": false,
+    "health": {
+      "textLength": 2635,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__cities-spreadsheet.png"
+  },
+  {
+    "route": "#/kanban-task",
+    "scope": "live",
+    "url": "http://localhost:4200/#/kanban-task",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 5,
+    "skipped": false,
+    "health": {
+      "textLength": 1851,
+      "appRootChildren": 4,
+      "wuicRootCount": 0,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__kanban-task.png"
+  },
+  {
+    "route": "#/tree-sample",
+    "scope": "live",
+    "url": "http://localhost:4200/#/tree-sample",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 6,
+    "skipped": false,
+    "health": {
+      "textLength": 1441,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__tree-sample.png"
+  },
+  {
+    "route": "#/cities-edit",
+    "scope": "live",
+    "url": "http://localhost:4200/#/cities-edit",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 7,
+    "skipped": false,
+    "health": {
+      "textLength": 1611,
+      "appRootChildren": 4,
+      "wuicRootCount": 0,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__cities-edit.png"
+  },
+  {
+    "route": "#/cities-wizard",
+    "scope": "live",
+    "url": "http://localhost:4200/#/cities-wizard",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 5,
+    "skipped": false,
+    "health": {
+      "textLength": 1564,
+      "appRootChildren": 4,
+      "wuicRootCount": 0,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__cities-wizard.png"
+  },
+  {
+    "route": "#/cities-data-repeater-events",
+    "scope": "live",
+    "url": "http://localhost:4200/#/cities-data-repeater-events",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 28,
+    "skipped": false,
+    "health": {
+      "textLength": 2911,
+      "appRootChildren": 4,
+      "wuicRootCount": 2,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__cities-data-repeater-events.png"
+  },
+  {
+    "route": "#/custom-cities-list",
+    "scope": "live",
+    "url": "http://localhost:4200/#/custom-cities-list",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 7,
+    "skipped": false,
+    "health": {
+      "textLength": 2938,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__custom-cities-list.png"
+  },
+  {
+    "route": "#/pivot-builder",
+    "scope": "live",
+    "url": "http://localhost:4200/#/pivot-builder",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 15,
+    "skipped": false,
+    "health": {
+      "textLength": 8256,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__pivot-builder.png"
+  },
+  {
+    "route": "#/workflow-designer",
+    "scope": "live",
+    "url": "http://localhost:4200/#/workflow-designer",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 8,
+    "skipped": false,
+    "health": {
+      "textLength": 1702,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__workflow-designer.png"
+  },
+  {
+    "route": "#/designer",
+    "scope": "live",
+    "url": "http://localhost:4200/#/designer",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 7,
+    "skipped": false,
+    "health": {
+      "textLength": 1554,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__designer.png"
+  },
+  {
+    "route": "#/framework-docs/list-grid",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/list-grid",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 24,
+    "skipped": false,
+    "health": {
+      "textLength": 9921,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_list-grid.png"
+  },
+  {
+    "route": "#/framework-docs/spreadsheet-list",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/spreadsheet-list",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 29,
+    "skipped": false,
+    "health": {
+      "textLength": 4938,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_spreadsheet-list.png"
+  },
+  {
+    "route": "#/framework-docs/carousel-list",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/carousel-list",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 30,
+    "skipped": false,
+    "health": {
+      "textLength": 5345,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_carousel-list.png"
+  },
+  {
+    "route": "#/framework-docs/scheduler-list",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/scheduler-list",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 28,
+    "skipped": false,
+    "health": {
+      "textLength": 5403,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_scheduler-list.png"
+  },
+  {
+    "route": "#/framework-docs/tree-list",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/tree-list",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 22,
+    "skipped": false,
+    "health": {
+      "textLength": 4869,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_tree-list.png"
+  },
+  {
+    "route": "#/framework-docs/map-list",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/map-list",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 30,
+    "skipped": false,
+    "health": {
+      "textLength": 7199,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_map-list.png"
+  },
+  {
+    "route": "#/framework-docs/datarepeater",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/datarepeater",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 24,
+    "skipped": false,
+    "health": {
+      "textLength": 5666,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_datarepeater.png"
+  },
+  {
+    "route": "#/framework-docs/filter-bar",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/filter-bar",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 22,
+    "skipped": false,
+    "health": {
+      "textLength": 4131,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_filter-bar.png"
+  },
+  {
+    "route": "#/framework-docs/pivot-builder",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/pivot-builder",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 16,
+    "skipped": false,
+    "health": {
+      "textLength": 4868,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_pivot-builder.png"
+  },
+  {
+    "route": "#/framework-docs/workflow-designer",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/workflow-designer",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 16,
+    "skipped": false,
+    "health": {
+      "textLength": 4090,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_workflow-designer.png"
+  },
+  {
+    "route": "#/framework-docs/designer",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/designer",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 16,
+    "skipped": false,
+    "health": {
+      "textLength": 4188,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_designer.png"
+  },
+  {
+    "route": "#/framework-docs/field-widget-code-editor",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/field-widget-code-editor",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 13,
+    "skipped": false,
+    "health": {
+      "textLength": 7397,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_field-widget-code-editor.png"
+  },
+  {
+    "route": "#/framework-docs/field-widget-dictionary",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/field-widget-dictionary",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 17,
+    "skipped": false,
+    "health": {
+      "textLength": 3884,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_field-widget-dictionary.png"
+  },
+  {
+    "route": "#/framework-docs/field-widget-others",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/field-widget-others",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 17,
+    "skipped": false,
+    "health": {
+      "textLength": 4279,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_field-widget-others.png"
+  },
+  {
+    "route": "#/framework-docs/themes",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/themes",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 16,
+    "skipped": false,
+    "health": {
+      "textLength": 4026,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_themes.png"
+  },
+  {
+    "route": "#/framework-docs/parametric-dialog",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/parametric-dialog",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 28,
+    "skipped": false,
+    "health": {
+      "textLength": 4685,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_parametric-dialog.png"
+  },
+  {
+    "route": "#/framework-docs/kanban-list",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/kanban-list",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 27,
+    "skipped": false,
+    "health": {
+      "textLength": 6565,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_kanban-list.png"
+  },
+  {
+    "route": "#/framework-docs/chart-list",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/chart-list",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 28,
+    "skipped": false,
+    "health": {
+      "textLength": 5370,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_chart-list.png"
+  },
+  {
+    "route": "#/framework-docs/component-injection",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/component-injection",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 32,
+    "skipped": false,
+    "health": {
+      "textLength": 5947,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_component-injection.png"
+  },
+  {
+    "route": "#/framework-docs/field-widget-lookup",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/field-widget-lookup",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 17,
+    "skipped": false,
+    "health": {
+      "textLength": 0,
+      "appRootChildren": 4,
+      "wuicRootCount": 0,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_field-widget-lookup.png"
+  },
+  {
+    "route": "#/framework-docs/field-widget-upload",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/field-widget-upload",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 15,
+    "skipped": false,
+    "health": {
+      "textLength": 2945,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_field-widget-upload.png"
+  },
+  {
+    "route": "#/framework-docs/field-widget-button",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/field-widget-button",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 19,
+    "skipped": false,
+    "health": {
+      "textLength": 2817,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_field-widget-button.png"
+  },
+  {
+    "route": "#/framework-docs/field-widget-number",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/field-widget-number",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 19,
+    "skipped": false,
+    "health": {
+      "textLength": 2829,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_field-widget-number.png"
+  },
+  {
+    "route": "#/framework-docs/field-widget-html-area",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/field-widget-html-area",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 14,
+    "skipped": false,
+    "health": {
+      "textLength": 3083,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_field-widget-html-area.png"
+  },
+  {
+    "route": "#/framework-docs/pager",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/pager",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 17,
+    "skipped": false,
+    "health": {
+      "textLength": 2678,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_pager.png"
+  },
+  {
+    "route": "#/framework-docs/report-designer",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/report-designer",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 8,
+    "skipped": false,
+    "health": {
+      "textLength": 2997,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_report-designer.png"
+  },
+  {
+    "route": "#/framework-docs/wizard",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/wizard",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 18,
+    "skipped": false,
+    "health": {
+      "textLength": 2625,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_wizard.png"
+  },
+  {
+    "route": "#/framework-docs/accessibilita",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/accessibilita",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 8,
+    "skipped": false,
+    "health": {
+      "textLength": 3723,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_accessibilita.png"
+  },
+  {
+    "route": "#/framework-docs/appsettings",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/appsettings",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 15,
+    "skipped": false,
+    "health": {
+      "textLength": 15305,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_appsettings.png"
+  },
+  {
+    "route": "#/framework-docs/audit",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/audit",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 13,
+    "skipped": false,
+    "health": {
+      "textLength": 3004,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_audit.png"
+  },
+  {
+    "route": "#/framework-docs/autenticazione-autorizzazioni",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/autenticazione-autorizzazioni",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 25,
+    "skipped": false,
+    "health": {
+      "textLength": 6159,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_autenticazione-autorizzazioni.png"
+  },
+  {
+    "route": "#/framework-docs/callbacks-events",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/callbacks-events",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 13,
+    "skipped": false,
+    "health": {
+      "textLength": 0,
+      "appRootChildren": 4,
+      "wuicRootCount": 0,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_callbacks-events.png"
+  },
+  {
+    "route": "#/framework-docs/concorrenza-ottimistica",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/concorrenza-ottimistica",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 12,
+    "skipped": false,
+    "health": {
+      "textLength": 2416,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_concorrenza-ottimistica.png"
+  },
+  {
+    "route": "#/framework-docs/conditional-styling",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/conditional-styling",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 13,
+    "skipped": false,
+    "health": {
+      "textLength": 3357,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_conditional-styling.png"
+  },
+  {
+    "route": "#/framework-docs/custom-select-update-insert-delete",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/custom-select-update-insert-delete",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 17,
+    "skipped": false,
+    "health": {
+      "textLength": 3705,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_custom-select-update-insert-delete.png"
+  },
+  {
+    "route": "#/framework-docs/datasource",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/datasource",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 20,
+    "skipped": false,
+    "health": {
+      "textLength": 4388,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_datasource.png"
+  },
+  {
+    "route": "#/framework-docs/field-widget-many-to-many",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/field-widget-many-to-many",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 13,
+    "skipped": false,
+    "health": {
+      "textLength": 3247,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_field-widget-many-to-many.png"
+  },
+  {
+    "route": "#/framework-docs/mailing",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/mailing",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 3,
+    "skipped": false,
+    "health": {
+      "textLength": 1375,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_mailing.png"
+  },
+  {
+    "route": "#/framework-docs/menu-applicativo",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/menu-applicativo",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 13,
+    "skipped": false,
+    "health": {
+      "textLength": 3609,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_menu-applicativo.png"
+  },
+  {
+    "route": "#/framework-docs/metadata-integration",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/metadata-integration",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 13,
+    "skipped": false,
+    "health": {
+      "textLength": 21665,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_metadata-integration.png"
+  },
+  {
+    "route": "#/framework-docs/notifications",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/notifications",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 13,
+    "skipped": false,
+    "health": {
+      "textLength": 6700,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_notifications.png"
+  },
+  {
+    "route": "#/framework-docs/odata",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/odata",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 8,
+    "skipped": false,
+    "health": {
+      "textLength": 4223,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_odata.png"
+  },
+  {
+    "route": "#/framework-docs/pivot",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/pivot",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 3,
+    "skipped": false,
+    "health": {
+      "textLength": 1350,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_pivot.png"
+  },
+  {
+    "route": "#/framework-docs/rag-chatbot",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/rag-chatbot",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 8,
+    "skipped": false,
+    "health": {
+      "textLength": 7994,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_rag-chatbot.png"
+  },
+  {
+    "route": "#/framework-docs/reporting",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/reporting",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 13,
+    "skipped": false,
+    "health": {
+      "textLength": 2222,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_reporting.png"
+  },
+  {
+    "route": "#/framework-docs/scaffolding-iniziale",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/scaffolding-iniziale",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 13,
+    "skipped": false,
+    "health": {
+      "textLength": 2915,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_scaffolding-iniziale.png"
+  },
+  {
+    "route": "#/framework-docs/scheduling",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/scheduling",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 13,
+    "skipped": false,
+    "health": {
+      "textLength": 4327,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_scheduling.png"
+  },
+  {
+    "route": "#/framework-docs/smart-app",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/smart-app",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 19,
+    "skipped": false,
+    "health": {
+      "textLength": 3419,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_smart-app.png"
+  },
+  {
+    "route": "#/framework-docs/sql-retry-policy",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/sql-retry-policy",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 14,
+    "skipped": false,
+    "health": {
+      "textLength": 3101,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_sql-retry-policy.png"
+  },
+  {
+    "route": "#/framework-docs/swagger",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/swagger",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 8,
+    "skipped": false,
+    "health": {
+      "textLength": 2337,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_swagger.png"
+  },
+  {
+    "route": "#/framework-docs/templating",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/templating",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 13,
+    "skipped": false,
+    "health": {
+      "textLength": 4440,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_templating.png"
+  },
+  {
+    "route": "#/framework-docs/translations-data",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/translations-data",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 17,
+    "skipped": false,
+    "health": {
+      "textLength": 4270,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_translations-data.png"
+  },
+  {
+    "route": "#/framework-docs/translations-interface",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/translations-interface",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 17,
+    "skipped": false,
+    "health": {
+      "textLength": 4052,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_translations-interface.png"
+  },
+  {
+    "route": "#/framework-docs/troubleshooting",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/troubleshooting",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 8,
+    "skipped": false,
+    "health": {
+      "textLength": 1683,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_troubleshooting.png"
+  },
+  {
+    "route": "#/framework-docs/user-states-for-grids",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/user-states-for-grids",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 13,
+    "skipped": false,
+    "health": {
+      "textLength": 3138,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_user-states-for-grids.png"
+  },
+  {
+    "route": "#/framework-docs/validations",
+    "scope": "docs",
+    "url": "http://localhost:4200/#/framework-docs/validations",
+    "status": "PASS",
+    "failureReason": null,
+    "matchedSelectors": 13,
+    "skipped": false,
+    "health": {
+      "textLength": 3741,
+      "appRootChildren": 4,
+      "wuicRootCount": 1,
+      "runtimeErrorLikely": false,
+      "isLikelyBlank": false
+    },
+    "screenshotPath": "C:\\src\\Wuic\\WuicTest\\wwwroot\\e2e-artifacts\\ngdeep-selector-compat\\route-__framework-docs_validations.png"
+  }
+]

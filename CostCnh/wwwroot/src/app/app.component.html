@@ -1,0 +1,92 @@
+@if (busyVisible) {
+<div #busyIndicator class="busy-indicator">
+    <i class="pi pi-spin pi-spinner"></i>
+</div>
+}
+
+<!-- First-run wizard: lazy-loaded da wuic-framework-lib. Si auto-controlla
+     visibilita' (probe FirstRunStatus al boot, mostra overlay solo se firstRun=true,
+     altrimenti renderizza nulla). L'output (complete) viene emesso quando il
+     workflow chiude (sia per firstRun=false al boot, sia post-install success).
+     L'overlay copre il resto della shell con z-index 900, quindi i widget
+     dell'app sotto possono renderizzare in parallelo senza conflitti visivi. -->
+<wuic-first-run-wizard (complete)="onFirstRunComplete()"></wuic-first-run-wizard>
+
+<div class="app-shell">
+    <header class="app-shell-header">
+        <div class="app-shell-menu">
+            <ng-container *ngIf="metaMenuComponent" [ngComponentOutlet]="metaMenuComponent"></ng-container>
+        </div>
+        @if (showRightHeaderBlock) {
+        <!-- Multi-tenant azienda switcher: widget standalone self-contained.
+             Visibilita' gestita internamente al widget (early-return per non-
+             superadmin / flag off) via `:host([hidden])`. Nessun wrapper
+             esterno: l'host element collassa interamente quando non applicabile. -->
+        <wuic-azienda-switcher></wuic-azienda-switcher>
+        <div class="app-shell-theme">
+            <div class="app-shell-theme-card border-1 border-300 border-round p-3 surface-100 shadow-2">
+                <div class="app-shell-theme-select mb-2">
+                    <p-select [options]="availableThemes" optionLabel="label" optionValue="value"
+                        [ngModel]="selectedTheme" (ngModelChange)="onThemeChange($event)"
+                        [style]="{ width: '100%', height: '35px' }" placeholder="Tema" appendTo="body">
+                        <ng-template #selectedItem let-selectedOption>
+                            @if (selectedOption) {
+                            <div class="theme-select-item">
+                                <span class="theme-dot" [style.backgroundColor]="selectedOption.primaryHex"></span>
+                                <span>{{ selectedOption.label }}</span>
+                            </div>
+                            } @else {
+                            <span>Tema</span>
+                            }
+                        </ng-template>
+                        <ng-template #item let-item>
+                            <div class="theme-select-item">
+                                <span class="theme-dot" [style.backgroundColor]="item.primaryHex"></span>
+                                <span>{{ item.label }}</span>
+                            </div>
+                        </ng-template>
+                    </p-select>
+                </div>
+                <div class="app-shell-notification">
+                    <ng-container *ngIf="notificationBellComponent"
+                        [ngComponentOutlet]="notificationBellComponent"></ng-container>
+                </div>
+                <div class="app-shell-theme-icon text-xl mb-3">
+                    @if (isDarkMode) {
+                    🌚
+                    } @else {
+                    🌞
+                    }
+                </div>
+                <div class="app-shell-theme-switch"
+                    [pTooltip]="isHighContrastTheme() ? ('La variante chiaro/scuro e inclusa nella scelta del tema ad alto contrasto dal dropdown.') : null"
+                    tooltipPosition="bottom">
+                    <p-toggleswitch [ngModel]="isDarkMode" (ngModelChange)="toggleLightDark()"
+                        [disabled]="isHighContrastTheme()"
+                        [ariaLabel]="'Tema scuro'" />
+                </div>
+            </div>
+        </div>
+        }
+    </header>
+    @if (showRightHeaderBlock) {
+    <main id="app-main" class="app-shell-content" role="main">
+        <router-outlet />
+    </main>
+    }
+</div>
+
+<p-toast position="bottom-right" [baseZIndex]="3000"></p-toast>
+
+<!-- Skill crash-reporting Commit 9b (Opzione B): dialog estratto in lib.
+     Si auto-sottoscrive a GlobalHandler.messageNotification — niente
+     wiring lato consumer, niente template duplicato. -->
+<wuic-error-dialog></wuic-error-dialog>
+
+<p-confirmDialog [header]="'conferma'" [closeAriaLabel]="'chiudi'" [acceptAriaLabel]="'conferma'"
+    [rejectAriaLabel]="'annulla'" />
+
+<!-- Floating chatbot RAG (visibile solo se licenza pro abilita la feature `rag-chatbot`).
+     Posizionamento `position:fixed` interno - sta in basso a destra senza richiedere
+     wrapper layout dall'host. -->
+<wuic-rag-chatbot-fab></wuic-rag-chatbot-fab>

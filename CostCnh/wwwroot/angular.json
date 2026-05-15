@@ -1,0 +1,162 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "newProjectRoot": "projects",
+  "cli": {
+    "analytics": false
+  },
+  "projects": {
+    "cost-cnh": {
+      "projectType": "application",
+      "root": "",
+      "sourceRoot": "src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "loader": {
+              ".ttf": "binary"
+            },
+            "outputPath": "dist/cost-cnh",
+            "index": "src/index.html",
+            "browser": "src/main.ts",
+            "polyfills": [
+              "zone.js"
+            ],
+            "tsConfig": "tsconfig.app.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "public"
+              },
+              {
+                "glob": "**/*",
+                "input": "assets",
+                "output": "assets",
+                "ignore": [
+                  "icons/Blue/**",
+                  "icons/White/**"
+                ]
+              },
+              {
+                "glob": "**/*",
+                "input": "../../node_modules/monaco-editor/min/vs",
+                "output": "assets/monaco-editor/min/vs"
+              }
+            ],
+            "styles": [
+              "../../node_modules/bootstrap/dist/css/bootstrap-grid.min.css",
+              "../../node_modules/primeicons/primeicons.css",
+              "../../node_modules/primeflex/primeflex.css",
+              "assets/styles.scss"
+            ],
+            "scripts": [],
+            "stylePreprocessorOptions": {
+              "includePaths": [
+                "../../KonvergenceCore/wwwroot/my-workspace/projects/wuic-framework-lib/assets",
+                "node_modules/wuic-framework-lib"
+              ]
+            },
+            "allowedCommonJsDependencies": [
+              "stimulsoft-reports-js/Scripts/stimulsoft.reports",
+              "quill-delta",
+              "jspreadsheet",
+              "@babel/runtime/regenerator"
+            ],
+            "preserveSymlinks": true
+          },
+          "configurations": {
+            "production": {
+              "optimization": true,
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "10MB",
+                  "maximumError": "100MB"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "10MB",
+                  "maximumError": "100MB"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "analyze": {
+              "optimization": true,
+              "budgets": [
+                { "type": "initial", "maximumWarning": "10MB", "maximumError": "100MB" },
+                { "type": "anyComponentStyle", "maximumWarning": "10MB", "maximumError": "100MB" }
+              ],
+              "outputHashing": "all",
+              "extractLicenses": true,
+              "sourceMap": {
+                "scripts": true,
+                "styles": false,
+                "hidden": true,
+                "vendor": true
+              }
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": {
+                "scripts": true,
+                "styles": true,
+                "vendor": true
+              }
+            },
+            "npm": {
+              "optimization": {
+                "scripts": true,
+                "styles": true,
+                "fonts": true
+              },
+              "extractLicenses": true,
+              "sourceMap": false,
+              "outputHashing": "all",
+              "fileReplacements": [
+                { "replace": "src/app/wuic-bridges/core.ts", "with": "src/app/wuic-bridges-npm/core.ts" },
+                { "replace": "src/app/wuic-bridges/ui.ts", "with": "src/app/wuic-bridges-npm/ui.ts" },
+                { "replace": "src/app/wuic-bridges/notifications.ts", "with": "src/app/wuic-bridges-npm/notifications.ts" },
+                { "replace": "src/app/wuic-bridges/routes.ts", "with": "src/app/wuic-bridges-npm/routes.ts" },
+                { "replace": "src/app/wuic-bridges/widget-loaders.ts", "with": "src/app/wuic-bridges-npm/widget-loaders.ts" },
+                { "replace": "src/app/wuic-bridges/widget-loaders-advanced.ts", "with": "src/app/wuic-bridges-npm/widget-loaders-advanced.ts" },
+                { "replace": "src/app/wuic-bridges/public.ts", "with": "src/app/wuic-bridges-npm/public.ts" },
+                { "replace": "src/app/environments/environment.ts", "with": "src/app/environments/environment.prod.ts" }
+              ]
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "options": {
+            "proxyConfig": "proxy.conf.js"
+          },
+          "configurations": {
+            "production": {
+              "buildTarget": "cost-cnh:build:production"
+            },
+            "development": {
+              "buildTarget": "cost-cnh:build:development"
+            },
+            "npm": {
+              "buildTarget": "cost-cnh:build:npm"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "test": {
+          "builder": "@angular/build:unit-test",
+          "options": {
+            "tsConfig": "tsconfig.spec.json",
+            "exclude": ["src/app/environments/**"]
+          }
+        }
+      }
+    }
+  }
+}
