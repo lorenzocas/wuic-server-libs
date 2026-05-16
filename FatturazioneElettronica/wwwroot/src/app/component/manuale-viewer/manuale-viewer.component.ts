@@ -81,7 +81,12 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
   `]
 })
 export class ManualeViewerComponent {
-  readonly rawUrl = '/public/docs/manuale.html';
+  // Angular copia `public/**` nella root del bundle (vedi `angular.json`
+  // assets entry `{ glob: '**/*', input: 'public' }`), quindi il file
+  // sorgente `wwwroot/public/docs/manuale.html` finisce servito come
+  // `/docs/manuale.html` (sia dal dev server `ng serve` che dall'host
+  // IIS/Kestrel in prod). Il prefisso `/public/` causa 404.
+  readonly rawUrl = '/docs/manuale.html';
   readonly safeUrl: SafeResourceUrl;
 
   constructor(sanitizer: DomSanitizer) {

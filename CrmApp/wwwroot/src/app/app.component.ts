@@ -1,7 +1,7 @@
 import { AfterContentInit, Component, Injector, OnDestroy, OnInit } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { utility } from './classes/utility';
-import { AsyncPipe, NgClass, NgComponentOutlet, NgFor, NgIf, NgStyle } from '@angular/common';
+import { AsyncPipe, CommonModule, NgClass, NgComponentOutlet, NgFor, NgIf, NgStyle } from '@angular/common';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { SelectModule } from 'primeng/select';
 import { FormsModule } from '@angular/forms';
@@ -13,6 +13,8 @@ import { ToastModule } from 'primeng/toast';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { TableModule } from 'primeng/table';
+import { FieldsetModule } from 'primeng/fieldset';
+import { TabsModule, Tabs, TabList, Tab, TabPanels, TabPanel } from 'primeng/tabs';
 
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, firstValueFrom } from 'rxjs';
@@ -27,7 +29,10 @@ import Lara from '@primeng/themes/lara';
 import Nora from '@primeng/themes/nora';
 import Material from '@primeng/themes/material';
 import { updatePrimaryPalette, usePreset } from '@primeuix/styled';
+import { DataRepeaterComponent, DataSourceComponent } from './wuic-bridges/public';
+
 import { WtoolboxService, MetadataProviderService, GlobalHandler, TranslationManagerService, AuthSessionService, WuicErrorDialogComponent } from './wuic-bridges/core';
+import { ImageWrapperComponent } from './wuic-bridges/ui';
 
 @Component({
   selector: 'app-root',
@@ -175,7 +180,12 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
 
     Object.assign(MetadataProviderService.widgetDefinition, {
       gridRowImports: [ButtonModule, TableModule, NgFor, NgIf, NgClass, NgStyle, FormsModule, ui.LazyDataActionButtonComponent, ui.LazyDataSourceComponent, ui.VisibleFieldListPipe, ui.CallbackPipe, ui.CallbackPipe2, ui.IsSelectedRowPipe, ui.FormatGridViewValuePipe, ui.GetSrcUploadPreviewPipe, ui.LazyFieldEditorComponent, ui.LazyImageWrapperComponent],
-      dynamicFormImports: [NgFor, NgIf, ui.LazyDataActionButtonComponent, ui.LazyDataSourceComponent, ui.VisibleFieldListPipe, TableModule, ButtonModule, ui.LazyFieldEditorComponent]
+      // Standalone directives da `@angular/common` esplicitamente elencate
+      // (NgIf, NgFor, NgClass, NgStyle, NgComponentOutlet). Verificato
+      // 2026-05-16: in prod-mode il runtime-compiled template
+      // (DynamicCompilerService) NON riconosce `*ngIf`/`*ngFor` come
+      // structural directive senza esplicito listing → placeholder vuoto.
+      dynamicFormImports: [CommonModule, NgIf, NgFor, NgClass, NgStyle, NgComponentOutlet, ui.LazyDataActionButtonComponent, ui.LazyDataSourceComponent, ui.VisibleFieldListPipe, TableModule, ButtonModule, ui.LazyFieldEditorComponent, ImageWrapperComponent, TabsModule, Tabs, TabList, Tab, TabPanels, TabPanel, FieldsetModule, DataRepeaterComponent, DataSourceComponent]
     });
 
     Object.assign(MetadataProviderService.widgetMap, {

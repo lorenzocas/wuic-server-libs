@@ -17,7 +17,7 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { TableModule } from 'primeng/table';
 import { FieldsetModule } from 'primeng/fieldset';
-import { TabsModule } from 'primeng/tabs';
+import { TabsModule, Tabs, TabList, Tab, TabPanels, TabPanel } from 'primeng/tabs';
 
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Subscription } from 'rxjs';
@@ -197,7 +197,31 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
         itemCountThreshold: 6
       },
       gridRowImports: [ButtonModule, TableModule, CommonModule, NgClass, NgStyle, FormsModule, ui.LazyDataActionButtonComponent, ui.LazyDataSourceComponent, ui.VisibleFieldListPipe, ui.CallbackPipe, ui.CallbackPipe2, ui.IsSelectedRowPipe, ui.FormatGridViewValuePipe, ui.GetSrcUploadPreviewPipe, ui.LazyFieldEditorComponent, ui.LazyImageWrapperComponent, ImageWrapperComponent, ui.WuicFrozenColumnDirective, ui.WuicRowTogglerDirective],
-      dynamicFormImports: [CommonModule, ui.LazyDataActionButtonComponent, ui.LazyDataSourceComponent, ui.VisibleFieldListPipe, TableModule, ButtonModule, ui.LazyFieldEditorComponent, ImageWrapperComponent, TabsModule, FieldsetModule, DataRepeaterComponent, DataSourceComponent, DocumentEditFormComponent],
+      // PrimeNG 21 Tab API: include esplicitamente le 5 standalone components
+      // Tabs/TabList/Tab/TabPanels/TabPanel oltre al TabsModule legacy.
+      // Senza queste, il template dinamico parametric-dialog (compilato a
+      // runtime via DynamicCompilerService in prod-mode) non riconosce
+      // <p-tabs>/<p-tab> come selectors → render piatto senza tab UI.
+      // Fix verificato 2026-05-16 dopo deploy su einvoice.wuic-framework.com.
+      // Standalone components elencati esplicitamente (richiesti dal dynamic
+      // template compile in prod-mode quando il selector e' usato dentro a
+      // un `mdedittemplate` runtime-compiled). PrimeNG 21 Tab API:
+      //   Tabs/TabList/Tab/TabPanels/TabPanel  →  <p-tabs>, <p-tab>, ...
+      // Senza queste, il compile dinamico crea i tag come elementi HTML puri
+      // senza directive binding (placeholder <!---->). Fix verificato 2026-05-16.
+      // FieldEditorComponent (selector `wuic-field-editor`) viene auto-aggiunto
+      // da DynamicFormTemplateComponent.getComponentFromTemplate, non serve
+      // qui esplicitamente.
+      // Standalone directives da `@angular/common` esplicitamente elencate
+      // (NgIf, NgFor, NgClass, NgStyle, NgComponentOutlet) IN AGGIUNTA a
+      // CommonModule. Verificato 2026-05-16: con solo CommonModule, in
+      // prod-mode il runtime-compiled template (DynamicCompilerService) NON
+      // riconosce `*ngIf` come structural directive → tutti gli ngIf
+      // renderizzano `<!---->` placeholder senza embedded view, anche
+      // quando la condizione e' costante `true`. Esplicitare le standalone
+      // directives nell'array imports forza la registrazione nei
+      // directiveDefs del WrapperModule.
+      dynamicFormImports: [CommonModule, NgIf, NgFor, NgClass, NgStyle, NgComponentOutlet, ui.LazyDataActionButtonComponent, ui.LazyDataSourceComponent, ui.VisibleFieldListPipe, TableModule, ButtonModule, ui.LazyFieldEditorComponent, ImageWrapperComponent, TabsModule, Tabs, TabList, Tab, TabPanels, TabPanel, FieldsetModule, DataRepeaterComponent, DataSourceComponent, DocumentEditFormComponent],
     });
 
     // CustomListComponent removed during rename-project cleanup; archetype customlist disabled.

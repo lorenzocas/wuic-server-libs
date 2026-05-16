@@ -17,6 +17,7 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { TableModule } from 'primeng/table';
 import { FieldsetModule } from 'primeng/fieldset';
+import { TabsModule, Tabs, TabList, Tab, TabPanels, TabPanel } from 'primeng/tabs';
 
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Subscription } from 'rxjs';
@@ -30,6 +31,7 @@ import Lara from '@primeuix/themes/lara';
 import Nora from '@primeuix/themes/nora';
 import Material from '@primeuix/themes/material';
 import { updatePrimaryPalette, usePreset } from '@primeuix/styled';
+import { DataRepeaterComponent, DataSourceComponent } from './wuic-bridges/public';
 
 import {
   WtoolboxService, MetadataProviderService, GlobalHandler,
@@ -155,7 +157,14 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
         itemCountThreshold: 6
       },
       gridRowImports: [ButtonModule, TableModule, CommonModule, NgClass, NgStyle, FormsModule, ui.LazyDataActionButtonComponent, ui.LazyDataSourceComponent, ui.VisibleFieldListPipe, ui.CallbackPipe, ui.CallbackPipe2, ui.IsSelectedRowPipe, ui.FormatGridViewValuePipe, ui.GetSrcUploadPreviewPipe, ui.LazyFieldEditorComponent, ui.LazyImageWrapperComponent, ImageWrapperComponent, ui.WuicFrozenColumnDirective, ui.WuicRowTogglerDirective],
-      dynamicFormImports: [CommonModule, ui.LazyDataActionButtonComponent, ui.LazyDataSourceComponent, ui.VisibleFieldListPipe, TableModule, ButtonModule, ui.LazyFieldEditorComponent, ImageWrapperComponent],
+      // Standalone directives da `@angular/common` esplicitamente elencate
+      // (NgIf, NgFor, NgClass, NgStyle, NgComponentOutlet) IN AGGIUNTA a
+      // CommonModule. Verificato 2026-05-16: in prod-mode il runtime-compiled
+      // template (DynamicCompilerService) NON riconosce `*ngIf`/`*ngFor` come
+      // structural directive se solo CommonModule e' presente → ngIf/ngFor
+      // renderizzano `<!---->` placeholder vuoto e i `<wuic-field-editor>` interni
+      // non si materializzano.
+      dynamicFormImports: [CommonModule, NgIf, NgFor, NgClass, NgStyle, NgComponentOutlet, ui.LazyDataActionButtonComponent, ui.LazyDataSourceComponent, ui.VisibleFieldListPipe, TableModule, ButtonModule, ui.LazyFieldEditorComponent, ImageWrapperComponent, TabsModule, Tabs, TabList, Tab, TabPanels, TabPanel, FieldsetModule, DataRepeaterComponent, DataSourceComponent],
     });
     Object.assign(MetadataProviderService.widgetMap, {
       'text': { loader: loaders.loadTextEditorComponent, width: '300px' },
