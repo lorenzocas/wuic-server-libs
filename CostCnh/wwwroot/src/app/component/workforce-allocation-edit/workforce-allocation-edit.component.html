@@ -1,0 +1,77 @@
+<div class="wa-host">
+
+  <div class="wa-header">
+    <div class="wa-title">
+      <i class="pi pi-users"></i>
+      Workforce Allocation
+      <span class="wa-scope" *ngIf="programId != null">
+        — Program <strong>#{{programId}}</strong>
+      </span>
+    </div>
+    <div class="wa-actions">
+      <p-select [ngModel]="year" (ngModelChange)="onYearChange($event)"
+                [options]="availableYears" [disabled]="loading || saveInFlight"
+                styleClass="wa-year-select"></p-select>
+      <p-progressSpinner *ngIf="loading || saveInFlight" [style]="{width:'20px',height:'20px'}" strokeWidth="3"></p-progressSpinner>
+    </div>
+  </div>
+
+  <p-message severity="error" *ngIf="error" [text]="error"></p-message>
+
+  <div class="wa-grid-wrap" *ngIf="!loading && !error">
+    <p-table [value]="rows" [scrollable]="true" scrollHeight="flex"
+             frozenWidth="380px" styleClass="wa-table">
+
+      <ng-template pTemplate="header">
+        <tr class="wa-header-month-row">
+          <th rowspan="2" pFrozenColumn>Resource</th>
+          <th *ngFor="let m of MONTH_LABELS; let mi = index" colspan="3" class="wa-month-header">
+            {{m}} <small>{{year}}</small>
+          </th>
+        </tr>
+        <tr class="wa-header-measure-row">
+          <ng-container *ngFor="let m of MONTH_LABELS">
+            <th *ngFor="let me of MEASURE_ORDER" class="wa-measure-header wa-measure-{{me}}">
+              {{MEASURE_LABEL[me]}}
+            </th>
+          </ng-container>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="body" let-r>
+        <tr>
+          <td pFrozenColumn class="wa-row-label">
+            <div class="wa-resource">
+              <strong>{{r.resource_code}}</strong> — {{r.resource_name}}
+            </div>
+            <div class="wa-meta">
+              <span class="wa-cc" *ngIf="r.cost_center_code">{{r.cost_center_code}}</span>
+              <span class="wa-role" *ngIf="r.role_code">{{r.role_code}}</span>
+            </div>
+          </td>
+          <ng-container *ngFor="let m of MONTH_LABELS; let mi = index">
+            <td *ngFor="let me of MEASURE_ORDER" class="wa-cell wa-cell-{{me}}"
+                [class.wa-cell--derived]="me === 'cost' && hasAutoFillRate(r)"
+                [pTooltip]="me === 'cost' && hasAutoFillRate(r) ? 'Auto-derived from FTE × hours/day × hourly rate' : ''">
+              <input type="number" step="any"
+                     class="wa-cell-input"
+                     [class.wa-cell-input--derived]="me === 'cost' && hasAutoFillRate(r)"
+                     [value]="getCellValue(r, me, mi+1) ?? ''"
+                     (change)="onCellEdit(r, me, mi+1, $any($event.target).value)" />
+              <i *ngIf="me === 'cost' && hasAutoFillRate(r)" class="pi pi-calculator wa-derived-icon"
+                 pTooltip="Auto-derived"></i>
+            </td>
+          </ng-container>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="emptymessage">
+        <tr><td [attr.colspan]="37" class="wa-empty">
+          Nessuna allocation per program {{programId}} year {{year}}.
+          Esegui rebuild: <code>EXEC wf.sp_rebuild_alloc_pivot</code>.
+        </td></tr>
+      </ng-template>
+    </p-table>
+  </div>
+
+</div>

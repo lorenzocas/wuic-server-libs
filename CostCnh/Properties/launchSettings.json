@@ -1,11 +1,11 @@
 {
   "$schema": "http://json.schemastore.org/launchsettings.json",
   "profiles": {
-    "WuicTest": {
+    "CostCnh": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": false,
-      "applicationUrl": "http://localhost:5100",
+      "applicationUrl": "http://localhost:6500",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }

@@ -177,6 +177,23 @@ internal static class Program
                 webBuilder.UseStartup<WuicCore.Startup>();
                 webBuilder.UseSetting(WebHostDefaults.ApplicationKey, typeof(Program).Assembly.GetName().Name!);
 
+                // CostCnh — Provider Symmetry integrations (Sprint 4 della reimplementazione
+                // legacy Cost_CNH). Registra ISapSender/IBpmSender/ITimesheetSender/IMacRequestSender
+                // + i poller corrispondenti come keyed services ("Stub"/"Http"); resolver runtime
+                // legge `Integrations:<Sys>:Provider` da appsettings.json.
+                webBuilder.ConfigureServices((ctx, services) =>
+                {
+                    CostCnh.Integrations.IntegrationsRegistration.AddCostCnhIntegrations(services, ctx.Configuration);
+
+                    // Task 12.1 — Access log writer: singleton buffer + global ActionFilter
+                    services.AddSingleton<CostCnh.Middleware.AccessLogBuffer>();
+                    services.AddScoped<CostCnh.Middleware.AccessLogFilter>();
+                    services.Configure<Microsoft.AspNetCore.Mvc.MvcOptions>(opts =>
+                    {
+                        opts.Filters.AddService<CostCnh.Middleware.AccessLogFilter>();
+                    });
+                });
+
                 // Do NOT call UseKestrel() / UseIISIntegration() / UseUrls() here.
                 //
                 // ConfigureWebHostDefaults already wires both servers conditionally:

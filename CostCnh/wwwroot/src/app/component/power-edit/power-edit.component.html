@@ -1,0 +1,168 @@
+<div class="pe-host">
+
+  <!-- ─── Header / Toolbar ────────────────────────────────────────────────── -->
+  <div class="pe-header">
+    <div class="pe-title">
+      <i class="pi pi-table"></i>
+      PowerEdit
+      <span class="pe-scope" *ngIf="programId != null">
+        — Program <strong>#{{programId}}</strong>
+        <span *ngIf="scenarioId != null"> — Scenario <strong>#{{scenarioId}}</strong></span>
+      </span>
+    </div>
+    <div class="pe-actions">
+      <!-- Task 2.9 Undo/Redo + 2.7 Keyboard shortcuts (Ctrl+Z/Y/S) -->
+      <button pButton icon="pi pi-undo" pTooltip="Undo (Ctrl+Z)" size="small" severity="secondary"
+              (click)="undo()" [disabled]="!canUndo || loading || saveInFlight"></button>
+      <button pButton icon="pi pi-refresh" pTooltip="Redo (Ctrl+Y / Ctrl+Shift+Z)" size="small" severity="secondary"
+              (click)="redo()" [disabled]="!canRedo || loading || saveInFlight"></button>
+
+      <!-- Task 2.4 Export xlsx -->
+      <button pButton icon="pi pi-download" pTooltip="Export to xlsx" size="small" severity="info"
+              (click)="exportXlsx()" [disabled]="loading || saveInFlight"></button>
+
+      <!-- H.9: year switcher -->
+      <p-select
+        [ngModel]="year"
+        (ngModelChange)="onYearChange($event)"
+        [options]="availableYears"
+        [disabled]="loading || saveInFlight"
+        styleClass="pe-year-select">
+      </p-select>
+
+      <!-- Task 11.4: target currency switcher (read-only se converted) -->
+      <p-select
+        *ngIf="availableCurrencies.length > 0"
+        [ngModel]="targetCurrencyId"
+        (ngModelChange)="onCurrencyChange($event)"
+        [options]="[{id: null, code: 'Raw (program)'}].concat(availableCurrencies)"
+        optionLabel="code" optionValue="id"
+        [disabled]="loading || saveInFlight"
+        placeholder="Currency"
+        styleClass="pe-currency-select">
+      </p-select>
+      <p-progressSpinner *ngIf="loading || saveInFlight" [style]="{width:'20px',height:'20px'}" strokeWidth="3"></p-progressSpinner>
+      <span class="pe-lock-status" *ngIf="lockToken">
+        <i class="pi pi-lock"></i> lock OK
+        <small *ngIf="lockExpiresUtc">(exp {{lockExpiresUtc | date:'HH:mm'}})</small>
+      </span>
+      <span class="pe-lock-status pe-lock-status--conflict" *ngIf="lockConflictUserId != null">
+        <i class="pi pi-lock-open"></i> conflitto (user #{{lockConflictUserId}})
+      </span>
+    </div>
+  </div>
+
+  <!-- ─── Error banner ────────────────────────────────────────────────────── -->
+  <p-message severity="error" *ngIf="error" [text]="error" styleClass="pe-error"></p-message>
+
+  <!-- ─── Task 3.2: Lock Conflict Dialog ─────────────────────────────────── -->
+  <p-dialog
+    [(visible)]="showLockConflictDialog"
+    [modal]="true"
+    [closable]="false"
+    header="Lock Conflict"
+    [style]="{width: '460px'}">
+    <div class="pe-conflict">
+      <i class="pi pi-lock" style="font-size:24px;color:var(--red-700);"></i>
+      <p>
+        Il program <strong>#{{programId}}</strong> è attualmente in editing da
+        <strong>user #{{lockConflictUserId}}</strong>.
+      </p>
+      <p>Cosa vuoi fare?</p>
+    </div>
+    <ng-template pTemplate="footer">
+      <button pButton label="Dismiss" severity="secondary" (click)="onDismissConflict()"></button>
+      <button pButton label="Force release (admin)" icon="pi pi-lock-open" severity="danger"
+              (click)="onForceReleaseLock()"
+              pTooltip="Force-rilascia il lock dell'altro utente e riprende editing"></button>
+    </ng-template>
+  </p-dialog>
+
+  <!-- ─── Toolbar tools (Phase H.5) ───────────────────────────────────────── -->
+  <costcnh-power-edit-toolbar
+    *ngIf="!loading && !error"
+    [hasSelection]="selectionCount > 0"
+    [selectionCount]="selectionCount"
+    [facetOptions]="toolbarFacetOptions"
+    (toolApply)="onToolApply($event)">
+  </costcnh-power-edit-toolbar>
+
+  <!-- ─── TreeTable: rows = XBS gerarchici, cols = 48 (12mo × 4 facet) ────── -->
+  <div class="pe-grid-wrap" *ngIf="!loading && !error">
+
+    <p-treeTable
+      [value]="treeRoots"
+      [scrollable]="true"
+      scrollHeight="flex"
+      [frozenWidth]="'320px'"
+      styleClass="pe-tree-table">
+
+      <!-- ─── Grouped headers: row 1 = months, row 2 = facet sub-cols ────── -->
+      <ng-template pTemplate="header">
+        <tr class="pe-header-month-row">
+          <th rowspan="2" pFrozenColumn class="pe-frozen-header">XBS Node</th>
+          <th *ngFor="let m of MONTH_LABELS; let mi = index" colspan="4" class="pe-month-header">
+            {{m}} <small>{{year}}</small>
+          </th>
+        </tr>
+        <tr class="pe-header-facet-row">
+          <ng-container *ngFor="let m of MONTH_LABELS; let mi = index">
+            <th *ngFor="let f of FACET_ORDER" class="pe-facet-header pe-facet-{{f}}">
+              {{FACET_LABEL[f]}}
+            </th>
+          </ng-container>
+        </tr>
+      </ng-template>
+
+      <!-- ─── Body: per ogni TreeNode una row con 48 celle ───────────────── -->
+      <ng-template pTemplate="body" let-rowNode let-rowData="rowData">
+        <tr [ttRow]="rowNode" [class.pe-leaf]="rowData.is_leaf === 1"
+                              [class.pe-rollup]="rowData.is_leaf === 0">
+          <td pFrozenColumn class="pe-row-label">
+            <p-treeTableToggler [rowNode]="rowNode"></p-treeTableToggler>
+            <!-- H.5: selection checkbox per i tool toolbar (solo leaf editabili) -->
+            <input type="checkbox" class="pe-row-check"
+                   *ngIf="rowData.is_leaf === 1"
+                   [checked]="isSelected(rowData)"
+                   (click)="toggleSelection(rowData, $event)" />
+            <span class="pe-row-text">{{getRowLabel(rowData)}}</span>
+            <small *ngIf="rowData.is_leaf === 0" class="pe-rollup-badge">rollup</small>
+          </td>
+
+          <ng-container *ngFor="let m of MONTH_LABELS; let mi = index">
+            <td *ngFor="let f of FACET_ORDER"
+                class="pe-cell pe-cell-{{f}}"
+                [ngClass]="getCellConditionalClass(rowData, f, mi+1)"
+                [class.pe-cell--editable]="isCellEditable(rowData, f)"
+                [class.pe-cell--ro]="!isCellEditable(rowData, f)">
+
+              <ng-container *ngIf="isCellEditable(rowData, f); else readOnly">
+                <input type="number" step="any"
+                       class="pe-cell-input"
+                       [value]="getCellValue(rowData, f, mi+1) ?? ''"
+                       (change)="onCellEdit(rowData, f, mi+1, $any($event.target).value)" />
+              </ng-container>
+
+              <ng-template #readOnly>
+                <span class="pe-cell-text">
+                  {{ getCellValue(rowData, f, mi+1) | number:'1.0-2' }}
+                </span>
+              </ng-template>
+
+            </td>
+          </ng-container>
+        </tr>
+      </ng-template>
+
+      <!-- ─── Empty state ────────────────────────────────────────────────── -->
+      <ng-template pTemplate="emptymessage">
+        <tr><td [attr.colspan]="49" class="pe-empty">
+          Nessun dato pivot per program {{programId}} anno {{year}}.
+          Esegui <code>EXEC cp.sp_rebuild_power_edit_pivot</code> o aspetta il rebuild notturno.
+        </td></tr>
+      </ng-template>
+
+    </p-treeTable>
+  </div>
+
+</div>

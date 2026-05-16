@@ -1,0 +1,212 @@
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.pe-host {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: var(--surface-ground, #f8f9fa);
+}
+
+// ─── Header / Toolbar ────────────────────────────────────────────────────────
+.pe-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  background: var(--surface-card, #fff);
+  border-bottom: 1px solid var(--surface-border, #dee2e6);
+  font-size: 14px;
+}
+
+.pe-title {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  i { color: var(--primary-color, #0d6efd); }
+
+  .pe-scope {
+    font-weight: 400;
+    color: var(--text-color-secondary, #6c757d);
+    margin-left: 6px;
+  }
+}
+
+.pe-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pe-lock-status {
+  font-size: 12px;
+  color: var(--green-700, #1e7e34);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  &--conflict { color: var(--red-700, #b02a37); }
+  small { opacity: 0.7; }
+}
+
+.pe-error { margin: 6px 12px; }
+
+// ─── Grid wrap (fills remaining vertical space) ──────────────────────────────
+.pe-grid-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+// ─── TreeTable styling (PrimeNG override) ────────────────────────────────────
+:host ::ng-deep .pe-tree-table {
+  width: 100%;
+  height: 100%;
+
+  .p-treetable-wrapper { height: 100%; }
+
+  // Stacked grouped header (2 rows: month / facet)
+  .pe-header-month-row th {
+    text-align: center;
+    background: var(--surface-100, #e9ecef);
+    font-weight: 600;
+    border-right: 1px solid var(--surface-border, #dee2e6);
+    padding: 6px 4px;
+    font-size: 12px;
+    small { display: block; font-size: 10px; opacity: 0.65; font-weight: 400; }
+  }
+  .pe-header-facet-row th {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 500;
+    background: var(--surface-50, #f8f9fa);
+    padding: 4px 2px;
+    border-right: 1px solid var(--surface-border, #dee2e6);
+    border-top: 1px solid var(--surface-border, #dee2e6);
+  }
+
+  .pe-facet-planned  { color: var(--blue-700, #084298); }
+  .pe-facet-actual   { color: var(--green-700, #146c43); }
+  .pe-facet-forecast { color: var(--orange-700, #b85d00); }
+  .pe-facet-baseline { color: var(--gray-700, #495057); }
+
+  .pe-frozen-header {
+    background: var(--surface-100, #e9ecef) !important;
+    text-align: left;
+    padding: 6px 8px;
+  }
+
+  // Rows
+  .pe-row-label {
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    white-space: nowrap;
+    position: relative;
+  }
+
+  // H.11: tree connector lines via :before on toggler (faux ascii tree)
+  .p-treetable-tbody {
+    tr[ttrow] {
+      .p-treetable-toggler {
+        position: relative;
+        &::before {
+          // vertical guide line (parent column rail)
+          content: '';
+          position: absolute;
+          left: -1px;
+          top: 0; bottom: 0;
+          width: 1px;
+          background: var(--surface-300, #dee2e6);
+          opacity: 0.6;
+        }
+      }
+    }
+  }
+
+  .pe-row-check {
+    cursor: pointer;
+    accent-color: var(--primary-color, #0d6efd);
+    margin-right: 2px;
+  }
+
+  // H.9 year select
+  .pe-year-select { width: 100px; }
+
+  .pe-rollup-badge {
+    background: var(--surface-300, #adb5bd);
+    color: white;
+    border-radius: 3px;
+    padding: 1px 6px;
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-left: 4px;
+  }
+
+  .pe-rollup .pe-cell-text { font-style: italic; opacity: 0.8; }
+  .pe-leaf    .pe-cell-text { font-weight: 500; }
+
+  // Task 2.5 — Conditional formatting cells
+  .pe-cell--over     { background: var(--red-50, #fff5f5);   color: var(--red-700, #b02a37);    font-weight: 600; }
+  .pe-cell--under    { background: var(--orange-50, #fff7e6); color: var(--orange-700, #b85d00); font-weight: 600; }
+  .pe-cell--on-track { background: var(--green-50, #ecfdf3); color: var(--green-700, #146c43); }
+
+  // Cells (48 = 12 mo × 4 facet)
+  .pe-cell {
+    text-align: right;
+    padding: 2px 4px;
+    border-right: 1px solid var(--surface-200, #e9ecef);
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+    min-width: 64px;
+    max-width: 90px;
+
+    &--editable {
+      background: var(--surface-0, #fff);
+      &:hover { background: var(--blue-50, #eef5ff); }
+    }
+    &--ro {
+      background: var(--surface-50, #f8f9fa);
+      color: var(--text-color-secondary, #6c757d);
+    }
+  }
+
+  .pe-cell-input {
+    width: 100%;
+    border: 1px solid transparent;
+    background: transparent;
+    text-align: right;
+    font: inherit;
+    padding: 2px 4px;
+    border-radius: 2px;
+
+    &:focus {
+      outline: none;
+      border-color: var(--primary-color, #0d6efd);
+      background: var(--blue-50, #eef5ff);
+    }
+  }
+
+  // Empty state
+  .pe-empty {
+    text-align: center;
+    padding: 32px;
+    color: var(--text-color-secondary, #6c757d);
+    code {
+      background: var(--surface-100, #e9ecef);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Consolas', 'Monaco', monospace;
+    }
+  }
+}
