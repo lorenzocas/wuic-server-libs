@@ -36,7 +36,7 @@ public sealed class CuXmlGenerator : IFiscalReportGenerator
     public string Tipo => "CU";
 
     private static string DataConn =>
-        ConfigurationManager.ConnectionStrings["DataSQLConnection"]?.ConnectionString
+        WEB_UI_CRAFTER.Helpers.ConfigHelper.ResolveConnectionString("DataSQLConnection")
         ?? throw new InvalidOperationException("DataSQLConnection non configurata");
 
     public async Task<FiscalReportResult> GenerateAsync(

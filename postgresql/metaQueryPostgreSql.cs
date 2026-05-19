@@ -29,7 +29,7 @@ using System.Globalization;
 
 namespace metaModelRaw
 {
-    public class metaQueryPostgreSql
+    public partial class metaQueryPostgreSql
     {
         public static SerializableDictionary<string, object> GeneratePivotQuery(
             string route,
@@ -399,13 +399,13 @@ namespace metaModelRaw
                                     filterParts.Add($"{colExpr} <= {ToProviderLiteralPivot(val)}");
                                     break;
                                 case "contains":
-                                    filterParts.Add($"{colExpr} LIKE '%{EscapeSqlStringPivot(Convert.ToString(val ?? string.Empty))}%'");
+                                    filterParts.Add($"{colExpr} ILIKE '%{EscapeSqlStringPivot(Convert.ToString(val ?? string.Empty))}%'");
                                     break;
                                 case "startswith":
-                                    filterParts.Add($"{colExpr} LIKE '{EscapeSqlStringPivot(Convert.ToString(val ?? string.Empty))}%'");
+                                    filterParts.Add($"{colExpr} ILIKE '{EscapeSqlStringPivot(Convert.ToString(val ?? string.Empty))}%'");
                                     break;
                                 case "endswith":
-                                    filterParts.Add($"{colExpr} LIKE '%{EscapeSqlStringPivot(Convert.ToString(val ?? string.Empty))}'");
+                                    filterParts.Add($"{colExpr} ILIKE '%{EscapeSqlStringPivot(Convert.ToString(val ?? string.Empty))}'");
                                     break;
                             }
                         }
@@ -552,7 +552,7 @@ FROM {fromTable}
                 List<_Metadati_Colonne> lst = _Metadati_Colonne.getColonneByUserID(route, 0, user_id, dataMode.view, null);
                 _Metadati_Tabelle tab = lst.First()._Metadati_Tabelle;
 
-                string table_name = (string.IsNullOrEmpty(tab.md_db_name) ? "" : "[" + tab.md_db_name + "]..") + metaQuery.EscapeDBObjectName(tab.md_nome_tabella);
+                string table_name = GetTablePrefix(tab) + EscapeDBObjectName(tab.md_nome_tabella);
 
                 current_fld = table_name + "." + metaQuery.EscapeDBObjectName(categoryAxFld);
 
@@ -565,7 +565,7 @@ FROM {fromTable}
                 {
                     categoryAxFld = categoryColumnLookUp.mc_ui_lookup_entity_name + "___" + categoryColumnLookUp.mc_ui_lookup_dataTextField;
                     _Metadati_Tabelle relatedTable = mmd.GetMetadati_Tabelles(categoryColumnLookUp.mc_ui_lookup_entity_name).FirstOrDefault();
-                    string safeEntityName = (string.IsNullOrEmpty(tab.md_db_name) ? "" : "[" + tab.md_db_name + "]..") + metaQuery.EscapeDBObjectName(relatedTable.md_nome_tabella);
+                    string safeEntityName = GetTablePrefix(relatedTable) + EscapeDBObjectName(relatedTable.md_nome_tabella);
                     string safeUniqueEntityName = metaQuery.EscapeDBObjectName(categoryColumnLookUp.mc_nome_colonna + "_" + categoryColumnLookUp.mc_ui_lookup_entity_name);
                     string calculatedText = categoryColumnLookUp.mc_ui_lookup_computed_dataTextField;
                     string safeTextField = metaQuery.EscapeDBObjectName(categoryColumnLookUp.mc_ui_lookup_dataTextField);
@@ -603,65 +603,129 @@ FROM {fromTable}
         #region "CONNECTION UTILS"
         public static string getTableFullName(_Metadati_Tabelle tab)
         {
-            string table_name = tab.md_nome_tabella;
-            string safetable_name = (string.IsNullOrEmpty(tab.md_db_name) ? "" : "[" + tab.md_db_name + "].") + (!string.IsNullOrEmpty(tab.md_schema_name) ? "[" + tab.md_schema_name + "]." : ".") + EscapeDBObjectName(table_name);
-            if (string.IsNullOrEmpty(tab.md_db_name))
-            {
-                if (string.IsNullOrEmpty(tab.md_schema_name))
-                {
-                    safetable_name = EscapeDBObjectName(table_name);
-                }
-                else
-                {
-                    safetable_name = "[" + tab.md_schema_name + "]." + EscapeDBObjectName(table_name);
-                }
-            }
-            else
-            {
-                if (string.IsNullOrEmpty(tab.md_schema_name))
-                {
-                    safetable_name = "[" + tab.md_db_name + "].." + EscapeDBObjectName(table_name);
-                }
-                else
-                {
-                    safetable_name = "[" + tab.md_db_name + "]." + "[" + tab.md_schema_name + "]." + EscapeDBObjectName(table_name);
-                }
-            }
-            return safetable_name;
+            // PG: no cross-DB. Schema only if non-dbo. Mirror GetTableName/GetTablePrefix.
+            return GetTablePrefix(tab) + EscapeDBObjectName(tab.md_nome_tabella);
         }
 
 
         public static NpgsqlConnection GetContentConnection()
         {
-            string connectionString;
-            connectionString = ConfigurationManager.ConnectionStrings["ContentSQLConnection"].ConnectionString;
+            // Usa ConfigHelper.ResolveConnectionString (NON ConfigurationManager.ConnectionStrings):
+            // la legacy .NET Framework API legge solo da appsettings.json base, bypassando
+            // l'overlay del dispatcher (WUIC_DISPATCHER_CONFIG) e il merge con
+            // appsettings.Development.json/appsettings.postgres.json. Mirror di
+            // mysql/metaQueryMySql.cs:GetContentConnection.
+            string connectionString = ConfigHelper.ResolveConnectionString("ContentSQLConnection");
+            var connection = new NpgsqlConnection(connectionString);
+            connection.Open();
+            return connection;
+        }
+
+        public static NpgsqlConnection GetOpenConnection(bool isMetaDataQuery, string connectionName = "", user u = null)
+        {
+            string connectionString = null;
+
+            // Multi-tenant: i nomi standard sono alias del default → applichiamo
+            // comunque il tenant routing. Mirror di mysql/metaQueryMySql.cs:GetOpenConnection.
+            bool isDefaultName = !string.IsNullOrEmpty(connectionName)
+                && (string.Equals(connectionName, "MetaDataSQLConnection", System.StringComparison.OrdinalIgnoreCase)
+                 || string.Equals(connectionName, "DataSQLConnection", System.StringComparison.OrdinalIgnoreCase));
+
+            if (string.IsNullOrEmpty(connectionName) || isDefaultName)
+            {
+                // ConfigHelper.ResolveConnectionString rispetta:
+                //   - dispatcher overlay (WUIC_DISPATCHER_CONFIG → es. dispatcher.postgres.local.json)
+                //   - appsettings.Development.json
+                //   - appsettings.{Environment}.json
+                //   - appsettings.json base
+                // Senza questa risoluzione il PG provider riceveva la conn string MSSQL
+                // legacy `data source=localhost\sqlexpress;...` di appsettings.json e
+                // Npgsql falliva con "Couldn't set data source" o si connetteva al DB
+                // 'postgres' di default (bug visibile in pg-Admin: tabelle non trovate
+                // perche' cercate nello schema sbagliato).
+                connectionString = ConfigHelper.ResolveConnectionString(isMetaDataQuery ? "MetaDataSQLConnection" : "DataSQLConnection");
+
+                // -------------------------------------------------------
+                // Multi-tenant routing (flag-gated, opt-in).
+                // Specchio del blocco MSSQL in `metaQuery.GetOpenConnection`
+                // e MySQL in `metaQueryMySql.GetOpenConnection`.
+                // -------------------------------------------------------
+                if (WEB_UI_CRAFTER.Helpers.MultiTenantHelpers.IsMultiConnectionEnabled())
+                {
+                    int idAzienda = 0;
+                    if (u != null && u.has_azienda_id && u.azienda_id > 0)
+                    {
+                        idAzienda = u.azienda_id;
+                    }
+                    else
+                    {
+                        idAzienda = TenantScope.CurrentAziendaId;
+                    }
+
+                    if (idAzienda > 0)
+                    {
+                        string tenantCs = WEB_UI_CRAFTER.Helpers.MultiTenantHelpers
+                            .ResolveTenantConnectionString(idAzienda, isMetaDataQuery);
+                        if (!string.IsNullOrWhiteSpace(tenantCs))
+                            connectionString = tenantCs;
+                    }
+                }
+            }
+            else
+            {
+                connectionString = ConfigHelper.ResolveConnectionString(connectionName);
+                if (string.IsNullOrEmpty(connectionString))
+                    throw new Exception(string.Format("Connection '{0}' not found in web.config", connectionName));
+            }
+
+            if (!isMetaDataQuery)
+            {
+                bool connectionByUser = bool.Parse(ConfigHelper.GetSettingAsString("connectionByUser") ?? "false");
+
+                if (connectionByUser)
+                {
+                    if (u == null)
+                        u = user.getUserByID(RawHelpers.authenticate());
+
+                    if (u != null && u.extra_keys != null && u.extra_keys.ContainsKey("connection"))
+                    {
+                        string userConnection = (string)u.extra_keys["connection"];
+
+                        if (!string.IsNullOrEmpty(userConnection))
+                            connectionString = ConfigHelper.ResolveConnectionString(userConnection);
+                    }
+                }
+            }
 
             var connection = new NpgsqlConnection(connectionString);
             connection.Open();
             return connection;
         }
 
-        public static NpgsqlConnection GetOpenConnection(bool isMetaDataQuery, string connectionName = "")
+        /// <summary>
+        /// Apre una connection Npgsql direttamente sulla connection string letterale.
+        /// Mirror di <c>metaQueryMySql.OpenConnectionToConnectionString</c>; usato
+        /// da MultiTenantHelpers per accedere al DB primario senza ricorsione
+        /// attraverso il routing tenant-aware.
+        /// </summary>
+        public static NpgsqlConnection OpenConnectionToConnectionString(string connectionString)
         {
-            string connectionString;
-
-            if (string.IsNullOrEmpty(connectionName))
-            {
-                if (isMetaDataQuery)
-                {
-                    connectionString = ConfigurationManager.ConnectionStrings["MetaDataSQLConnection"].ConnectionString;
-                }
-                else
-                {
-                    connectionString = ConfigurationManager.ConnectionStrings["DataSQLConnection"].ConnectionString;
-                }
-            }
-            else
-                connectionString = ConfigurationManager.ConnectionStrings[connectionName].ConnectionString;
-
             var connection = new NpgsqlConnection(connectionString);
             connection.Open();
             return connection;
+        }
+
+        /// <summary>
+        /// Esegue uno script SQL Postgres multi-statement. Mirror di
+        /// <c>metaQueryMySql.ExecuteMySqlScript</c>. Npgsql supporta nativamente
+        /// piu' statement in un singolo CommandText separati da `;` (multi-query
+        /// in una singola roundtrip) — quindi qui basta una sola Execute.
+        /// </summary>
+        public static void ExecutePostgresScript(System.Data.Common.DbConnection connection, string script)
+        {
+            if (connection == null) throw new ArgumentNullException(nameof(connection));
+            if (string.IsNullOrWhiteSpace(script)) return;
+            connection.Execute(script);
         }
 
         #endregion
@@ -697,10 +761,11 @@ FROM {fromTable}
                             reticularCol.mc_computed_formula = "''";
                         }
 
-                        string query = "INSERT INTO [_metadati__colonne] ([voa_class], [md_id], [mc_db_column_type], [mc_display_string_in_edit], [mc_display_string_in_view], [mc_logic_editable], [mc_logic_nullable], [mc_nome_colonna], [mc_ui_column_type], [mccomputedformula], [mciscomputed], [mcgrantbydefault], [mcordine]) VALUES (@voa_class, @md_id, @mc_db_column_type, @mc_display_string_in_edit, @mc_display_string_in_view, @mc_logic_editable, @mc_logic_nullable, @mc_nome_colonna, @mc_ui_column_type, @mccomputedformula, @mciscomputed, @mcgrantbydefault, @mcordine); select SCOPE_IDENTITY()";
+                        // PG-native (port da mysql/metaQueryMySql.cs:862): bare lowercase + RETURNING mc_id.
+                        string query = "INSERT INTO _metadati__colonne (voa_class, md_id, mc_db_column_type, mc_display_string_in_edit, mc_display_string_in_view, mc_logic_editable, mc_logic_nullable, mc_nome_colonna, mc_ui_column_type, mccomputedformula, mciscomputed, mcgrantbydefault, mcordine) VALUES (@voa_class, @md_id, @mc_db_column_type, @mc_display_string_in_edit, @mc_display_string_in_view, @mc_logic_editable, @mc_logic_nullable, @mc_nome_colonna, @mc_ui_column_type, @mccomputedformula, @mciscomputed, @mcgrantbydefault, @mcordine) RETURNING mc_id";
                         using (NpgsqlConnection con = GetOpenConnection(true))
                         {
-                            NpgsqlCommand cmd = new NpgsqlCommand(NormalizeSql(query), con);
+                            NpgsqlCommand cmd = new NpgsqlCommand(query, con);
                             cmd.Parameters.Add(new SqlParameter("voa_class", 1));
                             cmd.Parameters.Add(new SqlParameter("md_id", tab.md_id));
                             cmd.Parameters.Add(new SqlParameter("mc_db_column_type", db_col_type));
@@ -736,10 +801,11 @@ FROM {fromTable}
                             reticularCol.mc_computed_formula = "''";
                         }
 
-                        string query = "INSERT INTO [_metadati__colonne] ([voa_class], [md_id], [mc_db_column_type], [mc_display_string_in_edit], [mc_display_string_in_view], [mc_logic_editable], [mc_logic_nullable], [mc_nome_colonna], [mc_ui_column_type], [mccomputedformula], [mciscomputed], [mcgrantbydefault], [mcordine]) VALUES (@voa_class, @md_id, @mc_db_column_type, @mc_display_string_in_edit, @mc_display_string_in_view, @mc_logic_editable, @mc_logic_nullable, @mc_nome_colonna, @mc_ui_column_type, @mccomputedformula, @mciscomputed, @mcgrantbydefault, @mcordine); select SCOPE_IDENTITY()";
+                        // PG-native (port da mysql/metaQueryMySql.cs:901): bare lowercase + RETURNING mc_id.
+                        string query = "INSERT INTO _metadati__colonne (voa_class, md_id, mc_db_column_type, mc_display_string_in_edit, mc_display_string_in_view, mc_logic_editable, mc_logic_nullable, mc_nome_colonna, mc_ui_column_type, mccomputedformula, mciscomputed, mcgrantbydefault, mcordine) VALUES (@voa_class, @md_id, @mc_db_column_type, @mc_display_string_in_edit, @mc_display_string_in_view, @mc_logic_editable, @mc_logic_nullable, @mc_nome_colonna, @mc_ui_column_type, @mccomputedformula, @mciscomputed, @mcgrantbydefault, @mcordine) RETURNING mc_id";
                         using (NpgsqlConnection con = GetOpenConnection(true))
                         {
-                            NpgsqlCommand cmd = new NpgsqlCommand(NormalizeSql(query), con);
+                            NpgsqlCommand cmd = new NpgsqlCommand(query, con);
                             cmd.Parameters.Add(new SqlParameter("voa_class", 1));
                             cmd.Parameters.Add(new SqlParameter("md_id", tab.md_id));
                             cmd.Parameters.Add(new SqlParameter("mc_db_column_type", db_col_type));
@@ -766,10 +832,11 @@ FROM {fromTable}
                         db_col_type = "decimal";
                         mc_ui_column_type = "number";
 
-                        string query = "INSERT INTO [_metadati__colonne] ([voa_class], [md_id], [mc_db_column_type], [mc_display_string_in_edit], [mc_display_string_in_view], [mc_logic_editable], [mc_logic_nullable], [mc_nome_colonna], [mc_ui_column_type], [mccomputedformula], [mciscomputed], [mcgrantbydefault], [mcordine]) VALUES (@voa_class, @md_id, @mc_db_column_type, @mc_display_string_in_edit, @mc_display_string_in_view, @mc_logic_editable, @mc_logic_nullable, @mc_nome_colonna, @mc_ui_column_type, @mccomputedformula, @mciscomputed, @mcgrantbydefault, @mcordine); select SCOPE_IDENTITY()";
+                        // PG-native (port da mysql/metaQueryMySql.cs:931): bare lowercase + RETURNING mc_id.
+                        string query = "INSERT INTO _metadati__colonne (voa_class, md_id, mc_db_column_type, mc_display_string_in_edit, mc_display_string_in_view, mc_logic_editable, mc_logic_nullable, mc_nome_colonna, mc_ui_column_type, mccomputedformula, mciscomputed, mcgrantbydefault, mcordine) VALUES (@voa_class, @md_id, @mc_db_column_type, @mc_display_string_in_edit, @mc_display_string_in_view, @mc_logic_editable, @mc_logic_nullable, @mc_nome_colonna, @mc_ui_column_type, @mccomputedformula, @mciscomputed, @mcgrantbydefault, @mcordine) RETURNING mc_id";
                         using (NpgsqlConnection con = GetOpenConnection(true))
                         {
-                            NpgsqlCommand cmd = new NpgsqlCommand(NormalizeSql(query), con);
+                            NpgsqlCommand cmd = new NpgsqlCommand(query, con);
                             cmd.Parameters.Add(new SqlParameter("voa_class", 3));
                             cmd.Parameters.Add(new SqlParameter("md_id", tab.md_id));
                             cmd.Parameters.Add(new SqlParameter("mc_db_column_type", db_col_type));
@@ -796,10 +863,11 @@ FROM {fromTable}
 
                         string display_name = col_name.Replace("_numero", "_bit");
 
-                        string query = "INSERT INTO [_metadati__colonne] ([voa_class], [md_id], [mc_db_column_type], [mc_display_string_in_edit], [mc_display_string_in_view], [mc_logic_editable], [mc_logic_nullable], [mc_nome_colonna], [mc_ui_column_type], [mccomputedformula], [mciscomputed], [mcgrantbydefault], [mcordine]) VALUES (@voa_class, @md_id, @mc_db_column_type, @mc_display_string_in_edit, @mc_display_string_in_view, @mc_logic_editable, @mc_logic_nullable, @mc_nome_colonna, @mc_ui_column_type, @mccomputedformula, @mciscomputed, @mcgrantbydefault, @mcordine); select SCOPE_IDENTITY()";
+                        // PG-native (port da mysql/metaQueryMySql.cs:961): bare lowercase + RETURNING mc_id.
+                        string query = "INSERT INTO _metadati__colonne (voa_class, md_id, mc_db_column_type, mc_display_string_in_edit, mc_display_string_in_view, mc_logic_editable, mc_logic_nullable, mc_nome_colonna, mc_ui_column_type, mccomputedformula, mciscomputed, mcgrantbydefault, mcordine) VALUES (@voa_class, @md_id, @mc_db_column_type, @mc_display_string_in_edit, @mc_display_string_in_view, @mc_logic_editable, @mc_logic_nullable, @mc_nome_colonna, @mc_ui_column_type, @mccomputedformula, @mciscomputed, @mcgrantbydefault, @mcordine) RETURNING mc_id";
                         using (NpgsqlConnection con = GetOpenConnection(true))
                         {
-                            NpgsqlCommand cmd = new NpgsqlCommand(NormalizeSql(query), con);
+                            NpgsqlCommand cmd = new NpgsqlCommand(query, con);
                             cmd.Parameters.Add(new SqlParameter("voa_class", 3));
                             cmd.Parameters.Add(new SqlParameter("md_id", tab.md_id));
                             cmd.Parameters.Add(new SqlParameter("mc_db_column_type", db_col_type));
@@ -825,10 +893,11 @@ FROM {fromTable}
 
                         string display_name = col_name.Replace("_numero", "_lookup");
 
-                        string query = "INSERT INTO [_metadati__colonne] ([voa_class], [md_id], [mc_db_column_type], [mc_display_string_in_edit], [mc_display_string_in_view], [mc_logic_editable], [mc_logic_nullable], [mc_nome_colonna], [mc_ui_column_type], [mccomputedformula], [mciscomputed], [mcgrantbydefault], [mcordine]) VALUES (@voa_class, @md_id, @mc_db_column_type, @mc_display_string_in_edit, @mc_display_string_in_view, @mc_logic_editable, @mc_logic_nullable, @mc_nome_colonna, @mc_ui_column_type, @mccomputedformula, @mciscomputed, @mcgrantbydefault, @mcordine); select SCOPE_IDENTITY()";
+                        // PG-native (port da mysql/metaQueryMySql.cs:990): bare lowercase + RETURNING mc_id.
+                        string query = "INSERT INTO _metadati__colonne (voa_class, md_id, mc_db_column_type, mc_display_string_in_edit, mc_display_string_in_view, mc_logic_editable, mc_logic_nullable, mc_nome_colonna, mc_ui_column_type, mccomputedformula, mciscomputed, mcgrantbydefault, mcordine) VALUES (@voa_class, @md_id, @mc_db_column_type, @mc_display_string_in_edit, @mc_display_string_in_view, @mc_logic_editable, @mc_logic_nullable, @mc_nome_colonna, @mc_ui_column_type, @mccomputedformula, @mciscomputed, @mcgrantbydefault, @mcordine) RETURNING mc_id";
                         using (NpgsqlConnection con = GetOpenConnection(true))
                         {
-                            NpgsqlCommand cmd = new NpgsqlCommand(NormalizeSql(query), con);
+                            NpgsqlCommand cmd = new NpgsqlCommand(query, con);
                             cmd.Parameters.Add(new SqlParameter("voa_class", 2));
                             cmd.Parameters.Add(new SqlParameter("md_id", tab.md_id));
                             cmd.Parameters.Add(new SqlParameter("mc_db_column_type", db_col_type));
@@ -854,10 +923,11 @@ FROM {fromTable}
 
                         string display_name = col_name.Replace("_testo", "_button");
 
-                        string query = "INSERT INTO [_metadati__colonne] ([voa_class], [md_id], [mc_db_column_type], [mc_display_string_in_edit], [mc_display_string_in_view], [mc_logic_editable], [mc_logic_nullable], [mc_nome_colonna], [mc_ui_column_type], [mccomputedformula], [mciscomputed], [mcgrantbydefault], [mcordine], mchideinedit, mcisdbcomputed) VALUES (@voa_class, @md_id, @mc_db_column_type, @mc_display_string_in_edit, @mc_display_string_in_view, @mc_logic_editable, @mc_logic_nullable, @mc_nome_colonna, @mc_ui_column_type, @mccomputedformula, @mciscomputed, @mcgrantbydefault, @mcordine, @mchideinedit, @mcisdbcomputed); select SCOPE_IDENTITY()";
+                        // PG-native (port da mysql/metaQueryMySql.cs:1019): bare lowercase + RETURNING mc_id.
+                        string query = "INSERT INTO _metadati__colonne (voa_class, md_id, mc_db_column_type, mc_display_string_in_edit, mc_display_string_in_view, mc_logic_editable, mc_logic_nullable, mc_nome_colonna, mc_ui_column_type, mccomputedformula, mciscomputed, mcgrantbydefault, mcordine, mchideinedit, mcisdbcomputed) VALUES (@voa_class, @md_id, @mc_db_column_type, @mc_display_string_in_edit, @mc_display_string_in_view, @mc_logic_editable, @mc_logic_nullable, @mc_nome_colonna, @mc_ui_column_type, @mccomputedformula, @mciscomputed, @mcgrantbydefault, @mcordine, @mchideinedit, @mcisdbcomputed) RETURNING mc_id";
                         using (NpgsqlConnection con = GetOpenConnection(true))
                         {
-                            NpgsqlCommand cmd = new NpgsqlCommand(NormalizeSql(query), con);
+                            NpgsqlCommand cmd = new NpgsqlCommand(query, con);
                             cmd.Parameters.Add(new SqlParameter("voa_class", 6));
                             cmd.Parameters.Add(new SqlParameter("md_id", tab.md_id));
                             cmd.Parameters.Add(new SqlParameter("mc_db_column_type", db_col_type));
@@ -886,10 +956,11 @@ FROM {fromTable}
 
                         string display_name = col_name.Replace("_testo", "_multiple_check");
 
-                        string query = "INSERT INTO [_metadati__colonne] ([voa_class], [md_id], [mc_db_column_type], [mc_display_string_in_edit], [mc_display_string_in_view], [mc_logic_editable], [mc_logic_nullable], [mc_nome_colonna], [mc_ui_column_type], [mcgrantbydefault], [mcordine], [mccomputedformula], [mciscomputed]) VALUES (@voa_class, @md_id, @mc_db_column_type, @mc_display_string_in_edit, @mc_display_string_in_view, @mc_logic_editable, @mc_logic_nullable, @mc_nome_colonna, @mc_ui_column_type, @mcgrantbydefault, @mcordine, @mccomputedformula, @mciscomputed); select SCOPE_IDENTITY()";
+                        // PG-native (port da mysql/metaQueryMySql.cs:1051): bare lowercase + RETURNING mc_id.
+                        string query = "INSERT INTO _metadati__colonne (voa_class, md_id, mc_db_column_type, mc_display_string_in_edit, mc_display_string_in_view, mc_logic_editable, mc_logic_nullable, mc_nome_colonna, mc_ui_column_type, mcgrantbydefault, mcordine, mccomputedformula, mciscomputed) VALUES (@voa_class, @md_id, @mc_db_column_type, @mc_display_string_in_edit, @mc_display_string_in_view, @mc_logic_editable, @mc_logic_nullable, @mc_nome_colonna, @mc_ui_column_type, @mcgrantbydefault, @mcordine, @mccomputedformula, @mciscomputed) RETURNING mc_id";
                         using (NpgsqlConnection con = GetOpenConnection(true))
                         {
-                            NpgsqlCommand cmd = new NpgsqlCommand(NormalizeSql(query), con);
+                            NpgsqlCommand cmd = new NpgsqlCommand(query, con);
                             cmd.Parameters.Add(new SqlParameter("voa_class", 4));
                             cmd.Parameters.Add(new SqlParameter("md_id", tab.md_id));
                             cmd.Parameters.Add(new SqlParameter("mc_db_column_type", db_col_type));
@@ -972,7 +1043,7 @@ FROM {fromTable}
             }
 
             string query = "select * from cms.register_requests where username=@username";
-            NpgsqlCommand cmd = new NpgsqlCommand(NormalizeSql(query), connection);
+            NpgsqlCommand cmd = new NpgsqlCommand(query, connection);
             cmd.Parameters.Add(new SqlParameter("username", user_name));
             NpgsqlDataAdapter adpt = new NpgsqlDataAdapter(cmd);
             DataTable dt = new DataTable();
@@ -982,7 +1053,7 @@ FROM {fromTable}
                 return "-1"; //throw new ValidationException(string.Format("User name '{0}' già utilizzato", user_name));
 
             query = "select * from cms.register_requests where email=@email";
-            cmd = new NpgsqlCommand(NormalizeSql(query), connection);
+            cmd = new NpgsqlCommand(query, connection);
             cmd.Parameters.Add(new SqlParameter("email", email));
             adpt = new NpgsqlDataAdapter(cmd);
             dt = new DataTable();
@@ -1003,7 +1074,8 @@ FROM {fromTable}
                     SysInfo infos = context.GetSysInfos();
                     using (NpgsqlConnection connection = string.IsNullOrEmpty(infos.user_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.user_db_name))
                     {
-                        connection.Execute(string.Format("UPDATE {0} SET {1}='', LastLogoutDate=getdate(), IsLoggedIn = 0 WHERE {2} = {3}", infos.user_table_name, "token", infos.user_id_column_name, user.user_id));
+                        // PG-native (port da mysql/metaQueryMySql.cs): NOW() invece di MSSQL getdate(); colonne `utenti` migrate a lowercase 2026-05-18 → bare ref (PG case-fold idem).
+                        connection.Execute(string.Format("UPDATE {0} SET {1}='', lastlogoutdate=NOW(), isloggedin = FALSE WHERE {2} = {3}", infos.user_table_name, "token", infos.user_id_column_name, user.user_id));
                     }
                 }
             }
@@ -1036,7 +1108,8 @@ FROM {fromTable}
                 string stored = "loggedUserCount";
                 var dbArgs = new DynamicParameters();
                 dbArgs.Add("@sessiontimeout", ConfigHelper.GetSettingAsString("sessionTimeoutMinutes"));
-                Int32 count = connection.QueryColumn<Int32>(stored, dbArgs, commandType: CommandType.StoredProcedure).FirstOrDefault();
+                // PG: stored proc count può ritornare bigint → leggere come Int64.
+                Int32 count = (Int32)connection.QueryColumn<Int64>(stored, dbArgs, commandType: CommandType.StoredProcedure).FirstOrDefault();
 
                 return count;
             }
@@ -1050,7 +1123,9 @@ FROM {fromTable}
                 bool isPwdEncripted = bool.Parse(ConfigHelper.GetSettingAsString("IsPwdEncripted") ?? "false");
                 string encriptionMethod = ConfigHelper.GetSettingAsString("encriptionMethod") ?? "SHA1";
 
-                Dapper.SqlMapper.FastExpando user = ((List<Dapper.SqlMapper.FastExpando>)connection.Query(string.Format("SELECT id_utente, username, isAdmin, id_ruolo, userdescription, email, token, ip, language, {0} as pwd_hash FROM {1} WHERE {2} = '{3}' and coalesce(cancellato,0)=0", infos.password_column_name, infos.user_table_name, infos.username_column_name, EscapeValue(user_name)))).FirstOrDefault();
+                // PG: case-folding bare identifiers → lowercase. `isAdmin` e' case-preserved
+                // (migrato da MySQL con quoting), serve double-quote. cancellato e' boolean in PG.
+                Dapper.SqlMapper.FastExpando user = ((List<Dapper.SqlMapper.FastExpando>)connection.Query(string.Format("SELECT id_utente, username, isadmin, id_ruolo, userdescription, email, token, ip, language, {0} as pwd_hash FROM {1} WHERE {2} = '{3}' and coalesce(cancellato, FALSE)=FALSE", infos.password_column_name, infos.user_table_name, infos.username_column_name, EscapeValue(user_name)))).FirstOrDefault();
 
                 // Cookie auth integration is managed by host pipeline in .NET Core.
 
@@ -1085,7 +1160,8 @@ FROM {fromTable}
                         u.user_token = token;
                     }
 
-                    connection.Execute(string.Format("UPDATE {0} SET LastLoginDate=getdate(), LastActivityDate=getdate(), IsLoggedIn = 1 WHERE {1} = {2}", infos.user_table_name, infos.user_id_column_name, u.user_id));
+                    // PG-native: NOW() invece di getdate(); colonne `utenti` migrate a lowercase 2026-05-18 → bare ref.
+                    connection.Execute(string.Format("UPDATE {0} SET lastlogindate=NOW(), lastactivitydate=NOW(), isloggedin = TRUE WHERE {1} = {2}", infos.user_table_name, infos.user_id_column_name, u.user_id));
 
 
                     return u;
@@ -1095,19 +1171,41 @@ FROM {fromTable}
 
         private static user mapUserFields(SysInfo infos, SqlMapper.FastExpando user)
         {
-            string userid = user.Where(x => x.Key == infos.user_id_column_name).First().Value.ToString();
+            // PG: Dapper FastExpando/Npgsql expose column names lowercased even for quoted
+            // case-preserved identifiers. Use case-insensitive lookup so `infos.isAdmin_column_name`
+            // ("isAdmin") matches the dict key ("isadmin") returned by the driver. Defensive
+            // fallback: if infos.* is null/empty (legacy sys_info row), fall back to the literal
+            // column name used by the login() SELECT.
+            object FindByName(string preferred, string fallback)
+            {
+                string name = string.IsNullOrWhiteSpace(preferred) ? fallback : preferred;
+                var match = user.FirstOrDefault(kv => string.Equals(kv.Key, name, StringComparison.OrdinalIgnoreCase));
+                if (string.IsNullOrEmpty(match.Key) && !string.IsNullOrWhiteSpace(fallback) && !string.Equals(name, fallback, StringComparison.OrdinalIgnoreCase))
+                    match = user.FirstOrDefault(kv => string.Equals(kv.Key, fallback, StringComparison.OrdinalIgnoreCase));
+                if (string.IsNullOrEmpty(match.Key))
+                    throw new InvalidOperationException($"mapUserFields: column '{preferred ?? "<null>"}' (fallback '{fallback}') not found in user row. Available keys: {string.Join(",", user.Select(kv => kv.Key))}");
+                return match.Value;
+            }
 
-            string display = user.Where(x => x.Key == infos.user_description_column_name).First().Value.ToString();
-            bool isAdmin = (bool)user.Where(x => x.Key == infos.isAdmin_column_name).First().Value;
-            string roleName = getRoleByUserID(userid).role_name;
-            string role_id = user.Where(x => x.Key == infos.role_id_column_name).First().Value.ToString();
-            string uName = user.Where(x => x.Key == infos.username_column_name).First().Value.ToString();
+            string userid  = FindByName(infos.user_id_column_name, "id_utente").ToString();
+            string display = FindByName(infos.user_description_column_name, "userdescription").ToString();
+            bool isAdmin   = (bool)FindByName(infos.isAdmin_column_name, "isAdmin");
+            role myRole = getRoleByUserID(userid);
+            string roleName = myRole?.role_name;
+            string role_id = FindByName(infos.role_id_column_name, "id_ruolo").ToString();
+            string uName   = FindByName(infos.username_column_name, "username").ToString();
             List<role> roles = getMultipleRoleRoleByUserID(userid);
+
+            // `isSuperAdmin` deriva da `ruoli.superadmin` letto in `mapRoleFields`.
+            // Senza questa propagazione, `RawHelpers.checkAdmin` fallisce con
+            // "Need administrative rights!" per qualunque utente loggato sul provider PG.
+            bool isSuperAdmin = myRole != null && myRole.superadmin;
 
             user u = new user()
             {
                 display_name = display,
                 isAdmin = isAdmin,
+                isSuperAdmin = isSuperAdmin,
                 role = roleName,
                 otherRoles = roles,
                 role_id = role_id,
@@ -1154,10 +1252,23 @@ FROM {fromTable}
 
         private static role mapRoleFields(SysInfo infos, SqlMapper.FastExpando role)
         {
+            // Allinea il provider PG al comportamento MySQL: `superadmin`/`admin`
+            // letti da `ruoli.superadmin`/`ruoli.admin`. Case-insensitive perche'
+            // PG espone le colonne in lowercase quando il SELECT le seleziona bare.
+            bool superadminVal = false;
+            var saKv = role.FirstOrDefault(x => string.Equals(x.Key, "superadmin", StringComparison.OrdinalIgnoreCase));
+            if (!saKv.Equals(default(KeyValuePair<string, object>)) && saKv.Value != null)
+                superadminVal = RawHelpers.ParseBool(saKv.Value.ToString());
+            bool adminVal = false;
+            var aKv = role.FirstOrDefault(x => string.Equals(x.Key, "admin", StringComparison.OrdinalIgnoreCase));
+            if (!aKv.Equals(default(KeyValuePair<string, object>)) && aKv.Value != null)
+                adminVal = RawHelpers.ParseBool(aKv.Value.ToString());
             return new role()
             {
-                role_name = role.Where(x => x.Key == infos.role_description_column_name).First().Value.ToString(),
-                role_id = role.Where(x => x.Key == infos.role_id_column_name).First().Value.ToString(),
+                role_name = role.FirstOrDefault(x => string.Equals(x.Key, infos.role_description_column_name, StringComparison.OrdinalIgnoreCase)).Value?.ToString(),
+                role_id = role.FirstOrDefault(x => string.Equals(x.Key, infos.role_id_column_name, StringComparison.OrdinalIgnoreCase)).Value?.ToString(),
+                superadmin = superadminVal,
+                admin = adminVal,
             };
         }
 
@@ -1239,7 +1350,10 @@ FROM {fromTable}
 
                 using (NpgsqlConnection connection = string.IsNullOrEmpty(infos.role_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.role_db_name))
                 {
-                    Dapper.SqlMapper.FastExpando role = ((List<Dapper.SqlMapper.FastExpando>)connection.Query(string.Format("SELECT {2}.{0}, {2}.{1} FROM {2} inner join {5} ON {2}.{6}={5}.{7} WHERE {3}='{4}'", infos.role_id_column_name, infos.role_description_column_name, infos.role_table_name, infos.user_id_column_name, user_id, infos.user_table_name, infos.role_id_column_name, infos.role_user_table_fk_name))).FirstOrDefault();
+                    // PG strict typing: id_utente integer = '{4}' text → 42883. Strip quotes; cast literal to integer.
+                    // Select ruoli.* (incluse superadmin/admin) cosi' mapRoleFields propaga il flag superadmin
+                    // a user.isSuperAdmin in mapUserFields → checkAdmin riesce.
+                    Dapper.SqlMapper.FastExpando role = ((List<Dapper.SqlMapper.FastExpando>)connection.Query(string.Format("SELECT {2}.* FROM {2} inner join {5} ON {2}.{6}={5}.{7} WHERE {3}=CAST('{4}' AS integer)", infos.role_id_column_name, infos.role_description_column_name, infos.role_table_name, infos.user_id_column_name, user_id, infos.user_table_name, infos.role_id_column_name, infos.role_user_table_fk_name))).FirstOrDefault();
                     if (role != null)
                     {
                         return mapRoleFields(infos, role);
@@ -1263,9 +1377,11 @@ FROM {fromTable}
                     var dbArgs = new DynamicParameters();
                     dbArgs.Add("@uid", user_id);
 
-                    string query = string.Format("SELECT {0}.{1}, {0}.{2} FROM {0} inner join utenti_ruoli on utenti_ruoli.{1} = {0}.{1} inner join utenti on utenti_ruoli.{6} = {4}.{6} WHERE {4}.{3}=@uid", infos.role_table_name, infos.role_id_column_name, infos.role_description_column_name, infos.user_id_column_name, infos.user_table_name, infos.role_user_table_fk_name, infos.user_id_column_name);
+                    // PG strict typing: bare @uid is bound as text; id_utente is integer.
+                    // Cast @uid to integer to avoid "operator does not exist: integer = text".
+                    string query = string.Format("SELECT {0}.{1}, {0}.{2} FROM {0} inner join utenti_ruoli on utenti_ruoli.{1} = {0}.{1} inner join utenti on utenti_ruoli.{6} = {4}.{6} WHERE {4}.{3}=CAST(@uid AS integer)", infos.role_table_name, infos.role_id_column_name, infos.role_description_column_name, infos.user_id_column_name, infos.user_table_name, infos.role_user_table_fk_name, infos.user_id_column_name);
 
-                    List<Dapper.SqlMapper.FastExpando> roles = ((List<Dapper.SqlMapper.FastExpando>)connection.Query(NormalizeSql(query), dbArgs));
+                    List<Dapper.SqlMapper.FastExpando> roles = ((List<Dapper.SqlMapper.FastExpando>)connection.Query(query, dbArgs));
 
                     List<role> roleList = new List<role>();
 
@@ -1390,7 +1506,7 @@ FROM {fromTable}
 
                         try
                         {
-                            List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)connection.Query(NormalizeSql(query));
+                            List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)connection.Query(query);
                             return new rawPagedResult() { results = rows, TotalRecords = rows.Count, Agg = null };
                         }
                         catch (SqlException ex1)
@@ -1439,7 +1555,16 @@ FROM {fromTable}
 
                     query = BuildDynamicSelectQuery(lst, SortInfo, GroupInfo, PageInfo, filterInfo, logicOperator, has_server_operation, connection, out totalRecords, aggregates, out aggregateValues, user_id, formula_lookup, mc_id);
 
-                    List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)connection.Query(NormalizeSql(query), commandTimeout: 2000);
+                    string normalizedSql = query;
+                    List<Dapper.SqlMapper.FastExpando> rows;
+                    try
+                    {
+                        rows = (List<Dapper.SqlMapper.FastExpando>)connection.Query(normalizedSql, commandTimeout: 2000);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new Exception(ex.Message + " | QUERY: " + normalizedSql);
+                    }
 
                     if (totalRecords == 0)
                         totalRecords = rows.Count;
@@ -1545,22 +1670,39 @@ FROM {fromTable}
 
                 dynamic parameterDefinition = null;
 
-                if (!string.IsNullOrEmpty(metaStored.md_props_bag))
+                if (metaStored != null && !string.IsNullOrEmpty(metaStored.md_props_bag))
                 {
-                    dynamic extraProps = RawHelpers.deserialize(metaStored.md_props_bag, null);
-                    if (extraProps != null)
+                    // RawHelpers.deserialize returns System.Dynamic.ExpandoObject (System.Text.Json default).
+                    // The `foreach (JToken jt in parameterDefinition)` loop below requires a JArray.
+                    // Re-parse via Newtonsoft so JToken iteration works.
+                    try
                     {
-                        parameterDefinition = extraProps.parameters;
+                        var props = Newtonsoft.Json.Linq.JObject.Parse(metaStored.md_props_bag);
+                        parameterDefinition = props["parameters"] as Newtonsoft.Json.Linq.JArray;
+                    }
+                    catch
+                    {
+                        parameterDefinition = null;
                     }
                 }
 
                 if (metaStored != null)
                 {
-                    using (NpgsqlConnection connection = GetOpenConnection(false, metaStored.md_conn_name))
+                    // PG-specific: a differenza di MSSQL/MySQL, PG NON supporta cross-DB
+                    // references (no `data_db.usp_x()` style). Se la route stored ha
+                    // `mdconnname=MetaDataSQLConnection` significa che la funzione PG
+                    // e' co-located in metadatadb (vedi setup-sp-test.postgres.sql).
+                    // Quindi isMetaDataQuery deve essere true per quel caso, altrimenti
+                    // GetOpenConnection sceglie DataSQLConnection (WideWorldImporters)
+                    // dove la funzione NON esiste → 42883.
+                    bool isMetaForStored = !string.IsNullOrEmpty(metaStored.md_conn_name)
+                        && string.Equals(metaStored.md_conn_name, "MetaDataSQLConnection", StringComparison.OrdinalIgnoreCase);
+                    using (NpgsqlConnection connection = GetOpenConnection(isMetaForStored, metaStored.md_conn_name))
                     {
-                        stored = RawHelpers.getStoreTableName(metaStored, "mssql");
+                        stored = RawHelpers.getStoreTableName(metaStored, "postgresql");
 
                         var dbArgs = new DynamicParameters();
+                        if (parameterDefinition == null) parameterDefinition = new Newtonsoft.Json.Linq.JArray();
                         foreach (JToken jt in parameterDefinition)
                         {
                             var pair = parameters.FirstOrDefault(x => x.field == jt["Name"].ToString());
@@ -1605,13 +1747,34 @@ FROM {fromTable}
                         List<Dapper.SqlMapper.FastExpando> rows = new List<SqlMapper.FastExpando>();
                         long conto = 0;
 
+                        // PG: distinguiamo CREATE FUNCTION (RETURNS TABLE/SETOF, invocata via
+                        // `SELECT * FROM <fn>(...)`) da CREATE PROCEDURE (solo OUT params,
+                        // invocata via `CALL <proc>(...)`). Npgsql + CommandType.StoredProcedure
+                        // emette `CALL`, ma le nostre route mdisstored=1 sono FUNCTION (devono
+                        // ritornare tabella). Costruiamo manualmente la SQL `SELECT * FROM` con
+                        // named args (PG accetta sia positional che `name => value`).
+                        var pgParamPieces = new List<string>();
+                        var paramDefAsArray = parameterDefinition as Newtonsoft.Json.Linq.JArray;
+                        if (paramDefAsArray != null)
+                        {
+                            foreach (JToken jt in paramDefAsArray)
+                            {
+                                string pname = jt["Name"].ToString();
+                                if (!parameters.Any(p => p.field == pname)) continue;
+                                string clean = pname.StartsWith("@") ? pname.Substring(1) : pname;
+                                pgParamPieces.Add(clean + " => @" + clean);
+                            }
+                        }
+                        string paramList = string.Join(", ", pgParamPieces);
+                        string fnCall = "SELECT * FROM " + stored + "(" + paramList + ")";
+
                         if (noResults)
                         {
-                            connection.Execute(stored, dbArgs, commandType: CommandType.StoredProcedure, commandTimeout: 200);
+                            connection.Execute(fnCall, dbArgs, commandTimeout: 200);
                         }
                         else
                         {
-                            rows = (List<Dapper.SqlMapper.FastExpando>)connection.Query(stored, dbArgs, commandType: CommandType.StoredProcedure, commandTimeout: 200);
+                            rows = (List<Dapper.SqlMapper.FastExpando>)connection.Query(fnCall, dbArgs, commandTimeout: 200);
                         }
 
                         if (rows.Count == 1 && rows[0].data.Keys.Count == 1 && string.IsNullOrEmpty(rows[0].data.Keys.First()))
@@ -1679,7 +1842,6 @@ FROM {fromTable}
                     }
 
                     List<_Metadati_Colonne_Upload> upload_fixes = metadata.OfType<_Metadati_Colonne_Upload>().Where(x => x.isDBUpload).ToList();
-                    List<_Metadati_Colonne_Grid> multiple_check_fixes = metadata.OfType<_Metadati_Colonne_Grid>().ToList();
 
                     query = BuildDynamicUpdateQuery(entity, metadata, userId);
 
@@ -1690,68 +1852,113 @@ FROM {fromTable}
 
                     RawHelpers.setMetadataVersion(metadata.FirstOrDefault()._Metadati_Tabelle);
 
-                    string result = connection.Execute(NormalizeSql(query)).ToString();
+                    string normalizedUpdate = query;
+                    string result;
+                    try
+                    {
+                        result = connection.Execute(normalizedUpdate).ToString();
+                    }
+                    catch (Exception execEx)
+                    {
+                        throw new Exception(execEx.Message + " | UPDATE_QUERY: " + normalizedUpdate);
+                    }
 
                     if (isMeta)
                         RawHelpers.logError(new Exception("Metadata update"), "Metadata Update", query);
 
+                    // Mirror mysql/metaQueryMySql.cs:2949 (UpdateFlatData upload move).
+                    // Stesso fix di InsertflatData: rootPath cade su ConfigHelper.GetSettingAsString("uploadFolder")
+                    // se DefaultUploadRootPath e' vuoto. Aggiunto SOURCE (__guid temp folder)
+                    // vs DESTINATION (pkey folder) routing — un UPDATE puo' caricare nuovi
+                    // file in <__guid> e il flush a fine update sposta in <pkey>.
                     upload_fixes.ForEach(upload_fix =>
                     {
-                        if (!entity.ContainsKey(upload_fix.mc_nome_colonna))
+                        if (upload_fix == null) return;
+                        if (!entity.ContainsKey(upload_fix.mc_nome_colonna) || entity[upload_fix.mc_nome_colonna] == null) return;
+                        if (!upload_fix.UseRecordIDAsSubfolder) return;
+
+                        // SOURCE id: il client ha caricato il file in <__guid>/ (multi-upload
+                        // temp folder). "result" dell'UPDATE e' il row-count, NON il pkey,
+                        // quindi NON e' utilizzabile qui (a differenza dell'INSERT path).
+                        string __id_src = entity.ContainsKey("__guid") ? entity["__guid"]?.ToString() :
+                                          entity.ContainsKey("__id") ? entity["__id"]?.ToString() :
+                                          entity.ContainsKey("uid") ? entity["uid"]?.ToString() :
+                                          entity[metadata.First(x => x.mc_is_primary_key is true).mc_nome_colonna]?.ToString();
+                        // DESTINATION id: il pkey del record esistente.
+                        string __id_dst = entity[metadata.First(x => x.mc_is_primary_key is true).mc_nome_colonna]?.ToString();
+
+                        string rootPath = upload_fix.DefaultUploadRootPath;
+                        if (string.IsNullOrEmpty(rootPath) || rootPath == "null")
+                            rootPath = ConfigHelper.GetSettingAsString("uploadFolder");
+                        if (string.IsNullOrEmpty(rootPath))
+                            rootPath = "/upload";
+
+                        string normalizedRootPath = (rootPath ?? string.Empty).Trim().Trim('\'', '"');
+                        if (normalizedRootPath.StartsWith("/") && normalizedRootPath.Length > 2 && normalizedRootPath[2] == ':')
+                            normalizedRootPath = normalizedRootPath.TrimStart('/');
+
+                        string rootPhysicalPath = System.IO.Path.IsPathRooted(normalizedRootPath)
+                            ? normalizedRootPath
+                            : HttpContext.Current.Server.MapPath(normalizedRootPath);
+
+                        string routeSegment = (route ?? string.Empty).Trim().Trim('\'', '"').Trim('\\', '/');
+                        string srcSegment = (__id_src ?? string.Empty).Trim().Trim('\'', '"').Trim('\\', '/');
+                        string dstSegment = (__id_dst ?? string.Empty).Trim().Trim('\'', '"').Trim('\\', '/');
+
+                        string srcDir = rootPhysicalPath;
+                        if (upload_fix.UseRouteNameAsSubfolder && !string.IsNullOrWhiteSpace(routeSegment))
+                            srcDir = System.IO.Path.Combine(srcDir, routeSegment);
+                        if (upload_fix.UseRecordIDAsSubfolder && !string.IsNullOrWhiteSpace(srcSegment))
+                            srcDir = System.IO.Path.Combine(srcDir, srcSegment);
+
+                        string dstDir = string.IsNullOrWhiteSpace(routeSegment)
+                            ? System.IO.Path.Combine(rootPhysicalPath, dstSegment)
+                            : System.IO.Path.Combine(rootPhysicalPath, routeSegment, dstSegment);
+
+                        string filename = entity[upload_fix.mc_nome_colonna].ToString();
+                        string fname = System.IO.Path.Combine(srcDir, filename);
+
+                        if (System.IO.File.Exists(fname))
                         {
-                            return;
+                            if (!upload_fix.isDBUpload)
+                            {
+                                if (!System.IO.Directory.Exists(dstDir))
+                                    System.IO.Directory.CreateDirectory(dstDir);
+
+                                string dstFile = System.IO.Path.Combine(dstDir, filename);
+                                if (System.IO.File.Exists(dstFile))
+                                    System.IO.File.Delete(dstFile);
+                                System.IO.File.Copy(fname, dstFile);
+
+                                if (upload_fix.isImageUpload && upload_fix.createThumb)
+                                {
+                                    FileInfo fi = new FileInfo(fname);
+                                    string thumbName = fi.Name.Replace(fi.Extension, "_thumb" + fi.Extension);
+                                    string thumbSrc = System.IO.Path.Combine(srcDir, thumbName);
+                                    string thumbDst = System.IO.Path.Combine(dstDir, thumbName);
+                                    if (System.IO.File.Exists(thumbSrc))
+                                    {
+                                        if (System.IO.File.Exists(thumbDst))
+                                            System.IO.File.Delete(thumbDst);
+                                        System.IO.File.Copy(thumbSrc, thumbDst);
+                                        System.IO.File.Delete(thumbSrc);
+                                    }
+                                }
+                            }
+                            System.IO.File.Delete(fname);
                         }
 
-                        if (upload_fix != null)
+                        // Se la source temp folder e' ora vuota AND e' la __guid folder
+                        // (non la pkey canonica), rimuovila per pulizia.
+                        if (!string.Equals(srcSegment, dstSegment, StringComparison.OrdinalIgnoreCase)
+                            && System.IO.Directory.Exists(srcDir))
                         {
-                            string __id = entity[metadata.First(x => x.mc_is_primary_key).mc_nome_colonna].ToString();
-
-                            string rootPath = upload_fix.DefaultUploadRootPath;
-
-                            if (string.IsNullOrEmpty(rootPath))
-                                rootPath = "/Upload/";
-                            else
+                            try
                             {
-                                if (rootPath.Substring(rootPath.Length - 1, 1) != "/")
-                                {
-                                    rootPath += "/";
-                                }
+                                if (!System.IO.Directory.EnumerateFileSystemEntries(srcDir).Any())
+                                    System.IO.Directory.Delete(srcDir);
                             }
-
-                            string pth = HttpContext.Current.Server.MapPath(rootPath + (upload_fix.UseRouteNameAsSubfolder ? "/" + route : "") + (upload_fix.UseRecordIDAsSubfolder ? "/" + __id : ""));
-
-                            if (entity[upload_fix.mc_nome_colonna] != null && upload_fix.UseRecordIDAsSubfolder)
-                            {
-                                string new_dir = System.IO.Path.Combine(HttpContext.Current.Server.MapPath(rootPath + route), result);
-
-                                string fname = System.IO.Path.Combine(pth, entity[upload_fix.mc_nome_colonna].ToString());
-
-                                if (System.IO.File.Exists(fname))
-                                {
-                                    if (!upload_fix.isDBUpload)
-                                    {
-                                        if (!System.IO.Directory.Exists(new_dir))
-                                            System.IO.Directory.CreateDirectory(new_dir);
-
-                                        System.IO.File.Copy(fname, System.IO.Path.Combine(new_dir, entity[upload_fix.mc_nome_colonna].ToString()));
-
-                                        if (upload_fix.isImageUpload && upload_fix.createThumb)
-                                        {
-                                            FileInfo fi = new FileInfo(fname);
-                                            string thumbName = fi.Name.Replace(fi.Extension, "_thumb" + fi.Extension);
-                                            System.IO.File.Copy(fname, System.IO.Path.Combine(new_dir, thumbName));
-                                            System.IO.File.Delete(thumbName);
-
-                                        }
-                                    }
-                                    System.IO.File.Delete(fname);
-                                }
-                            }
-                            else
-                            {
-
-                            }
-
+                            catch { /* best-effort cleanup */ }
                         }
                     });
 
@@ -1789,7 +1996,7 @@ FROM {fromTable}
 
                     RawHelpers.setMetadataVersion(metadata.FirstOrDefault()._Metadati_Tabelle);
 
-                    return connection.Execute(NormalizeSql(query)).ToString();
+                    return connection.Execute(query).ToString();
 
                 }
                 catch (ValidationException e1)
@@ -1805,6 +2012,13 @@ FROM {fromTable}
                         RawHelpers.logError(e2, "deleteFlatDataByID", query);
                         throw e2;
                     }
+                }
+                catch (Npgsql.PostgresException pgEx)
+                {
+                    if (pgEx.SqlState == "23503")
+                        throw new ValidationException("Impossibile cancellare il record. Esistono dati collegati.");
+                    RawHelpers.logError(pgEx, "deleteFlatDataByID", query);
+                    throw;
                 }
                 catch (Exception e3)
                 {
@@ -1831,7 +2045,7 @@ FROM {fromTable}
                     RawHelpers.setMetadataVersion(metadata.FirstOrDefault()._Metadati_Tabelle);
 
 
-                    return connection.Execute(NormalizeSql(query)).ToString();
+                    return connection.Execute(query).ToString();
                 }
             }
             catch (ValidationException e1)
@@ -1847,6 +2061,14 @@ FROM {fromTable}
                     RawHelpers.logError(e2, "deleteFlatData", query);
                     throw e2;
                 }
+            }
+            catch (Npgsql.PostgresException pgEx)
+            {
+                // PG FK violation code 23503: mirror MSSQL 547 mapping a "data collegati esistenti".
+                if (pgEx.SqlState == "23503")
+                    throw new ValidationException("Impossibile cancellare il record. Esistono dati collegati.");
+                RawHelpers.logError(pgEx, "deleteFlatData", query);
+                throw;
             }
             catch (Exception e3)
             {
@@ -1938,7 +2160,19 @@ FROM {fromTable}
                     List<_Metadati_Colonne_Grid> multiple_check_fixes = metadata.OfType<_Metadati_Colonne_Grid>().ToList();
 
 
-                    string result = connection.Execute(NormalizeSql(query)).ToString();
+                    // PG: se la query ha "RETURNING <pk>" (caso IDENTITY pk), usiamo
+                    // ExecuteScalar per recuperare l'id appena generato in un singolo round-trip.
+                    string normalizedInsert = query;
+                    string result;
+                    if (normalizedInsert.IndexOf(" RETURNING ", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        object scalar = connection.ExecuteScalar(normalizedInsert);
+                        result = scalar?.ToString() ?? "";
+                    }
+                    else
+                    {
+                        result = connection.Execute(normalizedInsert).ToString();
+                    }
 
                     if (!string.IsNullOrEmpty(generated_pkey))
                         result = generated_pkey;
@@ -1958,10 +2192,12 @@ FROM {fromTable}
                             if (subTable != null)
                                 subColumns = subTable._Metadati_Colonnes.ToList();
                         }
-                        object[] collection = (object[])entity[colGrid.mc_nome_colonna];
-                        foreach (object item in collection)
+                        // Newtonsoft deserializza JArray<JObject>, non object[] — usa helper.
+                        List<Dictionary<string, object>> collection = GetDictionaryListValue(entity, colGrid.mc_nome_colonna);
+                        if (collection == null) return;
+                        foreach (Dictionary<string, object> subEntity in collection)
                         {
-                            Dictionary<string, object> subEntity = (Dictionary<string, object>)item;
+                            if (subEntity == null) continue;
                             string localfield = colGrid.mc_ui_grid_manytomany_related_id_field;
                             if (subEntity.ContainsKey("___added") && subEntity["___added"] != null)
                             {
@@ -1980,16 +2216,19 @@ FROM {fromTable}
                                     subEntity[colGrid.mc_ui_grid_manytomany_related_id_field] = subEntity[colGrid.mc_ui_grid_related_id_field];
                                     subEntity[colGrid.mc_ui_grid_manytomany_local_id_field] = entity[colGrid.mc_ui_grid_local_id_field];
 
-                                    if (colGrid.mc_ui_grid_related_id_field != colGrid.mc_ui_grid_local_id_field)
+                                    // Self-reference fallback: skip se subEntity NON ha local_id_field
+                                    // (added items su M2M proper non hanno PK del join-table ancora).
+                                    if (colGrid.mc_ui_grid_related_id_field != colGrid.mc_ui_grid_local_id_field
+                                        && subEntity.ContainsKey(colGrid.mc_ui_grid_local_id_field))
                                         subEntity[colGrid.mc_ui_grid_related_id_field] = subEntity[colGrid.mc_ui_grid_local_id_field];
 
                                     string insertedID = InsertflatData(subEntity, subRoute, userId);
 
                                 }
                             }
-                            else if (subEntity.ContainsKey("___deleted") && (bool)subEntity["___deleted"])
+                            else if (subEntity.ContainsKey("___deleted") && subEntity["___deleted"] != null && (bool)subEntity["___deleted"])
                             {
-                                if ((bool)subEntity["___selected"])
+                                if (subEntity.ContainsKey("___selected") && subEntity["___selected"] != null && (bool)subEntity["___selected"])
                                 {
                                     subEntity[colGrid.mc_ui_grid_manytomany_related_id_field] = subEntity[colGrid.mc_ui_grid_related_id_field];
                                     subEntity[colGrid.mc_ui_grid_manytomany_local_id_field] = entity[colGrid.mc_ui_grid_local_id_field];
@@ -2001,31 +2240,58 @@ FROM {fromTable}
 
                     });
 
+                    // Mirror mysql/metaQueryMySql.cs:3502 (InsertflatData upload move).
+                    // Fix: rootPath ora cade su ConfigHelper.GetSettingAsString("uploadFolder")
+                    // se DefaultUploadRootPath e' vuoto — il vecchio fallback "/Upload/" usava
+                    // Server.MapPath che risolveva a wwwroot/Upload (path SERVER), mentre il
+                    // file veniva caricato in <appsettings.uploadFolder>/<route>/<__guid>/ (path
+                    // REALE, es. C:\src\Wuic\WuicTest\Upload). File.Exists(fname) ritornava false
+                    // → no Copy → record inserito senza i file FS-upload (i thumb 404 erano la
+                    // conseguenza).
                     upload_fixes.ForEach(upload_fix =>
                     {
                         if (upload_fix != null)
                         {
-                            string __id = (entity.ContainsKey("__guid") ? entity["__guid"].ToString() : entity["__id"].ToString());
 
-                            string rootPath = upload_fix.DefaultUploadRootPath;
-
-                            if (string.IsNullOrEmpty(rootPath))
-                                rootPath = "/Upload/";
-                            else
+                            if (entity.ContainsKey(upload_fix.mc_nome_colonna) && entity[upload_fix.mc_nome_colonna] != null && upload_fix.UseRecordIDAsSubfolder)
                             {
-                                if (rootPath.Substring(rootPath.Length - 1, 1) != "/")
-                                {
-                                    rootPath += "/";
-                                }
-                            }
+                                string __id = "";
 
-                            string pth = HttpContext.Current.Server.MapPath(rootPath + (upload_fix.UseRouteNameAsSubfolder ? "/" + route : "") + (upload_fix.UseRecordIDAsSubfolder ? "/" + __id : ""));
-                            if (!System.IO.Directory.Exists(pth))
-                                System.IO.Directory.CreateDirectory(pth);
+                                if (entity.ContainsKey("__guid"))
+                                    __id = entity["__guid"].ToString();
+                                else if (entity.ContainsKey("__id"))
+                                    __id = entity["__id"].ToString();
+                                else if (entity.ContainsKey("uid"))
+                                    __id = entity["uid"].ToString();
 
-                            if (entity[upload_fix.mc_nome_colonna] != null && upload_fix.UseRecordIDAsSubfolder)
-                            {
-                                string new_dir = System.IO.Path.Combine(HttpContext.Current.Server.MapPath(rootPath + route), result);
+                                string rootPath = upload_fix.DefaultUploadRootPath;
+
+                                if (string.IsNullOrEmpty(rootPath))
+                                    rootPath = "/" + (ConfigHelper.GetSettingAsString("uploadFolder") ?? "/upload/");
+
+                                string normalizedRootPath = (rootPath ?? string.Empty).Trim().Trim('\'', '"');
+                                if (normalizedRootPath.StartsWith("/") && normalizedRootPath.Length > 2 && normalizedRootPath[2] == ':')
+                                    normalizedRootPath = normalizedRootPath.TrimStart('/');
+
+                                string rootPhysicalPath = System.IO.Path.IsPathRooted(normalizedRootPath)
+                                    ? normalizedRootPath
+                                    : HttpContext.Current.Server.MapPath(normalizedRootPath);
+
+                                string routeSegment = (route ?? string.Empty).Trim().Trim('\'', '"').Trim('\\', '/');
+                                string idSegment = (__id ?? string.Empty).Trim().Trim('\'', '"').Trim('\\', '/');
+
+                                string pth = rootPhysicalPath;
+                                if (upload_fix.UseRouteNameAsSubfolder && !string.IsNullOrWhiteSpace(routeSegment))
+                                    pth = System.IO.Path.Combine(pth, routeSegment);
+                                if (upload_fix.UseRecordIDAsSubfolder && !string.IsNullOrWhiteSpace(idSegment))
+                                    pth = System.IO.Path.Combine(pth, idSegment);
+
+                                if (!System.IO.Directory.Exists(pth))
+                                    System.IO.Directory.CreateDirectory(pth);
+
+                                string new_dir = string.IsNullOrWhiteSpace(routeSegment)
+                                    ? System.IO.Path.Combine(rootPhysicalPath, result)
+                                    : System.IO.Path.Combine(rootPhysicalPath, routeSegment, result);
 
                                 string fname = System.IO.Path.Combine(pth, entity[upload_fix.mc_nome_colonna].ToString());
 
@@ -2036,18 +2302,57 @@ FROM {fromTable}
                                         if (!System.IO.Directory.Exists(new_dir))
                                             System.IO.Directory.CreateDirectory(new_dir);
 
-                                        System.IO.File.Copy(fname, System.IO.Path.Combine(new_dir, entity[upload_fix.mc_nome_colonna].ToString()));
+                                        string dstPath = System.IO.Path.Combine(new_dir, entity[upload_fix.mc_nome_colonna].ToString());
+                                        if (System.IO.File.Exists(dstPath))
+                                            System.IO.File.Delete(dstPath);
+                                        System.IO.File.Copy(fname, dstPath);
 
                                         if (upload_fix.isImageUpload && upload_fix.createThumb)
                                         {
                                             FileInfo fi = new FileInfo(fname);
                                             string thumbName = fi.Name.Replace(fi.Extension, "_thumb" + fi.Extension);
-                                            System.IO.File.Copy(fname, System.IO.Path.Combine(new_dir, thumbName));
-                                            System.IO.File.Delete(thumbName);
-
+                                            string thumbPath = System.IO.Path.Combine(pth, thumbName);
+                                            string thumbDst = System.IO.Path.Combine(new_dir, thumbName);
+                                            if (System.IO.File.Exists(thumbPath))
+                                            {
+                                                if (System.IO.File.Exists(thumbDst))
+                                                    System.IO.File.Delete(thumbDst);
+                                                System.IO.File.Copy(thumbPath, thumbDst);
+                                                System.IO.File.Delete(thumbPath);
+                                            }
                                         }
                                     }
                                     System.IO.File.Delete(fname);
+                                    // NOTE: do NOT Directory.Delete(pth, true) here — pth
+                                    // is the shared <__guid>/ folder and other upload
+                                    // columns later in the iteration still need files
+                                    // from it.
+                                }
+
+                                if (upload_fix.isDBUpload
+                                    && !string.IsNullOrWhiteSpace(result)
+                                    && !string.Equals(idSegment, result, StringComparison.OrdinalIgnoreCase)
+                                    && System.IO.Directory.Exists(pth))
+                                {
+                                    string targetParent = System.IO.Path.GetDirectoryName(new_dir);
+                                    if (!string.IsNullOrWhiteSpace(targetParent) && !System.IO.Directory.Exists(targetParent))
+                                        System.IO.Directory.CreateDirectory(targetParent);
+
+                                    if (!System.IO.Directory.Exists(new_dir))
+                                    {
+                                        System.IO.Directory.Move(pth, new_dir);
+                                    }
+                                    else
+                                    {
+                                        foreach (string srcFile in System.IO.Directory.GetFiles(pth))
+                                        {
+                                            string destFile = System.IO.Path.Combine(new_dir, System.IO.Path.GetFileName(srcFile));
+                                            if (System.IO.File.Exists(destFile))
+                                                System.IO.File.Delete(destFile);
+                                            System.IO.File.Move(srcFile, destFile);
+                                        }
+                                        System.IO.Directory.Delete(pth, true);
+                                    }
                                 }
                             }
                         }
@@ -2100,13 +2405,13 @@ FROM {fromTable}
                     return "!=";
 
                 case "contains":
-                    return "like";
+                    return "ilike";
 
                 case "startswith":
-                    return "like";
+                    return "ilike";
 
                 case "endswith":
-                    return "like";
+                    return "ilike";
 
                 case "isnull":
                     return "is null";
@@ -2131,6 +2436,36 @@ FROM {fromTable}
             }
         }
 
+        // Mirror MySQL GetDictionaryListValue + NormalizeToDictionary helpers
+        // (metaQueryMySql.cs:1658). Newtonsoft.Json deserializza tipicamente in
+        // JArray<JObject> o List<object>; questi helper normalizzano qualsiasi
+        // forma in List<Dictionary<string, object>> per il loop M2M update.
+        private static List<Dictionary<string, object>> GetDictionaryListValue(Dictionary<string, object> source, string key)
+        {
+            if (source == null || string.IsNullOrEmpty(key) || !source.TryGetValue(key, out object raw) || raw == null)
+                return null;
+
+            if (raw is List<Dictionary<string, object>> typed)
+                return typed;
+
+            if (raw is System.Collections.Generic.IEnumerable<Dictionary<string, object>> typedEnumerable)
+                return typedEnumerable.ToList();
+
+            if (raw is System.Collections.IEnumerable enumerable && !(raw is string))
+            {
+                List<Dictionary<string, object>> result = new List<Dictionary<string, object>>();
+                foreach (object item in enumerable)
+                {
+                    Dictionary<string, object> normalized = NormalizeToDictionary(item);
+                    if (normalized != null)
+                        result.Add(normalized);
+                }
+                return result;
+            }
+
+            return null;
+        }
+
         public static string EscapeDBObjectName(string obj)
         {
             // SECURITY: see twin in KonvergenceCore/MetaModel/_Metadati_methods.cs:2403
@@ -2143,18 +2478,10 @@ FROM {fromTable}
             return string.Concat("\"", obj.Replace("\"", "\"\""), "\"");
         }
 
-        private static string NormalizeSql(string sql)
-        {
-            if (string.IsNullOrWhiteSpace(sql))
-                return sql;
-
-            string normalized = Regex.Replace(sql, @"\[([^\]]+)\]", "\"$1\"");
-            normalized = Regex.Replace(normalized, @"\bgetdate\s*\(\s*\)", "now()", RegexOptions.IgnoreCase);
-            normalized = Regex.Replace(normalized, @"\bselect\s+SCOPE_IDENTITY\s*\(\s*\)", "select LASTVAL()", RegexOptions.IgnoreCase);
-            normalized = Regex.Replace(normalized, @"\bSCOPE_IDENTITY\s*\(\s*\)", "LASTVAL()", RegexOptions.IgnoreCase);
-            normalized = Regex.Replace(normalized, @"\bnvarchar\s*\(", "varchar(", RegexOptions.IgnoreCase);
-            return normalized;
-        }
+        // NormalizeSql rimosso 2026-05-18: tutte le query del provider sono state riportate alla forma PG-native
+        // al sorgente (SqlConstants + INSERT/UPDATE/SELECT inline). Niente layer di traduzione runtime — le query
+        // arrivano in Npgsql cosi' come sono scritte nei `.cs`. Se in futuro emerge un dialect mismatch lo riporta
+        // direttamente PG con error 42xxx, e il fix va al sorgente, non in un regex centralizzato.
 
         public static object EscapeValue(object valore)
         {
@@ -2202,17 +2529,23 @@ FROM {fromTable}
 
             if (fld.mc_ui_column_type == "hierarchyid")
             {
-                current_fld = string.Format(" Cast({0} AS nvarchar(4000))", current_fld);
+                // PG-native (port da mysql/metaQueryMySql.cs): PG usa varchar(N), non nvarchar.
+                current_fld = string.Format(" CAST({0} AS varchar(4000))", current_fld);
             }
 
-            if (fld.mc_db_column_type == "point" || fld.mc_ui_column_type == "point")
+            // PG-native (port da mysql/metaQueryMySql.cs:3903): le branch geometry/point/polygon sono
+            // mutually exclusive. `mc_ui_column_type` ha priorita' sul `mc_db_column_type` per scegliere
+            // la rappresentazione di output al client (point → JSON {lat,lng}, polygon/geometry → WKT).
+            // Richiede colonna PostGIS `geometry`/`geography` (vedi 2026-05-18 PostGIS port: bytea → geometry
+            // su application__cities.Location, application__countries.Border, ecc.).
+            if (fld.mc_ui_column_type == "point" || (fld.mc_db_column_type == "point" && fld.mc_ui_column_type != "geometry" && fld.mc_ui_column_type != "polygon"))
             {
-                current_fld = RawHelpers.sqlPointToString(current_fld, "mssql", fld);
+                current_fld = RawHelpers.sqlPointToString(current_fld, "postgresql", fld);
             }
-
-            if (fld.mc_db_column_type == "geometry" || fld.mc_ui_column_type == "geometry")
+            else if (fld.mc_db_column_type == "geometry" || fld.mc_ui_column_type == "geometry" || fld.mc_ui_column_type == "polygon")
             {
-                current_fld = string.Format(" cast({0} as geography).ToString()", current_fld);
+                // WKT via PostGIS ST_AsText, parsabile dal client wuic-map (polygon-boundaries).
+                current_fld = string.Format(" ST_AsText({0})", current_fld);
             }
 
             return current_fld;
@@ -2224,7 +2557,7 @@ FROM {fromTable}
             if (tab.md_is_reticular)
             {
                 string table_name = "tabella_reticolare";
-                safetable_name = (string.IsNullOrEmpty(tab.md_db_name) ? "" : "[" + tab.md_db_name + "]." + (!string.IsNullOrEmpty(tab.md_schema_name) ? "[" + tab.md_schema_name + "]" : "") + ".") + EscapeDBObjectName(table_name);
+                safetable_name = GetTablePrefix(tab) + EscapeDBObjectName(table_name);
             }
             return safetable_name;
         }
@@ -2271,7 +2604,9 @@ FROM {fromTable}
                     countQry = string.Format("SELECT {0} FROM {1} {2} {3} {4}", "count(*)", safetableName, join, where, "");
                     try
                     {
-                        totalRecords = connection.QueryColumn<Int32>(countQry).FirstOrDefault();
+                        // PG: source-level native syntax (no runtime SQL translation layer).
+                        // count(*) ritorna bigint in PG → Int64 (non Int32 come MSSQL).
+                        totalRecords = connection.QueryColumn<Int64>(countQry).FirstOrDefault();
                     }
                     catch (Exception ex)
                     {
@@ -2320,7 +2655,7 @@ FROM {fromTable}
                                             ") as X" +
                                         ")" +
                                         " SELECT " + distColName + " as " + distinct +
-                                        " FROM t where t." + distColName + " like '%" + EscapeValue(autocompleteFilterValue) + "%' " +
+                                        " FROM t where t." + distColName + " ilike '%" + EscapeValue(autocompleteFilterValue) + "%' " +
                                         string.Format(" AND Row BETWEEN {0} AND {1} ", ((skiprecords == 0) ? 0 : skiprecords + 1), skiprecords + PageInfo.pageSize) +
                                         "order by t." + distColName;
                             }
@@ -2380,7 +2715,7 @@ FROM {fromTable}
 
             GroupInfo.ForEach(gi =>
             {
-                string currentFld = (string.IsNullOrEmpty(tab.md_db_name) ? "" : "[" + tab.md_db_name + "]." + (!string.IsNullOrEmpty(tab.md_schema_name) ? "[" + tab.md_schema_name + "]" : "") + ".") + EscapeDBObjectName(tab.md_nome_tabella) + "." + EscapeDBObjectName(gi.field);
+                string currentFld = GetTablePrefix(tab) + EscapeDBObjectName(tab.md_nome_tabella) + "." + EscapeDBObjectName(gi.field);
                 fieldList += (string.IsNullOrEmpty(fieldList) ? "" : ", ") + currentFld;
 
                 _Metadati_Colonne_Lookup col = lst.FirstOrDefault(x => x.mc_nome_colonna == gi.field) as _Metadati_Colonne_Lookup;
@@ -2413,7 +2748,7 @@ FROM {fromTable}
 
             GroupInfo.ForEach(gi =>
             {
-                string currentFld = (string.IsNullOrEmpty(tab.md_db_name) ? "" : "[" + tab.md_db_name + "]." + (!string.IsNullOrEmpty(tab.md_schema_name) ? "[" + tab.md_schema_name + "]" : "") + ".") + EscapeDBObjectName(tab.md_nome_tabella) + "." + EscapeDBObjectName(gi.field);
+                string currentFld = GetTablePrefix(tab) + EscapeDBObjectName(tab.md_nome_tabella) + "." + EscapeDBObjectName(gi.field);
                 fieldList += (string.IsNullOrEmpty(fieldList) ? "" : ", ") + currentFld;
                 fieldListForCount += (string.IsNullOrEmpty(fieldListForCount) ? "" : ", ") + currentFld;
 
@@ -2452,7 +2787,8 @@ FROM {fromTable}
 
             try
             {
-                GroupInfo[0].groupCount = connection.QueryColumn<Int32>(countGroupQry).FirstOrDefault();
+                // PG: count(...) ritorna bigint → leggere come Int64 e cast a Int32.
+                GroupInfo[0].groupCount = (Int32)connection.QueryColumn<Int64>(countGroupQry).FirstOrDefault();
             }
             catch (Exception ex)
             {
@@ -2508,7 +2844,7 @@ FROM {fromTable}
                             throw new Exception(string.Format("Colonna '{0}' non trovata. Default lookup filter definition '{1}'", filterPart[0], lookuprelatedCol.mc_display_string_in_view));
 
                         _Metadati_Tabelle currentFldLUpTabel = filteringCol._Metadati_Tabelle;
-                        string currentFldLUp = (string.IsNullOrEmpty(currentFldLUpTabel.md_db_name) ? "" : "[" + currentFldLUpTabel.md_db_name + "]." + (!string.IsNullOrEmpty(currentFldLUpTabel.md_schema_name) ? "[" + currentFldLUpTabel.md_schema_name + "]" : "") + ".") + EscapeDBObjectName(currentFldLUpTabel.md_nome_tabella) + "." + metaQuery.EscapeDBObjectName(RawHelpers.getStoreColumnName(filteringCol));
+                        string currentFldLUp = GetTablePrefix(currentFldLUpTabel) + EscapeDBObjectName(currentFldLUpTabel.md_nome_tabella) + "." + metaQuery.EscapeDBObjectName(RawHelpers.getStoreColumnName(filteringCol));
                         innerWhere = AppendFilter(filteringCol, filterInfo, logicOperator, currentFldLUp, innerWhere, tab, "", user_id);
                     }
                 }
@@ -2581,7 +2917,7 @@ FROM {fromTable}
             if (tab.md_is_reticular)
             {
                 tableName = "tabella_reticolare";
-                safetableName = (string.IsNullOrEmpty(tab.md_db_name) ? "" : "[" + tab.md_db_name + "]." + (!string.IsNullOrEmpty(tab.md_schema_name) ? "[" + tab.md_schema_name + "]" : "") + ".") + EscapeDBObjectName(tableName);
+                safetableName = GetTablePrefix(tab) + EscapeDBObjectName(tableName);
                 where += ((where == "") ? " where " : " " + logicOperator + " ") + safetableName + "." + tab.reticular_key_name + " = " + (tab.reticular_key_value.HasValue ? tab.reticular_key_value.Value.ToString() : "null");
             }
 
@@ -2590,11 +2926,15 @@ FROM {fromTable}
                 _Metadati_Colonne logic_del_key = tab._Metadati_Colonnes.FirstOrDefault(x => x.mc_is_logic_delete_key.Value);
                 if (logic_del_key != null)
                 {
-                    where += ((where == "") ? " where " : " " + logicOperator + " ") + " coalesce(" + safetableName + "." + EscapeDBObjectName(RawHelpers.getStoreColumnName(logic_del_key)) + ",0) = 0";
+                    // PG: boolean column → coalesce(.., FALSE) = FALSE (in MSSQL/MySQL BIT vs 0 funziona, in PG no).
+                    bool isBool = string.Equals(logic_del_key.mc_db_column_type, "bit", StringComparison.OrdinalIgnoreCase) || string.Equals(logic_del_key.mc_db_column_type, "boolean", StringComparison.OrdinalIgnoreCase);
+                    string falseLit = isBool ? "FALSE" : "0";
+                    where += ((where == "") ? " where " : " " + logicOperator + " ") + " coalesce(" + safetableName + "." + EscapeDBObjectName(RawHelpers.getStoreColumnName(logic_del_key)) + "," + falseLit + ") = " + falseLit;
                 }
                 else if (tab.md_is_reticular)
                 {
-                    where += ((where == "") ? " where " : " " + logicOperator + " ") + " coalesce(" + safetableName + ".[cancellato],0) = 0";
+                    // PG-native: cancellato è boolean → confronto con FALSE.
+                    where += ((where == "") ? " where " : " " + logicOperator + " ") + " coalesce(" + safetableName + ".cancellato,FALSE) = FALSE";
                 }
             }
 
@@ -2714,33 +3054,41 @@ FROM {fromTable}
             {
                 bool invertSort = false;
 
-                string pkOrder = string.Format("{0}.{1} ASC", safetableName, RawHelpers.getStoreColumnName(pKey));
+                // PG: identificatore col bare → folded to lowercase; quotare per case-preserved columns (es. CityID).
+                string pkOrder = string.Format("{0}.{1} ASC", safetableName, EscapeDBObjectName(RawHelpers.getStoreColumnName(pKey)));
                 if (clonedfilters.filters.FirstOrDefault(x => x.field == "__extra") != null)
                 {
                     var flr = clonedfilters.filters.FirstOrDefault(x => x.field == pKey.mc_nome_colonna);
                     string pkeyFilterValue = "";
                     string quote = "";
+                    _Metadati_Colonne overSortCol;
 
                     if (flr == null)
                     {
-                        flr = clonedfilters.filters.First();
+                        flr = clonedfilters.filters.FirstOrDefault(x => x.field != "__extra") ?? clonedfilters.filters.First();
                         pkeyFilterValue = flr.value;
+                        overSortCol = tab._Metadati_Colonnes.FirstOrDefault(x => x.mc_nome_colonna == flr.field || x.mc_real_column_name == flr.field) ?? pKey;
                         int ou;
                         if (!int.TryParse(flr.value, out ou))
                             pkeyFilterValue = "'" + flr.value + "'";
                     }
                     else
                     {
+                        overSortCol = tab._Metadati_Colonnes.FirstOrDefault(x => x.mc_nome_colonna == flr.field || x.mc_real_column_name == flr.field) ?? pKey;
                         pkeyFilterValue = flr.value;
 
-                        if (string.IsNullOrEmpty(tab.md_primary_key_type) || tab.md_primary_key_type == "GUID")
+                        // PG strict typing: only quote when value isn't numeric.
+                        if ((string.IsNullOrEmpty(tab.md_primary_key_type) || tab.md_primary_key_type == "GUID")
+                            && !int.TryParse(flr.value, out _))
                             quote = "'";
 
                         invertSort = true;
 
                     }
 
-                    pkOrder = "case when " + safetableName + "." + EscapeDBObjectName(flr.field) + " = " + quote + pkeyFilterValue + quote + " then 0 else 1 end, " + pkOrder;
+                    // PG: usa il REAL column name (case-folded a lowercase dalla migrazione MySQL→PG),
+                    // non il mc_nome_colonna (es. "CG_Id" → la colonna fisica è "cg_id").
+                    pkOrder = "case when " + safetableName + "." + EscapeDBObjectName(RawHelpers.getStoreColumnName(overSortCol)) + " = " + quote + pkeyFilterValue + quote + " then 0 else 1 end, " + pkOrder;
 
                 }
 
@@ -2828,17 +3176,36 @@ FROM {fromTable}
             string safeEntityName = GetTableName(relatedTable);
             string safeUniqueEntityName = EscapeDBObjectName(fld.mc_nome_colonna + "_" + col.mc_ui_lookup_entity_name);
             string calculatedText = col.mc_ui_lookup_computed_dataTextField;
-            string safeTextField = EscapeDBObjectName(col.mc_ui_lookup_dataTextField);
+
+            // PG strict identifier resolution: in MSSQL/MySQL aliased SELECTs make runtime
+            // names like `md_display_string` accidentally resolvable in some contexts; PG never
+            // does that. Resolve dataTextField to mc_real_column_name when the metadata stores
+            // a runtime/friendly name (e.g. `md_display_string` → `mm_display_string`).
+            string resolvedTextField = col.mc_ui_lookup_dataTextField;
+            if (relatedTable.md_nome_tabella != "tabella_reticolare" && relatedTable._Metadati_Colonnes != null)
+            {
+                // Null-safe filter: in alcuni edge case metadata corrotti contengono righe con mc_nome_colonna null.
+                var textCol = relatedTable._Metadati_Colonnes.FirstOrDefault(xk =>
+                    xk != null && !string.IsNullOrEmpty(xk.mc_nome_colonna) &&
+                    string.Equals(xk.mc_nome_colonna, col.mc_ui_lookup_dataTextField, StringComparison.OrdinalIgnoreCase));
+                if (textCol != null && !string.IsNullOrEmpty(textCol.mc_real_column_name))
+                    resolvedTextField = textCol.mc_real_column_name;
+            }
+            string safeTextField = EscapeDBObjectName(resolvedTextField);
 
             string comboTxtValue;
 
-            var isAlias = !relatedTable._Metadati_Colonnes.Any(xk => xk.mc_real_column_name == col.mc_ui_lookup_dataValueField);
-            if (isAlias && relatedTable.md_nome_tabella != "tabella_reticolare")
+            // Null-safe: relatedTable._Metadati_Colonnes can be null in PG when
+            // the join target is a stored proc / external route without columns.
+            var cols = relatedTable._Metadati_Colonnes;
+            var isAlias = cols == null || !cols.Any(xk => xk != null && xk.mc_real_column_name == col.mc_ui_lookup_dataValueField);
+            if (isAlias && relatedTable.md_nome_tabella != "tabella_reticolare" && cols != null)
             {
-                string realName = relatedTable._Metadati_Colonnes.FirstOrDefault(xk => xk.mc_nome_colonna.ToLower() == col.mc_ui_lookup_dataValueField.ToLower()).mc_real_column_name;
-
-                if (!string.IsNullOrEmpty(realName))
-                    col.mc_ui_lookup_dataValueField = relatedTable._Metadati_Colonnes.FirstOrDefault(xk => xk.mc_nome_colonna.ToLower() == col.mc_ui_lookup_dataValueField.ToLower()).mc_real_column_name;
+                var aliasMatch = cols.FirstOrDefault(xk =>
+                    xk != null && !string.IsNullOrEmpty(xk.mc_nome_colonna) &&
+                    string.Equals(xk.mc_nome_colonna, col.mc_ui_lookup_dataValueField, StringComparison.OrdinalIgnoreCase));
+                if (aliasMatch != null && !string.IsNullOrEmpty(aliasMatch.mc_real_column_name))
+                    col.mc_ui_lookup_dataValueField = aliasMatch.mc_real_column_name;
             }
 
             aliasPair ap = joins.Keys.FirstOrDefault(x => x.table_name == col.mc_ui_lookup_entity_name && x.fk_name != col.mc_ui_lookup_dataValueField);
@@ -2855,11 +3222,20 @@ FROM {fromTable}
                         fk_name = col.mc_ui_lookup_dataValueField
                     };
                     joins.Add(currentAP, joinn);
-                    List<_Metadati_Colonne_Lookup> loos = relatedTable._Metadati_Colonnes.OfType<_Metadati_Colonne_Lookup>().ToList();
+                    // Null-safe: relatedTable / tab `_Metadati_Colonnes` can be null on PG for routes
+                    // without column metadata (stored proc routes etc.).
+                    var relCols = relatedTable._Metadati_Colonnes;
+                    var tabCols = tab._Metadati_Colonnes;
+                    List<_Metadati_Colonne_Lookup> loos = relCols != null
+                        ? relCols.OfType<_Metadati_Colonne_Lookup>().ToList()
+                        : new List<_Metadati_Colonne_Lookup>();
 
                     loos.ForEach(x =>
                     {
-                        tab._Metadati_Colonnes.OfType<_Metadati_Colonne_Lookup>().ToList().ForEach(y =>
+                        var tabLookups = tabCols != null
+                            ? tabCols.OfType<_Metadati_Colonne_Lookup>().ToList()
+                            : new List<_Metadati_Colonne_Lookup>();
+                        tabLookups.ForEach(y =>
                         {
                             if (x.mc_ui_lookup_entity_name == y.mc_ui_lookup_entity_name)
                             {
@@ -2872,7 +3248,12 @@ FROM {fromTable}
                                     {
                                         if (joins.ContainsKey(apY))
                                         {
-                                            string joinPart = " AND " + apX.alias_name + "." + x.mc_nome_colonna + "=" + apY.alias_name + "." + apY.fk_name;
+                                            // PG: EscapeDBObjectName sui nomi colonna del JOIN-extra AND.
+                                            // Senza quotes PG case-folde l'identifier a lowercase →
+                                            // `42703: la colonna "alias".lasteditedby non esiste`
+                                            // (la colonna reale e' `LastEditedBy` CamelCase).
+                                            // Le alias_name sono gia' quoted, solo le colonne mancavano.
+                                            string joinPart = " AND " + apX.alias_name + "." + EscapeDBObjectName(x.mc_nome_colonna) + "=" + apY.alias_name + "." + EscapeDBObjectName(apY.fk_name);
                                             if (currentAP.alias_name == apX.alias_name)
                                             {
                                                 //TODO CREATE A NEW DERIVED ALIAS AND PLUG A NEW JOIN CLAUSE IN JOINS-ARRAY
@@ -2964,7 +3345,7 @@ FROM {fromTable}
                         if (fld != null)
                         {
                             safeColumnName = EscapeDBObjectName(RawHelpers.getStoreColumnName(fld));
-                            currentFld = (string.IsNullOrEmpty(tabel.md_db_name) ? "" : "[" + tabel.md_db_name + "]." + (!string.IsNullOrEmpty(tabel.md_schema_name) ? "[" + tabel.md_schema_name + "]" : "") + ".") + EscapeDBObjectName(tabel.md_nome_tabella) + "." + safeColumnName;
+                            currentFld = GetTablePrefix(tabel) + EscapeDBObjectName(tabel.md_nome_tabella) + "." + safeColumnName;
 
                             where = AppendFilter(fld, f.nestedFilters, (isFirstNested ? "" : f.nestedFilters.logic), currentFld, where, tabel, formulaLookup, userId, true);
                             isFirstNested = false;
@@ -2995,8 +3376,8 @@ FROM {fromTable}
                         List<AggregationResult> ar;
 
 
-                        string safeTableName = RawHelpers.getStoreTableName(mmTable, "mssql");
-                        string localTableName = RawHelpers.getStoreTableName(tabel, "mssql");
+                        string safeTableName = RawHelpers.getStoreTableName(mmTable, "postgresql");
+                        string localTableName = RawHelpers.getStoreTableName(tabel, "postgresql");
 
                         if (realOperator == "eqor")
                         {
@@ -3077,7 +3458,7 @@ FROM {fromTable}
                     .ForEach(x =>
                     {
                         nestedWhere = nestedWhere + (string.IsNullOrEmpty(nestedWhere) ? "(" : " OR ") + currentFld + " "
-                            + string.Format(" like '%, {0}%'", x);
+                            + string.Format(" ilike '%, {0}%'", x);
                     });
 
                     nestedWhere = nestedWhere + ")";
@@ -3249,7 +3630,7 @@ FROM {fromTable}
 
                 string rightExtraOperator = leftExtraOperator;
 
-                if (realOperator == "like")
+                if (realOperator == "ilike" || realOperator == "like")
                 {
                     if (f.operatore == "contains")
                     {
@@ -3512,7 +3893,7 @@ FROM {fromTable}
                 string leftExtraOperator = quote;
 
                 string rightExtraOperator = leftExtraOperator;
-                if (realOperator == "like")
+                if (realOperator == "ilike" || realOperator == "like")
                 {
                     if (f.operatore == "contains")
                     {
@@ -3783,7 +4164,7 @@ FROM {fromTable}
                     {
                         string row_id = row.data[pkey.mc_nome_colonna].ToString();
 
-                        List<Dictionary<string, object>> relatedFullDataClone = GetManyToManyOptions(localKeyName, row_id, pkey, userId, grid_col, row, relatedKeyName, manyToManyKey);
+                        List<Dictionary<string, object>> relatedFullDataClone = GetManyToManyOptions(localKeyName, row_id, pkey, userId, grid_col, row, relatedKeyName, manyToManyKey, related_key, display_col);
 
                         row.data[grid_col.mc_nome_colonna] = relatedFullDataClone;
                     }
@@ -3791,20 +4172,32 @@ FROM {fromTable}
             }
         }
 
-        private static List<Dictionary<string, object>> GetManyToManyOptions(string localKeyName, string row_id, _Metadati_Colonne pkey, string userId, _Metadati_Colonne_Grid gridCol, SqlMapper.FastExpando row, string relatedKeyName, _Metadati_Colonne manyToManyKey)
+        private static List<Dictionary<string, object>> GetManyToManyOptions(string localKeyName, string row_id, _Metadati_Colonne pkey, string userId, _Metadati_Colonne_Grid gridCol, SqlMapper.FastExpando row, string relatedKeyName, _Metadati_Colonne manyToManyKey, _Metadati_Colonne_Lookup related_key, string display_col)
         {
             FilterInfos fltr = RawHelpers.createStandardFilter(localKeyName, row_id, pkey);
 
+            // Mirror MySQL implementation: restriction = null per la prima GetFlatData,
+            // formula_lookup + mc_id passati per popolare le colonne lookup.
             string[] restriction = { gridCol.mc_ui_grid_related_id_field, gridCol.mc_ui_grid_display_field };
 
-            rawPagedResult relatedData = GetFlatData(userId, gridCol.mc_ui_grid_manytomany_route, 0, null, null, null, fltr, "AND", true, null, restriction.ToList());
+            rawPagedResult relatedData = GetFlatData(userId, gridCol.mc_ui_grid_manytomany_route, 0, null, null, null, fltr, "AND", true, null, null, related_key.mc_ui_lookup_combo_text_edit_computed_dataTextField, related_key.mc_id);
 
             FilterInfos fltrRemoteRoute = new FilterInfos() { logic = "OR" };
             fltrRemoteRoute.filters = new List<filterElement>();
 
+            // PG-only: Npgsql/FastExpando lowercase i nomi colonna; lookup case-insensitive
+            // per match con i metadata in camelCase (es. FK_City, CityID). Semantica identica
+            // a MySQL — case-only difference per allinearsi a lowercase folding di PG.
+            static object CiGet(System.Collections.Generic.IDictionary<string, object> d, string key)
+            {
+                if (d.TryGetValue(key, out var v)) return v;
+                foreach (var k in d.Keys) if (string.Equals(k, key, System.StringComparison.OrdinalIgnoreCase)) return d[k];
+                throw new System.Collections.Generic.KeyNotFoundException($"key '{key}' not found (case-insensitive). available: {string.Join(",", d.Keys)}");
+            }
+
             relatedData.results.OfType<Dapper.SqlMapper.FastExpando>().ToList().ForEach(rd =>
             {
-                fltrRemoteRoute.filters.Add(new filterElement() { field = gridCol.mc_ui_grid_related_id_field, operatore = "eq", value = rd.data[gridCol.mc_ui_grid_manytomany_related_id_field].ToString() });
+                fltrRemoteRoute.filters.Add(new filterElement() { field = gridCol.mc_ui_grid_related_id_field, operatore = "eq", value = CiGet(rd.data, gridCol.mc_ui_grid_manytomany_related_id_field).ToString() });
             });
             rawPagedResult relatedFullData = GetFlatData(userId, gridCol.mc_ui_grid_route, 0, null, null, null, fltrRemoteRoute, "OR", true, null, restriction.ToList(), "", 0, true);
 
@@ -3815,10 +4208,11 @@ FROM {fromTable}
                 foreach (Dapper.SqlMapper.FastExpando rd in relatedFullData.results)
                 {
                     Dictionary<string, object> cloned = new Dictionary<string, object>(rd.data);
-                    Dapper.SqlMapper.FastExpando selected = relatedData.results.OfType<Dapper.SqlMapper.FastExpando>().FirstOrDefault(x => x.data[localKeyName].ToString() == row.data[gridCol.mc_ui_grid_local_id_field].ToString() && x.data[relatedKeyName].ToString() == rd.data[gridCol.mc_ui_grid_related_id_field].ToString());
+                    Dapper.SqlMapper.FastExpando selected = relatedData.results.OfType<Dapper.SqlMapper.FastExpando>().FirstOrDefault(x => CiGet(x.data, localKeyName).ToString() == CiGet(row.data, gridCol.mc_ui_grid_local_id_field).ToString() && CiGet(x.data, relatedKeyName).ToString() == CiGet(rd.data, gridCol.mc_ui_grid_related_id_field).ToString());
                     if (selected != null)
                     {
-                        cloned[manyToManyKey.mc_nome_colonna] = selected.data[manyToManyKey.mc_nome_colonna];
+                        cloned[manyToManyKey.mc_nome_colonna] = CiGet(selected.data, manyToManyKey.mc_nome_colonna);
+                        cloned[gridCol.mc_ui_grid_display_field] = CiGet(selected.data, display_col);
                         cloned["___selected"] = true;
                     }
                     else
@@ -3837,18 +4231,26 @@ FROM {fromTable}
         {
             string tablename = "";
 
-            if (!string.IsNullOrEmpty(tab.md_db_name))
-                tablename = "[" + tab.md_db_name + "].";
-
-            if (!string.IsNullOrEmpty(tab.md_schema_name))
-                tablename += "[" + tab.md_schema_name + "].";
-            else if (!string.IsNullOrEmpty(tab.md_db_name))
-                tablename += "dbo.";
+            // PG: tutto in `public` schema (no cross-DB nei flussi tipici WUIC).
+            // Migration tool ha gia' flattenato MSSQL Application.Cities → application__cities.
+            // Skip md_db_name (PG non supporta cross-DB naming) e md_schema_name solo se != "dbo".
+            if (!string.IsNullOrEmpty(tab.md_schema_name) && tab.md_schema_name.ToLower() != "dbo")
+                tablename += EscapeDBObjectName(tab.md_schema_name) + ".";
 
             tablename += EscapeDBObjectName(tab.md_nome_tabella);
 
             return tablename;
 
+        }
+
+        /// <summary>PG table-name prefix (schema only, db skipped). Use to qualify columns.</summary>
+        private static string GetTablePrefix(_Metadati_Tabelle tab)
+        {
+            // Sole schema prefix on PG (NO db prefix — PG connections are single-DB).
+            // MSSQL/MySQL inline patterns build `[db]..` or `[db].[schema].` which is invalid PG syntax.
+            if (!string.IsNullOrEmpty(tab.md_schema_name) && tab.md_schema_name.ToLower() != "dbo")
+                return EscapeDBObjectName(tab.md_schema_name) + ".";
+            return "";
         }
 
         public static string BuildDynamicUpdateQuery(Dictionary<string, object> entity, List<_Metadati_Colonne> metadata, string userId, bool importing = false)
@@ -3859,7 +4261,13 @@ FROM {fromTable}
             HashSet<string> changedFields = GetChangedFieldSet(entity);
             bool deltaMode = changedFields.Count > 0;
 
-            Dictionary<string, object> original = (importing ? new Dictionary<string, object>() : (Dictionary<string, object>)(entity["__original"]));
+            // Defensive: alcuni client (es. test e2e) inviano updateRecord senza `__original`.
+            // Senza fallback, KeyNotFoundException blocca tutta la pipeline UPDATE.
+            Dictionary<string, object> original;
+            if (importing || !entity.ContainsKey("__original") || entity["__original"] == null)
+                original = new Dictionary<string, object>();
+            else
+                original = entity["__original"] as Dictionary<string, object> ?? new Dictionary<string, object>();
 
             _Metadati_Tabelle tabel = metadata[0]._Metadati_Tabelle;
             string table_name = tabel.md_nome_tabella;
@@ -3994,25 +4402,26 @@ FROM {fromTable}
                     }
 
                 }
-                else if (fld.mc_ui_column_type == "boolean" && tabel.md_is_reticular)
+                else if (fld.mc_ui_column_type == "boolean")
                 {
-                    if (valore != null)
+                    // PG post-task#47 migration: TUTTE le colonne booleane MSSQL/MySQL (bit)
+                    // sono state migrate a `smallint` (0/1) in PG, NON a `boolean`. Quindi
+                    // il valore SQL deve essere numeric `1`/`0` (interpolato senza quoting),
+                    // NON `TRUE`/`FALSE` literal. Il vecchio output `TRUE`/`FALSE` finiva
+                    // single-quoted dal Build...SET (`'FALSE'`) → 22P02 su smallint column.
+                    // Behavior speculare a `number_boolean` (sotto): stesso input string
+                    // ("true"/"false"/"1"/"0"), stesso output numerico 1/0.
+                    if (valore != null && valore.ToString() != "")
                     {
-                        if (valore.ToString().ToLower() == "true")
-                        {
-                            valore = 1;
-                        }
-                        else if (valore.ToString().ToLower() == "false")
-                        {
-                            valore = 0;
-                        }
+                        string v = valore.ToString().ToLowerInvariant().Trim();
+                        if (v == "true" || v == "1") valore = 1;
+                        else if (v == "false" || v == "0") valore = 0;
+                        else valore = 0; // fallback safe
                     }
                     else
                     {
                         if (fld.mc_validation_has.Value && fld.mc_validation_required.Value)
-                        {
                             valore = 0;
-                        }
                     }
                 }
                 else if (fld.mc_ui_column_type == "number_boolean")
@@ -4087,15 +4496,19 @@ FROM {fromTable}
                             subColumns = subTable._Metadati_Colonnes.ToList();
                     }
 
-                    object[] collection = entity[colGrid.mc_nome_colonna] as object[];
+                    // Newtonsoft deserializza l'array M2M come JArray<JObject>, non object[].
+                    // GetDictionaryListValue + NormalizeToDictionary gestiscono entrambe le forme +
+                    // List<Dictionary>/JObject. Senza questa normalizzazione il cast falliva silently
+                    // e nessuna riga del join-table veniva mai INSERT/DELETE.
+                    List<Dictionary<string, object>> collection = GetDictionaryListValue(entity, colGrid.mc_nome_colonna);
 
                     if (collection != null)
                     {
-                        foreach (object item in collection)
+                        foreach (Dictionary<string, object> subEntity in collection)
                         {
-                            Dictionary<string, object> subEntity = (Dictionary<string, object>)item;
+                            if (subEntity == null) continue;
                             string localfield = colGrid.mc_ui_grid_manytomany_related_id_field;
-                            if (subEntity.ContainsKey("___added") && (bool)subEntity["___added"])
+                            if (subEntity.ContainsKey("___added") && subEntity["___added"] != null && (bool)subEntity["___added"])
                             {
                                 if (subEntity.ContainsKey("___deleted"))
                                 {
@@ -4108,7 +4521,11 @@ FROM {fromTable}
                                 subEntity[colGrid.mc_ui_grid_manytomany_related_id_field] = subEntity[colGrid.mc_ui_grid_related_id_field];
                                 subEntity[colGrid.mc_ui_grid_manytomany_local_id_field] = entity[colGrid.mc_ui_grid_local_id_field];
 
-                                if (colGrid.mc_ui_grid_related_id_field != colGrid.mc_ui_grid_local_id_field)
+                                // Self-reference fallback (parent/child con stesso PK name): skip se
+                                // subEntity NON ha local_id_field — è il caso M2M proper (subEntity per
+                                // un ADDED item non ha l'Id del join-table ancora — PK autogenerato).
+                                if (colGrid.mc_ui_grid_related_id_field != colGrid.mc_ui_grid_local_id_field
+                                    && subEntity.ContainsKey(colGrid.mc_ui_grid_local_id_field))
                                     subEntity[colGrid.mc_ui_grid_related_id_field] = subEntity[colGrid.mc_ui_grid_local_id_field];
 
                                 string insertedID = InsertflatData(subEntity, subRoute, userId);
@@ -4134,22 +4551,29 @@ FROM {fromTable}
                         valore = fld.convert_null_to_string;
                 }
 
+                // PG SET non accetta `table.col=value` → usa solo `col` per SET.
+                // WHERE permette `table.col` → continua a usare il prefisso per disambiguare.
                 string current_fld = safetable_name + "." + safecolumn_name;
+                string set_fld = safecolumn_name;
 
                 if (fld.mc_is_primary_key)
                 {
                     int ou;
                     string quote = "";
-                    if (!int.TryParse(entity[fld.mc_nome_colonna].ToString(), out ou))
+                    bool isNumeric = int.TryParse(entity[fld.mc_nome_colonna].ToString(), out ou);
+                    if (!isNumeric)
                         quote = "'";
 
-                    if (string.IsNullOrEmpty(tabel.md_primary_key_type) || tabel.md_primary_key_type == "GUID")
+                    // PG strict typing: integer column = '123' (text) → 42883. Only force quote
+                    // for GUID/string PK when value itself isn't numeric. Empty md_primary_key_type
+                    // with numeric value → no quote.
+                    if ((string.IsNullOrEmpty(tabel.md_primary_key_type) || tabel.md_primary_key_type == "GUID") && !isNumeric)
                         quote = "'";
 
                     if (original.ContainsKey(fld.mc_nome_colonna) && tabel.md_primary_key_type != "IDENTITY")
                     {
                         if (original[fld.mc_nome_colonna].ToString() != valore)
-                            field_value_list += (field_value_list == "" ? "" : ", ") + current_fld + "=" + string.Format("{0}{1}{0}", quote, ((valore.ToString() == "") ? "null" : valore.ToString()));
+                            field_value_list += (field_value_list == "" ? "" : ", ") + set_fld + "=" + string.Format("{0}{1}{0}", quote, ((valore.ToString() == "") ? "null" : valore.ToString()));
 
                         where += ((where == "") ? "" : " AND ") + current_fld + "=" + quote + original[fld.mc_nome_colonna] + quote;
                     }
@@ -4171,27 +4595,22 @@ FROM {fromTable}
                         }
                     }
 
-                    field_value_list += (field_value_list == "" ? "" : ", ") + current_fld + "=" + string.Format("{0}{1}{0}", ((fld.mc_db_column_type == "int" || fld.mc_db_column_type == "point" || fld.mc_db_column_type == "geometry" || valore.ToString() == "") ? "" : "'"), ((valore.ToString() == "") ? (string.IsNullOrEmpty(fld.convert_null_to_string) ? "null" : "'" + valore.ToString() + "'") : valore.ToString()));
+                    field_value_list += (field_value_list == "" ? "" : ", ") + set_fld + "=" + string.Format("{0}{1}{0}", ((fld.mc_db_column_type == "int" || fld.mc_db_column_type == "point" || fld.mc_db_column_type == "geometry" || valore.ToString() == "") ? "" : "'"), ((valore.ToString() == "") ? (string.IsNullOrEmpty(fld.convert_null_to_string) ? "null" : "'" + valore.ToString() + "'") : valore.ToString()));
 
                     if (fld.mc_ui_column_type == "upload")
                     {
                         _Metadati_Colonne_Upload uploader = fld as _Metadati_Colonne_Upload;
                         if (uploader.isDBUpload)
                         {
-                            if (entity[fld.mc_nome_colonna] != null)
-                            {
-                                //get path of the uploaded file
-                                string __id = entity[tabel._Metadati_Colonnes.First(x => x.mc_is_primary_key).mc_nome_colonna].ToString();
-                                string pth = HttpContext.Current.Server.MapPath("/Upload" + (uploader.UseRouteNameAsSubfolder ? "/" + tabel.md_route_name : "") + (uploader.UseRecordIDAsSubfolder ? "/" + __id : ""));
-                                string tmp_path = System.IO.Path.Combine(pth, entity[fld.mc_nome_colonna].ToString());
-
-                                //append to query
-                                if (System.IO.File.Exists(tmp_path))
-                                    field_value_list += (field_value_list == "" ? "" : ", ") + uploader.MultipleUploadBlobFieldName + "=" + "(" + "SELECT * FROM OPENROWSET (BULK '" + tmp_path.Replace("'", "''") + "', SINGLE_BLOB) " + uploader.MultipleUploadBlobFieldName + ")";
-
-                            }
-                            else
-                                field_value_list += (field_value_list == "" ? "" : ", ") + uploader.MultipleUploadBlobFieldName + "=" + "null";
+                            // Align to mysql/metaQueryMySql.cs:BuildDynamicUpdateQuery — delegate
+                            // to provider Utility (resolves upload folder via DefaultUploadRootPath
+                            // / ConfigHelper("uploadFolder") + route/pkey, with __guid fallback
+                            // when the file is still in the multi-upload temp folder), and emit
+                            // a `decode('hex', 'hex')` bytea literal. The previous inline code
+                            // hardcoded `/Upload` MapPath which silently missed the file on most
+                            // installs → the SET clause omitted the BLOB column → field stayed null.
+                            WEB_UI_CRAFTER.ProjectData.ServiziPostgreSql.Utility.customizeImgDBUpdate(
+                                entity, uploader, tabel, ref field_value_list);
                         }
                     }
 
@@ -4222,7 +4641,7 @@ FROM {fromTable}
             string query = "";
 
             _Metadati_Tabelle tabel = metadata[0]._Metadati_Tabelle;
-            string table_name = RawHelpers.getStoreTableName(tabel, "mysql");
+            string table_name = RawHelpers.getStoreTableName(tabel, "postgresql");
             string safetable_name = table_name;
 
             if (!tabel.md_deletable)
@@ -4231,19 +4650,24 @@ FROM {fromTable}
             if (tabel.md_is_reticular)
             {
                 table_name = "tabella_reticolare";
-                safetable_name = (string.IsNullOrEmpty(tabel.md_db_name) ? "" : "`" + tabel.md_db_name + "`." + (!string.IsNullOrEmpty(tabel.md_schema_name) ? "`" + tabel.md_schema_name + "`" : "") + ".") + RawHelpers.escapeDBObjectName(table_name, "mysql");
+                // PG-native: PG non supporta cross-DB naming (db.schema.tbl). Skip md_db_name; usa schema solo se non "dbo".
+                safetable_name = (!string.IsNullOrEmpty(tabel.md_schema_name) && tabel.md_schema_name.ToLower() != "dbo" ? "\"" + tabel.md_schema_name + "\"." : "") + RawHelpers.escapeDBObjectName(table_name, "postgresql");
             }
 
             metadata.ForEach((fld) =>
             {
-                string safecolumn_name = RawHelpers.escapeDBObjectName(RawHelpers.getStoreColumnName(fld), "mysql");
+                string safecolumn_name = RawHelpers.escapeDBObjectName(RawHelpers.getStoreColumnName(fld), "postgresql");
 
                 string current_fld = safetable_name + "." + safecolumn_name;
 
                 if (fld.mc_is_primary_key is true)
                 {
-                    if (string.IsNullOrEmpty(tabel.md_primary_key_type) || tabel.md_primary_key_type == "GUID")
+                    // PG strict typing: integer col = '123' (text) → 42883. Only quote when value isn't numeric.
+                    bool isNumericDel = int.TryParse(entity[fld.mc_nome_colonna]?.ToString() ?? "", out _);
+                    if ((string.IsNullOrEmpty(tabel.md_primary_key_type) || tabel.md_primary_key_type == "GUID") && !isNumericDel)
                         where += ((where == "") ? " where " : " AND ") + current_fld + " = '" + entity[fld.mc_nome_colonna] + "'";
+                    else if ((string.IsNullOrEmpty(tabel.md_primary_key_type) || tabel.md_primary_key_type == "GUID") && isNumericDel)
+                        where += ((where == "") ? " where " : " AND ") + current_fld + " = " + entity[fld.mc_nome_colonna];
                     else
                     {
 
@@ -4268,14 +4692,10 @@ FROM {fromTable}
                     string delete_log = "";
                     if (tabel.md_logging_enable)
                     {
-                        //if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
-                        //{
-                        //    user_id = Utility.id_extraClient(ref user_id);
-                        //}
-
                         AppendLoggingDeleteFields(ref delete_log, tabel, user_id, entity);
                     }
-                    query = string.Format("UPDATE {0} SET {1} = 1 {3} {2}", safetable_name, safetable_name + "." + RawHelpers.getStoreColumnName(logic_del_key), where, string.IsNullOrEmpty(delete_log) ? "" : ", " + delete_log);
+                    // PG SET clause: bare column name (no table prefix) + BOOLEAN literal TRUE.
+                    query = string.Format("UPDATE {0} SET {1} = TRUE {3} {2}", safetable_name, RawHelpers.escapeDBObjectName(RawHelpers.getStoreColumnName(logic_del_key), "postgresql"), where, string.IsNullOrEmpty(delete_log) ? "" : ", " + delete_log);
                 }
                 else
                 {
@@ -4284,14 +4704,9 @@ FROM {fromTable}
                         string delete_log = "";
                         if (tabel.md_logging_enable)
                         {
-                            //if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
-                            //{
-                            //    user_id = Utility.id_extraClient(ref user_id);
-                            //}
-
                             AppendLoggingDeleteFields(ref delete_log, tabel, user_id, entity);
                         }
-                        query = string.Format("UPDATE {0} SET {1} = 1 {3} {2}", safetable_name, safetable_name + ".[cancellato]", where, string.IsNullOrEmpty(delete_log) ? "" : ", " + delete_log);
+                        query = string.Format("UPDATE {0} SET {1} = TRUE {3} {2}", safetable_name, RawHelpers.escapeDBObjectName("cancellato", "postgresql"), where, string.IsNullOrEmpty(delete_log) ? "" : ", " + delete_log);
                     }
                     else
                         throw new Exception("Missing logic delete key field.");
@@ -4310,14 +4725,10 @@ FROM {fromTable}
                         string delete_log = "";
                         if (tabel.md_logging_enable)
                         {
-                            //if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
-                            //{
-                            //    user_id = Utility.id_extraClient(ref user_id);
-                            //}
-
                             AppendLoggingDeleteFields(ref delete_log, tabel, user_id, entity);
                         }
-                        query = string.Format("UPDATE {0} SET {1} = '{4}' {3} {2}", safetable_name, safetable_name + "." + RawHelpers.getStoreColumnName(logic_del_key), where, string.IsNullOrEmpty(delete_log) ? "" : ", " + delete_log, logicDeleteValue);
+                        // PG SET clause: bare column name (no table prefix).
+                        query = string.Format("UPDATE {0} SET {1} = '{4}' {3} {2}", safetable_name, RawHelpers.escapeDBObjectName(RawHelpers.getStoreColumnName(logic_del_key), "postgresql"), where, string.IsNullOrEmpty(delete_log) ? "" : ", " + delete_log, logicDeleteValue);
                     }
                     else
                     {
@@ -4391,7 +4802,8 @@ FROM {fromTable}
 
                     try
                     {
-                        return connection.QueryColumn<Int32>(optQry).FirstOrDefault() > 0;
+                        // PG: count(*) ritorna bigint → leggere come Int64 evita InvalidCastException.
+                        return connection.QueryColumn<Int64>(optQry).FirstOrDefault() > 0;
                     }
                     catch (Exception ex)
                     {
@@ -4738,6 +5150,26 @@ FROM {fromTable}
                 return converted;
             }
 
+            // Newtonsoft JObject case: enumerable di KeyValuePair<string, JToken>.
+            // Crucial per il flusso M2M update — il payload dal frontend arriva
+            // come JArray<JObject> via Newtonsoft (no auto-cast a Dictionary).
+            if (item is IEnumerable<KeyValuePair<string, object>> kvEnum)
+                return new Dictionary<string, object>(kvEnum);
+            try
+            {
+                System.Type t = item.GetType();
+                if (t.FullName == "Newtonsoft.Json.Linq.JObject")
+                {
+                    System.Reflection.MethodInfo toObject = t.GetMethod("ToObject", new System.Type[] { typeof(System.Type) });
+                    if (toObject != null)
+                    {
+                        Dictionary<string, object> asDict = toObject.Invoke(item, new object[] { typeof(Dictionary<string, object>) }) as Dictionary<string, object>;
+                        if (asDict != null) return asDict;
+                    }
+                }
+            }
+            catch { /* fallthrough */ }
+
             return null;
         }
 
@@ -4769,6 +5201,8 @@ FROM {fromTable}
             string value_list = "";
             string query = "";
             string local_generated_pkey = "";
+            // Read once and reuse for every upload column in this INSERT (mirrors mysql/metaQueryMySql.cs).
+            bool base64Image = RawHelpers.ParseBool(ConfigHelper.GetSettingAsString("base64Image") ?? "false");
 
             _Metadati_Tabelle tabel = metadata[0]._Metadati_Tabelle;
             string table_name = tabel.md_nome_tabella;
@@ -4782,13 +5216,14 @@ FROM {fromTable}
                 field_list += (field_list == "" ? "" : ", ") + tabel.reticular_key_name;
                 value_list += (value_list == "" ? "" : ", ") + tabel.reticular_key_value;
                 table_name = "tabella_reticolare";
-                safetable_name = (string.IsNullOrEmpty(tabel.md_db_name) ? "" : "[" + tabel.md_db_name + "]." + (!string.IsNullOrEmpty(tabel.md_schema_name) ? "[" + tabel.md_schema_name + "]" : "") + ".") + EscapeDBObjectName(table_name);
+                safetable_name = GetTablePrefix(tabel) + EscapeDBObjectName(table_name);
             }
 
             metadata.Where(x => x.mc_is_computed != true).ToList().ForEach((fld) =>
             {
                 string safecolumn_name = EscapeDBObjectName(RawHelpers.getStoreColumnName(fld));
-                string current_fld = safetable_name + "." + safecolumn_name;
+                // PG: INSERT INTO column list usa bare col name (PG rifiuta "tab"."col" in column list).
+                string current_fld = safecolumn_name;
 
                 if (tabel.md_logging_enable)
                 {
@@ -4811,6 +5246,16 @@ FROM {fromTable}
 
                 _Metadati_Colonne_Button btnCol = fld as _Metadati_Colonne_Button;
                 if (btnCol != null)
+                    return;
+
+                // _Metadati_Colonne_Grid (M2M multiple_check, voa_class=4) è una virtual column
+                // gestita separatamente nel loop M2M (sub-INSERT/DELETE su join-table).
+                // NON va inclusa nella INSERT scalare: se la tabella ha una colonna fisica
+                // omonima (legacy MySQL schema), riceverebbe lo stringify del List<object>
+                // ("System.Collections.Generic.List`1[...]"). Se la colonna fisica non esiste
+                // (schema MSSQL-aligned), genera "42703 column does not exist".
+                _Metadati_Colonne_Grid gridCol = fld as _Metadati_Colonne_Grid;
+                if (gridCol != null)
                     return;
 
                 if (fld.mc_validation_has.Value && fld.mc_validation_required.Value && (!entity.ContainsKey(fld.mc_nome_colonna) || entity[fld.mc_nome_colonna] == null) && fld.mc_ui_column_type != "boolean" && fld.mc_ui_column_type != "number_boolean" && string.IsNullOrEmpty(fld.mc_default_value))
@@ -5024,26 +5469,13 @@ FROM {fromTable}
                         _Metadati_Colonne_Upload uploader = fld as _Metadati_Colonne_Upload;
                         if (uploader.isDBUpload && (entity.ContainsKey("__guid") || entity.ContainsKey("__id")))
                         {
-                            field_list += (field_list == "" ? "" : ", ") + safetable_name + "." + metaQuery.EscapeDBObjectName(uploader.MultipleUploadBlobFieldName);
-
-                            if (entity[fld.mc_nome_colonna] != null)
-                            {
-                                //get path of the uploaded file
-                                string __id = entity.ContainsKey("__id") ? entity["__id"].ToString() : entity["__guid"].ToString();
-                                string pth = HttpContext.Current.Server.MapPath("/Upload" + (uploader.UseRouteNameAsSubfolder ? "/" + tabel.md_route_name : "") + (uploader.UseRecordIDAsSubfolder ? "/" + __id : ""));
-
-                                string tmp_path = System.IO.Path.Combine(pth, entity[fld.mc_nome_colonna].ToString());
-
-                                ////serialize
-
-                                //append to query
-                                value_list += (value_list == "" ? "" : ", ") + "(" + "SELECT * FROM OPENROWSET (BULK '" + tmp_path.Replace("'", "''") + "', SINGLE_BLOB) " + uploader.MultipleUploadBlobFieldName + ")";
-
-                                //...
-
-                            }
-                            else
-                                value_list += (value_list == "" ? "" : ", ") + "null";
+                            // Align to mysql/metaQueryMySql.cs:BuildDynamicInsertQuery — delegate
+                            // to provider Utility (prefers __guid for the upload-time temp folder,
+                            // falls back to __id; emits the blob column and a `decode('hex','hex')`
+                            // bytea literal in lockstep). Inline code previously hardcoded
+                            // `/Upload` MapPath and missed the file on most installs.
+                            WEB_UI_CRAFTER.ProjectData.ServiziPostgreSql.Utility.customizeImgDBInsert(
+                                (Dictionary<string, object>)entity, uploader, tabel, safetable_name, ref field_list, ref value_list, base64Image);
                         }
                     }
 
@@ -5118,6 +5550,16 @@ FROM {fromTable}
 
             query = string.Format("INSERT INTO {0}({1}) VALUES({2})", safetable_name, field_list, value_list);
 
+            // PG: per IDENTITY PK (no MAX/GUID/PARAMETRIC), aggiungi RETURNING <pk> per
+            // recuperare il nuovo id in singolo round-trip. MSSQL aveva `;select SCOPE_IDENTITY()`
+            // appended dal chiamante; per PG sostituiamo con RETURNING.
+            var identityPk = metadata.FirstOrDefault(x => x.mc_is_primary_key
+                && (string.IsNullOrEmpty(tabel.md_primary_key_type) || tabel.md_primary_key_type == "IDENTITY"));
+            if (identityPk != null && string.IsNullOrEmpty(local_generated_pkey))
+            {
+                query += " RETURNING " + EscapeDBObjectName(RawHelpers.getStoreColumnName(identityPk));
+            }
+
             return query;
         }
 
@@ -5144,7 +5586,7 @@ FROM {fromTable}
                 }
                 else if (tab.md_primary_key_type == "MAX")
                 {
-                    ManageMaxKeyType(tab, pkeys[0], pkeys, entity, RawHelpers.getStoreColumnName(pkeys[0]), RawHelpers.getStoreTableName(tab, "mssql"));
+                    ManageMaxKeyType(tab, pkeys[0], pkeys, entity, RawHelpers.getStoreColumnName(pkeys[0]), RawHelpers.getStoreTableName(tab, "postgresql"));
                 }
                 else
                 {
@@ -5160,7 +5602,18 @@ FROM {fromTable}
 
                 query = BuildDynamicInsertQuery(entity, metadata, user_id, out generated_pkey);
 
-                string scope_identity = connection.Execute(NormalizeSql(query)).ToString();
+                // PG: usa ExecuteScalar quando la query include RETURNING (IDENTITY pk).
+                string cloneInsertNormalized = query;
+                string scope_identity;
+                if (cloneInsertNormalized.IndexOf(" RETURNING ", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    object scalar = connection.ExecuteScalar(cloneInsertNormalized);
+                    scope_identity = scalar?.ToString() ?? "";
+                }
+                else
+                {
+                    scope_identity = connection.Execute(cloneInsertNormalized).ToString();
+                }
 
                 if (!string.IsNullOrEmpty(generated_pkey))
                     scope_identity = generated_pkey;
@@ -5354,15 +5807,24 @@ FROM {fromTable}
         {
             using (NpgsqlConnection con = GetOpenConnection(true))
             {
+                // Mirror della logica MSSQL/MySQL: LEFT JOIN condition_item per popolare i
+                // campi CI_* (flat projection — la classe _Metadati_Condition_Group ha sia
+                // CG_* sia CI_* come proprieta'). Una row per ogni item, con i CG_*
+                // duplicati. Il client/UI raggruppa per CG_Id e raccoglie gli items.
+                string select = "SELECT cg_id, cg_name, _metadati_condition_group.md_id, ci_id, fk_cg_id, ci_evaluation_trigger, ci_comparison_left_field, ci_comparison_operator, ci_comparison_right_field, ci_formula, ci_enabled FROM _metadati_condition_group LEFT JOIN _metadati_condition_item ON _metadati_condition_group.cg_id = _metadati_condition_item.fk_cg_id WHERE md_id=@md_id";
                 var dbArgs = new DynamicParameters();
                 dbArgs.Add("@md_id", md_id);
-                List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)con.Query("SELECT * FROM _Metadati_Condition_Group WHERE md_id=@md_id", dbArgs);
+
+                List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)con.Query(select, dbArgs);
                 List<WuicCore.MetaModel._Metadati_Condition_Group> ret = metaRawModel.convertDictionariesToList<WuicCore.MetaModel._Metadati_Condition_Group>(rows);
 
-                string ids = string.Join(",", ret.Select(x => x.CG_Id));
+                string ids = string.Join(",", ret.Select(x => x.CG_Id).Distinct());
                 if (!string.IsNullOrWhiteSpace(ids))
                 {
-                    List<Dapper.SqlMapper.FastExpando> condRows = (List<Dapper.SqlMapper.FastExpando>)con.Query("SELECT * FROM _Metadati_Condition_Action_Group WHERE fk_cg_id IN (" + ids + ")");
+                    // Mirror MSSQL/MySQL: LEFT JOIN condition_action_item per popolare i campi
+                    // CAI_* sulle ConditionActionGroups (stessa logica flat-projection).
+                    string selectCond = "SELECT cg_id, cg_name, _metadati_condition_group.md_id, cag_id, cag_name, fk_cg_id, cag_execute_if_false, cai_id, fk_cag_id, cai_target_field, cai_target_action, cai_target_action_param_value, cai_formula, cai_enabled FROM _metadati_condition_group INNER JOIN _metadati_condition_action_group ON _metadati_condition_group.cg_id = _metadati_condition_action_group.fk_cg_id LEFT JOIN _metadati_condition_action_item ON _metadati_condition_action_group.cag_id = _metadati_condition_action_item.fk_cag_id WHERE fk_cg_id IN (" + ids + ")";
+                    List<Dapper.SqlMapper.FastExpando> condRows = (List<Dapper.SqlMapper.FastExpando>)con.Query(selectCond);
                     List<WuicCore.MetaModel._Metadati_Condition_Action_Group> cond = metaRawModel.convertDictionariesToList<WuicCore.MetaModel._Metadati_Condition_Action_Group>(condRows);
                     ret.ForEach(c => c.ConditionActions = cond.Where(x => x.FK_CG_Id == c.CG_Id).ToList());
                 }
@@ -5422,8 +5884,63 @@ FROM {fromTable}
             using (var con = new NpgsqlConnection(connectionString))
             {
                 con.Open();
-                string q = $"SELECT {EscapeDBObjectName(uploader.mc_nome_colonna)} FROM {EscapeDBObjectName(tabel_name)} WHERE {EscapeDBObjectName(pkey.mc_nome_colonna)}=@id LIMIT 1";
-                file = con.QueryColumn<byte[]>(q, new { id = __id }).FirstOrDefault();
+                // tabel_name arriva da PostGresProviderGateway.getTableFullName che e' GIA' escapato (quoted).
+                // EscapeDBObjectName qui aggiungeva un secondo round di quotes -> ""uploadsample"" -> 42P01.
+                //
+                // PG type-strict: la pkey column puo' essere integer/bigint, e __id arriva
+                // come string da URL. Senza tipizzare il param PG rifiuta `integer = text`
+                // con `42883: l'operatore non esiste: integer = text`.
+                //
+                // Niente Dapper / DynamicParameters: il custom Dapper di Wuic.Webcore
+                // popola `ParamInfo.AttachedParam` SOLO dentro `AddParameters(command,
+                // identity)` (chiamato da QueryX). Chiamare `Get<T>` PRIMA — per estrarre
+                // il valore — esplode con NullReferenceException su `AttachedParam.Value`.
+                // Soluzione: variabile locale tipizzata + NpgsqlParameter raw ADO.NET.
+                object idValue;
+                string colType = (pkey.mc_db_column_type ?? string.Empty).ToLowerInvariant();
+                if ((colType == "int" || colType == "integer" || colType == "smallint" || colType == "bigint" || colType == "long")
+                    && long.TryParse(__id, out long parsedLong))
+                {
+                    idValue = parsedLong;
+                }
+                else if ((colType == "guid" || colType == "uniqueidentifier" || colType == "uuid")
+                    && Guid.TryParse(__id, out Guid parsedGuid))
+                {
+                    idValue = parsedGuid;
+                }
+                else
+                {
+                    idValue = __id;
+                }
+
+                // Mirror mysql/metaQueryMySql.cs:getUploadedFile:8060 — la SELECT punta alla
+                // COLONNA BLOB (`MultipleUploadBlobFieldName`, es. `FileBlob`/`ImgBlob` di
+                // tipo bytea) non alla colonna filename (`mc_nome_colonna`, es. `ImgDb` di
+                // tipo varchar con il nome del file).
+                string q = $"SELECT {EscapeDBObjectName(uploader.MultipleUploadBlobFieldName)} FROM {tabel_name} WHERE {EscapeDBObjectName(pkey.mc_nome_colonna)}=@id LIMIT 1";
+
+                // ADO.NET ExecuteScalar via NpgsqlCommand: restituisce direttamente lo scalar
+                // raw della prima colonna della prima riga (NON il FastExpando di Dapper che
+                // wrappa la riga e fa fallire `blob is byte[]`).
+                using (var cmd = con.CreateCommand())
+                {
+                    cmd.CommandText = q;
+                    cmd.Parameters.Add(new NpgsqlParameter("id", idValue ?? DBNull.Value));
+                    object blob = cmd.ExecuteScalar();
+                    if (blob == null || blob is DBNull)
+                    {
+                        file = null;
+                    }
+                    else if (blob is byte[] asBytes)
+                    {
+                        file = asBytes;
+                    }
+                    else
+                    {
+                        // base64Image=true path: il valore in colonna e' una stringa base64.
+                        file = Convert.FromBase64String(blob.ToString());
+                    }
+                }
             }
         }
 

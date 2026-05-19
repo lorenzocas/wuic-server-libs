@@ -245,6 +245,7 @@ DECLARE @summary NVARCHAR(MAX) = (SELECT
     DATEDIFF(MILLISECOND, @t0, SYSUTCDATETIME()) AS elapsed_ms
     FOR JSON PATH, WITHOUT_ARRAY_WRAPPER);
 
-EXEC [etl].[end_phase] @phase_id = @phase_id, @outcome = 'success', @summary_json = @summary;
+EXEC [etl].[complete_phase] @phase_id = @phase_id, @rows_inserted = @inserted, @last_error = NULL;
+PRINT '[phase98] summary: ' + @summary;
 PRINT '[phase98] Legacy rates migration completed';
 GO

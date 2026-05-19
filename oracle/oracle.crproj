@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ConfuserEx 2 project for the WUIC oracle provider gateway.
+
+  Mirror di mysql/mysql.crproj. Stessa profilazione (rename decodable +
+  anti ildasm); anti-tamper disabilitato perche' la DLL viene reflection-loaded
+  da RawHelpers.ResolveAssemblyPath e il <Module> cctor anti-tamper crasha
+  con NullReferenceException su Linux (vedi rationale completo in mysql.crproj).
+
+  Reference: https://github.com/mkaring/ConfuserEx/blob/master/docs/ProjectFormat.md
+-->
+<project xmlns="http://confuser.codeplex.com" outputDir="" baseDir="" debug="true">
+
+  <rule pattern="true" preset="none" inherit="false">
+    <protection id="rename">
+      <argument name="mode" value="decodable" />
+      <argument name="renPublic" value="false" />
+    </protection>
+    <protection id="anti ildasm" />
+  </rule>
+
+  <rule pattern="match-type-name('^&lt;')" inherit="true">
+    <protection id="rename" action="remove" />
+  </rule>
+
+  <rule pattern="match-type-name('^.+ProviderGateway$')" inherit="true">
+    <protection id="rename" action="remove" />
+  </rule>
+
+  <module path="oracle.dll" />
+</project>

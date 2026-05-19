@@ -255,8 +255,8 @@ BEGIN
     PRINT '  [warn] No legacy user table found (core.Users / dbo.aspnet_Users). Skipping user ETL.';
     PRINT '  [warn] CA permissions ETL (script 97 step 5) userà fallback NULL user_id (= applies to all).';
     -- Audit nel log etl.error per traccia
-    INSERT INTO [etl].[error] (run_id, phase_id, entity_type, legacy_id, error_message)
-    VALUES (<<RUN_ID>>, @phase_id, 'user', 0, 'No legacy user source table found. CA permissions ETL will use NULL user_id fallback.');
+    INSERT INTO [etl].[error] (run_id, phase_number, entity_type, legacy_id, error_kind, error_message)
+    VALUES (<<RUN_ID>>, 1, 'user', '0', 'missing_source', 'No legacy user source table found. CA permissions ETL will use NULL user_id fallback.');
 END
 
 SET @inserted = @inserted + @user_inserted;

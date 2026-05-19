@@ -22,7 +22,7 @@ namespace FatturazioneElettronica.Controllers;
 public class CestinoController : ControllerBase
 {
     private static string DataConn =>
-        ConfigurationManager.ConnectionStrings["DataSQLConnection"]?.ConnectionString
+        WEB_UI_CRAFTER.Helpers.ConfigHelper.ResolveConnectionString("DataSQLConnection")
         ?? throw new InvalidOperationException("DataSQLConnection non configurata");
 
     private static readonly System.Collections.Generic.HashSet<string> AllowedEntities = new(StringComparer.OrdinalIgnoreCase)

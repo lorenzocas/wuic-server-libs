@@ -132,6 +132,28 @@ namespace WuicOData
                             "Pomelo.EntityFrameworkCore.MySql resolves on the runtime path.");
                     }
                 }
+                else if (odataDbms == "oracle")
+                {
+                    // Sibling di TryConfigureMySql: instrada il context EF Core
+                    // verso `Wuic.OracleProvider/OracleOdataConfigurator` via reflection.
+                    if (!TryConfigureOracle(options, connectionString))
+                    {
+                        throw new InvalidOperationException(
+                            "WuicOData: AppSettings:dbms='oracle' but `Wuic.OracleProvider/OracleOdataConfigurator` is not loadable at runtime. " +
+                            "Ensure oracle.dll is deployed alongside the host and that " +
+                            "Oracle.EntityFrameworkCore + Oracle.ManagedDataAccess.Core resolvono sul runtime path.");
+                    }
+                }
+                else if (odataDbms == "postgresql" || odataDbms == "postgres")
+                {
+                    if (!TryConfigurePostgres(options, connectionString))
+                    {
+                        throw new InvalidOperationException(
+                            "WuicOData: AppSettings:dbms='postgresql' but `Wuic.PostgresProvider/PostgresOdataConfigurator` is not loadable at runtime. " +
+                            "Ensure postgresql.dll is deployed alongside the host and that " +
+                            "Npgsql.EntityFrameworkCore.PostgreSQL + Npgsql resolvono sul runtime path.");
+                    }
+                }
                 else
                 {
                     options.UseSqlServer(connectionString, o => o.UseNetTopologySuite()).EnableSensitiveDataLogging();
@@ -221,6 +243,13 @@ namespace WuicOData
         private const string MySqlConfiguratorTypeName = "metaModelRaw.MySqlOdataConfigurator";
         private const string MySqlConfiguratorMethod = "ConfigureDynamicContextOptions";
 
+        // Sibling per Oracle + Postgres (cross-DBMS parity). Stessa contract:
+        // - tipo statico `metaModelRaw.<Provider>OdataConfigurator`
+        // - metodo `ConfigureDynamicContextOptions(DbContextOptionsBuilder, string)`
+        // - companion DLL specifiche da pre-caricare (transitive deps EF Core).
+        private const string OracleConfiguratorTypeName = "metaModelRaw.OracleOdataConfigurator";
+        private const string PostgresConfiguratorTypeName = "metaModelRaw.PostgresOdataConfigurator";
+
         /// <summary>
         /// Expose the cached IConfiguration so EntitiesController can read
         /// AppSettings:dbms without re-bootstrapping configuration.
@@ -238,25 +267,55 @@ namespace WuicOData
         /// </summary>
         public static T InvokeMySqlOdataMethod<T>(string methodName, params object[] args)
         {
+            return InvokeProviderOdataMethod<T>(MySqlConfiguratorTypeName, "mysql.dll", methodName, args);
+        }
+
+        /// <summary>
+        /// Sibling di InvokeMySqlOdataMethod per il provider Oracle. Vedi
+        /// commento esteso sopra (TryConfigureOracle/TryConfigureMySql) per
+        /// architettura plugin runtime-only.
+        /// </summary>
+        public static T InvokeOracleOdataMethod<T>(string methodName, params object[] args)
+        {
+            return InvokeProviderOdataMethod<T>(OracleConfiguratorTypeName, "oracle.dll", methodName, args);
+        }
+
+        /// <summary>
+        /// Sibling di InvokeMySqlOdataMethod per il provider PostgreSQL.
+        /// </summary>
+        public static T InvokePostgresOdataMethod<T>(string methodName, params object[] args)
+        {
+            return InvokeProviderOdataMethod<T>(PostgresConfiguratorTypeName, "postgresql.dll", methodName, args);
+        }
+
+        /// <summary>
+        /// Generic helper: trova un tipo statico in qualsiasi assembly caricato
+        /// o nel filesystem (probe in <c>AppContext.BaseDirectory</c> + <c>bin/</c>),
+        /// invoca un metodo statico, ritorna il risultato cast a T (default in
+        /// caso di qualsiasi fallimento — semantica fail-safe identica al pattern
+        /// MSSQL originale).
+        /// </summary>
+        private static T InvokeProviderOdataMethod<T>(string typeName, string dllName, string methodName, object[] args)
+        {
             try
             {
                 Type t = null;
                 foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
                 {
-                    t = asm.GetType(MySqlConfiguratorTypeName, throwOnError: false, ignoreCase: false);
+                    t = asm.GetType(typeName, throwOnError: false, ignoreCase: false);
                     if (t != null) break;
                 }
                 if (t == null)
                 {
                     string[] probes = {
-                        Path.Combine(AppContext.BaseDirectory, "mysql.dll"),
-                        Path.Combine(AppContext.BaseDirectory, "bin", "mysql.dll")
+                        Path.Combine(AppContext.BaseDirectory, dllName),
+                        Path.Combine(AppContext.BaseDirectory, "bin", dllName)
                     };
                     foreach (var probe in probes)
                     {
                         if (!File.Exists(probe)) continue;
                         var loaded = Assembly.LoadFrom(probe);
-                        t = loaded.GetType(MySqlConfiguratorTypeName, throwOnError: false, ignoreCase: false);
+                        t = loaded.GetType(typeName, throwOnError: false, ignoreCase: false);
                         if (t != null) break;
                     }
                 }
@@ -362,6 +421,118 @@ namespace WuicOData
                 catch { }
                 throw new InvalidOperationException("TryConfigureMySql failed: " + ex.GetType().FullName + ": " + ex.Message + (ex.InnerException != null ? " | inner: " + ex.InnerException.GetType().FullName + ": " + ex.InnerException.Message : "") + " | csKeys=[" + csKeys + "]", ex);
             }
+        }
+
+        /// <summary>
+        /// Sibling di TryConfigureMySql per il provider Oracle.
+        /// Pre-carica le dipendenze EF Core transitive (Oracle.EntityFrameworkCore,
+        /// Oracle.ManagedDataAccess) dal bin di WuicCore prima dell'invoke
+        /// (stesso problema di plugin loading documentato in TryConfigureMySql).
+        /// </summary>
+        private static bool TryConfigureOracle(DbContextOptionsBuilder options, string connectionString)
+        {
+            try
+            {
+                string[] companionDlls = new[]
+                {
+                    "Oracle.EntityFrameworkCore.dll",
+                    "Oracle.ManagedDataAccess.dll"
+                };
+                PreloadCompanionDlls(companionDlls);
+
+                Type t = ResolveProviderType(OracleConfiguratorTypeName, "oracle.dll");
+                if (t == null) return false;
+                var method = t.GetMethod(MySqlConfiguratorMethod /* ConfigureDynamicContextOptions */, BindingFlags.Public | BindingFlags.Static);
+                if (method == null) return false;
+                method.Invoke(null, new object[] { options, connectionString });
+                return true;
+            }
+            catch (Exception ex)
+            {
+                string csKeys = SafeConnectionStringKeys(connectionString);
+                throw new InvalidOperationException("TryConfigureOracle failed: " + ex.GetType().FullName + ": " + ex.Message + (ex.InnerException != null ? " | inner: " + ex.InnerException.GetType().FullName + ": " + ex.InnerException.Message : "") + " | csKeys=[" + csKeys + "]", ex);
+            }
+        }
+
+        /// <summary>
+        /// Sibling di TryConfigureMySql per il provider PostgreSQL.
+        /// </summary>
+        private static bool TryConfigurePostgres(DbContextOptionsBuilder options, string connectionString)
+        {
+            try
+            {
+                string[] companionDlls = new[]
+                {
+                    "Npgsql.EntityFrameworkCore.PostgreSQL.dll",
+                    "Npgsql.dll"
+                };
+                PreloadCompanionDlls(companionDlls);
+
+                Type t = ResolveProviderType(PostgresConfiguratorTypeName, "postgresql.dll");
+                if (t == null) return false;
+                var method = t.GetMethod(MySqlConfiguratorMethod /* ConfigureDynamicContextOptions */, BindingFlags.Public | BindingFlags.Static);
+                if (method == null) return false;
+                method.Invoke(null, new object[] { options, connectionString });
+                return true;
+            }
+            catch (Exception ex)
+            {
+                string csKeys = SafeConnectionStringKeys(connectionString);
+                throw new InvalidOperationException("TryConfigurePostgres failed: " + ex.GetType().FullName + ": " + ex.Message + (ex.InnerException != null ? " | inner: " + ex.InnerException.GetType().FullName + ": " + ex.InnerException.Message : "") + " | csKeys=[" + csKeys + "]", ex);
+            }
+        }
+
+        private static void PreloadCompanionDlls(string[] companionDlls)
+        {
+            string[] companionProbeDirs = new[]
+            {
+                AppContext.BaseDirectory,
+                Path.Combine(AppContext.BaseDirectory, "bin")
+            };
+            foreach (var dll in companionDlls)
+            {
+                foreach (var dir in companionProbeDirs)
+                {
+                    string p = Path.Combine(dir, dll);
+                    if (!File.Exists(p)) continue;
+                    try { System.Reflection.Assembly.LoadFrom(p); } catch { /* non bloccante */ }
+                    break;
+                }
+            }
+        }
+
+        private static Type ResolveProviderType(string typeName, string dllName)
+        {
+            Type t = null;
+            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                t = asm.GetType(typeName, throwOnError: false, ignoreCase: false);
+                if (t != null) break;
+            }
+            if (t == null)
+            {
+                string[] probes = {
+                    Path.Combine(AppContext.BaseDirectory, dllName),
+                    Path.Combine(AppContext.BaseDirectory, "bin", dllName)
+                };
+                foreach (var probe in probes)
+                {
+                    if (!File.Exists(probe)) continue;
+                    var loaded = System.Reflection.Assembly.LoadFrom(probe);
+                    t = loaded.GetType(typeName, throwOnError: false, ignoreCase: false);
+                    if (t != null) break;
+                }
+            }
+            return t;
+        }
+
+        private static string SafeConnectionStringKeys(string connectionString)
+        {
+            try
+            {
+                return string.Join(",", (connectionString ?? "").Split(';').Where(p => p.Contains("=")).Select(p => p.Split('=')[0].Trim()));
+            }
+            catch { return ""; }
         }
 
         private static string FindKonvergenceAppConfigPath()

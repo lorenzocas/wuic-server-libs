@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -6,6 +6,25 @@
     <Nullable>disable</Nullable>
     <EnableNETAnalyzers>false</EnableNETAnalyzers>
     <WarningLevel>0</WarningLevel>
+    <IsPackable>true</IsPackable>
+    <!-- See mysql.csproj for the rationale of CopyLocalLockFileAssemblies +
+         ConfuserEx pipeline. Identical mirror for the postgresql provider. -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <PackageId>Wuic.PostgresProvider</PackageId>
+    <Version>1.1.0</Version>
+    <Authors>Wuic</Authors>
+    <Description>Wuic PostgreSQL provider for metadata/data runtime.</Description>
+    <EnableObfuscationOnPack Condition="'$(EnableObfuscationOnPack)' == ''">true</EnableObfuscationOnPack>
+    <!-- ConfuserEx 2 — sibling pipeline di mysql.csproj. Vedi quel file per
+         il commento esteso sulla migrazione Obfuscar → ConfuserEx 2 e per la
+         struttura dei 4 target (EnsureConfuserCli / ResolveConfuserConfig /
+         ConfuseBeforePack / UseConfusedBuildOutput). -->
+    <ConfuserProjectTemplate>$(MSBuildProjectDirectory)\postgresql.crproj</ConfuserProjectTemplate>
+    <ConfuserProjectFile>$(IntermediateOutputPath)postgresql.runtime.crproj</ConfuserProjectFile>
+    <ConfuserCliRoot>$(MSBuildProjectDirectory)\..\KonvergenceCore\tools\confuserex-cli</ConfuserCliRoot>
+    <ConfuserCliExe>$(ConfuserCliRoot)\Confuser.CLI.exe</ConfuserCliExe>
+    <ConfusedOutputDirectory>$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)-confused</ConfusedOutputDirectory>
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);UseConfusedBuildOutput</TargetsForTfmSpecificBuildOutput>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,6 +35,90 @@
     <PackageReference Include="Npgsql" Version="8.0.5" />
     <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="8.0.1" />
     <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.6" />
+    <!-- EF Core Npgsql provider — required by PostgresOdataConfigurator to
+         register `UseNpgsql` on the OData DbContext when the host is PostgreSQL.
+         Pinned to EF Core 8.x to match WuicOData's Microsoft.EntityFrameworkCore 8.0.8. -->
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.4" />
   </ItemGroup>
+
+  <!--
+    Sync runtime deps in KonvergenceCore/bin (mirror della logica in
+    mysql.csproj). KonvergenceCore.csproj NON referenzia postgresql.csproj
+    (sarebbe circolare); il provider viene caricato a runtime via reflection.
+    Per evitare FileNotFoundException su Npgsql.EntityFrameworkCore.PostgreSQL
+    quando TryConfigurePostgres viene invocato, sincronizziamo le DLL del
+    provider nella cartella bin di KonvergenceCore post-build.
+  -->
+  <Target Name="SyncProviderDepsToKonvergenceCoreBin" AfterTargets="Build">
+    <PropertyGroup>
+      <KCBinDir>$(MSBuildProjectDirectory)\..\KonvergenceCore\bin\$(Configuration)\$(TargetFramework)\</KCBinDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <ProviderRuntimeDlls Include="$(OutputPath)postgresql.dll" />
+      <ProviderRuntimeDlls Include="$(OutputPath)postgresql.pdb" Condition="Exists('$(OutputPath)postgresql.pdb')" />
+      <ProviderRuntimeDlls Include="$(OutputPath)Npgsql.dll" Condition="Exists('$(OutputPath)Npgsql.dll')" />
+      <ProviderRuntimeDlls Include="$(OutputPath)Npgsql.EntityFrameworkCore.PostgreSQL.dll" Condition="Exists('$(OutputPath)Npgsql.EntityFrameworkCore.PostgreSQL.dll')" />
+      <!-- Microsoft.Extensions.Logging.Abstractions e' una dep TRANSITIVA di Npgsql 8.x
+           con STRONG-NAME reference esatta a v8.0.0.0. Senza questa DLL accanto a Npgsql,
+           Assembly.LoadFrom("postgresql.dll") + invoke metodi -> Npgsql -> deps loading
+           fallisce con FileNotFoundException (visibile come "Could not load file or assembly
+           'Npgsql, Version=8.0.5.0, ... PublicKeyToken=5d8b90d52f46fda7'" nei log backend).
+           Sincronizziamo SOLO la versione 8.0.0 (richiesta dal binding strong-name di Npgsql). -->
+      <ProviderRuntimeDlls Include="$(OutputPath)Microsoft.Extensions.Logging.Abstractions.dll" Condition="Exists('$(OutputPath)Microsoft.Extensions.Logging.Abstractions.dll')" />
+    </ItemGroup>
+    <Message Text="[postgresql.csproj] Syncing provider deps to KonvergenceCore bin: $(KCBinDir)" Importance="high" Condition="Exists('$(KCBinDir)')" />
+    <Copy SourceFiles="@(ProviderRuntimeDlls)"
+          DestinationFolder="$(KCBinDir)"
+          SkipUnchangedFiles="true"
+          Condition="Exists('$(KCBinDir)')" />
+    <Message Text="[postgresql.csproj] WARNING: KonvergenceCore bin not found at '$(KCBinDir)' — build KonvergenceCore first, then re-build postgresql to sync." Importance="high" Condition="!Exists('$(KCBinDir)')" />
+  </Target>
+
+  <!-- ConfuserEx 2 obfuscation pipeline. Mirror identico a mysql.csproj. -->
+
+  <Target Name="EnsureConfuserCli" Condition="'$(EnableObfuscationOnPack)' == 'true' and '$(Configuration)' == 'Release'">
+    <Message Text="Ensuring ConfuserEx CLI is present at $(ConfuserCliRoot)..." Importance="high" />
+    <MakeDir Directories="$(ConfuserCliRoot)" Condition="!Exists('$(ConfuserCliRoot)')" />
+    <Exec Command="pwsh -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\KonvergenceCore\scripts\ensure-confuserex-cli.ps1&quot; -InstallRoot &quot;$(ConfuserCliRoot)&quot;"
+          Condition="!Exists('$(ConfuserCliExe)')"
+          WorkingDirectory="$(MSBuildProjectDirectory)" />
+    <Error Condition="!Exists('$(ConfuserCliExe)')"
+           Text="Confuser.CLI.exe not found at $(ConfuserCliExe) after ensure step." />
+  </Target>
+
+  <Target Name="ResolveConfuserConfig" DependsOnTargets="EnsureConfuserCli"
+          BeforeTargets="ConfuseBeforePack"
+          Condition="'$(EnableObfuscationOnPack)' == 'true' and '$(Configuration)' == 'Release'">
+    <Message Text="Resolving ConfuserEx config (template: $(ConfuserProjectTemplate)) → $(ConfuserProjectFile)" Importance="high" />
+    <MakeDir Directories="$(IntermediateOutputPath)" Condition="!Exists('$(IntermediateOutputPath)')" />
+    <Exec Command="pwsh -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\KonvergenceCore\scripts\generate-confuserex-config.ps1&quot; -TemplatePath &quot;$(ConfuserProjectTemplate)&quot; -OutputPath &quot;$(ConfuserProjectFile)&quot; -ModulePath &quot;$(TargetDir)$(AssemblyName)$(TargetExt)&quot; -OutputDir &quot;$(ConfusedOutputDirectory)&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)" />
+    <Error Condition="!Exists('$(ConfuserProjectFile)')" Text="Resolved ConfuserEx config not generated at $(ConfuserProjectFile)" />
+  </Target>
+
+  <Target Name="ConfuseBeforePack" BeforeTargets="Pack"
+          DependsOnTargets="ResolveConfuserConfig"
+          Inputs="$(TargetDir)$(AssemblyName)$(TargetExt);$(ConfuserProjectFile)"
+          Outputs="$(ConfusedOutputDirectory)\$(AssemblyName).dll;$(ConfusedOutputDirectory)\symbols.map"
+          Condition="'$(EnableObfuscationOnPack)' == 'true' and '$(Configuration)' == 'Release'">
+    <Message Text="Running ConfuserEx 2 before NuGet pack (config: $(ConfuserProjectFile))..." Importance="high" />
+    <MakeDir Directories="$(ConfusedOutputDirectory)" Condition="!Exists('$(ConfusedOutputDirectory)')" />
+    <Exec Command="&quot;$(ConfuserCliExe)&quot; -n &quot;$(ConfuserProjectFile)&quot;" WorkingDirectory="$(MSBuildProjectDirectory)" />
+    <Error Condition="!Exists('$(ConfusedOutputDirectory)\$(AssemblyName).dll')"
+           Text="Obfuscated assembly not found at $(ConfusedOutputDirectory)\$(AssemblyName).dll" />
+    <Error Condition="!Exists('$(ConfusedOutputDirectory)\symbols.map')"
+           Text="ConfuserEx symbols.map not produced at $(ConfusedOutputDirectory)\symbols.map. Did the rename mode set 'decodable'?" />
+    <Message Text="symbols.map written to $(ConfusedOutputDirectory)\symbols.map" Importance="high" />
+  </Target>
+
+  <Target Name="UseConfusedBuildOutput" DependsOnTargets="ConfuseBeforePack"
+          Condition="'$(EnableObfuscationOnPack)' == 'true' and '$(Configuration)' == 'Release'">
+    <ItemGroup>
+      <BuildOutputInPackage Remove="$(TargetDir)$(AssemblyName).dll" />
+      <BuildOutputInPackage Include="$(ConfusedOutputDirectory)\$(AssemblyName).dll">
+        <TargetPath>$(AssemblyName).dll</TargetPath>
+      </BuildOutputInPackage>
+    </ItemGroup>
+  </Target>
 
 </Project>

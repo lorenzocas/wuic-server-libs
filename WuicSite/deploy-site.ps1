@@ -100,6 +100,7 @@ param(
     [switch]$SkipMaintenancePage,
     [switch]$SkipApi,
     [switch]$SkipLinuxTarball,
+    [switch]$SkipFreeAppZips,
     [string]$LinuxTarballSourceDir = '',
     [string]$ReleaseNotesDir = '',
     [string]$InstallScriptPath = '',
@@ -1464,6 +1465,63 @@ foreach (`$k in `$keys) {
     }
 } else {
     Write-Step "3/3 Upload pacchetti ZIP [SKIP]"
+}
+
+# ── step 3b: upload free-app ZIPs (CrmApp / FE / FlottaMezzi) ────────
+# Le free app sono distribuzioni indipendenti dal ciclo release WuicTest:
+# vivono in artifacts/release-freapp/ e vengono linkate dalla pagina
+# /downloads (sezione "Free apps") con path stabili in /downloads/freeapps/.
+# A differenza degli ZIP WuicTest (step 3) qui NIENTE rotation per release
+# key: ognuno dei tre app ha 2-3 file con nome fisso (es. CrmApp-iis-v1.0.0
+# -with-dbs.zip) e l'upload sovrascrive in place a ogni run. Quando l'app
+# viene riversionata, deploy-release-freapp.ps1 emette nuovi file con
+# versione diversa e questo step li carica accanto ai vecchi — il cleanup
+# dei vecchi sta nel comportamento del produttore di artefatti, non qui.
+if ($LocalOnly) { $SkipFreeAppZips = $true }
+if (-not $SkipFreeAppZips) {
+    Write-Step "3b/5 Upload free-app ZIP (CrmApp / FE / FlottaMezzi)"
+    $freeAppSourceDir = Join-Path $scriptDir '..\KonvergenceCore\artifacts\release-freapp'
+    if (-not (Test-Path $freeAppSourceDir)) {
+        Write-Host "  [skip] cartella sorgente non trovata: $freeAppSourceDir" -ForegroundColor Yellow
+    } else {
+        $freeAppZips = Get-ChildItem -Path $freeAppSourceDir -Filter '*.zip' -ErrorAction SilentlyContinue
+        if (-not $freeAppZips -or $freeAppZips.Count -eq 0) {
+            Write-Host "  [skip] nessuno ZIP in $freeAppSourceDir" -ForegroundColor Yellow
+        } else {
+            $remoteFreeAppDir = Join-Path $SitePath 'downloads\freeapps'
+            $uncFreeApp = "\\${Server}\$($remoteFreeAppDir -replace ':', '$')"
+
+            Write-Host "  $($freeAppZips.Count) ZIP da caricare:" -ForegroundColor DarkGray
+            foreach ($z in $freeAppZips) {
+                Write-Host "    $($z.Name) ($([math]::Round($z.Length / 1MB, 1)) MB)" -ForegroundColor DarkGray
+            }
+
+            $useUncFreeApp = [bool](Test-Path $uncFreeApp -ErrorAction SilentlyContinue)
+            if ($useUncFreeApp) {
+                Write-Sub "modalita' UNC: copy $($freeAppZips.Count) ZIP -> $uncFreeApp"
+                if (-not (Test-Path $uncFreeApp)) { New-Item -ItemType Directory -Path $uncFreeApp -Force | Out-Null }
+                foreach ($z in $freeAppZips) {
+                    Copy-Item -LiteralPath $z.FullName -Destination (Join-Path $uncFreeApp $z.Name) -Force
+                    Write-Sub "uploaded $($z.Name)"
+                }
+            } else {
+                # Remote (SCP): assicura dir + scp uno per uno.
+                $remoteScpDir = "${User}@${Server}:${remoteFreeAppDir}"
+                Write-Sub "prep dir remota $remoteFreeAppDir"
+                ssh -o StrictHostKeyChecking=no "${User}@${Server}" "powershell -NoProfile -Command `"if (-not (Test-Path '$remoteFreeAppDir')) { New-Item -ItemType Directory -Path '$remoteFreeAppDir' -Force | Out-Null }`""
+                foreach ($z in $freeAppZips) {
+                    Write-Sub "scp $($z.Name) -> $remoteFreeAppDir"
+                    & scp -o StrictHostKeyChecking=no $z.FullName "${remoteScpDir}/$($z.Name)"
+                    if ($LASTEXITCODE -ne 0) {
+                        Write-Host "  [warn] scp failed per $($z.Name) (exit $LASTEXITCODE)" -ForegroundColor Yellow
+                    }
+                }
+            }
+            Write-Host "  free-app ZIPs uploaded -> /downloads/freeapps/" -ForegroundColor Green
+        }
+    }
+} else {
+    Write-Step "3b/5 Upload free-app ZIP [SKIP]"
 }
 
 # ── step 4: upload Linux tarball (hidden asset) ──────────────────────

@@ -99,7 +99,22 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
             field_list += (field_list == "" ? "" : ", ") + RawHelpers.escapeDBObjectName(uploader.MultipleUploadBlobFieldName, "oracle");
             if (!string.IsNullOrEmpty(RawHelpers.ParseNull(entity[uploader.mc_nome_colonna])))
             {
-                string __id = entity.ContainsKey("__id") ? entity["__id"].ToString() : entity["__guid"].ToString();
+                // Resolve upload-time folder id: prefer __guid (multi-upload temp
+                // folder), then __id when real ("0"/"" placeholder skipped), then
+                // fall back to __guid. Mirrors mysql/Utility_mysql.cs:customizeImgDBInsert.
+                string __id = null;
+                if (entity.ContainsKey("__guid"))
+                {
+                    string g = entity["__guid"]?.ToString();
+                    if (!string.IsNullOrWhiteSpace(g)) __id = g;
+                }
+                if (__id == null && entity.ContainsKey("__id"))
+                {
+                    string i = entity["__id"]?.ToString();
+                    if (!string.IsNullOrWhiteSpace(i) && i != "0") __id = i;
+                }
+                if (__id == null) __id = entity.ContainsKey("__guid") ? entity["__guid"]?.ToString() : "";
+
                 string pth = ResolveUploadRecordDirectory(uploader, tabel, __id);
 
                 string tmp_path = System.IO.Path.Combine(pth, entity[uploader.mc_nome_colonna].ToString());
@@ -142,6 +157,23 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
                 string pth = ResolveUploadRecordDirectory(uploader, tabel, __id);
 
                 string tmp_path = System.IO.Path.Combine(pth, entity[uploader.mc_nome_colonna].ToString());
+
+                // Fallback al folder upload-time __guid quando il pkey folder non
+                // ha ancora il file (il client carica in <root>/<route>/<__guid>/...,
+                // _Metadati_methods.RawUpdateFlatData lo sposta DOPO che
+                // BuildDynamicUpdateQuery ha gia' costruito la SET clause).
+                // Mirror mysql/Utility_mysql.cs:customizeImgDBUpdate.
+                if (!System.IO.File.Exists(tmp_path) && entity.ContainsKey("__guid"))
+                {
+                    string guid = entity["__guid"]?.ToString();
+                    if (!string.IsNullOrWhiteSpace(guid))
+                    {
+                        string guidPth = ResolveUploadRecordDirectory(uploader, tabel, guid);
+                        string guidTmp = System.IO.Path.Combine(guidPth, entity[uploader.mc_nome_colonna].ToString());
+                        if (System.IO.File.Exists(guidTmp))
+                            tmp_path = guidTmp;
+                    }
+                }
 
                 if (base64Image)
                 {
@@ -666,15 +698,15 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
                 string userConnection = utenteExtra["connection"].ToString();
 
                 if (!string.IsNullOrEmpty(userConnection))
-                    connectionString = ConfigurationManager.ConnectionStrings[userConnection].ConnectionString;
+                    connectionString = ConfigHelper.ResolveConnectionString(userConnection);
                 else
                 {
-                    connectionString = ConfigurationManager.ConnectionStrings["DataSQLConnection"].ConnectionString;
+                    connectionString = ConfigHelper.ResolveConnectionString("DataSQLConnection");
                 }
             }
             else
             {
-                connectionString = ConfigurationManager.ConnectionStrings["DataSQLConnection"].ConnectionString;
+                connectionString = ConfigHelper.ResolveConnectionString("DataSQLConnection");
             }
             return connectionString;
         }
@@ -713,7 +745,8 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
 
                         if (saved_token != user.user_token || current_ip != saved_ip || string.IsNullOrEmpty(saved_token))
                         {
-                            connection.Execute(string.Format("UPDATE {0} SET {1}='', LastActivityDate=getdate() WHERE {2} = {3}",
+                            // Oracle-native (port da mysql/Utility_mysql.cs): SYSDATE invece di MSSQL getdate(); identifier quoting "..." per case-sensitivity.
+                            connection.Execute(string.Format("UPDATE {0} SET {1}='', \"LastActivityDate\"=SYSDATE WHERE {2} = {3}",
                                                                 infos.user_table_name,
                                                                 "token",
                                                                 infos.user_id_column_name,
@@ -723,7 +756,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
                         }
                         else
                         {
-                            connection.Execute(string.Format("UPDATE {0} SET LastActivityDate=getdate() WHERE {1} = {2}",
+                            connection.Execute(string.Format("UPDATE {0} SET \"LastActivityDate\"=SYSDATE WHERE {1} = {2}",
                                                                 infos.user_table_name,
                                                                 infos.user_id_column_name,
                                                                 user.user_id));

@@ -1,0 +1,39 @@
+// Bridge NPM (config `--configuration=npm` via fileReplacements): import dal
+// pacchetto npm `wuic-framework-lib` (FESM bundle). Allineato 2026-05-17 al
+// pattern FE/FlottaMezzi per esporre l'API completa (incluso
+// WuicRagChatbotFabComponent + LazyFirstRunWizardComponent richiesti
+// dall'array `imports:[]` di AppComponent).
+export { DataSourceComponent, type DataSourceBeforeSyncEvent, type DataSourceAfterSyncEvent } from 'wuic-framework-lib';
+export { ListGridComponent, type ListGridBeforeRowRenderEvent, type ListGridAfterRowRenderEvent, type ListGridAfterRenderEvent } from 'wuic-framework-lib';
+export { ParametricDialogComponent } from 'wuic-framework-lib';
+export { PagerComponent } from 'wuic-framework-lib';
+export { DataRepeaterComponent } from 'wuic-framework-lib';
+export { FieldEditorComponent } from 'wuic-framework-lib';
+export { LazyChartListComponent } from 'wuic-framework-lib';
+export { TreeListComponent } from 'wuic-framework-lib';
+export { LazySpreadsheetListSfComponent } from 'wuic-framework-lib';
+export { FilterBarComponent } from 'wuic-framework-lib';
+export { MapListComponent } from 'wuic-framework-lib';
+export { CarouselListComponent } from 'wuic-framework-lib';
+export { LazySchedulerListComponent } from 'wuic-framework-lib';
+export { KanbanListComponent } from 'wuic-framework-lib';
+export { WuicRagChatbotComponent } from 'wuic-framework-lib';
+export { WuicRagChatbotFabComponent } from 'wuic-framework-lib';
+export { LazyFirstRunWizardComponent } from 'wuic-framework-lib';
+export { WuicErrorDialogComponent } from 'wuic-framework-lib';
+export type { RagSource } from 'wuic-framework-lib';
+export type { IDataBoundHostComponent } from 'wuic-framework-lib';
+export { MetaInfo } from 'wuic-framework-lib';
+export { ValidationRule } from 'wuic-framework-lib';
+export type { IFieldEditor } from 'wuic-framework-lib';
+export { MetadatiColonna } from 'wuic-framework-lib';
+export { MetadatiTabella } from 'wuic-framework-lib';
+export { FilterInfo } from 'wuic-framework-lib';
+export { DataProviderOdataService } from 'wuic-framework-lib';
+export { WtoolboxService } from 'wuic-framework-lib';
+export { ImportExportButtonComponent } from 'wuic-framework-lib';
+export { ImageWrapperComponent } from 'wuic-framework-lib';
+export { NotificationBellComponent } from 'wuic-framework-lib';
+export { LazyCodeEditorComponent } from 'wuic-framework-lib';
+export { LazyReportViewerComponent } from 'wuic-framework-lib';
+export { LazyReportDesignerComponent } from 'wuic-framework-lib';

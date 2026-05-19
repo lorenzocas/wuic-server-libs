@@ -765,11 +765,28 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
         public static void ExecuteMySqlScript(DbConnection connection, string script)
         {
+            // Retro-compat wrapper: ignora il count. Vedi overload con int return.
+            ExecuteMySqlScriptWithCount(connection, script);
+        }
+
+        /// <summary>
+        /// Esegue uno script MySQL multi-statement gestendo nativamente i
+        /// `DELIMITER` directives (necessari per `CREATE PROCEDURE` / `CREATE
+        /// FUNCTION` / trigger nei file di setup e2e tipo
+        /// `setup-sp-test.mysql.sql`). Usa <see cref="MySqlScript"/> della lib
+        /// MySql.Data che parsa i delimiter shift e splitta correttamente i
+        /// batch. Ritorna il numero di statement eseguiti (per logging).
+        /// </summary>
+        /// <param name="connection">Connessione (deve essere MySqlConnection; il gateway garantisce il tipo via OpenConnectionToConnectionString).</param>
+        /// <param name="script">Body SQL completo. No-op se null/whitespace.</param>
+        /// <returns>Numero di statement eseguiti.</returns>
+        public static int ExecuteMySqlScriptWithCount(DbConnection connection, string script)
+        {
             if (connection == null)
                 throw new ArgumentNullException(nameof(connection));
 
             if (string.IsNullOrWhiteSpace(script))
-                return;
+                return 0;
 
             bool shouldClose = connection.State != ConnectionState.Open;
             if (shouldClose)
@@ -777,11 +794,23 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
             try
             {
+                // Path preferito: MySqlScript per gestione DELIMITER directives.
+                // Richiede MySqlConnection concreta. Se il chiamante passa una
+                // connessione non-MySQL (improbabile via gateway), fallback al
+                // path ExecuteNonQuery senza DELIMITER support.
+                var mysqlConn = connection as MySqlConnection;
+                if (mysqlConn != null)
+                {
+                    var msScript = new MySqlScript(mysqlConn, script);
+                    return msScript.Execute();
+                }
+
                 using (var cmd = connection.CreateCommand())
                 {
                     cmd.CommandText = script;
                     cmd.ExecuteNonQuery();
                 }
+                return 1;
             }
             finally
             {

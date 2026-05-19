@@ -73,6 +73,79 @@
   }
 }
 
+.freeapps-block {
+  margin-top: 48px;
+  padding: 28px 32px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+
+  h2 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 0;
+    margin-bottom: 8px;
+    font-size: 1.4rem;
+    color: #0f172a;
+
+    i { color: #16a34a; }
+  }
+
+  .freeapps-subtitle {
+    margin: 0 0 16px 0;
+    color: #475569;
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+
+  .freeapps-license-note {
+    display: block;
+    margin-bottom: 24px;
+  }
+
+  .freeapps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
+  }
+
+  .freeapp-card {
+    padding: 4px;
+
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin: 0 0 4px 0;
+      color: #0f172a;
+    }
+
+    .freeapp-tagline {
+      font-size: 0.85rem;
+      color: #6366f1;
+      font-weight: 600;
+      margin: 0 0 12px 0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .freeapp-features {
+      color: #475569;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      margin: 0 0 16px 0;
+    }
+
+    .freeapp-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+
+      a { text-decoration: none; }
+    }
+  }
+}
+
 .linux-install-block {
   margin-top: 48px;
   padding: 28px 32px;

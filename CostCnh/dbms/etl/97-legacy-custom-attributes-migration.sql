@@ -37,6 +37,22 @@ END
 DECLARE @t0 DATETIME2(3) = SYSUTCDATETIME();
 DECLARE @inserted INT = 0;
 
+-- Probe: source DB ha le CustomAttributes tables? Se no, complete_phase con 0 rows.
+IF NOT EXISTS (
+    SELECT 1 FROM <<SOURCE_DB>>.sys.tables t
+    INNER JOIN <<SOURCE_DB>>.sys.schemas s ON s.schema_id = t.schema_id
+    WHERE s.name = 'core' AND t.name = 'CustomAttributes'
+)
+BEGIN
+    PRINT '[97] source has no core.CustomAttributes — skipping CA migration entirely';
+    INSERT INTO [etl].[error] (run_id, phase_number, entity_type, legacy_id, error_kind, error_message)
+    VALUES (<<RUN_ID>>, 97, 'custom_attribute', '0', 'missing_source',
+            'Source DB has no core.CustomAttributes table. CA migration skipped (no legacy data).');
+    EXEC [etl].[complete_phase] @phase_id = @phase_id, @rows_inserted = 0;
+    PRINT '[phase97] DONE (no source data)';
+    RETURN;
+END
+
 -- ─── 1. CustomAttributes ──────────────────────────────────────────────────────
 PRINT '[97] Step 1 — core.CustomAttributes → core.custom_attribute';
 
@@ -315,9 +331,10 @@ WHERE NOT EXISTS (
 SET @inserted = @@ROWCOUNT;
 
 -- Audit rows con user non risolto
-INSERT INTO [etl].[error] (run_id, phase_id, entity_type, legacy_id, error_message)
-SELECT <<RUN_ID>>, @phase_id, 'custom_attribute_permission',
-       src.[Id], CONCAT('user_id ', src.[Id_User], ' not mapped in etl.int_map → permission applied to all users (NULL user_id)')
+INSERT INTO [etl].[error] (run_id, phase_number, entity_type, legacy_id, error_kind, error_message)
+SELECT <<RUN_ID>>, 97, 'custom_attribute_permission',
+       CAST(src.[Id] AS NVARCHAR(100)), 'fk_unmapped',
+       CONCAT('user_id ', src.[Id_User], ' not mapped in etl.int_map → permission applied to all users (NULL user_id)')
 FROM <<SOURCE_DB>>.[core].[CustomAttributesMappingPermissionsUsers] src
 LEFT JOIN [etl].[int_map] user_map ON user_map.entity_type = 'user' AND user_map.legacy_id = src.[Id_User]
 WHERE user_map.new_id IS NULL;
@@ -335,6 +352,7 @@ DECLARE @summary NVARCHAR(MAX) = (SELECT
     DATEDIFF(MILLISECOND, @t0, SYSUTCDATETIME()) AS elapsed_ms
     FOR JSON PATH, WITHOUT_ARRAY_WRAPPER);
 
-EXEC [etl].[end_phase] @phase_id = @phase_id, @outcome = 'success', @summary_json = @summary;
+EXEC [etl].[complete_phase] @phase_id = @phase_id, @rows_inserted = @inserted, @last_error = NULL;
+PRINT '[phase97] summary: ' + @summary;
 PRINT '[phase97] Custom Attributes migration completed';
 GO

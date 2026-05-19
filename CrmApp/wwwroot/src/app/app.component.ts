@@ -1,12 +1,13 @@
 import { AfterContentInit, Component, Injector, OnDestroy, OnInit } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { utility } from './classes/utility';
-import { AsyncPipe, CommonModule, NgClass, NgComponentOutlet, NgFor, NgIf, NgStyle } from '@angular/common';
+import { CommonModule, NgClass, NgComponentOutlet, NgFor, NgIf, NgStyle, DatePipe, DecimalPipe, AsyncPipe, CurrencyPipe, PercentPipe, JsonPipe, SlicePipe } from '@angular/common';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { SelectModule } from 'primeng/select';
 import { FormsModule } from '@angular/forms';
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
+import { TooltipModule } from 'primeng/tooltip';
 import { TranslateModule } from '@ngx-translate/core';
 
 import { ToastModule } from 'primeng/toast';
@@ -24,19 +25,29 @@ import { DialogService } from 'primeng/dynamicdialog';
 
 
 import { PrimeNG } from 'primeng/config';
-import Aura from '@primeng/themes/aura';
-import Lara from '@primeng/themes/lara';
-import Nora from '@primeng/themes/nora';
-import Material from '@primeng/themes/material';
+import Aura from '@primeuix/themes/aura';
+import Lara from '@primeuix/themes/lara';
+import Nora from '@primeuix/themes/nora';
+import Material from '@primeuix/themes/material';
 import { updatePrimaryPalette, usePreset } from '@primeuix/styled';
-import { DataRepeaterComponent, DataSourceComponent } from './wuic-bridges/public';
+import { DataRepeaterComponent, DataSourceComponent, WuicRagChatbotFabComponent, LazyFirstRunWizardComponent } from './wuic-bridges/public';
 
-import { WtoolboxService, MetadataProviderService, GlobalHandler, TranslationManagerService, AuthSessionService, WuicErrorDialogComponent } from './wuic-bridges/core';
+import { WtoolboxService, MetadataProviderService, GlobalHandler, TranslationManagerService, AuthSessionService, WuicErrorDialogComponent, LicenseFeatureService } from './wuic-bridges/core';
 import { ImageWrapperComponent } from './wuic-bridges/ui';
 
 @Component({
   selector: 'app-root',
-  imports: [AsyncPipe, RouterOutlet, NgComponentOutlet, ToggleSwitchModule, SelectModule, FormsModule, DialogModule, ButtonModule, TranslateModule, ToastModule, ConfirmDialogModule, WuicErrorDialogComponent],
+  // Allineato 2026-05-17 al pattern FE/FlottaMezzi: CommonModule (sostituisce
+  // AsyncPipe individuale), TooltipModule, FieldsetModule, RAG chatbot FAB e
+  // first-run wizard. Senza WuicRagChatbotFabComponent / LazyFirstRunWizardComponent
+  // i selettori `<wuic-rag-chatbot-fab>` / `<wuic-first-run-wizard>` nel
+  // template di app.component.html non si renderizzavano.
+  imports: [
+    CommonModule, RouterOutlet, NgComponentOutlet, ToggleSwitchModule, SelectModule,
+    FormsModule, DialogModule, ButtonModule, TranslateModule, TooltipModule, ToastModule,
+    ConfirmDialogModule, FieldsetModule, WuicRagChatbotFabComponent, LazyFirstRunWizardComponent,
+    WuicErrorDialogComponent,
+  ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
   providers: [MessageService, ConfirmationService, DialogService, GlobalHandler]
@@ -172,6 +183,14 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     WtoolboxService.myFunctions['utility'] = new utility();
     void this.configureWidgetRuntimeMetadata();
 
+    // Pre-load license status cosi' il badge in header (Pro/Dev/Custom),
+    // le `*wuicFeature` directives e il `FeatureRouteGuard` hanno uno
+    // snapshot valido subito dopo il primo render. Senza questa chiamata
+    // `LicenseFeatureService.statusSubject` resta null → `getLicenseTier()`
+    // ritorna 'trial' (sintomo: badge "Trial" anche con licenza professional
+    // valida lato server). Allineato 2026-05-17 al pattern FE/FlottaMezzi.
+    void this.injector.get(LicenseFeatureService).refresh();
+
   }
 
   private async configureWidgetRuntimeMetadata(): Promise<void> {
@@ -179,7 +198,14 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     const loaders = await import('./wuic-bridges/widget-loaders');
 
     Object.assign(MetadataProviderService.widgetDefinition, {
-      gridRowImports: [ButtonModule, TableModule, NgFor, NgIf, NgClass, NgStyle, FormsModule, ui.LazyDataActionButtonComponent, ui.LazyDataSourceComponent, ui.VisibleFieldListPipe, ui.CallbackPipe, ui.CallbackPipe2, ui.IsSelectedRowPipe, ui.FormatGridViewValuePipe, ui.GetSrcUploadPreviewPipe, ui.LazyFieldEditorComponent, ui.LazyImageWrapperComponent],
+      // Standalone pipes (DatePipe/DecimalPipe/CurrencyPipe/...) elencate
+      // esplicitamente: con il DynamicCompilerService il WrapperModule riceve
+      // `CommonModule` ma in alcuni scenari il runtime compiler non risolve i
+      // pipe ri-esportati da NgModule e tira "Cannot read properties of
+      // undefined (reading 'onDestroy')" su `set ngIf` quando dentro al div
+      // ngIf-protetto c'e' un pipe `date`/`number`. Listare standalone ->
+      // risoluzione diretta nel directiveDefs del componente compilato.
+      gridRowImports: [ButtonModule, TableModule, CommonModule, NgFor, NgIf, NgClass, NgStyle, DatePipe, DecimalPipe, AsyncPipe, CurrencyPipe, PercentPipe, JsonPipe, SlicePipe, FormsModule, ui.LazyDataActionButtonComponent, ui.LazyDataSourceComponent, ui.VisibleFieldListPipe, ui.CallbackPipe, ui.CallbackPipe2, ui.IsSelectedRowPipe, ui.FormatGridViewValuePipe, ui.GetSrcUploadPreviewPipe, ui.LazyFieldEditorComponent, ui.LazyImageWrapperComponent],
       // Standalone directives da `@angular/common` esplicitamente elencate
       // (NgIf, NgFor, NgClass, NgStyle, NgComponentOutlet). Verificato
       // 2026-05-16: in prod-mode il runtime-compiled template

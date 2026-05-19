@@ -68,7 +68,7 @@ public sealed class FilesystemConservation : IDigitalConservation
     public bool IsConfigured => true;  // sempre disponibile (StorageRoot ha default)
 
     private static string DataConn =>
-        ConfigurationManager.ConnectionStrings["DataSQLConnection"]?.ConnectionString
+        WEB_UI_CRAFTER.Helpers.ConfigHelper.ResolveConnectionString("DataSQLConnection")
         ?? throw new InvalidOperationException("DataSQLConnection non configurata");
 
     private string ResolvedStorageRoot()

@@ -348,6 +348,28 @@
     "noRelease": "Aún no hay paquetes publicados. Vuelve más tarde.",
     "olderVersions": "Versiones anteriores",
     "releaseNotes": "Notas de la versión",
+    "freeApps": {
+      "title": "Aplicaciones gratuitas listas para usar",
+      "subtitle": "Tres aplicaciones completas distribuidas gratis sobre WUIC: descarga el ZIP, restaura la base de datos tutorial, apunta IIS a la carpeta — en 10 minutos tienes un CRM, un sistema de facturación electrónica o un gestor de flotas funcionando en tu propio servidor.",
+      "licenseNote": "Las aplicaciones gratuitas son GRATIS tal como se distribuyen. Solo si recompilas la aplicación desde el código fuente necesitas una licencia WUIC (Developer / Professional).",
+      "download": "Descargar",
+      "readPost": "Leer el artículo",
+      "crmapp": {
+        "name": "CrmApp",
+        "tagline": "CRM B2B autoalojado",
+        "features": "Clientes, pipeline de oportunidades con kanban drag-and-drop, actividades (llamadas/reuniones/emails), dashboards por rol, usuarios preconfigurados. Totalmente metadata-driven: añade una columna SQL y la UI se adapta."
+      },
+      "fattel": {
+        "name": "FatturazioneElettronica",
+        "tagline": "Facturación electrónica italiana + SDI",
+        "features": "Editor de facturas FatturaPA v1.2, firma CADES-BES, validación XSD, 4 proveedores SDI intercambiables (DirectPec gratuito vía PEC, ArubaPec/FatturePec/PecIt comerciales), conservación legal, registros IVA y liquidación."
+      },
+      "flotta": {
+        "name": "FlottaMezzi",
+        "tagline": "Gestión de flotas + geolocalización",
+        "features": "Registro de vehículos/conductores, vencimientos automáticos (impuesto, ITV, seguro, mantenimiento, carnet), feed geolocalización OBD/GPS, mapa en vivo, agregación de costes €/km por vehículo y por conductor, reporting TCO."
+      }
+    },
     "linuxInstall": {
       "title": "Instalación Linux (Ubuntu/Debian)",
       "subtitle": "Instalador one-liner. El script descarga automáticamente los tarballs necesarios (runtime y/o fuentes), los verifica con sha256 y ejecuta el setup completo. Tres modos según el público.",

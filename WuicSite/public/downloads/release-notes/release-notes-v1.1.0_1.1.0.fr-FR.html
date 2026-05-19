@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Release Notes v1.1.0_1.1.0 - WUIC Framework</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; color: #1e293b; background: #ffffff; line-height: 1.6; overflow-wrap: anywhere; word-wrap: break-word; }
+a { color: #6366f1; text-decoration: none; }
+a:hover { color: #4f46e5; text-decoration: underline; }
+
+/* Site-style header (mini-navbar) */
+.rn-header { background: rgba(255, 255, 255, 0.95); border-bottom: 1px solid #e2e8f0; backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 10; }
+.rn-header-inner { max-width: 1200px; margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.rn-brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: #0f172a; font-size: 1.15rem; }
+.rn-brand-bolt { display: inline-block; width: 24px; height: 24px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M13 2L3 14h7l-1 8 10-12h-7l1-8z'/></svg>") center/contain no-repeat; mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M13 2L3 14h7l-1 8 10-12h-7l1-8z'/></svg>") center/contain no-repeat; }
+.rn-back { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border: 1px solid #c7d2fe; border-radius: 6px; color: #4f46e5; background: #eef2ff; font-size: 0.9rem; transition: background 0.15s, border-color 0.15s; }
+.rn-back:hover { background: #e0e7ff; border-color: #a5b4fc; text-decoration: none; }
+
+/* Article container: same width as Site .container */
+.rn-article { max-width: 880px; margin: 0 auto; padding: 48px 24px 80px; }
+
+/* Headings: site palette */
+h1, h2, h3, h4 { color: #0f172a; line-height: 1.25; font-weight: 700; }
+h1 { font-size: 2rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; margin-bottom: 1.25rem; }
+h2 { font-size: 1.4rem; margin-top: 2.25rem; margin-bottom: 0.75rem; }
+h3 { font-size: 1.125rem; margin-top: 1.5rem; margin-bottom: 0.5rem; color: #334155; }
+
+p { margin: 0.75rem 0; color: #334155; }
+strong { color: #0f172a; font-weight: 600; }
+
+ul, ol { padding-left: 1.4rem; margin: 0.75rem 0; }
+li { margin: 0.25rem 0; color: #334155; }
+
+hr { border: 0; border-top: 1px solid #e2e8f0; margin: 2.5rem 0; }
+
+/* Inline code: tinta indigo che richiama il brand */
+code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.9em; }
+code { background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; padding: 0.1em 0.4em; border-radius: 4px; word-break: break-word; }
+pre { background: #f8fafc; border: 1px solid #e2e8f0; padding: 1rem 1.25rem; border-radius: 8px; overflow-x: auto; max-width: 100%; margin: 1rem 0; }
+pre code { background: transparent; color: #1e293b; border: 0; padding: 0; word-break: normal; }
+
+/* Tables: scrollabili, header indigo-tint */
+.table-wrap { overflow-x: auto; max-width: 100%; margin: 1.25rem 0; border: 1px solid #e2e8f0; border-radius: 8px; }
+table { border-collapse: collapse; width: max-content; min-width: 100%; background: #ffffff; }
+th, td { border-bottom: 1px solid #e2e8f0; padding: 0.65rem 0.95rem; text-align: left; vertical-align: top; font-size: 0.95rem; }
+th { background: #f8fafc; color: #0f172a; font-weight: 600; border-bottom-color: #cbd5e1; }
+tr:last-child td { border-bottom: 0; }
+td { color: #334155; }
+
+/* Blockquote: brand accent */
+blockquote { border-left: 3px solid #6366f1; margin: 1.25rem 0; padding: 0.6rem 1.1rem; color: #475569; background: #eef2ff; border-radius: 0 6px 6px 0; }
+blockquote p { color: #475569; }
+
+img { max-width: 100%; height: auto; border-radius: 6px; }
+</style>
+<script>
+// Wrap tables post-render in scroll container (markdown converter emits raw <table>).
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('table').forEach(t => {
+    if (t.parentElement && t.parentElement.classList.contains('table-wrap')) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+});
+</script>
+</head>
+<body>
+<header class="rn-header">
+  <div class="rn-header-inner">
+    <a href="/" class="rn-brand"><span class="rn-brand-bolt"></span><span>WUIC</span></a>
+    <a href="/downloads" class="rn-back">&larr; Retour aux t&eacute;l&eacute;chargements</a>
+  </div>
+</header>
+<article class="rn-article">
+<h1 id="notes-de-version-wuic-framework-v1.1.0">Notes de version — WUIC Framework v1.1.0</h1>
+<p><strong>Date</strong> : 13 mai 2026
+<strong>Version précédente publiée</strong> : 1.0.20 (12 mai 2026)
+<strong>Backend</strong> : .NET 10 + IIS / Linux nginx
+<strong>Frontend</strong> : Angular 21</p>
+<hr />
+<p>Saut mineur : cette version introduit deux capacités structurelles qui modifient le modèle de déploiement du framework.</p>
+<ul>
+<li><strong>Multi-tenant</strong> : une seule instance du framework route les données et les métadonnées de N entreprises sur N connexions BD différentes. Configuration tenant par tenant via les colonnes <code>Aziende.Connessione_DB_Dati</code> / <code>Aziende.CONNESSIONE_DB_Meta</code> ; routage transparent au niveau applicatif via <code>TenantContext</code> (AsyncLocal, survit aux frontières Task/scheduler).</li>
+<li><strong>Localisation du menu par langue</strong> : les entrées de menu (<code>mm_display_string_menu</code>) ne contiennent plus de libellés italiens codés en dur, mais des clés stables avec namespace <code>menu.&lt;scope&gt;.&lt;slug&gt;</code>, résolues à l'exécution par la pipe <code>translate</code> d'Angular contre <code>_wuic_translations</code>. Le changement de langue depuis le sélecteur utilisateur met à jour toutes les entrées sans F5.</li>
+</ul>
+<hr />
+<h2 id="gestion-multi-tenant">🌐 Gestion multi-tenant</h2>
+<p>Une seule installation du framework peut désormais servir plusieurs entreprises (« tenants ») avec des données et métadonnées physiquement isolées sur des BD différentes, sans nécessiter de répliquer l'application ni de partitionner les reverse-proxies par hôte.</p>
+<p><strong>Modèle de données.</strong> Le routage tenant→connexions est défini sur deux colonnes de la BD de métadonnées primaire :</p>
+<ul>
+<li><code>Aziende.Connessione_DB_Dati</code> — nom d'une entrée dans <code>ConnectionStrings</code> pour la BD applicative du tenant</li>
+<li><code>Aziende.CONNESSIONE_DB_Meta</code> — nom d'une entrée dans <code>ConnectionStrings</code> pour la BD de métadonnées du tenant</li>
+</ul>
+<p>Les colonnes contiennent le <strong>nom</strong> de l'entrée, pas la chaîne littérale. La rotation des credentials se fait en éditant <code>appsettings.&lt;env&gt;.json</code>, sans toucher à la BD.</p>
+<p><strong>Activation.</strong> Flag dans <code>appsettings.json</code> (section <code>AppSettings</code>) :</p>
+<pre><code class="language-json">&quot;multiConnectionEnabled&quot;: &quot;true&quot;
+</code></pre>
+<p>Avec le flag <code>false</code> (par défaut) le comportement reste single-tenant, identique aux versions précédentes. Avec le flag <code>true</code> chaque requête HTTP authentifiée résout l'<code>AziendaId</code> depuis l'utilisateur connecté et route <code>GetOpenConnection</code> vers les connection strings du tenant correspondant.</p>
+<p><strong>Routage transparent.</strong> Tous les points d'accès BD du framework (<code>MetaService.*</code>, scheduler, scaffolding, AsmxProxy CRUD, callbacks personnalisés) consultent <code>TenantScope.CurrentAziendaId</code> via <code>AsyncLocal</code>, propagé par le middleware HTTP post-authentification. Les jobs en arrière-plan et les callbacks personnalisés déclarent explicitement le tenant avec <code>using (TenantScope.Push(aziendaId)) { ... }</code> lorsqu'ils s'exécutent en dehors du contexte de requête.</p>
+<p><strong>Cache tenant-aware.</strong> Les clés <code>Application[]</code> côté serveur et les caches locaux de métadonnées sont automatiquement suffixés par <code>AziendaId</code> lorsque le flag est actif, évitant le bleed de métadonnées entre tenants.</p>
+<p><strong>Routage de login.</strong> La table <code>_login_index(username_hash, id_azienda)</code> sur la BD primaire mappe username → tenant pour le fallback de <code>MetaService.login</code> : après authentification, le cookie <code>k-user</code> porte <code>azienda_id</code> dans le payload et le middleware crée le <code>TenantScope</code> correct à chaque requête suivante.</p>
+<p><strong>Propagation de scaffold.</strong> L'action « Scaffold table » propage de manière idempotente les métadonnées de la table à tous les tenants listés dans <code>Aziende</code>. La propagation s'exécute avec un <code>TenantScope</code> explicite sur chaque cible et est idempotente : ré-exécutable, n'applique que les changements manquants.</p>
+<p><strong>Fichiers préconfigurés dans le package :</strong></p>
+<ul>
+<li><code>appsettings.multi-tenant.mssql.json</code> / <code>appsettings.multi-tenant.mysql.json</code> — environnement self-contained avec 6 connection strings d'exemple (1 primary + 5 tenants) et <code>multiConnectionEnabled=true</code>. Activer avec <code>ASPNETCORE_ENVIRONMENT=multi-tenant.mssql</code>.</li>
+<li><code>dbms/scripts/multi_tenant_aziende_connessioni_mssql.sql</code> / <code>_mysql.sql</code> — DDL pour ajouter les deux colonnes à <code>Aziende</code> sur des BD existantes.</li>
+</ul>
+<hr />
+<h2 id="localisation-du-menu-par-langue">🗺️ Localisation du menu par langue</h2>
+<p>Les entrées de menu sont désormais traduites dynamiquement selon la langue de l'utilisateur, sans avoir besoin de dupliquer les enregistrements <code>_metadati__menu</code> par locale.</p>
+<p><strong>Architecture.</strong> Le champ <code>mm_display_string_menu</code> de <code>_metadati__menu</code> contient une <strong>clé stable</strong> avec namespace (<code>menu.admin.roles</code>, <code>menu.crm.opportunities</code>, <code>menu.fleet.vehicles</code>, ...). Le template du composant menu Angular applique la pipe <code>translate</code> sur <code>item.label</code> et la clé est résolue à l'exécution depuis le dictionnaire <code>_wuic_translations</code> filtré par la langue courante.</p>
+<p><strong>Schéma de clé.</strong></p>
+<pre><code>menu.&lt;scope&gt;.&lt;slug&gt;
+   │       └── slug snake_case (ex. column_styles, opportunities)
+   └── scope = root | admin | demo | crm | fleet | invoice
+</code></pre>
+<ul>
+<li><code>menu.root.*</code> — parents top-level (Administration, Application, Accueil, ...)</li>
+<li><code>menu.admin.*</code> — 36 entrées système partagées (Rôles, Designer, Styles colonne, Workflow Designer, ...)</li>
+<li><code>menu.demo.*</code> — contenu démo WideWorldImporters</li>
+<li><code>menu.crm.*</code> / <code>menu.fleet.*</code> / <code>menu.invoice.*</code> — entrées spécifiques au domaine du tenant</li>
+</ul>
+<p><strong>Avantage par rapport au modèle précédent.</strong></p>
+<ul>
+<li>L'ancien modèle utilisait le texte italien du libellé comme clé de traduction (<code>Aziende</code>, <code>Customers</code>, <code>Ruoli</code>). Cela causait des case-mismatches silencieux (<code>Ruoli</code> vs <code>ruoli</code>, <code>Stili Tabella</code> vs <code>Stili tabella</code>) car la pipe <code>translate</code> est case-sensitive alors que <code>_wuic_translations</code> a une collation case-insensitive : le premier MERGE qui entrait fixait le casing pour toujours, et les INSERTs ultérieurs avec casing divergent devenaient des no-ops silencieux.</li>
+<li>Le nouveau modèle à clés stables est case-déterminé (tout en minuscules par convention), namespacé par scope, et n'entre plus en collision avec d'autres ressources qui pourraient utiliser le même texte italien (ex. un libellé de bouton « Ruoli » dans un dropdown est une clé différente de <code>menu.admin.roles</code>).</li>
+</ul>
+<p><strong>5 langues supportées.</strong> <code>it-IT</code>, <code>en-US</code>, <code>fr-FR</code>, <code>es-ES</code>, <code>de-DE</code>. Les traductions vivent dans <code>_wuic_translations</code> (format standard : <code>language</code>, <code>resource</code>, <code>translation</code>). Le changement de langue depuis le dropdown utilisateur en haut à droite relit le dictionnaire pour la nouvelle langue et redessine le menu sans F5.</p>
+<p><strong>Fallback à l'exécution.</strong> Langue courante → en-US → it-IT → clé brute. Si vous voyez <code>menu.admin.roles</code> littéral à l'écran cela signifie que la clé n'a pas été seedée dans aucune des 5 langues.</p>
+<p><strong>Les anciennes clés italiennes dans <code>_wuic_translations</code> ne sont pas touchées</strong> par la mise à jour : elles peuvent être consommées par d'autres points de l'app (<code>instant('Aziende')</code> en code-behind, headers de list-grid, page titles) et restent valides.</p>
+<hr />
+<h2 id="corrections-de-bugs-notables">🐛 Corrections de bugs notables</h2>
+<ul>
+<li><strong>Formulaires d'édition dynamiques — Tabs et widgets dans les templates <code>md_edit_template</code> en production</strong> : dans les builds de production les templates HTML personnalisés associés à une route via <code>md_edit_template</code> ne rendaient pas correctement les Tabs de PrimeNG 21 (les labels apparaissaient comme du texte concaténé sans le chrome du composant) et les field-editors n'affichaient que des placeholders <code>&lt;!----&gt;</code> à la place des inputs. Cause : le compilateur runtime utilisé par le framework pour les templates dynamiques requiert l'énumération explicite des composants standalone disponibles dans le template, et <code>MetadataProviderService.widgetDefinition.dynamicFormImports</code> était incomplet. Ajoutés à la baseline <code>TabsModule</code> + <code>Tabs</code>/<code>TabList</code>/<code>Tab</code>/<code>TabPanels</code>/<code>TabPanel</code>, <code>FieldsetModule</code>, <code>DataRepeaterComponent</code>, <code>DataSourceComponent</code>, <code>ImageWrapperComponent</code>. Aucune action requise sur les apps consumer une fois le paquet <code>wuic-framework-lib</code> mis à jour.</li>
+</ul>
+<hr />
+<h2 id="applications-gratuites-desormais-disponibles">🎁 Applications gratuites désormais disponibles</h2>
+<p>À partir de cette version, trois applications complètes sont distribuées <strong>gratuitement</strong> sur le framework — disponibles dans la section « Free apps » de la page <a href="/downloads">Downloads</a> :</p>
+<ul>
+<li><strong>CrmApp</strong> — CRM B2B auto-hébergé : registre clients, pipeline d'opportunités avec kanban drag-and-drop, activités (appels / réunions / emails), tableau de bord par rôle. (<a href="/blog/crmapp-free-crm-on-wuic">Lire l'article</a>)</li>
+<li><strong>FatturazioneElettronica</strong> — Facturation électronique italienne : éditeur de factures FatturaPA v1.2, signature CADES-BES, validation XSD, 4 fournisseurs SDI interchangeables (DirectPec gratuit via PEC, ArubaPec / FatturePec / PecIt commerciaux), conservation légale, registres IVA et liquidation. (<a href="/blog/fatturazione-elettronica-free-italian-einvoicing">Lire l'article</a>)</li>
+<li><strong>FlottaMezzi</strong> — Gestion de flotte : anagraphe véhicules / conducteurs, échéances automatiques (taxe / contrôle technique / assurance / révision / permis), feed géolocalisation OBD/GPS, carte en direct, agrégation coûts €/km par véhicule et par conducteur, reporting TCO. (<a href="/blog/flottamezzi-free-fleet-management">Lire l'article</a>)</li>
+</ul>
+<p>Chaque application est disponible en trois formats : ZIP IIS avec base tutorielle (prête à restaurer), ZIP IIS sans base, ZIP sources.</p>
+<p><strong>Modèle de licence.</strong> Les applications gratuites sont <strong>GRATUITES telles que livrées</strong> — le binaire <code>&lt;App&gt;.dll</code> du ZIP embarque une ressource <code>host-binding-license</code> qui autorise le runtime framework sans clé externe. Ce n'est que si vous <strong>recompilez l'application depuis les sources</strong> (par exemple pour ajouter un nouveau contrôleur ou modifier une signature publique) qu'une licence WUIC Developer ou Professional est requise : la recompilation produit un binaire avec une identité différente, perd le bundling, et le framework retombe sur le contrôle de licence fingerprint standard.</p>
+<p>Étendre les applications gratuites sans recompiler le binaire est couvert par le bundling : ajout de métadonnées via SQL, composants Angular dans le wwwroot, jobs dans la table <code>scheduler</code>, hooks personnalisés via <code>appsettings.json:customCrudHookClass</code>.</p>
+<hr />
+<h2 id="packages-mis-a-jour">📦 Packages mis à jour</h2>
+<table>
+<thead>
+<tr>
+<th>Package</th>
+<th>De</th>
+<th>À</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WuicCore</td>
+<td>1.0.20</td>
+<td>1.1.0</td>
+</tr>
+<tr>
+<td>Wuic.Webcore</td>
+<td>1.0.20</td>
+<td>1.1.0</td>
+</tr>
+<tr>
+<td>WuicOData</td>
+<td>1.0.20</td>
+<td>1.1.0</td>
+</tr>
+<tr>
+<td>RuntimeEfCore</td>
+<td>1.0.20</td>
+<td>1.1.0</td>
+</tr>
+<tr>
+<td>wuic-framework-lib (NPM)</td>
+<td>1.0.20</td>
+<td>1.1.0</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="mises-a-jour-operationnelles-recommandees-pour-ceux-qui-mettent-a-jour">🔧 Mises à jour opérationnelles recommandées pour ceux qui mettent à jour</h2>
+<ol>
+<li><strong>Pour ceux qui veulent activer le multi-tenant</strong> (opt-in) : appliquer le script DDL <code>dbms/scripts/multi_tenant_aziende_connessioni_mssql.sql</code> (ou <code>_mysql.sql</code>) pour ajouter les colonnes <code>Connessione_DB_Dati</code> et <code>CONNESSIONE_DB_Meta</code> à <code>Aziende</code>. Renseigner les lignes <code>Aziende</code> avec les noms des entrées ConnectionStrings de <code>appsettings.json</code>. Définir <code>AppSettings.multiConnectionEnabled = &quot;true&quot;</code>. Redémarrer le backend.</li>
+<li><strong>Pour ceux qui restent single-tenant</strong> : aucune action requise. Sans <code>multiConnectionEnabled=true</code> le routage tenant est désactivé et le comportement est bit-identique à la 1.0.20.</li>
+<li><strong>Localisation du menu — refresh des métadonnées</strong> : après la mise à jour, exécuter une fois <code>POST /api/Meta/AsmxProxy/MetaService.invalidateMetadataRuntime</code> pour recharger le dictionnaire menu côté client. Alternativement, se déconnecter et se reconnecter.</li>
+<li><strong>Localisation du menu — migration d'un projet existant</strong> : pour les projets venant d'une version précédente avec libellés italiens dans <code>_metadati__menu.mm_display_string_menu</code>, appliquer deux étapes SQL idempotentes : (a) <code>UPDATE _metadati__menu SET mm_display_string_menu = '&lt;menu.scope.slug&gt;' WHERE mm_display_string_menu = '&lt;ancien libellé&gt;'</code> pour chaque entrée, selon le schéma <code>menu.&lt;scope&gt;.&lt;slug&gt;</code> documenté ci-dessus ; (b) <code>INSERT/MERGE INTO _wuic_translations (language, resource, translation)</code> 5 lignes par nouvelle clé (une par langue). Les anciennes lignes dans <code>_wuic_translations</code> avec resource = texte italien restent dans la BD et peuvent toujours être consommées par d'autres callers (<code>instant()</code>, headers de list-grid).</li>
+<li><strong>Hot reload backend en dev</strong> : si vous développez avec <code>dotnet watch</code>, le task <code>backend: kill dll lockers</code> requiert désormais <code>pwsh</code> 7+ (plus Windows PowerShell 5.x). Le script C# inline pour Restart Manager utilise la syntaxe <code>Dictionary&lt;,&gt;</code> correctement parsée seulement en PS 7+.</li>
+</ol>
+
+</article>
+</body>
+</html>

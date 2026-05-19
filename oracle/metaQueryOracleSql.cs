@@ -30,7 +30,7 @@ using System.Globalization;
 
 namespace metaModelRaw
 {
-    public class metaQueryOracleSql
+    public partial class metaQueryOracleSql
     {
         public static SerializableDictionary<string, object> GeneratePivotQuery(
             string route,
@@ -634,35 +634,144 @@ FROM {fromTable}
 
         public static OracleConnection GetContentConnection()
         {
-            string connectionString;
-            connectionString = ConfigurationManager.ConnectionStrings["ContentSQLConnection"].ConnectionString;
+            // Usa ConfigHelper.ResolveConnectionString (NON ConfigurationManager.ConnectionStrings):
+            // la legacy .NET Framework API legge solo da appsettings.json base, bypassando
+            // l'overlay del dispatcher (WUIC_DISPATCHER_CONFIG) e il merge con
+            // appsettings.Development.json/appsettings.oracle.json. Mirror di
+            // mysql/metaQueryMySql.cs:GetContentConnection e postgresql/metaQueryPostgreSql.cs:GetContentConnection.
+            string connectionString = ConfigHelper.ResolveConnectionString("ContentSQLConnection");
+            var connection = new OracleConnection(connectionString);
+            connection.Open();
+            return connection;
+        }
+
+        public static OracleConnection GetOpenConnection(bool isMetaDataQuery, string connectionName = "", user u = null)
+        {
+            string connectionString = null;
+
+            // Multi-tenant: i nomi standard sono alias del default → applichiamo
+            // comunque il tenant routing. Mirror di mysql/metaQueryMySql.cs:GetOpenConnection.
+            bool isDefaultName = !string.IsNullOrEmpty(connectionName)
+                && (string.Equals(connectionName, "MetaDataSQLConnection", System.StringComparison.OrdinalIgnoreCase)
+                 || string.Equals(connectionName, "DataSQLConnection", System.StringComparison.OrdinalIgnoreCase));
+
+            if (string.IsNullOrEmpty(connectionName) || isDefaultName)
+            {
+                // ConfigHelper.ResolveConnectionString rispetta:
+                //   - dispatcher overlay (WUIC_DISPATCHER_CONFIG → es. dispatcher.oracle.local.json)
+                //   - appsettings.Development.json
+                //   - appsettings.{Environment}.json
+                //   - appsettings.json base
+                // Senza questa risoluzione il Oracle provider riceveva la conn string MSSQL
+                // legacy `data source=localhost\sqlexpress;...` di appsettings.json e
+                // OracleConnection falliva subito al parse.
+                connectionString = ConfigHelper.ResolveConnectionString(isMetaDataQuery ? "MetaDataSQLConnection" : "DataSQLConnection");
+
+                // -------------------------------------------------------
+                // Multi-tenant routing (flag-gated, opt-in).
+                // Specchio del blocco MSSQL in `metaQuery.GetOpenConnection`
+                // e MySQL in `metaQueryMySql.GetOpenConnection`.
+                // -------------------------------------------------------
+                if (WEB_UI_CRAFTER.Helpers.MultiTenantHelpers.IsMultiConnectionEnabled())
+                {
+                    int idAzienda = 0;
+                    if (u != null && u.has_azienda_id && u.azienda_id > 0)
+                    {
+                        idAzienda = u.azienda_id;
+                    }
+                    else
+                    {
+                        idAzienda = TenantScope.CurrentAziendaId;
+                    }
+
+                    if (idAzienda > 0)
+                    {
+                        string tenantCs = WEB_UI_CRAFTER.Helpers.MultiTenantHelpers
+                            .ResolveTenantConnectionString(idAzienda, isMetaDataQuery);
+                        if (!string.IsNullOrWhiteSpace(tenantCs))
+                            connectionString = tenantCs;
+                    }
+                }
+            }
+            else
+            {
+                connectionString = ConfigHelper.ResolveConnectionString(connectionName);
+                if (string.IsNullOrEmpty(connectionString))
+                    throw new Exception(string.Format("Connection '{0}' not found in web.config", connectionName));
+            }
+
+            if (!isMetaDataQuery)
+            {
+                bool connectionByUser = bool.Parse(ConfigHelper.GetSettingAsString("connectionByUser") ?? "false");
+
+                if (connectionByUser)
+                {
+                    if (u == null)
+                        u = user.getUserByID(RawHelpers.authenticate());
+
+                    if (u != null && u.extra_keys != null && u.extra_keys.ContainsKey("connection"))
+                    {
+                        string userConnection = (string)u.extra_keys["connection"];
+
+                        if (!string.IsNullOrEmpty(userConnection))
+                            connectionString = ConfigHelper.ResolveConnectionString(userConnection);
+                    }
+                }
+            }
 
             var connection = new OracleConnection(connectionString);
             connection.Open();
             return connection;
         }
 
-        public static OracleConnection GetOpenConnection(bool isMetaDataQuery, string connectionName = "")
+        /// <summary>
+        /// Apre una connection Oracle direttamente sulla connection string letterale.
+        /// Mirror di <c>metaQueryMySql.OpenConnectionToConnectionString</c>; usato
+        /// da MultiTenantHelpers per accedere al DB primario senza ricorsione
+        /// attraverso il routing tenant-aware.
+        /// </summary>
+        public static OracleConnection OpenConnectionToConnectionString(string connectionString)
         {
-            string connectionString;
-
-            if (string.IsNullOrEmpty(connectionName))
-            {
-                if (isMetaDataQuery)
-                {
-                    connectionString = ConfigurationManager.ConnectionStrings["MetaDataSQLConnection"].ConnectionString;
-                }
-                else
-                {
-                    connectionString = ConfigurationManager.ConnectionStrings["DataSQLConnection"].ConnectionString;
-                }
-            }
-            else
-                connectionString = ConfigurationManager.ConnectionStrings[connectionName].ConnectionString;
-
             var connection = new OracleConnection(connectionString);
             connection.Open();
             return connection;
+        }
+
+        /// <summary>
+        /// Esegue uno script SQL Oracle multi-statement. Mirror di
+        /// <c>metaQueryMySql.ExecuteMySqlScript</c>. A differenza di SQL Server
+        /// (GO batches) Oracle non ha un separatore di batch nativo: lo script
+        /// va splittato sulla riga vuota separatrice OR sul terminatore `;` se
+        /// monostatement. Qui assumiamo che il chiamante invii lo script con
+        /// PL/SQL block o statement singolo.
+        /// </summary>
+        public static void ExecuteOracleScript(System.Data.Common.DbConnection connection, string script)
+        {
+            if (connection == null) throw new ArgumentNullException(nameof(connection));
+            if (string.IsNullOrWhiteSpace(script)) return;
+
+            // Split su `;` a fine riga, ignorando i `;` dentro PL/SQL blocks
+            // (BEGIN…END;). Una euristica semplice: se contiene BEGIN+END,
+            // esegui come unico statement (PL/SQL block intero).
+            bool isPlSqlBlock = System.Text.RegularExpressions.Regex.IsMatch(
+                script, @"\bBEGIN\b.*\bEND\s*;?\s*$",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase |
+                System.Text.RegularExpressions.RegexOptions.Singleline);
+
+            if (isPlSqlBlock)
+            {
+                connection.Execute(script);
+                return;
+            }
+
+            // Split su `;` come delimitatore di statement; rimuoviamo whitespace.
+            var statements = script.Split(new[] { ";\r\n", ";\n", ";" }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var stmt in statements)
+            {
+                string trimmed = stmt.Trim();
+                if (string.IsNullOrWhiteSpace(trimmed)) continue;
+                connection.Execute(trimmed);
+            }
         }
 
         #endregion
@@ -698,25 +807,28 @@ FROM {fromTable}
                             reticularCol.mc_computed_formula = "''";
                         }
 
-                        string query = "INSERT INTO [_metadati__colonne] ([voa_class], [md_id], [mc_db_column_type], [mc_display_string_in_edit], [mc_display_string_in_view], [mc_logic_editable], [mc_logic_nullable], [mc_nome_colonna], [mc_ui_column_type], [mccomputedformula], [mciscomputed], [mcgrantbydefault], [mcordine]) VALUES (@voa_class, @md_id, @mc_db_column_type, @mc_display_string_in_edit, @mc_display_string_in_view, @mc_logic_editable, @mc_logic_nullable, @mc_nome_colonna, @mc_ui_column_type, @mccomputedformula, @mciscomputed, @mcgrantbydefault, @mcordine); select SCOPE_IDENTITY()";
+                        // Oracle-native (port da mysql/metaQueryMySql.cs:862): bare lowercase + :param + RETURNING mc_id INTO out-param.
+                        string query = "INSERT INTO _metadati__colonne (voa_class, md_id, mc_db_column_type, mc_display_string_in_edit, mc_display_string_in_view, mc_logic_editable, mc_logic_nullable, mc_nome_colonna, mc_ui_column_type, mccomputedformula, mciscomputed, mcgrantbydefault, mcordine) VALUES (:voa_class, :md_id, :mc_db_column_type, :mc_display_string_in_edit, :mc_display_string_in_view, :mc_logic_editable, :mc_logic_nullable, :mc_nome_colonna, :mc_ui_column_type, :mccomputedformula, :mciscomputed, :mcgrantbydefault, :mcordine) RETURNING mc_id INTO :p_new_id";
                         using (OracleConnection con = GetOpenConnection(true))
                         {
-                            OracleCommand cmd = new OracleCommand(NormalizeSql(query), con);
-                            cmd.Parameters.Add(new SqlParameter("voa_class", 1));
-                            cmd.Parameters.Add(new SqlParameter("md_id", tab.md_id));
-                            cmd.Parameters.Add(new SqlParameter("mc_db_column_type", db_col_type));
-                            cmd.Parameters.Add(new SqlParameter("mc_display_string_in_edit", col_name));
-                            cmd.Parameters.Add(new SqlParameter("mc_display_string_in_view", col_name));
-                            cmd.Parameters.Add(new SqlParameter("mc_logic_editable", true));
-                            cmd.Parameters.Add(new SqlParameter("mc_logic_nullable", true));
-                            cmd.Parameters.Add(new SqlParameter("mc_nome_colonna", col_name));
-                            cmd.Parameters.Add(new SqlParameter("mc_ui_column_type", mc_ui_column_type));
-                            cmd.Parameters.Add(new SqlParameter("mccomputedformula", !isReticular ? "null" : ""));
-                            cmd.Parameters.Add(new SqlParameter("mciscomputed", !isReticular ? true : false));
-                            cmd.Parameters.Add(new SqlParameter("mcgrantbydefault", true));
-                            cmd.Parameters.Add(new SqlParameter("mcordine", total_col_count));
-                            cmd.Parameters.Add(new SqlParameter("mc_ui_slider_format", "N"));
-                            return cmd.ExecuteScalar().ToString();
+                            OracleCommand cmd = new OracleCommand(query, con) { BindByName = true };
+                            cmd.Parameters.Add(new OracleParameter("voa_class", 1));
+                            cmd.Parameters.Add(new OracleParameter("md_id", tab.md_id));
+                            cmd.Parameters.Add(new OracleParameter("mc_db_column_type", db_col_type));
+                            cmd.Parameters.Add(new OracleParameter("mc_display_string_in_edit", col_name));
+                            cmd.Parameters.Add(new OracleParameter("mc_display_string_in_view", col_name));
+                            cmd.Parameters.Add(new OracleParameter("mc_logic_editable", true));
+                            cmd.Parameters.Add(new OracleParameter("mc_logic_nullable", true));
+                            cmd.Parameters.Add(new OracleParameter("mc_nome_colonna", col_name));
+                            cmd.Parameters.Add(new OracleParameter("mc_ui_column_type", mc_ui_column_type));
+                            cmd.Parameters.Add(new OracleParameter("mccomputedformula", !isReticular ? "null" : ""));
+                            cmd.Parameters.Add(new OracleParameter("mciscomputed", !isReticular ? true : false));
+                            cmd.Parameters.Add(new OracleParameter("mcgrantbydefault", true));
+                            cmd.Parameters.Add(new OracleParameter("mcordine", total_col_count));
+                            var pOut = new OracleParameter("p_new_id", OracleDbType.Decimal) { Direction = ParameterDirection.Output };
+                            cmd.Parameters.Add(pOut);
+                            cmd.ExecuteNonQuery();
+                            return pOut.Value?.ToString() ?? "";
                         }
 
                     }
@@ -737,25 +849,28 @@ FROM {fromTable}
                             reticularCol.mc_computed_formula = "''";
                         }
 
-                        string query = "INSERT INTO [_metadati__colonne] ([voa_class], [md_id], [mc_db_column_type], [mc_display_string_in_edit], [mc_display_string_in_view], [mc_logic_editable], [mc_logic_nullable], [mc_nome_colonna], [mc_ui_column_type], [mccomputedformula], [mciscomputed], [mcgrantbydefault], [mcordine]) VALUES (@voa_class, @md_id, @mc_db_column_type, @mc_display_string_in_edit, @mc_display_string_in_view, @mc_logic_editable, @mc_logic_nullable, @mc_nome_colonna, @mc_ui_column_type, @mccomputedformula, @mciscomputed, @mcgrantbydefault, @mcordine); select SCOPE_IDENTITY()";
+                        // Oracle-native (port da mysql/metaQueryMySql.cs:901): bare lowercase + :param + RETURNING mc_id INTO out-param.
+                        string query = "INSERT INTO _metadati__colonne (voa_class, md_id, mc_db_column_type, mc_display_string_in_edit, mc_display_string_in_view, mc_logic_editable, mc_logic_nullable, mc_nome_colonna, mc_ui_column_type, mccomputedformula, mciscomputed, mcgrantbydefault, mcordine) VALUES (:voa_class, :md_id, :mc_db_column_type, :mc_display_string_in_edit, :mc_display_string_in_view, :mc_logic_editable, :mc_logic_nullable, :mc_nome_colonna, :mc_ui_column_type, :mccomputedformula, :mciscomputed, :mcgrantbydefault, :mcordine) RETURNING mc_id INTO :p_new_id";
                         using (OracleConnection con = GetOpenConnection(true))
                         {
-                            OracleCommand cmd = new OracleCommand(NormalizeSql(query), con);
-                            cmd.Parameters.Add(new SqlParameter("voa_class", 1));
-                            cmd.Parameters.Add(new SqlParameter("md_id", tab.md_id));
-                            cmd.Parameters.Add(new SqlParameter("mc_db_column_type", db_col_type));
-                            cmd.Parameters.Add(new SqlParameter("mc_display_string_in_edit", col_name));
-                            cmd.Parameters.Add(new SqlParameter("mc_display_string_in_view", col_name));
-                            cmd.Parameters.Add(new SqlParameter("mc_logic_editable", true));
-                            cmd.Parameters.Add(new SqlParameter("mc_logic_nullable", true));
-                            cmd.Parameters.Add(new SqlParameter("mc_nome_colonna", col_name));
-                            cmd.Parameters.Add(new SqlParameter("mc_ui_column_type", mc_ui_column_type));
-                            cmd.Parameters.Add(new SqlParameter("mccomputedformula", !isReticular ? "null" : ""));
-                            cmd.Parameters.Add(new SqlParameter("mciscomputed", !isReticular ? true : false));
-                            cmd.Parameters.Add(new SqlParameter("mcgrantbydefault", true));
-                            cmd.Parameters.Add(new SqlParameter("mcordine", total_col_count));
-                            cmd.Parameters.Add(new SqlParameter("mc_ui_slider_format", "N"));
-                            return cmd.ExecuteScalar().ToString();
+                            OracleCommand cmd = new OracleCommand(query, con) { BindByName = true };
+                            cmd.Parameters.Add(new OracleParameter("voa_class", 1));
+                            cmd.Parameters.Add(new OracleParameter("md_id", tab.md_id));
+                            cmd.Parameters.Add(new OracleParameter("mc_db_column_type", db_col_type));
+                            cmd.Parameters.Add(new OracleParameter("mc_display_string_in_edit", col_name));
+                            cmd.Parameters.Add(new OracleParameter("mc_display_string_in_view", col_name));
+                            cmd.Parameters.Add(new OracleParameter("mc_logic_editable", true));
+                            cmd.Parameters.Add(new OracleParameter("mc_logic_nullable", true));
+                            cmd.Parameters.Add(new OracleParameter("mc_nome_colonna", col_name));
+                            cmd.Parameters.Add(new OracleParameter("mc_ui_column_type", mc_ui_column_type));
+                            cmd.Parameters.Add(new OracleParameter("mccomputedformula", !isReticular ? "null" : ""));
+                            cmd.Parameters.Add(new OracleParameter("mciscomputed", !isReticular ? true : false));
+                            cmd.Parameters.Add(new OracleParameter("mcgrantbydefault", true));
+                            cmd.Parameters.Add(new OracleParameter("mcordine", total_col_count));
+                            var pOut = new OracleParameter("p_new_id", OracleDbType.Decimal) { Direction = ParameterDirection.Output };
+                            cmd.Parameters.Add(pOut);
+                            cmd.ExecuteNonQuery();
+                            return pOut.Value?.ToString() ?? "";
                         }
 
 
@@ -767,25 +882,28 @@ FROM {fromTable}
                         db_col_type = "decimal";
                         mc_ui_column_type = "number";
 
-                        string query = "INSERT INTO [_metadati__colonne] ([voa_class], [md_id], [mc_db_column_type], [mc_display_string_in_edit], [mc_display_string_in_view], [mc_logic_editable], [mc_logic_nullable], [mc_nome_colonna], [mc_ui_column_type], [mccomputedformula], [mciscomputed], [mcgrantbydefault], [mcordine]) VALUES (@voa_class, @md_id, @mc_db_column_type, @mc_display_string_in_edit, @mc_display_string_in_view, @mc_logic_editable, @mc_logic_nullable, @mc_nome_colonna, @mc_ui_column_type, @mccomputedformula, @mciscomputed, @mcgrantbydefault, @mcordine); select SCOPE_IDENTITY()";
+                        // Oracle-native (port da mysql/metaQueryMySql.cs:931): bare lowercase + :param + RETURNING mc_id INTO out-param.
+                        string query = "INSERT INTO _metadati__colonne (voa_class, md_id, mc_db_column_type, mc_display_string_in_edit, mc_display_string_in_view, mc_logic_editable, mc_logic_nullable, mc_nome_colonna, mc_ui_column_type, mccomputedformula, mciscomputed, mcgrantbydefault, mcordine) VALUES (:voa_class, :md_id, :mc_db_column_type, :mc_display_string_in_edit, :mc_display_string_in_view, :mc_logic_editable, :mc_logic_nullable, :mc_nome_colonna, :mc_ui_column_type, :mccomputedformula, :mciscomputed, :mcgrantbydefault, :mcordine) RETURNING mc_id INTO :p_new_id";
                         using (OracleConnection con = GetOpenConnection(true))
                         {
-                            OracleCommand cmd = new OracleCommand(NormalizeSql(query), con);
-                            cmd.Parameters.Add(new SqlParameter("voa_class", 3));
-                            cmd.Parameters.Add(new SqlParameter("md_id", tab.md_id));
-                            cmd.Parameters.Add(new SqlParameter("mc_db_column_type", db_col_type));
-                            cmd.Parameters.Add(new SqlParameter("mc_display_string_in_edit", col_name));
-                            cmd.Parameters.Add(new SqlParameter("mc_display_string_in_view", col_name));
-                            cmd.Parameters.Add(new SqlParameter("mc_logic_editable", true));
-                            cmd.Parameters.Add(new SqlParameter("mc_logic_nullable", true));
-                            cmd.Parameters.Add(new SqlParameter("mc_nome_colonna", col_name));
-                            cmd.Parameters.Add(new SqlParameter("mc_ui_column_type", mc_ui_column_type));
-                            cmd.Parameters.Add(new SqlParameter("mccomputedformula", !isReticular ? "null" : ""));
-                            cmd.Parameters.Add(new SqlParameter("mciscomputed", !isReticular ? true : false));
-                            cmd.Parameters.Add(new SqlParameter("mcgrantbydefault", true));
-                            cmd.Parameters.Add(new SqlParameter("mcordine", total_col_count));
-                            cmd.Parameters.Add(new SqlParameter("mc_ui_slider_format", "N"));
-                            return cmd.ExecuteScalar().ToString();
+                            OracleCommand cmd = new OracleCommand(query, con) { BindByName = true };
+                            cmd.Parameters.Add(new OracleParameter("voa_class", 3));
+                            cmd.Parameters.Add(new OracleParameter("md_id", tab.md_id));
+                            cmd.Parameters.Add(new OracleParameter("mc_db_column_type", db_col_type));
+                            cmd.Parameters.Add(new OracleParameter("mc_display_string_in_edit", col_name));
+                            cmd.Parameters.Add(new OracleParameter("mc_display_string_in_view", col_name));
+                            cmd.Parameters.Add(new OracleParameter("mc_logic_editable", true));
+                            cmd.Parameters.Add(new OracleParameter("mc_logic_nullable", true));
+                            cmd.Parameters.Add(new OracleParameter("mc_nome_colonna", col_name));
+                            cmd.Parameters.Add(new OracleParameter("mc_ui_column_type", mc_ui_column_type));
+                            cmd.Parameters.Add(new OracleParameter("mccomputedformula", !isReticular ? "null" : ""));
+                            cmd.Parameters.Add(new OracleParameter("mciscomputed", !isReticular ? true : false));
+                            cmd.Parameters.Add(new OracleParameter("mcgrantbydefault", true));
+                            cmd.Parameters.Add(new OracleParameter("mcordine", total_col_count));
+                            var pOut = new OracleParameter("p_new_id", OracleDbType.Decimal) { Direction = ParameterDirection.Output };
+                            cmd.Parameters.Add(pOut);
+                            cmd.ExecuteNonQuery();
+                            return pOut.Value?.ToString() ?? "";
                         }
 
                     }
@@ -797,24 +915,28 @@ FROM {fromTable}
 
                         string display_name = col_name.Replace("_numero", "_bit");
 
-                        string query = "INSERT INTO [_metadati__colonne] ([voa_class], [md_id], [mc_db_column_type], [mc_display_string_in_edit], [mc_display_string_in_view], [mc_logic_editable], [mc_logic_nullable], [mc_nome_colonna], [mc_ui_column_type], [mccomputedformula], [mciscomputed], [mcgrantbydefault], [mcordine]) VALUES (@voa_class, @md_id, @mc_db_column_type, @mc_display_string_in_edit, @mc_display_string_in_view, @mc_logic_editable, @mc_logic_nullable, @mc_nome_colonna, @mc_ui_column_type, @mccomputedformula, @mciscomputed, @mcgrantbydefault, @mcordine); select SCOPE_IDENTITY()";
+                        // Oracle-native (port da mysql/metaQueryMySql.cs:961): bare lowercase + :param + RETURNING mc_id INTO out-param.
+                        string query = "INSERT INTO _metadati__colonne (voa_class, md_id, mc_db_column_type, mc_display_string_in_edit, mc_display_string_in_view, mc_logic_editable, mc_logic_nullable, mc_nome_colonna, mc_ui_column_type, mccomputedformula, mciscomputed, mcgrantbydefault, mcordine) VALUES (:voa_class, :md_id, :mc_db_column_type, :mc_display_string_in_edit, :mc_display_string_in_view, :mc_logic_editable, :mc_logic_nullable, :mc_nome_colonna, :mc_ui_column_type, :mccomputedformula, :mciscomputed, :mcgrantbydefault, :mcordine) RETURNING mc_id INTO :p_new_id";
                         using (OracleConnection con = GetOpenConnection(true))
                         {
-                            OracleCommand cmd = new OracleCommand(NormalizeSql(query), con);
-                            cmd.Parameters.Add(new SqlParameter("voa_class", 3));
-                            cmd.Parameters.Add(new SqlParameter("md_id", tab.md_id));
-                            cmd.Parameters.Add(new SqlParameter("mc_db_column_type", db_col_type));
-                            cmd.Parameters.Add(new SqlParameter("mc_display_string_in_edit", display_name));
-                            cmd.Parameters.Add(new SqlParameter("mc_display_string_in_view", display_name));
-                            cmd.Parameters.Add(new SqlParameter("mc_logic_editable", true));
-                            cmd.Parameters.Add(new SqlParameter("mc_logic_nullable", true));
-                            cmd.Parameters.Add(new SqlParameter("mc_nome_colonna", col_name));
-                            cmd.Parameters.Add(new SqlParameter("mc_ui_column_type", mc_ui_column_type));
-                            cmd.Parameters.Add(new SqlParameter("mccomputedformula", !isReticular ? "null" : ""));
-                            cmd.Parameters.Add(new SqlParameter("mciscomputed", !isReticular ? true : false));
-                            cmd.Parameters.Add(new SqlParameter("mcgrantbydefault", true));
-                            cmd.Parameters.Add(new SqlParameter("mcordine", total_col_count));
-                            return cmd.ExecuteScalar().ToString();
+                            OracleCommand cmd = new OracleCommand(query, con) { BindByName = true };
+                            cmd.Parameters.Add(new OracleParameter("voa_class", 3));
+                            cmd.Parameters.Add(new OracleParameter("md_id", tab.md_id));
+                            cmd.Parameters.Add(new OracleParameter("mc_db_column_type", db_col_type));
+                            cmd.Parameters.Add(new OracleParameter("mc_display_string_in_edit", display_name));
+                            cmd.Parameters.Add(new OracleParameter("mc_display_string_in_view", display_name));
+                            cmd.Parameters.Add(new OracleParameter("mc_logic_editable", true));
+                            cmd.Parameters.Add(new OracleParameter("mc_logic_nullable", true));
+                            cmd.Parameters.Add(new OracleParameter("mc_nome_colonna", col_name));
+                            cmd.Parameters.Add(new OracleParameter("mc_ui_column_type", mc_ui_column_type));
+                            cmd.Parameters.Add(new OracleParameter("mccomputedformula", !isReticular ? "null" : ""));
+                            cmd.Parameters.Add(new OracleParameter("mciscomputed", !isReticular ? true : false));
+                            cmd.Parameters.Add(new OracleParameter("mcgrantbydefault", true));
+                            cmd.Parameters.Add(new OracleParameter("mcordine", total_col_count));
+                            var pOut = new OracleParameter("p_new_id", OracleDbType.Decimal) { Direction = ParameterDirection.Output };
+                            cmd.Parameters.Add(pOut);
+                            cmd.ExecuteNonQuery();
+                            return pOut.Value?.ToString() ?? "";
                         }
 
                     }
@@ -826,24 +948,28 @@ FROM {fromTable}
 
                         string display_name = col_name.Replace("_numero", "_lookup");
 
-                        string query = "INSERT INTO [_metadati__colonne] ([voa_class], [md_id], [mc_db_column_type], [mc_display_string_in_edit], [mc_display_string_in_view], [mc_logic_editable], [mc_logic_nullable], [mc_nome_colonna], [mc_ui_column_type], [mccomputedformula], [mciscomputed], [mcgrantbydefault], [mcordine]) VALUES (@voa_class, @md_id, @mc_db_column_type, @mc_display_string_in_edit, @mc_display_string_in_view, @mc_logic_editable, @mc_logic_nullable, @mc_nome_colonna, @mc_ui_column_type, @mccomputedformula, @mciscomputed, @mcgrantbydefault, @mcordine); select SCOPE_IDENTITY()";
+                        // Oracle-native (port da mysql/metaQueryMySql.cs:990): bare lowercase + :param + RETURNING mc_id INTO out-param.
+                        string query = "INSERT INTO _metadati__colonne (voa_class, md_id, mc_db_column_type, mc_display_string_in_edit, mc_display_string_in_view, mc_logic_editable, mc_logic_nullable, mc_nome_colonna, mc_ui_column_type, mccomputedformula, mciscomputed, mcgrantbydefault, mcordine) VALUES (:voa_class, :md_id, :mc_db_column_type, :mc_display_string_in_edit, :mc_display_string_in_view, :mc_logic_editable, :mc_logic_nullable, :mc_nome_colonna, :mc_ui_column_type, :mccomputedformula, :mciscomputed, :mcgrantbydefault, :mcordine) RETURNING mc_id INTO :p_new_id";
                         using (OracleConnection con = GetOpenConnection(true))
                         {
-                            OracleCommand cmd = new OracleCommand(NormalizeSql(query), con);
-                            cmd.Parameters.Add(new SqlParameter("voa_class", 2));
-                            cmd.Parameters.Add(new SqlParameter("md_id", tab.md_id));
-                            cmd.Parameters.Add(new SqlParameter("mc_db_column_type", db_col_type));
-                            cmd.Parameters.Add(new SqlParameter("mc_display_string_in_edit", display_name));
-                            cmd.Parameters.Add(new SqlParameter("mc_display_string_in_view", display_name));
-                            cmd.Parameters.Add(new SqlParameter("mc_logic_editable", true));
-                            cmd.Parameters.Add(new SqlParameter("mc_logic_nullable", true));
-                            cmd.Parameters.Add(new SqlParameter("mc_nome_colonna", col_name));
-                            cmd.Parameters.Add(new SqlParameter("mc_ui_column_type", mc_ui_column_type));
-                            cmd.Parameters.Add(new SqlParameter("mccomputedformula", !isReticular ? "null" : ""));
-                            cmd.Parameters.Add(new SqlParameter("mciscomputed", !isReticular ? true : false));
-                            cmd.Parameters.Add(new SqlParameter("mcgrantbydefault", true));
-                            cmd.Parameters.Add(new SqlParameter("mcordine", total_col_count));
-                            return cmd.ExecuteScalar().ToString();
+                            OracleCommand cmd = new OracleCommand(query, con) { BindByName = true };
+                            cmd.Parameters.Add(new OracleParameter("voa_class", 2));
+                            cmd.Parameters.Add(new OracleParameter("md_id", tab.md_id));
+                            cmd.Parameters.Add(new OracleParameter("mc_db_column_type", db_col_type));
+                            cmd.Parameters.Add(new OracleParameter("mc_display_string_in_edit", display_name));
+                            cmd.Parameters.Add(new OracleParameter("mc_display_string_in_view", display_name));
+                            cmd.Parameters.Add(new OracleParameter("mc_logic_editable", true));
+                            cmd.Parameters.Add(new OracleParameter("mc_logic_nullable", true));
+                            cmd.Parameters.Add(new OracleParameter("mc_nome_colonna", col_name));
+                            cmd.Parameters.Add(new OracleParameter("mc_ui_column_type", mc_ui_column_type));
+                            cmd.Parameters.Add(new OracleParameter("mccomputedformula", !isReticular ? "null" : ""));
+                            cmd.Parameters.Add(new OracleParameter("mciscomputed", !isReticular ? true : false));
+                            cmd.Parameters.Add(new OracleParameter("mcgrantbydefault", true));
+                            cmd.Parameters.Add(new OracleParameter("mcordine", total_col_count));
+                            var pOut = new OracleParameter("p_new_id", OracleDbType.Decimal) { Direction = ParameterDirection.Output };
+                            cmd.Parameters.Add(pOut);
+                            cmd.ExecuteNonQuery();
+                            return pOut.Value?.ToString() ?? "";
                         }
 
                     }
@@ -855,27 +981,30 @@ FROM {fromTable}
 
                         string display_name = col_name.Replace("_testo", "_button");
 
-                        string query = "INSERT INTO [_metadati__colonne] ([voa_class], [md_id], [mc_db_column_type], [mc_display_string_in_edit], [mc_display_string_in_view], [mc_logic_editable], [mc_logic_nullable], [mc_nome_colonna], [mc_ui_column_type], [mccomputedformula], [mciscomputed], [mcgrantbydefault], [mcordine], mchideinedit, mcisdbcomputed) VALUES (@voa_class, @md_id, @mc_db_column_type, @mc_display_string_in_edit, @mc_display_string_in_view, @mc_logic_editable, @mc_logic_nullable, @mc_nome_colonna, @mc_ui_column_type, @mccomputedformula, @mciscomputed, @mcgrantbydefault, @mcordine, @mchideinedit, @mcisdbcomputed); select SCOPE_IDENTITY()";
+                        // Oracle-native (port da mysql/metaQueryMySql.cs:1019): bare lowercase + :param + RETURNING mc_id INTO out-param.
+                        string query = "INSERT INTO _metadati__colonne (voa_class, md_id, mc_db_column_type, mc_display_string_in_edit, mc_display_string_in_view, mc_logic_editable, mc_logic_nullable, mc_nome_colonna, mc_ui_column_type, mccomputedformula, mciscomputed, mcgrantbydefault, mcordine, mchideinedit, mcisdbcomputed) VALUES (:voa_class, :md_id, :mc_db_column_type, :mc_display_string_in_edit, :mc_display_string_in_view, :mc_logic_editable, :mc_logic_nullable, :mc_nome_colonna, :mc_ui_column_type, :mccomputedformula, :mciscomputed, :mcgrantbydefault, :mcordine, :mchideinedit, :mcisdbcomputed) RETURNING mc_id INTO :p_new_id";
                         using (OracleConnection con = GetOpenConnection(true))
                         {
-                            OracleCommand cmd = new OracleCommand(NormalizeSql(query), con);
-                            cmd.Parameters.Add(new SqlParameter("voa_class", 6));
-                            cmd.Parameters.Add(new SqlParameter("md_id", tab.md_id));
-                            cmd.Parameters.Add(new SqlParameter("mc_db_column_type", db_col_type));
-                            cmd.Parameters.Add(new SqlParameter("mc_display_string_in_edit", display_name));
-                            cmd.Parameters.Add(new SqlParameter("mc_display_string_in_view", display_name));
-                            cmd.Parameters.Add(new SqlParameter("mc_logic_editable", false));
-                            cmd.Parameters.Add(new SqlParameter("mc_logic_nullable", true));
-                            cmd.Parameters.Add(new SqlParameter("mc_nome_colonna", col_name));
-                            cmd.Parameters.Add(new SqlParameter("mc_ui_column_type", mc_ui_column_type));
-                            cmd.Parameters.Add(new SqlParameter("mccomputedformula", !isReticular ? "''" : ""));
-                            cmd.Parameters.Add(new SqlParameter("mciscomputed", !isReticular ? true : false));
-                            cmd.Parameters.Add(new SqlParameter("mcgrantbydefault", true));
-                            cmd.Parameters.Add(new SqlParameter("mcordine", total_col_count));
-                            cmd.Parameters.Add(new SqlParameter("mchideinedit", true));
-                            cmd.Parameters.Add(new SqlParameter("mcisdbcomputed", false));
-
-                            return cmd.ExecuteScalar().ToString();
+                            OracleCommand cmd = new OracleCommand(query, con) { BindByName = true };
+                            cmd.Parameters.Add(new OracleParameter("voa_class", 6));
+                            cmd.Parameters.Add(new OracleParameter("md_id", tab.md_id));
+                            cmd.Parameters.Add(new OracleParameter("mc_db_column_type", db_col_type));
+                            cmd.Parameters.Add(new OracleParameter("mc_display_string_in_edit", display_name));
+                            cmd.Parameters.Add(new OracleParameter("mc_display_string_in_view", display_name));
+                            cmd.Parameters.Add(new OracleParameter("mc_logic_editable", false));
+                            cmd.Parameters.Add(new OracleParameter("mc_logic_nullable", true));
+                            cmd.Parameters.Add(new OracleParameter("mc_nome_colonna", col_name));
+                            cmd.Parameters.Add(new OracleParameter("mc_ui_column_type", mc_ui_column_type));
+                            cmd.Parameters.Add(new OracleParameter("mccomputedformula", !isReticular ? "''" : ""));
+                            cmd.Parameters.Add(new OracleParameter("mciscomputed", !isReticular ? true : false));
+                            cmd.Parameters.Add(new OracleParameter("mcgrantbydefault", true));
+                            cmd.Parameters.Add(new OracleParameter("mcordine", total_col_count));
+                            cmd.Parameters.Add(new OracleParameter("mchideinedit", true));
+                            cmd.Parameters.Add(new OracleParameter("mcisdbcomputed", false));
+                            var pOut = new OracleParameter("p_new_id", OracleDbType.Decimal) { Direction = ParameterDirection.Output };
+                            cmd.Parameters.Add(pOut);
+                            cmd.ExecuteNonQuery();
+                            return pOut.Value?.ToString() ?? "";
                         }
 
                     }
@@ -887,25 +1016,28 @@ FROM {fromTable}
 
                         string display_name = col_name.Replace("_testo", "_multiple_check");
 
-                        string query = "INSERT INTO [_metadati__colonne] ([voa_class], [md_id], [mc_db_column_type], [mc_display_string_in_edit], [mc_display_string_in_view], [mc_logic_editable], [mc_logic_nullable], [mc_nome_colonna], [mc_ui_column_type], [mcgrantbydefault], [mcordine], [mccomputedformula], [mciscomputed]) VALUES (@voa_class, @md_id, @mc_db_column_type, @mc_display_string_in_edit, @mc_display_string_in_view, @mc_logic_editable, @mc_logic_nullable, @mc_nome_colonna, @mc_ui_column_type, @mcgrantbydefault, @mcordine, @mccomputedformula, @mciscomputed); select SCOPE_IDENTITY()";
+                        // Oracle-native (port da mysql/metaQueryMySql.cs:1051): bare lowercase + :param + RETURNING mc_id INTO out-param.
+                        string query = "INSERT INTO _metadati__colonne (voa_class, md_id, mc_db_column_type, mc_display_string_in_edit, mc_display_string_in_view, mc_logic_editable, mc_logic_nullable, mc_nome_colonna, mc_ui_column_type, mcgrantbydefault, mcordine, mccomputedformula, mciscomputed) VALUES (:voa_class, :md_id, :mc_db_column_type, :mc_display_string_in_edit, :mc_display_string_in_view, :mc_logic_editable, :mc_logic_nullable, :mc_nome_colonna, :mc_ui_column_type, :mcgrantbydefault, :mcordine, :mccomputedformula, :mciscomputed) RETURNING mc_id INTO :p_new_id";
                         using (OracleConnection con = GetOpenConnection(true))
                         {
-                            OracleCommand cmd = new OracleCommand(NormalizeSql(query), con);
-                            cmd.Parameters.Add(new SqlParameter("voa_class", 4));
-                            cmd.Parameters.Add(new SqlParameter("md_id", tab.md_id));
-                            cmd.Parameters.Add(new SqlParameter("mc_db_column_type", db_col_type));
-                            cmd.Parameters.Add(new SqlParameter("mc_display_string_in_edit", display_name));
-                            cmd.Parameters.Add(new SqlParameter("mc_display_string_in_view", display_name));
-                            cmd.Parameters.Add(new SqlParameter("mc_logic_editable", true));
-                            cmd.Parameters.Add(new SqlParameter("mc_logic_nullable", true));
-                            cmd.Parameters.Add(new SqlParameter("mc_nome_colonna", col_name));
-                            cmd.Parameters.Add(new SqlParameter("mc_ui_column_type", mc_ui_column_type));
-                            cmd.Parameters.Add(new SqlParameter("mcgrantbydefault", true));
-                            cmd.Parameters.Add(new SqlParameter("mcordine", total_col_count));
-                            cmd.Parameters.Add(new SqlParameter("mccomputedformula", "''"));
-                            cmd.Parameters.Add(new SqlParameter("mciscomputed", true));
-
-                            return cmd.ExecuteScalar().ToString();
+                            OracleCommand cmd = new OracleCommand(query, con) { BindByName = true };
+                            cmd.Parameters.Add(new OracleParameter("voa_class", 4));
+                            cmd.Parameters.Add(new OracleParameter("md_id", tab.md_id));
+                            cmd.Parameters.Add(new OracleParameter("mc_db_column_type", db_col_type));
+                            cmd.Parameters.Add(new OracleParameter("mc_display_string_in_edit", display_name));
+                            cmd.Parameters.Add(new OracleParameter("mc_display_string_in_view", display_name));
+                            cmd.Parameters.Add(new OracleParameter("mc_logic_editable", true));
+                            cmd.Parameters.Add(new OracleParameter("mc_logic_nullable", true));
+                            cmd.Parameters.Add(new OracleParameter("mc_nome_colonna", col_name));
+                            cmd.Parameters.Add(new OracleParameter("mc_ui_column_type", mc_ui_column_type));
+                            cmd.Parameters.Add(new OracleParameter("mcgrantbydefault", true));
+                            cmd.Parameters.Add(new OracleParameter("mcordine", total_col_count));
+                            cmd.Parameters.Add(new OracleParameter("mccomputedformula", "''"));
+                            cmd.Parameters.Add(new OracleParameter("mciscomputed", true));
+                            var pOut = new OracleParameter("p_new_id", OracleDbType.Decimal) { Direction = ParameterDirection.Output };
+                            cmd.Parameters.Add(pOut);
+                            cmd.ExecuteNonQuery();
+                            return pOut.Value?.ToString() ?? "";
                         }
                     }
                     else
@@ -972,7 +1104,7 @@ FROM {fromTable}
             }
 
             string query = "select * from cms.register_requests where username=@username";
-            OracleCommand cmd = new OracleCommand(NormalizeSql(query), connection);
+            OracleCommand cmd = new OracleCommand(query, connection);
             cmd.Parameters.Add(new SqlParameter("username", user_name));
             OracleDataAdapter adpt = new OracleDataAdapter(cmd);
             DataTable dt = new DataTable();
@@ -982,7 +1114,7 @@ FROM {fromTable}
                 return "-1"; //throw new ValidationException(string.Format("User name '{0}' già utilizzato", user_name));
 
             query = "select * from cms.register_requests where email=@email";
-            cmd = new OracleCommand(NormalizeSql(query), connection);
+            cmd = new OracleCommand(query, connection);
             cmd.Parameters.Add(new SqlParameter("email", email));
             adpt = new OracleDataAdapter(cmd);
             dt = new DataTable();
@@ -1003,7 +1135,8 @@ FROM {fromTable}
                     SysInfo infos = context.GetSysInfos();
                     using (OracleConnection connection = string.IsNullOrEmpty(infos.user_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.user_db_name))
                     {
-                        connection.Execute(string.Format("UPDATE {0} SET {1}='', LastLogoutDate=getdate(), IsLoggedIn = 0 WHERE {2} = {3}", infos.user_table_name, "token", infos.user_id_column_name, user.user_id));
+                        // Oracle-native (port da mysql/metaQueryMySql.cs): SYSDATE invece di MSSQL getdate(); identifier quoting "..." per case-sensitivity Oracle.
+                        connection.Execute(string.Format("UPDATE {0} SET {1}='', \"LastLogoutDate\"=SYSDATE, \"IsLoggedIn\" = 0 WHERE {2} = {3}", infos.user_table_name, "token", infos.user_id_column_name, user.user_id));
                     }
                 }
             }
@@ -1083,7 +1216,8 @@ FROM {fromTable}
                         u.user_token = token;
                     }
 
-                    connection.Execute(string.Format("UPDATE {0} SET LastLoginDate=getdate(), LastActivityDate=getdate(), IsLoggedIn = 1 WHERE {1} = {2}", infos.user_table_name, infos.user_id_column_name, u.user_id));
+                    // Oracle-native (port da mysql/metaQueryMySql.cs): SYSDATE invece di MSSQL getdate().
+                    connection.Execute(string.Format("UPDATE {0} SET \"LastLoginDate\"=SYSDATE, \"LastActivityDate\"=SYSDATE, \"IsLoggedIn\" = 1 WHERE {1} = {2}", infos.user_table_name, infos.user_id_column_name, u.user_id));
 
 
                     return u;
@@ -1263,7 +1397,7 @@ FROM {fromTable}
 
                     string query = string.Format("SELECT {0}.{1}, {0}.{2} FROM {0} inner join utenti_ruoli on utenti_ruoli.{1} = {0}.{1} inner join utenti on utenti_ruoli.{6} = {4}.{6} WHERE {4}.{3}=@uid", infos.role_table_name, infos.role_id_column_name, infos.role_description_column_name, infos.user_id_column_name, infos.user_table_name, infos.role_user_table_fk_name, infos.user_id_column_name);
 
-                    List<Dapper.SqlMapper.FastExpando> roles = ((List<Dapper.SqlMapper.FastExpando>)connection.Query(NormalizeSql(query), dbArgs));
+                    List<Dapper.SqlMapper.FastExpando> roles = ((List<Dapper.SqlMapper.FastExpando>)connection.Query(query, dbArgs));
 
                     List<role> roleList = new List<role>();
 
@@ -1389,7 +1523,7 @@ FROM {fromTable}
 
                         try
                         {
-                            List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)connection.Query(NormalizeSql(query));
+                            List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)connection.Query(query);
                             return new rawPagedResult() { results = rows, TotalRecords = rows.Count, Agg = null };
                         }
                         catch (SqlException ex1)
@@ -1438,7 +1572,7 @@ FROM {fromTable}
 
                     query = BuildDynamicSelectQuery(lst, SortInfo, GroupInfo, PageInfo, filterInfo, logicOperator, has_server_operation, connection, out totalRecords, aggregates, out aggregateValues, user_id, formula_lookup, mc_id);
 
-                    List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)connection.Query(NormalizeSql(query), commandTimeout: 2000);
+                    List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)connection.Query(query, commandTimeout: 2000);
 
                     if (totalRecords == 0)
                         totalRecords = rows.Count;
@@ -1689,68 +1823,97 @@ FROM {fromTable}
 
                     RawHelpers.setMetadataVersion(metadata.FirstOrDefault()._Metadati_Tabelle);
 
-                    string result = connection.Execute(NormalizeSql(query)).ToString();
+                    string result = connection.Execute(query).ToString();
 
                     if (isMeta)
                         RawHelpers.logError(new Exception("Metadata update"), "Metadata Update", query);
 
+                    // Mirror mysql/metaQueryMySql.cs:2949 (UpdateFlatData upload move).
+                    // Stesso fix di PG/MySQL: rootPath cade su ConfigHelper.GetSettingAsString("uploadFolder")
+                    // se DefaultUploadRootPath e' vuoto. SOURCE (__guid temp folder) vs
+                    // DESTINATION (pkey folder) routing per gestire upload concorrenti su UPDATE.
                     upload_fixes.ForEach(upload_fix =>
                     {
-                        if (!entity.ContainsKey(upload_fix.mc_nome_colonna))
+                        if (upload_fix == null) return;
+                        if (!entity.ContainsKey(upload_fix.mc_nome_colonna) || entity[upload_fix.mc_nome_colonna] == null) return;
+                        if (!upload_fix.UseRecordIDAsSubfolder) return;
+
+                        string __id_src = entity.ContainsKey("__guid") ? entity["__guid"]?.ToString() :
+                                          entity.ContainsKey("__id") ? entity["__id"]?.ToString() :
+                                          entity.ContainsKey("uid") ? entity["uid"]?.ToString() :
+                                          entity[metadata.First(x => x.mc_is_primary_key is true).mc_nome_colonna]?.ToString();
+                        string __id_dst = entity[metadata.First(x => x.mc_is_primary_key is true).mc_nome_colonna]?.ToString();
+
+                        string rootPath = upload_fix.DefaultUploadRootPath;
+                        if (string.IsNullOrEmpty(rootPath) || rootPath == "null")
+                            rootPath = ConfigHelper.GetSettingAsString("uploadFolder");
+                        if (string.IsNullOrEmpty(rootPath))
+                            rootPath = "/upload";
+
+                        string normalizedRootPath = (rootPath ?? string.Empty).Trim().Trim('\'', '"');
+                        if (normalizedRootPath.StartsWith("/") && normalizedRootPath.Length > 2 && normalizedRootPath[2] == ':')
+                            normalizedRootPath = normalizedRootPath.TrimStart('/');
+
+                        string rootPhysicalPath = System.IO.Path.IsPathRooted(normalizedRootPath)
+                            ? normalizedRootPath
+                            : HttpContext.Current.Server.MapPath(normalizedRootPath);
+
+                        string routeSegment = (route ?? string.Empty).Trim().Trim('\'', '"').Trim('\\', '/');
+                        string srcSegment = (__id_src ?? string.Empty).Trim().Trim('\'', '"').Trim('\\', '/');
+                        string dstSegment = (__id_dst ?? string.Empty).Trim().Trim('\'', '"').Trim('\\', '/');
+
+                        string srcDir = rootPhysicalPath;
+                        if (upload_fix.UseRouteNameAsSubfolder && !string.IsNullOrWhiteSpace(routeSegment))
+                            srcDir = System.IO.Path.Combine(srcDir, routeSegment);
+                        if (upload_fix.UseRecordIDAsSubfolder && !string.IsNullOrWhiteSpace(srcSegment))
+                            srcDir = System.IO.Path.Combine(srcDir, srcSegment);
+
+                        string dstDir = string.IsNullOrWhiteSpace(routeSegment)
+                            ? System.IO.Path.Combine(rootPhysicalPath, dstSegment)
+                            : System.IO.Path.Combine(rootPhysicalPath, routeSegment, dstSegment);
+
+                        string filename = entity[upload_fix.mc_nome_colonna].ToString();
+                        string fname = System.IO.Path.Combine(srcDir, filename);
+
+                        if (System.IO.File.Exists(fname))
                         {
-                            return;
+                            if (!upload_fix.isDBUpload)
+                            {
+                                if (!System.IO.Directory.Exists(dstDir))
+                                    System.IO.Directory.CreateDirectory(dstDir);
+
+                                string dstFile = System.IO.Path.Combine(dstDir, filename);
+                                if (System.IO.File.Exists(dstFile))
+                                    System.IO.File.Delete(dstFile);
+                                System.IO.File.Copy(fname, dstFile);
+
+                                if (upload_fix.isImageUpload && upload_fix.createThumb)
+                                {
+                                    FileInfo fi = new FileInfo(fname);
+                                    string thumbName = fi.Name.Replace(fi.Extension, "_thumb" + fi.Extension);
+                                    string thumbSrc = System.IO.Path.Combine(srcDir, thumbName);
+                                    string thumbDst = System.IO.Path.Combine(dstDir, thumbName);
+                                    if (System.IO.File.Exists(thumbSrc))
+                                    {
+                                        if (System.IO.File.Exists(thumbDst))
+                                            System.IO.File.Delete(thumbDst);
+                                        System.IO.File.Copy(thumbSrc, thumbDst);
+                                        System.IO.File.Delete(thumbSrc);
+                                    }
+                                }
+                            }
+                            System.IO.File.Delete(fname);
                         }
 
-                        if (upload_fix != null)
+                        if (!string.Equals(srcSegment, dstSegment, StringComparison.OrdinalIgnoreCase)
+                            && System.IO.Directory.Exists(srcDir))
                         {
-                            string __id = entity[metadata.First(x => x.mc_is_primary_key).mc_nome_colonna].ToString();
-
-                            string rootPath = upload_fix.DefaultUploadRootPath;
-
-                            if (string.IsNullOrEmpty(rootPath))
-                                rootPath = "/Upload/";
-                            else
+                            try
                             {
-                                if (rootPath.Substring(rootPath.Length - 1, 1) != "/")
-                                {
-                                    rootPath += "/";
-                                }
+                                if (!System.IO.Directory.EnumerateFileSystemEntries(srcDir).Any())
+                                    System.IO.Directory.Delete(srcDir);
                             }
-
-                            string pth = HttpContext.Current.Server.MapPath(rootPath + (upload_fix.UseRouteNameAsSubfolder ? "/" + route : "") + (upload_fix.UseRecordIDAsSubfolder ? "/" + __id : ""));
-
-                            if (entity[upload_fix.mc_nome_colonna] != null && upload_fix.UseRecordIDAsSubfolder)
-                            {
-                                string new_dir = System.IO.Path.Combine(HttpContext.Current.Server.MapPath(rootPath + route), result);
-
-                                string fname = System.IO.Path.Combine(pth, entity[upload_fix.mc_nome_colonna].ToString());
-
-                                if (System.IO.File.Exists(fname))
-                                {
-                                    if (!upload_fix.isDBUpload)
-                                    {
-                                        if (!System.IO.Directory.Exists(new_dir))
-                                            System.IO.Directory.CreateDirectory(new_dir);
-
-                                        System.IO.File.Copy(fname, System.IO.Path.Combine(new_dir, entity[upload_fix.mc_nome_colonna].ToString()));
-
-                                        if (upload_fix.isImageUpload && upload_fix.createThumb)
-                                        {
-                                            FileInfo fi = new FileInfo(fname);
-                                            string thumbName = fi.Name.Replace(fi.Extension, "_thumb" + fi.Extension);
-                                            System.IO.File.Copy(fname, System.IO.Path.Combine(new_dir, thumbName));
-                                            System.IO.File.Delete(thumbName);
-
-                                        }
-                                    }
-                                    System.IO.File.Delete(fname);
-                                }
-                            }
-                            else
-                            {
-
-                            }
-
+                            catch { /* best-effort cleanup */ }
                         }
                     });
 
@@ -1788,7 +1951,7 @@ FROM {fromTable}
 
                     RawHelpers.setMetadataVersion(metadata.FirstOrDefault()._Metadati_Tabelle);
 
-                    return connection.Execute(NormalizeSql(query)).ToString();
+                    return connection.Execute(query).ToString();
 
                 }
                 catch (ValidationException e1)
@@ -1830,7 +1993,7 @@ FROM {fromTable}
                     RawHelpers.setMetadataVersion(metadata.FirstOrDefault()._Metadati_Tabelle);
 
 
-                    return connection.Execute(NormalizeSql(query)).ToString();
+                    return connection.Execute(query).ToString();
                 }
             }
             catch (ValidationException e1)
@@ -1937,7 +2100,7 @@ FROM {fromTable}
                     List<_Metadati_Colonne_Grid> multiple_check_fixes = metadata.OfType<_Metadati_Colonne_Grid>().ToList();
 
 
-                    string result = connection.Execute(NormalizeSql(query)).ToString();
+                    string result = connection.Execute(query).ToString();
 
                     if (!string.IsNullOrEmpty(generated_pkey))
                         result = generated_pkey;
@@ -2000,31 +2163,57 @@ FROM {fromTable}
 
                     });
 
+                    // Mirror mysql/metaQueryMySql.cs:3502 (InsertflatData upload move).
+                    // Stesso fix di PG/MySQL: rootPath cade su ConfigHelper.GetSettingAsString("uploadFolder")
+                    // se DefaultUploadRootPath e' vuoto — il vecchio fallback "/Upload/" usava
+                    // Server.MapPath che risolveva a wwwroot/Upload (path SERVER), mentre il
+                    // file veniva caricato in <appsettings.uploadFolder>/<route>/<__guid>/ (path
+                    // REALE). File.Exists(fname) ritornava false → no Copy → record inserito
+                    // senza i file FS-upload.
                     upload_fixes.ForEach(upload_fix =>
                     {
                         if (upload_fix != null)
                         {
-                            string __id = (entity.ContainsKey("__guid") ? entity["__guid"].ToString() : entity["__id"].ToString());
 
-                            string rootPath = upload_fix.DefaultUploadRootPath;
-
-                            if (string.IsNullOrEmpty(rootPath))
-                                rootPath = "/Upload/";
-                            else
+                            if (entity.ContainsKey(upload_fix.mc_nome_colonna) && entity[upload_fix.mc_nome_colonna] != null && upload_fix.UseRecordIDAsSubfolder)
                             {
-                                if (rootPath.Substring(rootPath.Length - 1, 1) != "/")
-                                {
-                                    rootPath += "/";
-                                }
-                            }
+                                string __id = "";
 
-                            string pth = HttpContext.Current.Server.MapPath(rootPath + (upload_fix.UseRouteNameAsSubfolder ? "/" + route : "") + (upload_fix.UseRecordIDAsSubfolder ? "/" + __id : ""));
-                            if (!System.IO.Directory.Exists(pth))
-                                System.IO.Directory.CreateDirectory(pth);
+                                if (entity.ContainsKey("__guid"))
+                                    __id = entity["__guid"].ToString();
+                                else if (entity.ContainsKey("__id"))
+                                    __id = entity["__id"].ToString();
+                                else if (entity.ContainsKey("uid"))
+                                    __id = entity["uid"].ToString();
 
-                            if (entity[upload_fix.mc_nome_colonna] != null && upload_fix.UseRecordIDAsSubfolder)
-                            {
-                                string new_dir = System.IO.Path.Combine(HttpContext.Current.Server.MapPath(rootPath + route), result);
+                                string rootPath = upload_fix.DefaultUploadRootPath;
+
+                                if (string.IsNullOrEmpty(rootPath))
+                                    rootPath = "/" + (ConfigHelper.GetSettingAsString("uploadFolder") ?? "/upload/");
+
+                                string normalizedRootPath = (rootPath ?? string.Empty).Trim().Trim('\'', '"');
+                                if (normalizedRootPath.StartsWith("/") && normalizedRootPath.Length > 2 && normalizedRootPath[2] == ':')
+                                    normalizedRootPath = normalizedRootPath.TrimStart('/');
+
+                                string rootPhysicalPath = System.IO.Path.IsPathRooted(normalizedRootPath)
+                                    ? normalizedRootPath
+                                    : HttpContext.Current.Server.MapPath(normalizedRootPath);
+
+                                string routeSegment = (route ?? string.Empty).Trim().Trim('\'', '"').Trim('\\', '/');
+                                string idSegment = (__id ?? string.Empty).Trim().Trim('\'', '"').Trim('\\', '/');
+
+                                string pth = rootPhysicalPath;
+                                if (upload_fix.UseRouteNameAsSubfolder && !string.IsNullOrWhiteSpace(routeSegment))
+                                    pth = System.IO.Path.Combine(pth, routeSegment);
+                                if (upload_fix.UseRecordIDAsSubfolder && !string.IsNullOrWhiteSpace(idSegment))
+                                    pth = System.IO.Path.Combine(pth, idSegment);
+
+                                if (!System.IO.Directory.Exists(pth))
+                                    System.IO.Directory.CreateDirectory(pth);
+
+                                string new_dir = string.IsNullOrWhiteSpace(routeSegment)
+                                    ? System.IO.Path.Combine(rootPhysicalPath, result)
+                                    : System.IO.Path.Combine(rootPhysicalPath, routeSegment, result);
 
                                 string fname = System.IO.Path.Combine(pth, entity[upload_fix.mc_nome_colonna].ToString());
 
@@ -2035,18 +2224,53 @@ FROM {fromTable}
                                         if (!System.IO.Directory.Exists(new_dir))
                                             System.IO.Directory.CreateDirectory(new_dir);
 
-                                        System.IO.File.Copy(fname, System.IO.Path.Combine(new_dir, entity[upload_fix.mc_nome_colonna].ToString()));
+                                        string dstPath = System.IO.Path.Combine(new_dir, entity[upload_fix.mc_nome_colonna].ToString());
+                                        if (System.IO.File.Exists(dstPath))
+                                            System.IO.File.Delete(dstPath);
+                                        System.IO.File.Copy(fname, dstPath);
 
                                         if (upload_fix.isImageUpload && upload_fix.createThumb)
                                         {
                                             FileInfo fi = new FileInfo(fname);
                                             string thumbName = fi.Name.Replace(fi.Extension, "_thumb" + fi.Extension);
-                                            System.IO.File.Copy(fname, System.IO.Path.Combine(new_dir, thumbName));
-                                            System.IO.File.Delete(thumbName);
-
+                                            string thumbPath = System.IO.Path.Combine(pth, thumbName);
+                                            string thumbDst = System.IO.Path.Combine(new_dir, thumbName);
+                                            if (System.IO.File.Exists(thumbPath))
+                                            {
+                                                if (System.IO.File.Exists(thumbDst))
+                                                    System.IO.File.Delete(thumbDst);
+                                                System.IO.File.Copy(thumbPath, thumbDst);
+                                                System.IO.File.Delete(thumbPath);
+                                            }
                                         }
                                     }
                                     System.IO.File.Delete(fname);
+                                }
+
+                                if (upload_fix.isDBUpload
+                                    && !string.IsNullOrWhiteSpace(result)
+                                    && !string.Equals(idSegment, result, StringComparison.OrdinalIgnoreCase)
+                                    && System.IO.Directory.Exists(pth))
+                                {
+                                    string targetParent = System.IO.Path.GetDirectoryName(new_dir);
+                                    if (!string.IsNullOrWhiteSpace(targetParent) && !System.IO.Directory.Exists(targetParent))
+                                        System.IO.Directory.CreateDirectory(targetParent);
+
+                                    if (!System.IO.Directory.Exists(new_dir))
+                                    {
+                                        System.IO.Directory.Move(pth, new_dir);
+                                    }
+                                    else
+                                    {
+                                        foreach (string srcFile in System.IO.Directory.GetFiles(pth))
+                                        {
+                                            string destFile = System.IO.Path.Combine(new_dir, System.IO.Path.GetFileName(srcFile));
+                                            if (System.IO.File.Exists(destFile))
+                                                System.IO.File.Delete(destFile);
+                                            System.IO.File.Move(srcFile, destFile);
+                                        }
+                                        System.IO.Directory.Delete(pth, true);
+                                    }
                                 }
                             }
                         }
@@ -2142,18 +2366,10 @@ FROM {fromTable}
             return string.Concat("\"", obj.Replace("\"", "\"\""), "\"");
         }
 
-        private static string NormalizeSql(string sql)
-        {
-            if (string.IsNullOrWhiteSpace(sql))
-                return sql;
-
-            string normalized = Regex.Replace(sql, @"\[([^\]]+)\]", "\"$1\"");
-            normalized = Regex.Replace(normalized, @"\bgetdate\s*\(\s*\)", "SYSDATE", RegexOptions.IgnoreCase);
-            normalized = Regex.Replace(normalized, @"\bselect\s+SCOPE_IDENTITY\s*\(\s*\)", "select 0 from dual", RegexOptions.IgnoreCase);
-            normalized = Regex.Replace(normalized, @"\bSCOPE_IDENTITY\s*\(\s*\)", "0", RegexOptions.IgnoreCase);
-            normalized = Regex.Replace(normalized, @"\bnvarchar\s*\(", "varchar2(", RegexOptions.IgnoreCase);
-            return normalized;
-        }
+        // NormalizeSql rimosso 2026-05-18: tutte le query del provider sono state riportate alla forma
+        // Oracle-native al sorgente (SqlConstants + INSERT/UPDATE/SELECT inline). Niente layer di traduzione
+        // runtime — le query arrivano in OracleCommand cosi' come sono scritte nei `.cs`. Se in futuro emerge
+        // un dialect mismatch lo riporta direttamente Oracle con ORA-xxxxx, e il fix va al sorgente.
 
         public static object EscapeValue(object valore)
         {
@@ -2201,17 +2417,21 @@ FROM {fromTable}
 
             if (fld.mc_ui_column_type == "hierarchyid")
             {
-                current_fld = string.Format(" Cast({0} AS nvarchar(4000))", current_fld);
+                // Oracle-native (port da mysql/metaQueryMySql.cs): NVARCHAR2(N), non MSSQL nvarchar(N).
+                current_fld = string.Format(" CAST({0} AS NVARCHAR2(4000))", current_fld);
             }
 
             if (fld.mc_db_column_type == "point" || fld.mc_ui_column_type == "point")
             {
-                current_fld = RawHelpers.sqlPointToString(current_fld, "mssql", fld);
+                // Oracle/Spatial: SDO_GEOMETRY conversion non implementata. Coerente con PG provider che
+                // ritorna NULL anch'esso (vedi mysql/metaQueryMySql.cs equivalente).
+                current_fld = " NULL ";
             }
 
             if (fld.mc_db_column_type == "geometry" || fld.mc_ui_column_type == "geometry")
             {
-                current_fld = string.Format(" cast({0} as geography).ToString()", current_fld);
+                // Oracle/Spatial: come sopra. La sintassi MSSQL `cast(... as geography).ToString()` non esiste in Oracle.
+                current_fld = " NULL ";
             }
 
             return current_fld;
@@ -2719,17 +2939,20 @@ FROM {fromTable}
                     var flr = clonedfilters.filters.FirstOrDefault(x => x.field == pKey.mc_nome_colonna);
                     string pkeyFilterValue = "";
                     string quote = "";
+                    _Metadati_Colonne overSortCol;
 
                     if (flr == null)
                     {
-                        flr = clonedfilters.filters.First();
+                        flr = clonedfilters.filters.FirstOrDefault(x => x.field != "__extra") ?? clonedfilters.filters.First();
                         pkeyFilterValue = flr.value;
+                        overSortCol = tab._Metadati_Colonnes.FirstOrDefault(x => x.mc_nome_colonna == flr.field || x.mc_real_column_name == flr.field) ?? pKey;
                         int ou;
                         if (!int.TryParse(flr.value, out ou))
                             pkeyFilterValue = "'" + flr.value + "'";
                     }
                     else
                     {
+                        overSortCol = tab._Metadati_Colonnes.FirstOrDefault(x => x.mc_nome_colonna == flr.field || x.mc_real_column_name == flr.field) ?? pKey;
                         pkeyFilterValue = flr.value;
 
                         if (string.IsNullOrEmpty(tab.md_primary_key_type) || tab.md_primary_key_type == "GUID")
@@ -2739,7 +2962,9 @@ FROM {fromTable}
 
                     }
 
-                    pkOrder = "case when " + safetableName + "." + EscapeDBObjectName(flr.field) + " = " + quote + pkeyFilterValue + quote + " then 0 else 1 end, " + pkOrder;
+                    // Oracle: usa il REAL column name (Oracle case-folds bare→UPPER, le quoted preservano case),
+                    // non il mc_nome_colonna che è il metadata alias.
+                    pkOrder = "case when " + safetableName + "." + EscapeDBObjectName(RawHelpers.getStoreColumnName(overSortCol)) + " = " + quote + pkeyFilterValue + quote + " then 0 else 1 end, " + pkOrder;
 
                 }
 
@@ -4177,20 +4402,15 @@ FROM {fromTable}
                         _Metadati_Colonne_Upload uploader = fld as _Metadati_Colonne_Upload;
                         if (uploader.isDBUpload)
                         {
-                            if (entity[fld.mc_nome_colonna] != null)
-                            {
-                                //get path of the uploaded file
-                                string __id = entity[tabel._Metadati_Colonnes.First(x => x.mc_is_primary_key).mc_nome_colonna].ToString();
-                                string pth = HttpContext.Current.Server.MapPath("/Upload" + (uploader.UseRouteNameAsSubfolder ? "/" + tabel.md_route_name : "") + (uploader.UseRecordIDAsSubfolder ? "/" + __id : ""));
-                                string tmp_path = System.IO.Path.Combine(pth, entity[fld.mc_nome_colonna].ToString());
-
-                                //append to query
-                                if (System.IO.File.Exists(tmp_path))
-                                    field_value_list += (field_value_list == "" ? "" : ", ") + uploader.MultipleUploadBlobFieldName + "=" + "(" + "SELECT * FROM OPENROWSET (BULK '" + tmp_path.Replace("'", "''") + "', SINGLE_BLOB) " + uploader.MultipleUploadBlobFieldName + ")";
-
-                            }
-                            else
-                                field_value_list += (field_value_list == "" ? "" : ", ") + uploader.MultipleUploadBlobFieldName + "=" + "null";
+                            // Align to mysql/metaQueryMySql.cs:BuildDynamicUpdateQuery e
+                            // postgresql/metaQueryPostgreSql.cs:BuildDynamicUpdateQuery — delegate
+                            // a provider Utility (resolve folder via DefaultUploadRootPath /
+                            // ConfigHelper("uploadFolder") + route/pkey, con __guid fallback),
+                            // emette `hextoraw('hex')` Oracle BLOB literal. Inline code prima
+                            // usava `OPENROWSET BULK SINGLE_BLOB` (MSSQL-only) e hardcoded
+                            // `/Upload` MapPath → su Oracle falliva sempre.
+                            WEB_UI_CRAFTER.ProjectData.ServiziOracle.Utility.customizeImgDBUpdate(
+                                entity, uploader, tabel, ref field_value_list);
                         }
                     }
 
@@ -4768,6 +4988,8 @@ FROM {fromTable}
             string value_list = "";
             string query = "";
             string local_generated_pkey = "";
+            // Read once and reuse for every upload column (mirrors mysql/metaQueryMySql.cs e postgresql/metaQueryPostgreSql.cs).
+            bool base64Image = RawHelpers.ParseBool(ConfigHelper.GetSettingAsString("base64Image") ?? "false");
 
             _Metadati_Tabelle tabel = metadata[0]._Metadati_Tabelle;
             string table_name = tabel.md_nome_tabella;
@@ -5023,26 +5245,14 @@ FROM {fromTable}
                         _Metadati_Colonne_Upload uploader = fld as _Metadati_Colonne_Upload;
                         if (uploader.isDBUpload && (entity.ContainsKey("__guid") || entity.ContainsKey("__id")))
                         {
-                            field_list += (field_list == "" ? "" : ", ") + safetable_name + "." + metaQuery.EscapeDBObjectName(uploader.MultipleUploadBlobFieldName);
-
-                            if (entity[fld.mc_nome_colonna] != null)
-                            {
-                                //get path of the uploaded file
-                                string __id = entity.ContainsKey("__id") ? entity["__id"].ToString() : entity["__guid"].ToString();
-                                string pth = HttpContext.Current.Server.MapPath("/Upload" + (uploader.UseRouteNameAsSubfolder ? "/" + tabel.md_route_name : "") + (uploader.UseRecordIDAsSubfolder ? "/" + __id : ""));
-
-                                string tmp_path = System.IO.Path.Combine(pth, entity[fld.mc_nome_colonna].ToString());
-
-                                ////serialize
-
-                                //append to query
-                                value_list += (value_list == "" ? "" : ", ") + "(" + "SELECT * FROM OPENROWSET (BULK '" + tmp_path.Replace("'", "''") + "', SINGLE_BLOB) " + uploader.MultipleUploadBlobFieldName + ")";
-
-                                //...
-
-                            }
-                            else
-                                value_list += (value_list == "" ? "" : ", ") + "null";
+                            // Align to mysql/metaQueryMySql.cs:BuildDynamicInsertQuery e
+                            // postgresql/metaQueryPostgreSql.cs:BuildDynamicInsertQuery — delegate
+                            // a provider Utility (preferisce __guid per la temp folder, emette
+                            // la blob column + `hextoraw('hex')` literal Oracle in lockstep).
+                            // Inline code prima usava `OPENROWSET BULK SINGLE_BLOB` (MSSQL-only)
+                            // e hardcoded `/Upload` MapPath → su Oracle non funzionava.
+                            WEB_UI_CRAFTER.ProjectData.ServiziOracle.Utility.customizeImgDBInsert(
+                                (Dictionary<string, object>)entity, uploader, tabel, safetable_name, ref field_list, ref value_list, base64Image);
                         }
                     }
 
@@ -5159,7 +5369,7 @@ FROM {fromTable}
 
                 query = BuildDynamicInsertQuery(entity, metadata, user_id, out generated_pkey);
 
-                string scope_identity = connection.Execute(NormalizeSql(query)).ToString();
+                string scope_identity = connection.Execute(query).ToString();
 
                 if (!string.IsNullOrEmpty(generated_pkey))
                     scope_identity = generated_pkey;
@@ -5421,8 +5631,57 @@ FROM {fromTable}
             using (var con = new OracleConnection(connectionString))
             {
                 con.Open();
-                string q = $"SELECT {EscapeDBObjectName(uploader.mc_nome_colonna)} FROM {EscapeDBObjectName(tabel_name)} WHERE {EscapeDBObjectName(pkey.mc_nome_colonna)}=:id";
-                file = con.QueryColumn<byte[]>(q, new { id = __id }).FirstOrDefault();
+                // tabel_name arriva da getTableFullName GIA' escapato.
+                //
+                // Tipizziamo @id in base a mc_db_column_type del pkey: Oracle e' strict
+                // sui parametri NUMBER vs VARCHAR2, e __id arriva sempre come string da
+                // URL. Mirror del fix postgresql/metaQueryPostgreSql.cs:getUploadedFile.
+                // Niente Dapper / DynamicParameters: il custom Dapper popola
+                // AttachedParam solo dentro AddParameters → Get<T> prima esplode con NRE.
+                object idValue;
+                string colType = (pkey.mc_db_column_type ?? string.Empty).ToLowerInvariant();
+                if ((colType == "int" || colType == "integer" || colType == "smallint" || colType == "bigint" || colType == "long" || colType == "number")
+                    && long.TryParse(__id, out long parsedLong))
+                {
+                    idValue = parsedLong;
+                }
+                else if ((colType == "guid" || colType == "uniqueidentifier" || colType == "uuid")
+                    && Guid.TryParse(__id, out Guid parsedGuid))
+                {
+                    idValue = parsedGuid.ToString();   // Oracle: niente uuid nativo, salvato come VARCHAR2.
+                }
+                else
+                {
+                    idValue = __id;
+                }
+
+                // SELECT punta alla COLONNA BLOB (`MultipleUploadBlobFieldName`, es. `FileBlob`/
+                // `ImgBlob` di tipo BLOB), non alla colonna filename (`mc_nome_colonna`, es. `ImgDb`
+                // VARCHAR2 con il nome file). Mirror mysql/metaQueryMySql.cs:getUploadedFile:8060.
+                string q = $"SELECT {EscapeDBObjectName(uploader.MultipleUploadBlobFieldName)} FROM {tabel_name} WHERE {EscapeDBObjectName(pkey.mc_nome_colonna)}=:id";
+
+                // ADO.NET ExecuteScalar via OracleCommand: restituisce direttamente lo
+                // scalar raw (NON il FastExpando di Dapper che wrappa la riga e fa fallire
+                // `blob is byte[]`). Identico al pattern PG.
+                using (var cmd = con.CreateCommand())
+                {
+                    cmd.CommandText = q;
+                    cmd.Parameters.Add(new OracleParameter("id", idValue ?? DBNull.Value));
+                    object blob = cmd.ExecuteScalar();
+                    if (blob == null || blob is DBNull)
+                    {
+                        file = null;
+                    }
+                    else if (blob is byte[] asBytes)
+                    {
+                        file = asBytes;
+                    }
+                    else
+                    {
+                        // base64Image=true path: il valore in colonna e' una stringa base64.
+                        file = Convert.FromBase64String(blob.ToString());
+                    }
+                }
             }
         }
 

@@ -161,9 +161,24 @@ internal static class Program
             {
                 webBuilder.UseStartup<WuicCore.Startup>();
                 webBuilder.UseSetting(WebHostDefaults.ApplicationKey, typeof(Program).Assembly.GetName().Name!);
-                webBuilder.UseIISIntegration();
-                webBuilder.UseKestrel();
-                webBuilder.UseUrls("http://0.0.0.0:5000");
+
+                // Do NOT call UseKestrel() / UseIISIntegration() / UseUrls() here.
+                //
+                // ConfigureWebHostDefaults already wires both servers conditionally:
+                //   - When the process is launched by IIS in in-process mode (web.config:
+                //     hostingModel="inprocess"), the ASPNETCORE_IIS_HTTPAUTH / ANCM_HTTP_PORT
+                //     env vars are set by ANCM, and ConfigureWebHostDefaults registers the
+                //     IIS in-process server (Microsoft.AspNetCore.Server.IIS) — Kestrel is
+                //     NOT used at all because requests come straight from w3wp.exe via the
+                //     in-process module, not over a TCP socket.
+                //   - When the same binary is launched standalone (`dotnet CrmApp.dll`),
+                //     ConfigureWebHostDefaults falls back to Kestrel automatically.
+                //
+                // Calling UseKestrel() explicitly here OVERRIDE the IIS in-process server
+                // and triggers the in-process startup error:
+                //   "Application is running inside IIS process but is not configured to
+                //    use IIS server" (System.InvalidOperationException from
+                //    Microsoft.AspNetCore.Server.IIS.Core.IISServerSetupFilter).
 
                 if (Directory.Exists(legacyRoot))
                 {
@@ -197,12 +212,29 @@ internal static class Program
             return Path.GetFullPath(basePath);
         }
 
-        return Path.GetFullPath(Path.Combine(hostProjectRoot, "..", "KonvergenceCore"));
+        // Dev fallback: sibling KonvergenceCore folder (in-repo dev mode)
+        string devCandidate = Path.GetFullPath(Path.Combine(hostProjectRoot, "..", "KonvergenceCore"));
+        if (Directory.Exists(devCandidate))
+            return devCandidate;
+
+        // Published fallback: hostProjectRoot itself (everything bundled in the publish output)
+        return hostProjectRoot;
     }
 
     private static string ResolveHostProjectRoot()
     {
-        return Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", ".."));
+        string baseDir = AppContext.BaseDirectory;
+
+        // Dev layout: bin/Debug|Release/net10.0/../../.. = csproj folder
+        string devCandidate = Path.GetFullPath(Path.Combine(baseDir, "..", "..", ".."));
+        if (File.Exists(Path.Combine(devCandidate, "CrmApp.csproj")))
+            return devCandidate;
+
+        // Published layout (IIS / Kestrel): AppContext.BaseDirectory IS the
+        // publish output root. Senza questo fallback, in produzione
+        // `..\..\..` da `C:\inetpub\wwwroot\CrmApp\` finisce a `C:\` →
+        // SyncLegacyConfiguration cerca `C:\appsettings.json` → FileNotFoundException.
+        return Path.GetFullPath(baseDir);
     }
 }
 

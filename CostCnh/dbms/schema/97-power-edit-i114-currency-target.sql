@@ -212,18 +212,24 @@ BEGIN
         SELECT
             @target_currency AS target_currency_id,
             (SELECT code FROM [core].[currency] WHERE id = @target_currency) AS target_currency_code,
-            (
+            JSON_QUERY((
                 SELECT
                     COUNT(*) AS rows_count,
                     SUM(planned_target) AS total_planned_target,
                     SUM(actual_target) AS total_actual_target,
                     SUM(committed_target) AS total_committed_target
                 FROM base_with_conv FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
-            ) AS totals
+            )) AS totals
         FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
     );
 
-    SELECT @result_row_count = COUNT(*) FROM base_with_conv;
+    -- CTE scope ends after the previous statement; re-derive count from base predicates.
+    SELECT @result_row_count = COUNT(*)
+      FROM [cp].[facts] f
+     WHERE f.program_id = @prog
+       AND ISNULL(f.cancellato, 0) = 0
+       AND (@yf IS NULL OR f.time_month_id >= @yf*100+1)
+       AND (@yt IS NULL OR f.time_month_id <= @yt*100+12);
 END
 GO
 PRINT '[97-I.11.5] rep.sp_run_summary_cost_cc (cross-currency variant) created';

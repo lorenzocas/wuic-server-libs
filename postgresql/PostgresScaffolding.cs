@@ -24,7 +24,7 @@ namespace metaModelRaw
             using (DbConnection con = PostGresProviderGateway.CreateOpenConnection(connection))
             using (DbCommand cmd = DbProviderUtil.CreateTextCommand(con, "select table_name from information_schema.tables where table_schema=@schema and table_type='BASE TABLE' order by table_name"))
             {
-                con.Open();
+                // CreateOpenConnection ha gia' fatto Open(); evitiamo doppio Open (errore Npgsql).
                 DbProviderUtil.AddWithValue(cmd, "schema", schema);
                 using (DbDataReader dr = cmd.ExecuteReader())
                 {
@@ -42,7 +42,7 @@ namespace metaModelRaw
             using (DbConnection con = PostGresProviderGateway.CreateOpenConnection(connection))
             using (DbCommand cmd = DbProviderUtil.CreateTextCommand(con, "select table_name from information_schema.views where table_schema=@schema order by table_name"))
             {
-                con.Open();
+                // CreateOpenConnection ha gia' fatto Open(); evitiamo doppio Open (errore Npgsql).
                 DbProviderUtil.AddWithValue(cmd, "schema", schema);
                 using (DbDataReader dr = cmd.ExecuteReader())
                 {
@@ -60,7 +60,7 @@ namespace metaModelRaw
             using (DbConnection con = PostGresProviderGateway.CreateOpenConnection(connection))
             using (DbCommand cmd = DbProviderUtil.CreateTextCommand(con, "select routine_name from information_schema.routines where routine_schema=@schema order by routine_name"))
             {
-                con.Open();
+                // CreateOpenConnection ha gia' fatto Open(); evitiamo doppio Open (errore Npgsql).
                 DbProviderUtil.AddWithValue(cmd, "schema", schema);
                 using (DbDataReader dr = cmd.ExecuteReader())
                 {
@@ -79,7 +79,7 @@ namespace metaModelRaw
             using (DbCommand cmd = DbProviderUtil.CreateTextCommand(con, @"
 select
     column_name,
-    data_type,
+    case when data_type='USER-DEFINED' then udt_name else data_type end as data_type,
     is_nullable,
     coalesce(character_maximum_length,0) as max_length,
     coalesce(numeric_precision,0) as numeric_precision,
@@ -89,7 +89,7 @@ from information_schema.columns
 where table_schema=@schema and table_name=@table
 order by ordinal_position"))
             {
-                con.Open();
+                // CreateOpenConnection ha gia' fatto Open(); evitiamo doppio Open (errore Npgsql).
                 DbProviderUtil.AddWithValue(cmd, "schema", schema);
                 DbProviderUtil.AddWithValue(cmd, "table", tableName);
                 using (DbDataReader dr = cmd.ExecuteReader())
@@ -185,7 +185,12 @@ order by ordinal_position"))
         {
             RawHelpers.authenticate();
             List<bind_list> tblList = new List<bind_list>();
-            string effectiveSchema = NormalizeSchema(schema ?? db);
+            // PG: il database e' gia' selezionato nella connection string (Database=...).
+            // Lo `db` parametro arriva dal client che lo usa come schema su MSSQL (dove
+            // 'dbo' e' lo schema implicito), ma in PG il `db` NON e' uno schema valido —
+            // userebbe 'WideWorldImporters' come schema e ritornerebbe 0 tabelle. Quindi
+            // fallback solo se `schema` esplicito non e' fornito.
+            string effectiveSchema = NormalizeSchema(schema);
 
             foreach (string tb in GetPgTables(connection, effectiveSchema).OrderBy(x => x))
             {
@@ -211,13 +216,15 @@ order by ordinal_position"))
             RawHelpers.checkAdmin(uid);
 
             ParseQualifiedDbObjectName(table, out string tableSchema, out string tableName);
-            string effectiveSchema = NormalizeSchema(tableSchema ?? db);
+            // PG: ignora il `db` come schema (e' un MSSQL-ism). Usa il parametro
+            // tableSchema esplicito o fallback a "public" via NormalizeSchema.
+            string effectiveSchema = NormalizeSchema(tableSchema);
 
             List<bind_list> tblList = new List<bind_list>();
             using (DbConnection con = PostGresProviderGateway.CreateOpenConnection(connection))
             using (DbCommand cmd = DbProviderUtil.CreateTextCommand(con, "select column_name, data_type from information_schema.columns where table_schema=@schema and table_name=@table order by ordinal_position"))
             {
-                con.Open();
+                // CreateOpenConnection ha gia' fatto Open(); evitiamo doppio Open (errore Npgsql).
                 DbProviderUtil.AddWithValue(cmd, "schema", effectiveSchema);
                 DbProviderUtil.AddWithValue(cmd, "table", tableName);
 
@@ -244,13 +251,14 @@ order by ordinal_position"))
             RawHelpers.authenticate();
 
             ParseQualifiedDbObjectName(view, out string viewSchema, out string viewName);
-            string effectiveSchema = NormalizeSchema(viewSchema ?? db);
+            // PG: ignora `db` come schema (MSSQL-ism). Usa viewSchema esplicito o "public".
+            string effectiveSchema = NormalizeSchema(viewSchema);
 
             List<bind_list> tblList = new List<bind_list>();
             using (DbConnection con = PostGresProviderGateway.CreateOpenConnection(connection))
             using (DbCommand cmd = DbProviderUtil.CreateTextCommand(con, "select column_name, data_type from information_schema.columns where table_schema=@schema and table_name=@table order by ordinal_position"))
             {
-                con.Open();
+                // CreateOpenConnection ha gia' fatto Open(); evitiamo doppio Open (errore Npgsql).
                 DbProviderUtil.AddWithValue(cmd, "schema", effectiveSchema);
                 DbProviderUtil.AddWithValue(cmd, "table", viewName);
 
@@ -278,7 +286,9 @@ order by ordinal_position"))
             RawHelpers.checkAdmin(uid);
 
             var sourceColumns = new List<(string TableName, string ColumnName, string DataType, bool IsPk, string PkName, string FkName, string RefTable, string RefColumn)>();
-            string effectiveSchema = NormalizeSchema(db);
+            // PG: `db` non e' uno schema (MSSQL-ism); il DB e' gia' selezionato nella
+            // connection string. NormalizeSchema(null) ritorna "public".
+            string effectiveSchema = NormalizeSchema(null);
             using (DbConnection con = PostGresProviderGateway.CreateOpenConnection(connection))
             using (DbCommand cmd = con.CreateCommand())
             {
@@ -316,7 +326,7 @@ WHERE c.TABLE_SCHEMA = @db
 ORDER BY c.TABLE_NAME, c.ORDINAL_POSITION;";
                 DbProviderUtil.AddWithValue(cmd, "db", effectiveSchema);
 
-                con.Open();
+                // CreateOpenConnection ha gia' fatto Open(); evitiamo doppio Open (errore Npgsql).
                 using (DbDataReader dr = cmd.ExecuteReader())
                 {
                     while (dr.Read())
@@ -453,7 +463,9 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
 
             using (metaRawModel mmd = new metaRawModel())
             {
-                string effectiveSchema = NormalizeSchema(db);
+                // PG: `db` non e' uno schema (MSSQL-ism); il DB e' gia' selezionato nella
+            // connection string. NormalizeSchema(null) ritorna "public".
+            string effectiveSchema = NormalizeSchema(null);
                 List<string> tables = GetPgTables(connection, effectiveSchema);
                 List<string> views = GetPgViews(connection, effectiveSchema);
                 List<string> storeds = GetPgStored(connection, effectiveSchema);
@@ -510,7 +522,9 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
         {
             RawHelpers.authenticate();
             StringBuilder log = new StringBuilder();
-            string effectiveSchema = NormalizeSchema(db);
+            // PG: `db` non e' uno schema (MSSQL-ism); il DB e' gia' selezionato nella
+            // connection string. NormalizeSchema(null) ritorna "public".
+            string effectiveSchema = NormalizeSchema(null);
             ParseQualifiedDbObjectName(table, out string tableSchema, out string tableName);
             if (!string.IsNullOrWhiteSpace(tableSchema))
                 effectiveSchema = NormalizeSchema(tableSchema);
@@ -520,13 +534,13 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
                 List<columnDefinition> columns = GetPgColumns(connection, effectiveSchema, tableName, log);
                 columnDefinition col = columns.FirstOrDefault(x => string.Equals(x.Name, column, StringComparison.OrdinalIgnoreCase));
                 if (col == null)
-                    return new Dictionary<string, string>() { { "log", "Colonna non trovata" } };
+                    return new Dictionary<string, string>() { { "message", "Colonna non trovata" }, { "log", "Colonna non trovata" } };
 
                 bool createMenu = false;
                 mmd.scaffoldOfColumnMySql(connection, connName, mmd, tableName, effectiveSchema, col, log, ref createMenu, columns.Count);
                 return new Dictionary<string, string>()
                 {
-                    { "log", log.ToString() }
+                    { "message", log.ToString() }, { "log", log.ToString() }
                 };
             }
         }
@@ -541,7 +555,8 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
         {
             RawHelpers.authenticate();
             StringBuilder log = new StringBuilder();
-            string effectiveSchema = NormalizeSchema(schema ?? db);
+            // PG: ignora `db` come schema (MSSQL-ism). Usa schema esplicito o "public".
+            string effectiveSchema = NormalizeSchema(schema);
             ParseQualifiedDbObjectName(table, out string tableSchema, out string tableName);
             if (!string.IsNullOrWhiteSpace(tableSchema))
                 effectiveSchema = NormalizeSchema(tableSchema);
@@ -549,7 +564,7 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
             using (metaRawModel mmd = new metaRawModel())
             {
                 if (!GetPgTables(connection, effectiveSchema).Any(x => string.Equals(x, tableName, StringComparison.OrdinalIgnoreCase)))
-                    return new Dictionary<string, string>() { { "log", "Tabella non trovata" } };
+                    return new Dictionary<string, string>() { { "message", "Tabella non trovata" }, { "log", "Tabella non trovata" } };
 
                 List<columnDefinition> columns = GetPgColumns(connection, effectiveSchema, tableName, log);
                 foreach (columnDefinition col in columns)
@@ -557,7 +572,7 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
 
                 return new Dictionary<string, string>()
                 {
-                    { "log", log.ToString() }
+                    { "message", log.ToString() }, { "log", log.ToString() }
                 };
             }
         }
@@ -573,7 +588,9 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
             RawHelpers.authenticate();
 
             StringBuilder log = new StringBuilder();
-            string effectiveSchema = NormalizeSchema(db);
+            // PG: `db` non e' uno schema (MSSQL-ism); il DB e' gia' selezionato nella
+            // connection string. NormalizeSchema(null) ritorna "public".
+            string effectiveSchema = NormalizeSchema(null);
             ParseQualifiedDbObjectName(view, out string viewSchema, out string viewName);
             if (!string.IsNullOrWhiteSpace(viewSchema))
                 effectiveSchema = NormalizeSchema(viewSchema);
@@ -616,18 +633,20 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
         {
             RawHelpers.authenticate();
             StringBuilder log = new StringBuilder();
-            string effectiveSchema = NormalizeSchema(db);
+            // PG: `db` non e' uno schema (MSSQL-ism); il DB e' gia' selezionato nella
+            // connection string. NormalizeSchema(null) ritorna "public".
+            string effectiveSchema = NormalizeSchema(null);
 
             using (metaRawModel mmd = new metaRawModel())
             {
                 string storedName = GetPgStored(connection, effectiveSchema).FirstOrDefault(x => string.Equals(x, stored, StringComparison.OrdinalIgnoreCase));
                 if (string.IsNullOrEmpty(storedName))
-                    return new Dictionary<string, string>() { { "log", "Stored non trovata" } };
+                    return new Dictionary<string, string>() { { "message", "Stored non trovata" }, { "log", "Stored non trovata" } };
 
                 mmd.scaffoldOfStoredMySql(connection, connName, storedName, mmd, log, effectiveSchema);
                 return new Dictionary<string, string>()
                 {
-                    { "log", log.ToString() }
+                    { "message", log.ToString() }, { "log", log.ToString() }
                 };
             }
         }

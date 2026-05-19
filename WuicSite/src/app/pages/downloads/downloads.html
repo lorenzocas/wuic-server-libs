@@ -79,6 +79,62 @@
       }
     }
 
+    <div class="freeapps-block">
+      <h2><i class="pi pi-box"></i> {{ 'downloads.freeApps.title' | translate }}</h2>
+      <p class="freeapps-subtitle" [innerHTML]="'downloads.freeApps.subtitle' | translate"></p>
+      <p-message severity="success" [text]="'downloads.freeApps.licenseNote' | translate" styleClass="freeapps-license-note"></p-message>
+
+      <div class="freeapps-grid">
+        <p-card>
+          <div class="freeapp-card">
+            <h3>{{ 'downloads.freeApps.crmapp.name' | translate }}</h3>
+            <p class="freeapp-tagline">{{ 'downloads.freeApps.crmapp.tagline' | translate }}</p>
+            <p class="freeapp-features" [innerHTML]="'downloads.freeApps.crmapp.features' | translate"></p>
+            <div class="freeapp-actions">
+              <a href="/downloads/freeapps/CrmApp-iis-v1.0.0-with-dbs.zip">
+                <p-button [label]="'downloads.freeApps.download' | translate" icon="pi pi-download" size="small" />
+              </a>
+              <a routerLink="/blog/crmapp-free-crm-on-wuic">
+                <p-button [label]="'downloads.freeApps.readPost' | translate" icon="pi pi-book" size="small" severity="secondary" [text]="true" />
+              </a>
+            </div>
+          </div>
+        </p-card>
+
+        <p-card>
+          <div class="freeapp-card">
+            <h3>{{ 'downloads.freeApps.fattel.name' | translate }}</h3>
+            <p class="freeapp-tagline">{{ 'downloads.freeApps.fattel.tagline' | translate }}</p>
+            <p class="freeapp-features" [innerHTML]="'downloads.freeApps.fattel.features' | translate"></p>
+            <div class="freeapp-actions">
+              <a href="/downloads/freeapps/FatturazioneElettronica-iis-v1.0.0-with-dbs.zip">
+                <p-button [label]="'downloads.freeApps.download' | translate" icon="pi pi-download" size="small" />
+              </a>
+              <a routerLink="/blog/fatturazione-elettronica-free-italian-einvoicing">
+                <p-button [label]="'downloads.freeApps.readPost' | translate" icon="pi pi-book" size="small" severity="secondary" [text]="true" />
+              </a>
+            </div>
+          </div>
+        </p-card>
+
+        <p-card>
+          <div class="freeapp-card">
+            <h3>{{ 'downloads.freeApps.flotta.name' | translate }}</h3>
+            <p class="freeapp-tagline">{{ 'downloads.freeApps.flotta.tagline' | translate }}</p>
+            <p class="freeapp-features" [innerHTML]="'downloads.freeApps.flotta.features' | translate"></p>
+            <div class="freeapp-actions">
+              <a href="/downloads/freeapps/FlottaMezzi-iis-v1.0.0-with-dbs.zip">
+                <p-button [label]="'downloads.freeApps.download' | translate" icon="pi pi-download" size="small" />
+              </a>
+              <a routerLink="/blog/flottamezzi-free-fleet-management">
+                <p-button [label]="'downloads.freeApps.readPost' | translate" icon="pi pi-book" size="small" severity="secondary" [text]="true" />
+              </a>
+            </div>
+          </div>
+        </p-card>
+      </div>
+    </div>
+
     <div class="linux-install-block">
       <h2><i class="pi pi-desktop"></i> {{ 'downloads.linuxInstall.title' | translate }}</h2>
       <p class="linux-install-subtitle">{{ 'downloads.linuxInstall.subtitle' | translate }}</p>

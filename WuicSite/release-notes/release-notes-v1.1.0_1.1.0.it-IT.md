@@ -9,7 +9,7 @@
 
 Salto a minor: questa release introduce due capability strutturali che cambiano il modello di deployment del framework.
 
-- **Multi-tenant**: una singola istanza KonvergenceCore instrada dati e metadata di N aziende su N connessioni DB diverse. Configurazione tenant-by-tenant sulle colonne `Aziende.Connessione_DB_Dati` / `Aziende.CONNESSIONE_DB_Meta`; routing trasparente a livello applicativo via `TenantContext` (AsyncLocal, sopravvive a Task/scheduler).
+- **Multi-tenant**: una singola istanza del framework instrada dati e metadata di N aziende su N connessioni DB diverse. Configurazione tenant-by-tenant sulle colonne `Aziende.Connessione_DB_Dati` / `Aziende.CONNESSIONE_DB_Meta`; routing trasparente a livello applicativo via `TenantContext` (AsyncLocal, sopravvive a Task/scheduler).
 - **Menu localizzabile per lingua**: le voci di menu (`mm_display_string_menu`) non contengono più label italiane hard-coded ma chiavi stabili namespaced `menu.<scope>.<slug>`, risolte runtime dalla pipe `translate` di Angular contro `_wuic_translations`. Switch lingua dal selettore utente cambia tutte le voci senza F5.
 
 ---
@@ -82,7 +82,23 @@ menu.<scope>.<slug>
 
 ## 🐛 Bug fix degni di nota
 
-- **Task kill DLL lockers — `dotnet watch` hot reload**: il task di pulizia processi prima del riavvio backend (`backend: kill dll lockers`) non rilevava `WuicCore.exe` (l'eseguibile nativo emesso da .NET 8+) e perdeva il lock sul DLL al rebuild successivo (`MSB3026: file is being used by another process`). Detection riscritta con Restart Manager API (`rstrtmgr.dll`) come fonte autoritativa, fallback CommandLine esteso a `<Assembly>.exe` oltre a `dotnet.exe`, kill ricorsivo dell'albero processi. Anche i task `backend: stop running` / `backend crmapp: stop running` / `backend wuictest: stop running` ora usano l'helper condiviso `scripts/stop-dotnet-app-processes.ps1` che gestisce sia Debug che Release.
+- **Form di edit dinamici — Tab e widget nei template `md_edit_template` in production**: in build di produzione i template HTML personalizzati associati a una route via `md_edit_template` non rendevano correttamente i Tab di PrimeNG 21 (le label apparivano come testo concatenato senza il chrome del componente) e i field-editor mostravano solo placeholder `<!---->` al posto degli input. Causa: il compilatore runtime usato dal framework per i template dinamici richiede l'enumerazione esplicita dei componenti standalone disponibili nel template, mentre `MetadataProviderService.widgetDefinition.dynamicFormImports` era incompleto. Aggiunti al baseline `TabsModule` + `Tabs`/`TabList`/`Tab`/`TabPanels`/`TabPanel`, `FieldsetModule`, `DataRepeaterComponent`, `DataSourceComponent`, `ImageWrapperComponent`. Nessuna azione richiesta lato app consumer una volta aggiornato il pacchetto `wuic-framework-lib`.
+
+---
+
+## 🎁 Free app pronte all'uso
+
+Da questa release tre applicazioni complete sono distribuite **gratuitamente** sopra il framework — scaricabili dalla sezione "Free apps" della pagina [Downloads](/downloads):
+
+- **CrmApp** — CRM B2B self-hosted: anagrafica clienti, pipeline opportunità con kanban drag-and-drop, attività (call/meeting/email), dashboard role-based. ([Leggi il post](/blog/crmapp-free-crm-on-wuic))
+- **FatturazioneElettronica** — Editor fatture FatturaPA v1.2, firma CADES-BES, validazione XSD, 4 provider SDI intercambiabili (DirectPec gratuito via PEC, ArubaPec / FatturePec / PecIt commerciali), conservazione a norma, registri IVA e liquidazione. ([Leggi il post](/blog/fatturazione-elettronica-free-italian-einvoicing))
+- **FlottaMezzi** — Anagrafica mezzi/driver, scadenze automatiche (bollo / revisione / assicurazione / tagliando / patente), feed geolocation OBD/GPS, mappa live, aggregazione costi €/km per mezzo e per driver, reportistica TCO. ([Leggi il post](/blog/flottamezzi-free-fleet-management))
+
+Ogni app è disponibile in tre formati: ZIP IIS con DB tutorial (pronto al restore), ZIP IIS senza DB, ZIP sorgenti.
+
+**Modello di licenza.** Le free app sono **GRATIS così come distribuite** — il binario `<App>.dll` ZIP-ato porta una `host-binding-license` embedded che autorizza il runtime framework senza key esterne. Solo se si **ricompila l'app dai sorgenti** (per esempio per aggiungere un controller nuovo o modificare una signature pubblica) serve una licenza WUIC Developer o Professional: la ricompilazione produce un binario con identità diversa, perde il bundling, e il framework cade sul controllo licenza fingerprint standard.
+
+Estendere le free app senza ricompilare il binario è coperto dal bundling: aggiunta metadata via SQL, componenti Angular nel wwwroot, job nella tabella `scheduler`, custom hook via `appsettings.json:customCrudHookClass`.
 
 ---
 
@@ -104,4 +120,4 @@ menu.<scope>.<slug>
 2. **Per chi resta single-tenant**: nessuna azione richiesta. Senza `multiConnectionEnabled=true` il routing tenant è disattivo e il comportamento è bit-identico alla 1.0.20.
 3. **Menu localization — refresh metadata**: dopo l'aggiornamento, eseguire una volta `POST /api/Meta/AsmxProxy/MetaService.invalidateMetadataRuntime` per ricaricare il dizionario menu lato client. In alternativa logout/login dell'utente.
 4. **Menu localization — migrazione di un progetto esistente**: per un progetto che parte da una versione precedente con etichette italiane in `_metadati__menu.mm_display_string_menu`, applicare due step SQL idempotenti: (a) `UPDATE _metadati__menu SET mm_display_string_menu = '<menu.scope.slug>' WHERE mm_display_string_menu = '<vecchia etichetta>'` per ogni voce, secondo lo schema `menu.<scope>.<slug>` documentato sopra; (b) `INSERT/MERGE INTO _wuic_translations (language, resource, translation)` 5 righe per ogni nuova chiave (una per lingua). Le vecchie righe in `_wuic_translations` con resource = testo italiano restano in DB e possono essere usate da altri consumer (`instant()`, list-grid headers).
-5. **Hot reload backend in dev**: se sviluppi con `dotnet watch` o con il launcher `Backend: KonvergenceCore (Hot Reload Watch)`, il task `backend: kill dll lockers` ora richiede `pwsh` 7+ (non più Windows PowerShell 5.x). Lo script C# inline per Restart Manager usa sintassi `Dictionary<,>` corretta solo in PS 7+.
+5. **Hot reload backend in dev**: se sviluppi con `dotnet watch`, il task `backend: kill dll lockers` ora richiede `pwsh` 7+ (non più Windows PowerShell 5.x). Lo script C# inline per Restart Manager usa sintassi `Dictionary<,>` corretta solo in PS 7+.

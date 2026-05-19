@@ -25,6 +25,16 @@ namespace System.WebCore
 
         public static bool trace = ConfigurationManager.AppSettings.AllKeys.Contains("traceQuery") ? ParseBool(ConfigurationManager.AppSettings["traceQuery"]) : false;
 
+        /// <summary>
+        /// IConfiguration AspNetCore (popolata da Startup.cs:53 via
+        /// <c>Wuic.Webcore.HttpContext.Configuration = configuration</c>, subito
+        /// dopo `ConfigHelper.Initialize(configuration)`). Wuic.Webcore non puo'
+        /// referenziare KonvergenceCore (dipendenza ciclica) quindi tiene il
+        /// proprio accessor IConfiguration; lo source-of-truth resta unico in
+        /// Startup.cs. Restituisce <c>null</c> se mai inizializzata (es. test env).
+        /// </summary>
+        public static Microsoft.Extensions.Configuration.IConfiguration Configuration { get; set; }
+
         public static ContentResult AsmxProxy(dynamic pmr, string fullMethodName)
         {
             try
@@ -111,7 +121,13 @@ namespace System.WebCore
             {
                 new System.Threading.Thread(x =>
                 {
-                    string connStr = ConfigurationManager.ConnectionStrings["MetaDataSQLConnection"].ConnectionString;
+                    // Risolve MetaDataSQLConnection via IConfiguration (settata da
+                    // Startup.cs). NO `ConfigurationManager.ConnectionStrings` legacy:
+                    // legge solo appsettings.json base bypassando l'overlay dispatcher.
+                    string connStr = Configuration != null
+                        ? Microsoft.Extensions.Configuration.ConfigurationExtensions.GetConnectionString(Configuration, "MetaDataSQLConnection")
+                        : null;
+                    if (string.IsNullOrWhiteSpace(connStr)) return;
                     using (SqlConnection con = new SqlConnection(connStr))
                     {
                         con.Open();

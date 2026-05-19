@@ -799,6 +799,45 @@ namespace WuicCore.Controllers
                     return (false, null, "MySQL insert failed: " + ex.Message + (ex.InnerException != null ? " | " + ex.InnerException.Message : ""));
                 }
             }
+            else if (dbms == "oracle")
+            {
+                string dataConnStr = WuicOData.Configurator.LoadKonvergenceConnectionString("DataSQLConnection");
+                // Oracle: lo "schema" e' l'owner della tabella (uppercase di
+                // default). Se EF riporta `dbo` (placeholder MSSQL) lasciamo
+                // null → il provider non prefissa l'identifier.
+                string oracleSchema = (schema != null && schema != "dbo" ? schema : null);
+                // Identifiers Oracle: doppi apici, case-sensitive quando virgolettati.
+                var oracleColumns = columns.Select(c => "\"" + c.Trim('[', ']').Replace("\"", "\"\"") + "\"").ToArray();
+                try
+                {
+                    insertedKey = WuicOData.Configurator.InvokeOracleOdataMethod<object>(
+                        "InsertEntity",
+                        dataConnStr, oracleSchema, tableName,
+                        oracleColumns, paramNames.ToArray(), values, keyColumn);
+                }
+                catch (Exception ex)
+                {
+                    return (false, null, "Oracle insert failed: " + ex.Message + (ex.InnerException != null ? " | " + ex.InnerException.Message : ""));
+                }
+            }
+            else if (dbms == "postgresql" || dbms == "postgres")
+            {
+                string dataConnStr = WuicOData.Configurator.LoadKonvergenceConnectionString("DataSQLConnection");
+                // Postgres: schema tipicamente `public`; mappiamo placeholder dbo.
+                string pgSchema = (schema != null && schema != "dbo" ? schema : "public");
+                var pgColumns = columns.Select(c => "\"" + c.Trim('[', ']').Replace("\"", "\"\"") + "\"").ToArray();
+                try
+                {
+                    insertedKey = WuicOData.Configurator.InvokePostgresOdataMethod<object>(
+                        "InsertEntity",
+                        dataConnStr, pgSchema, tableName,
+                        pgColumns, paramNames.ToArray(), values, keyColumn);
+                }
+                catch (Exception ex)
+                {
+                    return (false, null, "Postgres insert failed: " + ex.Message + (ex.InnerException != null ? " | " + ex.InnerException.Message : ""));
+                }
+            }
             else
             {
                 // MSSQL fallback: bracket-qualify with default "dbo" when EF
@@ -872,9 +911,10 @@ namespace WuicCore.Controllers
         {
             var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            // Per-DBMS dispatch (vedi InsertEntityWithSqlAsync): on MySQL the
-            // sys.* catalog is unavailable; query information_schema.columns
-            // via the MySQL provider helper for `auto_increment` + `GENERATED`.
+            // Per-DBMS dispatch (vedi InsertEntityWithSqlAsync): su MySQL/Oracle/PG il
+            // sys.* catalog MSSQL non e' disponibile; ogni provider espone
+            // GetNonInsertableColumns(connStr, schemaOrDb, tableName) come API
+            // riflessiva sul rispettivo OdataConfigurator.
             var dbms = (WuicOData.Configurator.GetCachedConfiguration()?["AppSettings:dbms"] ?? "mssql").Trim().ToLowerInvariant();
             if (dbms == "mysql")
             {
@@ -882,6 +922,35 @@ namespace WuicCore.Controllers
                 string mysqlDbName = (schema != null && schema != "dbo" ? schema : ExtractDatabaseFromConnectionString(dataConnStr));
                 var arr = WuicOData.Configurator.InvokeMySqlOdataMethod<string[]>(
                     "GetNonInsertableColumns", dataConnStr, mysqlDbName, tableName);
+                if (arr != null)
+                {
+                    foreach (var c in arr) result.Add(c);
+                }
+                return result;
+            }
+            if (dbms == "oracle")
+            {
+                string dataConnStr = WuicOData.Configurator.LoadKonvergenceConnectionString("DataSQLConnection");
+                // Oracle: il concetto "schema" coincide con il proprietario tabella
+                // (uppercase by default). Se EF schema e' null/dbo (defaults MSSQL/
+                // Pomelo) lasciamo null → il provider risolve via ALL_TAB_*.
+                string oracleSchema = (schema != null && schema != "dbo" ? schema : null);
+                var arr = WuicOData.Configurator.InvokeOracleOdataMethod<string[]>(
+                    "GetNonInsertableColumns", dataConnStr, oracleSchema, tableName);
+                if (arr != null)
+                {
+                    foreach (var c in arr) result.Add(c);
+                }
+                return result;
+            }
+            if (dbms == "postgresql" || dbms == "postgres")
+            {
+                string dataConnStr = WuicOData.Configurator.LoadKonvergenceConnectionString("DataSQLConnection");
+                // Postgres: schema tipicamente `public`. Se EF riporta dbo (default
+                // MSSQL placeholder) mappiamo a public.
+                string pgSchema = (schema != null && schema != "dbo" ? schema : "public");
+                var arr = WuicOData.Configurator.InvokePostgresOdataMethod<string[]>(
+                    "GetNonInsertableColumns", dataConnStr, pgSchema, tableName);
                 if (arr != null)
                 {
                     foreach (var c in arr) result.Add(c);
@@ -950,6 +1019,18 @@ namespace WuicCore.Controllers
                     if (arr == null) return null;
                     return new WriteFlags { EnableInsert = arr[0], EnableEdit = arr[1], EnableDelete = arr[2] };
                 }
+                if (dbms == "oracle")
+                {
+                    var arr = WuicOData.Configurator.InvokeOracleOdataMethod<bool[]>("TryGetWriteFlags", conStr, entityset);
+                    if (arr == null) return null;
+                    return new WriteFlags { EnableInsert = arr[0], EnableEdit = arr[1], EnableDelete = arr[2] };
+                }
+                if (dbms == "postgresql" || dbms == "postgres")
+                {
+                    var arr = WuicOData.Configurator.InvokePostgresOdataMethod<bool[]>("TryGetWriteFlags", conStr, entityset);
+                    if (arr == null) return null;
+                    return new WriteFlags { EnableInsert = arr[0], EnableEdit = arr[1], EnableDelete = arr[2] };
+                }
 
                 using var connection = new SqlConnection(conStr);
                 using var cmd = connection.CreateCommand();
@@ -1000,6 +1081,14 @@ namespace WuicCore.Controllers
                 if (dbms == "mysql")
                 {
                     return WuicOData.Configurator.InvokeMySqlOdataMethod<int?>("TryGetForcedTop", conStr, entityset);
+                }
+                if (dbms == "oracle")
+                {
+                    return WuicOData.Configurator.InvokeOracleOdataMethod<int?>("TryGetForcedTop", conStr, entityset);
+                }
+                if (dbms == "postgresql" || dbms == "postgres")
+                {
+                    return WuicOData.Configurator.InvokePostgresOdataMethod<int?>("TryGetForcedTop", conStr, entityset);
                 }
 
                 using var connection = new SqlConnection(conStr);

@@ -28,7 +28,7 @@ registerLocaleData(localeIt, 'it-IT', localeItExtra);
 registerLocaleData(localeFr, 'fr-FR', localeFrExtra);
 registerLocaleData(localeEs, 'es-ES', localeEsExtra);
 registerLocaleData(localeDe, 'de-DE', localeDeExtra);
-import Aura from '@primeng/themes/aura';
+import Aura from '@primeuix/themes/aura';
 import { credentialsInterceptor } from './interceptors/credentials.interceptor';
 import { authExpiredInterceptor } from './wuic-bridges/core';
 

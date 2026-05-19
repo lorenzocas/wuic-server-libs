@@ -23,4 +23,50 @@
   <ItemGroup Condition="'$(UseWuicCoreNuget)' == 'true'">
     <PackageReference Include="WuicCore" Version="$(WuicCoreNugetVersion)" />
   </ItemGroup>
+
+  <!--
+    Host-binding license — vedi FatturazioneElettronica.csproj / CrmApp.csproj
+    per il rationale completo. Blocco meccanicamente identico salvo per AppId +
+    HostAssemblyName (entrambi corrispondono ai valori dichiarati in
+    skills/license-issuing/SKILL.md § "Host-binding licenses for bundled free apps").
+    Senza questo blocco lo script deploy-release-freapp.ps1 fallisce al
+    "3/7 Verifica artifact host-binding" perche' il binario non e' strong-named
+    (PKT vuoto, expected 803e91d55e6d2981).
+  -->
+  <PropertyGroup>
+    <_WuicStrongNameKey>$(MSBuildProjectDirectory)\..\KonvergenceCore\secrets\license-keys\wuic-strong-name.snk</_WuicStrongNameKey>
+    <_WuicLicensePrivateKey>$(MSBuildProjectDirectory)\..\KonvergenceCore\secrets\license-keys\license-private.pem</_WuicLicensePrivateKey>
+    <_WuicHostBindingScript>$(MSBuildProjectDirectory)\..\KonvergenceCore\scripts\license-issue-host-binding.ps1</_WuicHostBindingScript>
+    <_WuicHostBindingLic>$(MSBuildProjectDirectory)\host-binding-license.lic</_WuicHostBindingLic>
+
+    <SignAssembly Condition="Exists('$(_WuicStrongNameKey)')">true</SignAssembly>
+    <AssemblyOriginatorKeyFile Condition="Exists('$(_WuicStrongNameKey)')">$(_WuicStrongNameKey)</AssemblyOriginatorKeyFile>
+    <DelaySign>false</DelaySign>
+  </PropertyGroup>
+
+  <!--
+    Il .lic viene generato in BeforeBuild, ma <EmbeddedResource> in <ItemGroup>
+    statici sono valutati PRIMA di BeforeBuild. Risultato al primo build:
+    Exists() torna false, la risorsa non viene inclusa, la dll esce senza
+    embedded host-binding license.
+
+    Fix: dichiarare <EmbeddedResource> DENTRO il target, DOPO che lo script
+    ha prodotto il .lic. ItemGroup-dentro-Target e' dinamico — aggiunge agli
+    items a target-execution time, in tempo per CoreCompile.
+  -->
+  <Target Name="GenerateWuicHostBindingLicense"
+          BeforeTargets="BeforeBuild"
+          Condition="Exists('$(_WuicStrongNameKey)') AND Exists('$(_WuicLicensePrivateKey)') AND Exists('$(_WuicHostBindingScript)')">
+    <Message Text="Generating host-binding license for FlottaMezzi..." Importance="normal" />
+    <Exec Command="pwsh -NoProfile -ExecutionPolicy Bypass -File &quot;$(_WuicHostBindingScript)&quot; -AppId flotta-mezzi -StrongNameKeyPath &quot;$(_WuicStrongNameKey)&quot; -HostAssemblyName FlottaMezzi -OutputPath &quot;$(_WuicHostBindingLic)&quot; -PrivateKeyPemPath &quot;$(_WuicLicensePrivateKey)&quot;"
+          ConsoleToMSBuild="true"
+          StandardOutputImportance="low"
+          StandardErrorImportance="high"
+          IgnoreExitCode="false" />
+    <ItemGroup>
+      <EmbeddedResource Include="$(_WuicHostBindingLic)" Condition="Exists('$(_WuicHostBindingLic)')">
+        <LogicalName>WUIC.HostBindingLicense</LogicalName>
+      </EmbeddedResource>
+    </ItemGroup>
+  </Target>
 </Project>

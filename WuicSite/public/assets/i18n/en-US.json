@@ -348,6 +348,28 @@
     "noRelease": "No package published yet. Check back later.",
     "olderVersions": "Older versions",
     "releaseNotes": "Release notes",
+    "freeApps": {
+      "title": "Free, ready-to-run apps",
+      "subtitle": "Three complete applications shipped for free on top of WUIC: download the ZIP, restore the tutorial DB, point IIS at the folder — in 10 minutes you have a CRM, an e-invoicing system or a fleet manager running on your own server.",
+      "licenseNote": "The free apps are FREE as-shipped. Only if you rebuild the app from source do you need a WUIC license (Developer / Professional).",
+      "download": "Download",
+      "readPost": "Read the post",
+      "crmapp": {
+        "name": "CrmApp",
+        "tagline": "Self-hosted B2B CRM",
+        "features": "Customers, opportunity pipeline with drag-and-drop kanban, activities (calls/meetings/emails), role-based dashboards, seeded user roles. Fully metadata-driven: add a SQL column and the UI adapts."
+      },
+      "fattel": {
+        "name": "FatturazioneElettronica",
+        "tagline": "Italian e-invoicing + SDI",
+        "features": "FatturaPA v1.2 invoice editor, CADES-BES signature, XSD validation, 4 interchangeable SDI providers (DirectPec free via PEC, ArubaPec/FatturePec/PecIt commercial), legal conservation, IVA registers and liquidation."
+      },
+      "flotta": {
+        "name": "FlottaMezzi",
+        "tagline": "Fleet management + geolocation",
+        "features": "Vehicle / driver registry, automatic deadlines (road tax, inspection, insurance, service, driver license), OBD/GPS geolocation feed, live map, €/km cost roll-ups per vehicle and per driver, TCO reporting."
+      }
+    },
     "linuxInstall": {
       "title": "Linux installation (Ubuntu/Debian)",
       "subtitle": "One-liner installer. The script automatically downloads the required tarballs (runtime and/or source), verifies them with sha256 and runs the full setup. Three modes depending on your audience.",

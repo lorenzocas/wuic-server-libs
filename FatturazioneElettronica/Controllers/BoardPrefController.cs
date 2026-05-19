@@ -28,7 +28,7 @@ namespace FatturazioneElettronica.Controllers;
 public class BoardPrefController : ControllerBase
 {
     private static string MetaConn =>
-        ConfigurationManager.ConnectionStrings["MetaDataSQLConnection"]?.ConnectionString
+        WEB_UI_CRAFTER.Helpers.ConfigHelper.ResolveConnectionString("MetaDataSQLConnection")
         ?? throw new InvalidOperationException("MetaDataSQLConnection non configurata");
 
     public class SavePrefRequest

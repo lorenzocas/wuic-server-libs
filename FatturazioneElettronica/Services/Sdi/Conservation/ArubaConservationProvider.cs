@@ -60,7 +60,7 @@ public sealed class ArubaConservationProvider : IDigitalConservation
                             && SdiConfigHelper.IsSet(_opts.ContractId);
 
     private static string DataConn =>
-        ConfigurationManager.ConnectionStrings["DataSQLConnection"]?.ConnectionString
+        WEB_UI_CRAFTER.Helpers.ConfigHelper.ResolveConnectionString("DataSQLConnection")
         ?? throw new InvalidOperationException("DataSQLConnection non configurata");
 
     public async Task<ConservationResult> SealAsync(

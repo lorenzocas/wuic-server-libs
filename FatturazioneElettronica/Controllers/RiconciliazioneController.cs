@@ -31,7 +31,7 @@ namespace FatturazioneElettronica.Controllers;
 public class RiconciliazioneController : ControllerBase
 {
     private static string DataConn =>
-        ConfigurationManager.ConnectionStrings["DataSQLConnection"]?.ConnectionString
+        WEB_UI_CRAFTER.Helpers.ConfigHelper.ResolveConnectionString("DataSQLConnection")
         ?? throw new InvalidOperationException("DataSQLConnection non configurata");
 
     public class ImportCsvRequest

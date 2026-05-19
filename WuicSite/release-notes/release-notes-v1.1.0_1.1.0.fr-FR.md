@@ -9,7 +9,7 @@
 
 Saut mineur : cette version introduit deux capacités structurelles qui modifient le modèle de déploiement du framework.
 
-- **Multi-tenant** : une seule instance KonvergenceCore route les données et les métadonnées de N entreprises sur N connexions BD différentes. Configuration tenant par tenant via les colonnes `Aziende.Connessione_DB_Dati` / `Aziende.CONNESSIONE_DB_Meta` ; routage transparent au niveau applicatif via `TenantContext` (AsyncLocal, survit aux frontières Task/scheduler).
+- **Multi-tenant** : une seule instance du framework route les données et les métadonnées de N entreprises sur N connexions BD différentes. Configuration tenant par tenant via les colonnes `Aziende.Connessione_DB_Dati` / `Aziende.CONNESSIONE_DB_Meta` ; routage transparent au niveau applicatif via `TenantContext` (AsyncLocal, survit aux frontières Task/scheduler).
 - **Localisation du menu par langue** : les entrées de menu (`mm_display_string_menu`) ne contiennent plus de libellés italiens codés en dur, mais des clés stables avec namespace `menu.<scope>.<slug>`, résolues à l'exécution par la pipe `translate` d'Angular contre `_wuic_translations`. Le changement de langue depuis le sélecteur utilisateur met à jour toutes les entrées sans F5.
 
 ---
@@ -82,7 +82,23 @@ menu.<scope>.<slug>
 
 ## 🐛 Corrections de bugs notables
 
-- **Task kill DLL lockers — hot reload `dotnet watch`** : le task de nettoyage des processus avant le redémarrage du backend (`backend: kill dll lockers`) ne détectait pas `WuicCore.exe` (l'exécutable natif émis par .NET 8+) et perdait le verrou sur le DLL au rebuild suivant (`MSB3026: file is being used by another process`). Détection réécrite avec la Restart Manager API (`rstrtmgr.dll`) comme source autoritative, fallback CommandLine étendu à `<Assembly>.exe` en plus de `dotnet.exe`, kill récursif de l'arbre de processus. Les tasks `backend: stop running` / `backend crmapp: stop running` / `backend wuictest: stop running` utilisent désormais aussi le helper partagé `scripts/stop-dotnet-app-processes.ps1` qui gère à la fois Debug et Release.
+- **Formulaires d'édition dynamiques — Tabs et widgets dans les templates `md_edit_template` en production** : dans les builds de production les templates HTML personnalisés associés à une route via `md_edit_template` ne rendaient pas correctement les Tabs de PrimeNG 21 (les labels apparaissaient comme du texte concaténé sans le chrome du composant) et les field-editors n'affichaient que des placeholders `<!---->` à la place des inputs. Cause : le compilateur runtime utilisé par le framework pour les templates dynamiques requiert l'énumération explicite des composants standalone disponibles dans le template, et `MetadataProviderService.widgetDefinition.dynamicFormImports` était incomplet. Ajoutés à la baseline `TabsModule` + `Tabs`/`TabList`/`Tab`/`TabPanels`/`TabPanel`, `FieldsetModule`, `DataRepeaterComponent`, `DataSourceComponent`, `ImageWrapperComponent`. Aucune action requise sur les apps consumer une fois le paquet `wuic-framework-lib` mis à jour.
+
+---
+
+## 🎁 Applications gratuites désormais disponibles
+
+À partir de cette version, trois applications complètes sont distribuées **gratuitement** sur le framework — disponibles dans la section « Free apps » de la page [Downloads](/downloads) :
+
+- **CrmApp** — CRM B2B auto-hébergé : registre clients, pipeline d'opportunités avec kanban drag-and-drop, activités (appels / réunions / emails), tableau de bord par rôle. ([Lire l'article](/blog/crmapp-free-crm-on-wuic))
+- **FatturazioneElettronica** — Facturation électronique italienne : éditeur de factures FatturaPA v1.2, signature CADES-BES, validation XSD, 4 fournisseurs SDI interchangeables (DirectPec gratuit via PEC, ArubaPec / FatturePec / PecIt commerciaux), conservation légale, registres IVA et liquidation. ([Lire l'article](/blog/fatturazione-elettronica-free-italian-einvoicing))
+- **FlottaMezzi** — Gestion de flotte : anagraphe véhicules / conducteurs, échéances automatiques (taxe / contrôle technique / assurance / révision / permis), feed géolocalisation OBD/GPS, carte en direct, agrégation coûts €/km par véhicule et par conducteur, reporting TCO. ([Lire l'article](/blog/flottamezzi-free-fleet-management))
+
+Chaque application est disponible en trois formats : ZIP IIS avec base tutorielle (prête à restaurer), ZIP IIS sans base, ZIP sources.
+
+**Modèle de licence.** Les applications gratuites sont **GRATUITES telles que livrées** — le binaire `<App>.dll` du ZIP embarque une ressource `host-binding-license` qui autorise le runtime framework sans clé externe. Ce n'est que si vous **recompilez l'application depuis les sources** (par exemple pour ajouter un nouveau contrôleur ou modifier une signature publique) qu'une licence WUIC Developer ou Professional est requise : la recompilation produit un binaire avec une identité différente, perd le bundling, et le framework retombe sur le contrôle de licence fingerprint standard.
+
+Étendre les applications gratuites sans recompiler le binaire est couvert par le bundling : ajout de métadonnées via SQL, composants Angular dans le wwwroot, jobs dans la table `scheduler`, hooks personnalisés via `appsettings.json:customCrudHookClass`.
 
 ---
 
@@ -104,4 +120,4 @@ menu.<scope>.<slug>
 2. **Pour ceux qui restent single-tenant** : aucune action requise. Sans `multiConnectionEnabled=true` le routage tenant est désactivé et le comportement est bit-identique à la 1.0.20.
 3. **Localisation du menu — refresh des métadonnées** : après la mise à jour, exécuter une fois `POST /api/Meta/AsmxProxy/MetaService.invalidateMetadataRuntime` pour recharger le dictionnaire menu côté client. Alternativement, se déconnecter et se reconnecter.
 4. **Localisation du menu — migration d'un projet existant** : pour les projets venant d'une version précédente avec libellés italiens dans `_metadati__menu.mm_display_string_menu`, appliquer deux étapes SQL idempotentes : (a) `UPDATE _metadati__menu SET mm_display_string_menu = '<menu.scope.slug>' WHERE mm_display_string_menu = '<ancien libellé>'` pour chaque entrée, selon le schéma `menu.<scope>.<slug>` documenté ci-dessus ; (b) `INSERT/MERGE INTO _wuic_translations (language, resource, translation)` 5 lignes par nouvelle clé (une par langue). Les anciennes lignes dans `_wuic_translations` avec resource = texte italien restent dans la BD et peuvent toujours être consommées par d'autres callers (`instant()`, headers de list-grid).
-5. **Hot reload backend en dev** : si vous développez avec `dotnet watch` ou avec le launcher `Backend: KonvergenceCore (Hot Reload Watch)`, le task `backend: kill dll lockers` requiert désormais `pwsh` 7+ (plus Windows PowerShell 5.x). Le script C# inline pour Restart Manager utilise la syntaxe `Dictionary<,>` correctement parsée seulement en PS 7+.
+5. **Hot reload backend en dev** : si vous développez avec `dotnet watch`, le task `backend: kill dll lockers` requiert désormais `pwsh` 7+ (plus Windows PowerShell 5.x). Le script C# inline pour Restart Manager utilise la syntaxe `Dictionary<,>` correctement parsée seulement en PS 7+.

@@ -1,3 +1,4 @@
+export { LicenseFeatureService } from 'wuic-framework-lib-src/service/license-feature.service';
 export { WtoolboxService } from 'wuic-framework-lib-src/service/wtoolbox.service';
 export { MetadataProviderService } from 'wuic-framework-lib-src/service/metadata-provider.service';
 export { MetadataEditorService } from 'wuic-framework-lib-src/service/metadata-editor.service';

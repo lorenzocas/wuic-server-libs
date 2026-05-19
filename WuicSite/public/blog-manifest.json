@@ -1,7 +1,57 @@
 {
-  "generatedAt": "2026-05-15T02:21:19.199Z",
-  "count": 3,
+  "generatedAt": "2026-05-17T22:40:47.903Z",
+  "count": 6,
   "posts": [
+    {
+      "slug": "crmapp-free-crm-on-wuic",
+      "title": "CrmApp: a free CRM you can install in 10 minutes (and own forever)",
+      "date": "2026-05-15",
+      "author": "Lorenzo Castrico",
+      "description": "CrmApp is the first of three free apps we ship on top of WUIC. Customer pipeline, opportunities, activities, role-based dashboards — no subscription, no per-seat fee, no data going to a third-party cloud. The download is a single ZIP. This post covers what's inside, who it's for, and the licensing rule (spoiler: free unless you recompile).",
+      "tags": [
+        "crm",
+        "free-apps",
+        "wuic",
+        "self-hosted",
+        "sales-pipeline"
+      ],
+      "readingMinutes": 5,
+      "sourcePath": "assets/blog/crmapp-free-crm-on-wuic.md"
+    },
+    {
+      "slug": "fatturazione-elettronica-free-italian-einvoicing",
+      "title": "FatturazioneElettronica: a free Italian e-invoicing app with SDI integration",
+      "date": "2026-05-15",
+      "author": "Lorenzo Castrico",
+      "description": "FatturazioneElettronica is a self-hosted FatturaPA / SDI integration: invoice editor, CADES-BES signature, XSD validation, four interchangeable SDI providers (DirectPec free, ArubaPec / FatturePec / PecIt commercial), conservation pipeline. Free distribution, MIT-friendly bundling rule, runs on your own SQL Server.",
+      "tags": [
+        "einvoicing",
+        "fatturapa",
+        "sdi",
+        "italy",
+        "cades-bes",
+        "free-apps"
+      ],
+      "readingMinutes": 5,
+      "sourcePath": "assets/blog/fatturazione-elettronica-free-italian-einvoicing.md"
+    },
+    {
+      "slug": "flottamezzi-free-fleet-management",
+      "title": "FlottaMezzi: a free fleet management app with geolocation, maintenance deadlines and cost rollups",
+      "date": "2026-05-15",
+      "author": "Lorenzo Castrico",
+      "description": "FlottaMezzi is the third free app on WUIC: anagrafica mezzi, manutenzioni programmate con alert scadenze (bollo, revisione, assicurazione, tagliando), tracking geolocation via OBD/GPS feed, aggregazione costi per mezzo / driver / periodo, reportistica. Free as-shipped, runs on your own SQL Server.",
+      "tags": [
+        "fleet-management",
+        "geolocation",
+        "free-apps",
+        "wuic",
+        "transport",
+        "logistics"
+      ],
+      "readingMinutes": 6,
+      "sourcePath": "assets/blog/flottamezzi-free-fleet-management.md"
+    },
     {
       "slug": "rag-chatbot-with-claude-and-bge-m3",
       "title": "Building an in-product RAG chatbot with Claude + BAAI/bge-m3",

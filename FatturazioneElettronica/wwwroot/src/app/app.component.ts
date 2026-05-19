@@ -3,7 +3,7 @@ import { ActivatedRoute, NavigationEnd, Router, RouterOutlet } from '@angular/ro
 import { Meta, Title } from '@angular/platform-browser';
 import { filter } from 'rxjs/operators';
 import { utility } from './classes/utility';
-import { CommonModule, NgClass, NgComponentOutlet, NgFor, NgIf, NgStyle } from '@angular/common';
+import { CommonModule, NgClass, NgComponentOutlet, NgFor, NgIf, NgStyle, DatePipe, DecimalPipe, AsyncPipe, CurrencyPipe, PercentPipe, JsonPipe, SlicePipe } from '@angular/common';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { TooltipModule } from 'primeng/tooltip';
 import { SelectModule } from 'primeng/select';
@@ -196,7 +196,14 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
         liWidth: "33%",
         itemCountThreshold: 6
       },
-      gridRowImports: [ButtonModule, TableModule, CommonModule, NgClass, NgStyle, FormsModule, ui.LazyDataActionButtonComponent, ui.LazyDataSourceComponent, ui.VisibleFieldListPipe, ui.CallbackPipe, ui.CallbackPipe2, ui.IsSelectedRowPipe, ui.FormatGridViewValuePipe, ui.GetSrcUploadPreviewPipe, ui.LazyFieldEditorComponent, ui.LazyImageWrapperComponent, ImageWrapperComponent, ui.WuicFrozenColumnDirective, ui.WuicRowTogglerDirective],
+      // Standalone pipes (DatePipe/DecimalPipe/CurrencyPipe/...) elencate
+      // esplicitamente: con il DynamicCompilerService il WrapperModule riceve
+      // `CommonModule` ma in alcuni scenari il runtime compiler non risolve i
+      // pipe ri-esportati da NgModule e tira "Cannot read properties of
+      // undefined (reading 'onDestroy')" su `set ngIf` quando dentro al div
+      // ngIf-protetto c'e' un pipe `date`/`number`. Listare standalone ->
+      // risoluzione diretta nel directiveDefs del componente compilato.
+      gridRowImports: [ButtonModule, TableModule, CommonModule, NgIf, NgFor, NgClass, NgStyle, DatePipe, DecimalPipe, AsyncPipe, CurrencyPipe, PercentPipe, JsonPipe, SlicePipe, FormsModule, ui.LazyDataActionButtonComponent, ui.LazyDataSourceComponent, ui.VisibleFieldListPipe, ui.CallbackPipe, ui.CallbackPipe2, ui.IsSelectedRowPipe, ui.FormatGridViewValuePipe, ui.GetSrcUploadPreviewPipe, ui.LazyFieldEditorComponent, ui.LazyImageWrapperComponent, ImageWrapperComponent, ui.WuicFrozenColumnDirective, ui.WuicRowTogglerDirective],
       // PrimeNG 21 Tab API: include esplicitamente le 5 standalone components
       // Tabs/TabList/Tab/TabPanels/TabPanel oltre al TabsModule legacy.
       // Senza queste, il template dinamico parametric-dialog (compilato a

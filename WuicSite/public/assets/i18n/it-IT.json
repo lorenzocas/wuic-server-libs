@@ -348,6 +348,28 @@
     "noRelease": "Nessun pacchetto pubblicato. Torna piu' tardi.",
     "olderVersions": "Versioni precedenti",
     "releaseNotes": "Note di rilascio",
+    "freeApps": {
+      "title": "App gratuite pronte all'uso",
+      "subtitle": "Tre applicazioni complete distribuite gratuitamente sopra WUIC: scarica lo ZIP, restore del DB tutorial, configurazione IIS — in 10 minuti hai un CRM, un sistema di fatturazione elettronica o un gestionale flotta che gira sul tuo server.",
+      "licenseNote": "Le free app sono GRATIS così come distribuite. Solo se ricompili l'app da sorgente serve una licenza WUIC (Developer / Professional).",
+      "download": "Scarica",
+      "readPost": "Leggi il post",
+      "crmapp": {
+        "name": "CrmApp",
+        "tagline": "CRM B2B self-hosted",
+        "features": "Anagrafica clienti, pipeline opportunità con kanban drag-and-drop, attività (call/meeting/email), dashboard role-based, ruoli utente seedati. Tutto metadata-driven: aggiungi un campo SQL e l'UI si adatta."
+      },
+      "fattel": {
+        "name": "FatturazioneElettronica",
+        "tagline": "Fatturazione elettronica + SDI",
+        "features": "Editor fatture FatturaPA v1.2, firma CADES-BES, validazione XSD, 4 provider SDI intercambiabili (DirectPec gratuito via PEC, ArubaPec/FatturePec/PecIt commerciali), conservazione a norma, registri IVA e liquidazione."
+      },
+      "flotta": {
+        "name": "FlottaMezzi",
+        "tagline": "Gestione flotta + geolocation",
+        "features": "Anagrafica mezzi/driver, scadenze automatiche (bollo/revisione/assicurazione/tagliando/patente), feed geolocation OBD/GPS, mappa live, aggregazione costi €/km per mezzo e per driver, reportistica TCO."
+      }
+    },
     "linuxInstall": {
       "title": "Installazione Linux (Ubuntu/Debian)",
       "subtitle": "Installer one-liner. Lo script scarica automaticamente i tarball necessari (runtime e/o sorgenti), li verifica con sha256 e lancia il setup completo. Tre modalità in base al pubblico.",

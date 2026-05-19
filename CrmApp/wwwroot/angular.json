@@ -40,12 +40,10 @@
               }
             ],
             "styles": [
-              "node_modules/bootstrap/dist/css/bootstrap-grid.min.css",
-              "node_modules/primeicons/primeicons.css",
-              "node_modules/primeflex/primeflex.css",
-              "assets/styles.scss",
-              "node_modules/jsuites/dist/jsuites.css",
-              "node_modules/jspreadsheet/dist/jspreadsheet.css"
+              "../../node_modules/bootstrap/dist/css/bootstrap-grid.min.css",
+              "../../node_modules/primeicons/primeicons.css",
+              "../../node_modules/primeflex/primeflex.css",
+              "assets/styles.scss"
             ],
             "scripts": [],
             "preserveSymlinks": true
@@ -77,21 +75,45 @@
               }
             },
             "npm": {
-              "tsConfig": "tsconfig.app.json",
-              "optimization": false,
-              "extractLicenses": false,
-              "sourceMap": {
+              "optimization": {
                 "scripts": true,
                 "styles": true,
-                "vendor": true
+                "fonts": true
               },
+              "extractLicenses": true,
+              "sourceMap": false,
+              "outputHashing": "all",
               "fileReplacements": [
-                { "replace": "src/app/wuic-bridges/core.ts", "with": "src/app/wuic-bridges-npm/core.ts" },
-                { "replace": "src/app/wuic-bridges/ui.ts", "with": "src/app/wuic-bridges-npm/ui.ts" },
-                { "replace": "src/app/wuic-bridges/notifications.ts", "with": "src/app/wuic-bridges-npm/notifications.ts" },
-                { "replace": "src/app/wuic-bridges/routes.ts", "with": "src/app/wuic-bridges-npm/routes.ts" },
-                { "replace": "src/app/wuic-bridges/widget-loaders.ts", "with": "src/app/wuic-bridges-npm/widget-loaders.ts" }
-              ]
+                {
+                  "replace": "src/app/wuic-bridges/core.ts",
+                  "with": "src/app/wuic-bridges-npm/core.ts"
+                },
+                {
+                  "replace": "src/app/wuic-bridges/ui.ts",
+                  "with": "src/app/wuic-bridges-npm/ui.ts"
+                },
+                {
+                  "replace": "src/app/wuic-bridges/notifications.ts",
+                  "with": "src/app/wuic-bridges-npm/notifications.ts"
+                },
+                {
+                  "replace": "src/app/wuic-bridges/routes.ts",
+                  "with": "src/app/wuic-bridges-npm/routes.ts"
+                },
+                {
+                  "replace": "src/app/wuic-bridges/widget-loaders.ts",
+                  "with": "src/app/wuic-bridges-npm/widget-loaders.ts"
+                },
+                {
+                  "replace": "src/app/wuic-bridges/public.ts",
+                  "with": "src/app/wuic-bridges-npm/public.ts"
+                },
+                {
+                  "replace": "src/app/environments/environment.ts",
+                  "with": "src/app/environments/environment.prod.ts"
+                }
+              ],
+              "tsConfig": "tsconfig.app.json"
             }
           },
           "defaultConfiguration": "development"
@@ -118,7 +140,9 @@
           "builder": "@angular/build:unit-test",
           "options": {
             "tsConfig": "tsconfig.spec.json",
-            "exclude": ["src/app/environments/**"]
+            "exclude": [
+              "src/app/environments/**"
+            ]
           }
         }
       }

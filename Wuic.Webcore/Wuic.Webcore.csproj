@@ -4,7 +4,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <PackageId>Wuic.Webcore</PackageId>
-    <Version>1.0.20</Version>
+    <Version>1.1.0</Version>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="Dapper\**" />
@@ -15,7 +15,18 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   <ItemGroup>
+    <!-- Microsoft.Data.SqlClient resta perche' MSSQL e' il provider "core"
+         (vive direttamente in KonvergenceCore/MetaModel/, no plugin satellite).
+         Driver MySQL/Npgsql/Oracle.ManagedDataAccess sono BANDITI qui (e
+         dovunque tranne nei plugin mysql/postgresql/oracle satellite) —
+         vedi KonvergenceCore/scripts/check-plugin-boundaries.ps1. -->
     <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
-    <PackageReference Include="MySql.Data" Version="9.0.0" />
+    <!-- System.Configuration.ConfigurationManager: prima arrivava transitive
+         via MySql.Data 9.0.0; ora che MySql.Data e' confinato in mysql.dll
+         (boundary plugin) lo dichiariamo diretto. Usato da HttpContext.cs per
+         leggere AppSettings legacy (es. `traceQuery`, `projectAssemblyName`)
+         che restano sull'API ConfigurationManager perche' Wuic.Webcore non
+         puo' referenziare KonvergenceCore (ciclo) per usare ConfigHelper. -->
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.0" />
   </ItemGroup>
 </Project>
