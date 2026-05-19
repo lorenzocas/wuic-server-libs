@@ -1808,6 +1808,27 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
             var bindByName = GetBindByName(cmd.GetType());
             if (bindByName != null) bindByName(cmd, true);
             cmd.Transaction = transaction;
+            // Oracle: Oracle.ManagedDataAccess riconosce solo `:param` come placeholder
+            // (anche con BindByName=true). Le 200+ query del framework usano `@param`
+            // (SqlClient/MySql/Npgsql-style, accettato da quei provider). Senza
+            // questa traduzione runtime, Oracle solleva ORA-00911 "carattere non valido"
+            // sui placeholder `@`. Mirror del fix dispatcher PowerShell. Esclude `@`
+            // dentro literal di stringa (preceduto da char non-token).
+            if (cmd.GetType().Name == "OracleCommand" && !string.IsNullOrEmpty(sql))
+            {
+                // 1) `@param` -> `:param` (Oracle ManagedDataAccess only accepts `:` placeholders).
+                sql = Regex.Replace(sql, @"(?<=^|[\s,(=<>!])@(\w+)", ":$1");
+                // 2) Quote leading-underscore TABLE identifiers in known positions
+                //    (FROM/JOIN/INTO/UPDATE/TABLE). Oracle rifiuta unquoted `_xxx` con
+                //    ORA-00911. Le SqlConstants del framework hanno `INSERT INTO
+                //    _error__logs` ecc. unquoted — questo wrapping runtime evita di
+                //    toccare ~100 siti hardcoded in KonvergenceCore.
+                sql = Regex.Replace(
+                    sql,
+                    @"(?<=\b(?:FROM|JOIN|INTO|UPDATE|TABLE)\s+)(_[a-zA-Z][\w]*)(?![\w""])",
+                    "\"$1\"",
+                    RegexOptions.IgnoreCase);
+            }
             cmd.CommandText = sql;
             if (commandTimeout.HasValue)
                 cmd.CommandTimeout = commandTimeout.Value;

@@ -87,11 +87,35 @@ namespace metaModelRaw
         private static List<columnDefinition> GetOracleColumns(string connection, string owner, string tableName, StringBuilder log)
         {
             var ret = new List<columnDefinition>();
+            // LEFT JOIN su ALL_CONSTRAINTS + ALL_CONS_COLUMNS per popolare InPrimaryKey + Identity. Mirror task #66 PG.
             string sql = string.IsNullOrEmpty(owner)
-                ? @"select column_name, data_type, nullable, data_default, data_length, data_precision, data_scale
-                    from user_tab_columns where table_name=@table order by column_id"
-                : @"select column_name, data_type, nullable, data_default, data_length, data_precision, data_scale
-                    from all_tab_columns where owner=@owner and table_name=@table order by column_id";
+                ? @"select c.column_name, c.data_type, c.nullable, c.data_default, c.data_length, c.data_precision, c.data_scale,
+                           c.identity_column,
+                           case when pkcols.column_name is not null then 'YES' else 'NO' end as is_primary_key
+                    from user_tab_columns c
+                    left join (
+                        select acc.column_name
+                        from user_constraints ac
+                        join user_cons_columns acc on acc.constraint_name = ac.constraint_name
+                        where ac.constraint_type = 'P'
+                          and ac.table_name = @table
+                    ) pkcols on pkcols.column_name = c.column_name
+                    where c.table_name=@table
+                    order by c.column_id"
+                : @"select c.column_name, c.data_type, c.nullable, c.data_default, c.data_length, c.data_precision, c.data_scale,
+                           c.identity_column,
+                           case when pkcols.column_name is not null then 'YES' else 'NO' end as is_primary_key
+                    from all_tab_columns c
+                    left join (
+                        select acc.column_name
+                        from all_constraints ac
+                        join all_cons_columns acc on acc.constraint_name = ac.constraint_name and acc.owner = ac.owner
+                        where ac.constraint_type = 'P'
+                          and ac.owner = @owner
+                          and ac.table_name = @table
+                    ) pkcols on pkcols.column_name = c.column_name
+                    where c.owner=@owner and c.table_name=@table
+                    order by c.column_id";
             using (DbConnection con = OracleProviderGateway.CreateOpenConnection(connection))
             using (DbCommand cmd = DbProviderUtil.CreateTextCommand(con, sql))
             {
@@ -103,6 +127,11 @@ namespace metaModelRaw
                 {
                     while (dr.Read())
                     {
+                        string defaultVal = RawHelpers.ParseNull(dr["data_default"]);
+                        bool isIdentity = RawHelpers.ParseNull(dr["identity_column"]).Equals("YES", StringComparison.OrdinalIgnoreCase);
+                        bool isPk = RawHelpers.ParseNull(dr["is_primary_key"]).Equals("YES", StringComparison.OrdinalIgnoreCase);
+                        bool isSequenceDefault = !string.IsNullOrEmpty(defaultVal) && defaultVal.IndexOf(".nextval", StringComparison.OrdinalIgnoreCase) >= 0;
+
                         ret.Add(new columnDefinition()
                         {
                             Name = RawHelpers.ParseNull(dr["column_name"]),
@@ -111,7 +140,9 @@ namespace metaModelRaw
                             MaximumLength = int.TryParse(RawHelpers.ParseNull(dr["data_length"]), out int maxLen) ? maxLen : 0,
                             NumericPrecision = int.TryParse(RawHelpers.ParseNull(dr["data_precision"]), out int precision) ? precision : 0,
                             NumericScale = int.TryParse(RawHelpers.ParseNull(dr["data_scale"]), out int scale) ? scale : 0,
-                            DefaultValue = RawHelpers.ParseNull(dr["data_default"])
+                            DefaultValue = defaultVal,
+                            InPrimaryKey = isPk,
+                            Identity = isIdentity || (isPk && isSequenceDefault)
                         });
                     }
                 }
@@ -555,6 +586,13 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
             if (!string.IsNullOrWhiteSpace(tableSchema))
                 owner = NormalizeOwner(tableSchema);
 
+            // Mirror task #77/78 PG: resolve from connName when caller passes empty.
+            if (string.IsNullOrWhiteSpace(connection))
+            {
+                string resolvedConnName = string.IsNullOrWhiteSpace(connName) ? "DataSQLConnection" : connName;
+                connection = ConfigHelper.ResolveConnectionString(resolvedConnName);
+            }
+
             using (metaRawModel mmd = new metaRawModel())
             {
                 if (!GetOracleTables(connection, owner).Any(x => string.Equals(x, tableName, StringComparison.OrdinalIgnoreCase)))
@@ -626,6 +664,13 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
             RawHelpers.authenticate();
             StringBuilder log = new StringBuilder();
             string owner = NormalizeOwner(db);
+
+            // Mirror task #77/78 PG: resolve from connName when caller passes empty.
+            if (string.IsNullOrWhiteSpace(connection))
+            {
+                string resolvedConnName = string.IsNullOrWhiteSpace(connName) ? "DataSQLConnection" : connName;
+                connection = ConfigHelper.ResolveConnectionString(resolvedConnName);
+            }
 
             using (metaRawModel mmd = new metaRawModel())
             {

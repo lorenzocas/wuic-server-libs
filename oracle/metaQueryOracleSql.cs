@@ -1726,7 +1726,50 @@ FROM {fromTable}
                                         dbArgs.Add(pair.field, null, dbtype, pDir, size);
                                     }
                                     else
-                                        dbArgs.Add(pair.field, (pair.value == null ? null : pair.value.ToString()), dbtype, pDir);
+                                    {
+                                        // Oracle ODP.NET: VARCHAR2-bind fails on NUMBER/INTEGER SP params (ORA-06550 PLS-00306).
+                                        // Map md_props_bag.parameters.Type → CLR type. Mirror task #77 PG.
+                                        object boundValue = null;
+                                        if (pair.value != null)
+                                        {
+                                            string rawStr = pair.value.ToString();
+                                            string declaredType = (pair.Type ?? string.Empty).ToLowerInvariant();
+                                            if (declaredType == "number" || declaredType == "int" || declaredType == "integer")
+                                            {
+                                                if (int.TryParse(rawStr, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int iv)) boundValue = iv;
+                                                else if (long.TryParse(rawStr, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out long lv)) boundValue = lv;
+                                                else if (decimal.TryParse(rawStr, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out decimal dv)) boundValue = dv;
+                                                else boundValue = rawStr;
+                                            }
+                                            else if (declaredType == "long" || declaredType == "bigint")
+                                            {
+                                                if (long.TryParse(rawStr, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out long lv)) boundValue = lv;
+                                                else boundValue = rawStr;
+                                            }
+                                            else if (declaredType == "decimal" || declaredType == "numeric" || declaredType == "float" || declaredType == "double")
+                                            {
+                                                if (decimal.TryParse(rawStr, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out decimal dv)) boundValue = dv;
+                                                else boundValue = rawStr;
+                                            }
+                                            else if (declaredType == "boolean" || declaredType == "bool")
+                                            {
+                                                if (bool.TryParse(rawStr, out bool bv)) boundValue = bv;
+                                                else if (rawStr == "1" || rawStr.Equals("true", StringComparison.OrdinalIgnoreCase)) boundValue = true;
+                                                else if (rawStr == "0" || rawStr.Equals("false", StringComparison.OrdinalIgnoreCase)) boundValue = false;
+                                                else boundValue = rawStr;
+                                            }
+                                            else if (declaredType == "date" || declaredType == "datetime" || declaredType == "timestamp")
+                                            {
+                                                if (DateTime.TryParse(rawStr, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out DateTime dt)) boundValue = dt;
+                                                else boundValue = rawStr;
+                                            }
+                                            else
+                                            {
+                                                boundValue = rawStr;
+                                            }
+                                        }
+                                        dbArgs.Add(pair.field, boundValue, dbtype, pDir);
+                                    }
                                 }
                             }
                         }
@@ -1811,7 +1854,8 @@ FROM {fromTable}
                         throw optEx;
                     }
 
-                    List<_Metadati_Colonne_Upload> upload_fixes = metadata.OfType<_Metadati_Colonne_Upload>().Where(x => x.isDBUpload).ToList();
+                    // Oracle: include filesystem uploads too. Mirror task #83 PG.
+                    List<_Metadati_Colonne_Upload> upload_fixes = metadata.OfType<_Metadati_Colonne_Upload>().ToList();
                     List<_Metadati_Colonne_Grid> multiple_check_fixes = metadata.OfType<_Metadati_Colonne_Grid>().ToList();
 
                     query = BuildDynamicUpdateQuery(entity, metadata, userId);
@@ -1827,6 +1871,16 @@ FROM {fromTable}
 
                     if (isMeta)
                         RawHelpers.logError(new Exception("Metadata update"), "Metadata Update", query);
+
+                    // RecordTranslations sync (mirror task #73 PG).
+                    try
+                    {
+                        WEB_UI_CRAFTER.RecordTranslationsOracle.OnUpdate(connection, null, tab, metadata, entity, userId);
+                    }
+                    catch (Exception rtEx)
+                    {
+                        RawHelpers.logError(rtEx, "RecordTranslationsOracle.OnUpdate", route);
+                    }
 
                     // Mirror mysql/metaQueryMySql.cs:2949 (UpdateFlatData upload move).
                     // Stesso fix di PG/MySQL: rootPath cade su ConfigHelper.GetSettingAsString("uploadFolder")
@@ -1951,7 +2005,12 @@ FROM {fromTable}
 
                     RawHelpers.setMetadataVersion(metadata.FirstOrDefault()._Metadati_Tabelle);
 
-                    return connection.Execute(query).ToString();
+                    string deleteResult = connection.Execute(query).ToString();
+
+                    try { WEB_UI_CRAFTER.RecordTranslationsOracle.OnDelete(connection, null, tab, id.ToString()); }
+                    catch (Exception rtEx) { RawHelpers.logError(rtEx, "RecordTranslationsOracle.OnDelete", route); }
+
+                    return deleteResult;
 
                 }
                 catch (ValidationException e1)
@@ -1993,7 +2052,18 @@ FROM {fromTable}
                     RawHelpers.setMetadataVersion(metadata.FirstOrDefault()._Metadati_Tabelle);
 
 
-                    return connection.Execute(query).ToString();
+                    string deleteResult = connection.Execute(query).ToString();
+
+                    try
+                    {
+                        string pkColName = metadata.FirstOrDefault(m => m.mc_is_primary_key)?.mc_nome_colonna;
+                        string recordIdForTranslations = (pkColName != null && entity.ContainsKey(pkColName)) ? RawHelpers.ParseNull(entity[pkColName]) : null;
+                        if (!string.IsNullOrWhiteSpace(recordIdForTranslations))
+                            WEB_UI_CRAFTER.RecordTranslationsOracle.OnDelete(connection, null, tab, recordIdForTranslations);
+                    }
+                    catch (Exception rtEx) { RawHelpers.logError(rtEx, "RecordTranslationsOracle.OnDelete", route); }
+
+                    return deleteResult;
                 }
             }
             catch (ValidationException e1)
@@ -2104,6 +2174,17 @@ FROM {fromTable}
 
                     if (!string.IsNullOrEmpty(generated_pkey))
                         result = generated_pkey;
+
+                    // RecordTranslations seed (mirror task #73 PG).
+                    string recordIdForTranslations = ResolveRecordIdForTranslations(generated_pkey, result, metadata, entity);
+                    try
+                    {
+                        WEB_UI_CRAFTER.RecordTranslationsOracle.OnInsert(connection, null, metadata[0]._Metadati_Tabelle, metadata, entity, recordIdForTranslations, userId);
+                    }
+                    catch (Exception rtEx)
+                    {
+                        RawHelpers.logError(rtEx, "RecordTranslationsOracle.OnInsert", route);
+                    }
 
                     //NEED TO BLANK RESULT: IF THE TABLE HAS A FULL TEXT INDEX -> INSERT QUERY RETURNS THIS AUTOGENERATED VALUE THAT IS CLIENT SIDE ASSIGNED TO THE FIRST PRIMARY KEY COLUMN OF THE TABLE !!!!!
                     if (string.IsNullOrEmpty(metadata.FirstOrDefault()._Metadati_Tabelle.md_primary_key_type))
@@ -2354,14 +2435,20 @@ FROM {fromTable}
             }
         }
 
+        // Mirror task #73 PG (ResolveRecordIdForTranslations).
+        private static string ResolveRecordIdForTranslations(string generated_pkey, string result, IList<_Metadati_Colonne> metadata, IDictionary<string, object> entity)
+        {
+            if (!string.IsNullOrEmpty(generated_pkey)) return generated_pkey;
+            if (!string.IsNullOrEmpty(result)) return result;
+            string pkColumnName = metadata?.FirstOrDefault(m => m.mc_is_primary_key)?.mc_nome_colonna;
+            if (string.IsNullOrEmpty(pkColumnName) || entity == null) return null;
+            var pkEntry = entity.FirstOrDefault(kv => string.Equals(kv.Key, pkColumnName, StringComparison.OrdinalIgnoreCase));
+            return RawHelpers.ParseNull(pkEntry.Value);
+        }
+
         public static string EscapeDBObjectName(string obj)
         {
             // SECURITY: see twin in KonvergenceCore/MetaModel/_Metadati_methods.cs:2403
-            // for full SQL-Injection rationale + repro. Oracle identifier
-            // quoting uses double-quotes ".." (SQL standard); escape by
-            // doubling: " -> "". Without this, an admin who controls a
-            // metadata identifier field can break out of the quotes and
-            // inject arbitrary SQL into the auto-generated query.
             if (obj == null) return "\"\"";
             return string.Concat("\"", obj.Replace("\"", "\"\""), "\"");
         }
@@ -3164,7 +3251,8 @@ FROM {fromTable}
                                     {
                                         if (joins.ContainsKey(apY))
                                         {
-                                            string joinPart = " AND " + apX.alias_name + "." + x.mc_nome_colonna + "=" + apY.alias_name + "." + apY.fk_name;
+                                            // Oracle: escape col/fk identifiers for reserved words + case-mixed names. Mirror task #61 PG.
+                                            string joinPart = " AND " + apX.alias_name + "." + EscapeDBObjectName(x.mc_nome_colonna) + "=" + apY.alias_name + "." + EscapeDBObjectName(apY.fk_name);
                                             if (currentAP.alias_name == apX.alias_name)
                                             {
                                                 //TODO CREATE A NEW DERIVED ALIAS AND PLUG A NEW JOIN CLAUSE IN JOINS-ARRAY
@@ -3241,7 +3329,9 @@ FROM {fromTable}
         private static string AppendFilter(_Metadati_Colonne fld, FilterInfos filterInfo, string logicOperator, string currentFld, string where, _Metadati_Tabelle tabel, string formulaLookup = "", string userId = "", bool isNested = false)
         {
 
-            filterInfo.filters.Where(x => (fld == null && x.nestedFilters != null) || (x.field != null && x.field.ToLower() == fld.mc_nome_colonna.ToLower() && x.field != "__extra" && !x.isHaving)).ToList().ForEach((f) =>
+            // Oracle: match il `field` del filter sia contro `mc_nome_colonna` (C# property
+            // name) sia contro `mc_real_column_name` (DB column name). Mirror task #70 PG.
+            filterInfo.filters.Where(x => (fld == null && x.nestedFilters != null) || (x.field != null && (x.field.ToLower() == fld.mc_nome_colonna.ToLower() || (!string.IsNullOrEmpty(fld.mc_real_column_name) && x.field.ToLower() == fld.mc_real_column_name.ToLower())) && x.field != "__extra" && !x.isHaving)).ToList().ForEach((f) =>
             {
                 if (f.nestedFilters != null && f.nestedFilters.filters.Count > 0)
                 {
