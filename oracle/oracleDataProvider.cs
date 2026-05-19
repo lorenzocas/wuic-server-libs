@@ -134,8 +134,10 @@ public class oracleDataProvider : IMetaQuery
     {
         using (OracleConnection connection = metaQueryOracleSql.GetOpenConnection(true))
         {
+            // Oracle: customSettings è CLOB; coalesce(CLOB, '') causa ORA-00932 (CLOB vs CHAR).
+            // Wrap del literal vuoto in TO_CLOB per allineare i tipi.
             string settings = connection.Query<string>(
-                "select coalesce(customSettings, '') from utenti where id_utente=@id_utente",
+                "select coalesce(customSettings, TO_CLOB('')) from utenti where id_utente=@id_utente",
                 new { id_utente = user_id }).FirstOrDefault() ?? "";
 
             if (string.IsNullOrEmpty(key))

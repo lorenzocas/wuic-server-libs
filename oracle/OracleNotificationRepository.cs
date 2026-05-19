@@ -88,7 +88,7 @@ public sealed class oracleNotificationRepository : INotificationRepository
         await using var cn = await CreateOpenConnectionAsync(cancellationToken);
 
         await using (var countCmd = BuildCommand(cn,
-            "SELECT COUNT(1) FROM _notifications WHERE user_id = :user_id AND is_read = 0 AND deleted_at IS NULL",
+            "SELECT COUNT(1) FROM \"_notifications\" WHERE user_id = :user_id AND is_read = 0 AND deleted_at IS NULL",
             ("user_id", userId)))
         {
             object scalar = await countCmd.ExecuteScalarAsync(cancellationToken);
@@ -97,13 +97,13 @@ public sealed class oracleNotificationRepository : INotificationRepository
 
         // Oracle 12c+: FETCH FIRST N ROWS ONLY al posto di LIMIT.
         // NVL(target_json, '') in Oracle, equivalente di IFNULL(...) MySQL.
-        const string listSql = @"SELECT id, user_id, ""type"", ""message"",
+        const string listSql = @"SELECT id, user_id, type, message,
                                         NVL(target_json, '') AS target_json,
                                         NVL(payload_json, '') AS payload_json,
-                                        is_read, created_at, read_at
-                                 FROM _notifications
+                                        is_read, ""created_at"" AS created_at, read_at
+                                 FROM ""_notifications""
                                  WHERE user_id = :user_id AND deleted_at IS NULL
-                                 ORDER BY created_at DESC, id DESC
+                                 ORDER BY ""created_at"" DESC, id DESC
                                  FETCH FIRST :take ROWS ONLY";
 
         await using (var listCmd = BuildCommand(cn, listSql, ("user_id", userId), ("take", take)))
@@ -135,7 +135,7 @@ public sealed class oracleNotificationRepository : INotificationRepository
 
         int? userId;
         await using (var selCmd = BuildCommand(cn,
-            "SELECT user_id FROM _notifications WHERE id = :id AND deleted_at IS NULL",
+            "SELECT user_id FROM \"_notifications\" WHERE id = :id AND deleted_at IS NULL",
             ("id", notificationId)))
         {
             object scalar = await selCmd.ExecuteScalarAsync(cancellationToken);
@@ -145,7 +145,7 @@ public sealed class oracleNotificationRepository : INotificationRepository
         // Oracle: SYS_EXTRACT_UTC(SYSTIMESTAMP) e' l'equivalente di UTC_TIMESTAMP(6) MySQL.
         // NVL preserva il read_at esistente se non null.
         await using (var updCmd = BuildCommand(cn,
-            "UPDATE _notifications SET is_read = 1, read_at = NVL(read_at, SYS_EXTRACT_UTC(SYSTIMESTAMP)) WHERE id = :id AND deleted_at IS NULL",
+            "UPDATE \"_notifications\" SET is_read = 1, read_at = NVL(read_at, SYS_EXTRACT_UTC(SYSTIMESTAMP)) WHERE id = :id AND deleted_at IS NULL",
             ("id", notificationId)))
         {
             await updCmd.ExecuteNonQueryAsync(cancellationToken);
@@ -160,7 +160,7 @@ public sealed class oracleNotificationRepository : INotificationRepository
 
         await using var cn = await CreateOpenConnectionAsync(cancellationToken);
         await using (var cmd = BuildCommand(cn,
-            "UPDATE _notifications SET is_read = 1, read_at = NVL(read_at, SYS_EXTRACT_UTC(SYSTIMESTAMP)) WHERE user_id = :user_id AND is_read = 0 AND deleted_at IS NULL",
+            "UPDATE \"_notifications\" SET is_read = 1, read_at = NVL(read_at, SYS_EXTRACT_UTC(SYSTIMESTAMP)) WHERE user_id = :user_id AND is_read = 0 AND deleted_at IS NULL",
             ("user_id", userId)))
         {
             await cmd.ExecuteNonQueryAsync(cancellationToken);
@@ -175,7 +175,7 @@ public sealed class oracleNotificationRepository : INotificationRepository
 
         await using var cn = await CreateOpenConnectionAsync(cancellationToken);
         await using (var cmd = BuildCommand(cn,
-            "UPDATE _notifications SET deleted_at = SYS_EXTRACT_UTC(SYSTIMESTAMP) WHERE user_id = :user_id AND is_read = 1 AND deleted_at IS NULL",
+            "UPDATE \"_notifications\" SET deleted_at = SYS_EXTRACT_UTC(SYSTIMESTAMP) WHERE user_id = :user_id AND is_read = 1 AND deleted_at IS NULL",
             ("user_id", userId)))
         {
             await cmd.ExecuteNonQueryAsync(cancellationToken);
@@ -190,7 +190,7 @@ public sealed class oracleNotificationRepository : INotificationRepository
 
         int? userId; bool isRead;
         await using (var selCmd = BuildCommand(cn,
-            "SELECT user_id, is_read FROM _notifications WHERE id = :id AND deleted_at IS NULL",
+            "SELECT user_id, is_read FROM \"_notifications\" WHERE id = :id AND deleted_at IS NULL",
             ("id", notificationId)))
         {
             await using var rdr = await selCmd.ExecuteReaderAsync(cancellationToken);
@@ -201,7 +201,7 @@ public sealed class oracleNotificationRepository : INotificationRepository
         if (userId == null || !isRead) return userId;
 
         await using (var updCmd = BuildCommand(cn,
-            "UPDATE _notifications SET deleted_at = SYS_EXTRACT_UTC(SYSTIMESTAMP) WHERE id = :id AND deleted_at IS NULL",
+            "UPDATE \"_notifications\" SET deleted_at = SYS_EXTRACT_UTC(SYSTIMESTAMP) WHERE id = :id AND deleted_at IS NULL",
             ("id", notificationId)))
         {
             await updCmd.ExecuteNonQueryAsync(cancellationToken);
@@ -221,7 +221,7 @@ public sealed class oracleNotificationRepository : INotificationRepository
         // Oracle 19c+ JSON: usiamo JSON_VALUE (RETURNING VARCHAR2 default) per
         // navigare i 3 path. JSON_VALUE ritorna NULL su path mancante → semantica
         // identica al MySQL JSON_UNQUOTE(JSON_EXTRACT(...)) = @guid case.
-        const string sql = @"UPDATE _notifications
+        const string sql = @"UPDATE ""_notifications""
                              SET is_read = 1,
                                  read_at = NVL(read_at, SYS_EXTRACT_UTC(SYSTIMESTAMP)),
                                  deleted_at = SYS_EXTRACT_UTC(SYSTIMESTAMP)
@@ -246,7 +246,7 @@ public sealed class oracleNotificationRepository : INotificationRepository
 
         await using var cn = await CreateOpenConnectionAsync(cancellationToken);
         await using var cmd = BuildCommand(cn,
-            "SELECT DISTINCT user_id FROM _notifications WHERE is_read = 0 AND deleted_at IS NULL AND user_id IS NOT NULL");
+            "SELECT DISTINCT user_id FROM \"_notifications\" WHERE is_read = 0 AND deleted_at IS NULL AND user_id IS NOT NULL");
         await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
         {

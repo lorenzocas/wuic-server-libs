@@ -553,7 +553,8 @@ FROM {fromTable}
                 List<_Metadati_Colonne> lst = _Metadati_Colonne.getColonneByUserID(route, 0, user_id, dataMode.view, null);
                 _Metadati_Tabelle tab = lst.First()._Metadati_Tabelle;
 
-                string table_name = (string.IsNullOrEmpty(tab.md_db_name) ? "" : "[" + tab.md_db_name + "]..") + metaQuery.EscapeDBObjectName(tab.md_nome_tabella);
+                // Oracle: no 3-part `[db].dbo.table`. Schema implicit via connection user.
+                string table_name = metaQuery.EscapeDBObjectName(tab.md_nome_tabella);
 
                 current_fld = table_name + "." + metaQuery.EscapeDBObjectName(categoryAxFld);
 
@@ -566,11 +567,11 @@ FROM {fromTable}
                 {
                     categoryAxFld = categoryColumnLookUp.mc_ui_lookup_entity_name + "___" + categoryColumnLookUp.mc_ui_lookup_dataTextField;
                     _Metadati_Tabelle relatedTable = mmd.GetMetadati_Tabelles(categoryColumnLookUp.mc_ui_lookup_entity_name).FirstOrDefault();
-                    string safeEntityName = (string.IsNullOrEmpty(tab.md_db_name) ? "" : "[" + tab.md_db_name + "]..") + metaQuery.EscapeDBObjectName(relatedTable.md_nome_tabella);
+                    string safeEntityName = metaQuery.EscapeDBObjectName(relatedTable.md_nome_tabella);
                     string safeUniqueEntityName = metaQuery.EscapeDBObjectName(categoryColumnLookUp.mc_nome_colonna + "_" + categoryColumnLookUp.mc_ui_lookup_entity_name);
                     string calculatedText = categoryColumnLookUp.mc_ui_lookup_computed_dataTextField;
                     string safeTextField = metaQuery.EscapeDBObjectName(categoryColumnLookUp.mc_ui_lookup_dataTextField);
-                    join = string.Format(" LEFT JOIN {0} AS {3} ON {1} = {2} ", safeEntityName, current_fld, safeUniqueEntityName + "." + metaQuery.EscapeDBObjectName(categoryColumnLookUp.mc_ui_lookup_dataValueField), safeUniqueEntityName);
+                    join = string.Format(" LEFT JOIN {0} {3} ON {1} = {2}", safeEntityName, current_fld, safeUniqueEntityName + "." + metaQuery.EscapeDBObjectName(categoryColumnLookUp.mc_ui_lookup_dataValueField), safeUniqueEntityName);
                     group_by = safeUniqueEntityName + "." + safeTextField;
                     select_cols = aggregationFunction + "(" + table_name + "." + metaQuery.EscapeDBObjectName(valueField) + ") AS " + metaQuery.EscapeDBObjectName(valueField) + ", coalesce(" + group_by + ", 'NULLO') AS " + safeTextField;
                 }
@@ -604,31 +605,9 @@ FROM {fromTable}
         #region "CONNECTION UTILS"
         public static string getTableFullName(_Metadati_Tabelle tab)
         {
-            string table_name = tab.md_nome_tabella;
-            string safetable_name = (string.IsNullOrEmpty(tab.md_db_name) ? "" : "[" + tab.md_db_name + "].") + (!string.IsNullOrEmpty(tab.md_schema_name) ? "[" + tab.md_schema_name + "]." : ".") + EscapeDBObjectName(table_name);
-            if (string.IsNullOrEmpty(tab.md_db_name))
-            {
-                if (string.IsNullOrEmpty(tab.md_schema_name))
-                {
-                    safetable_name = EscapeDBObjectName(table_name);
-                }
-                else
-                {
-                    safetable_name = "[" + tab.md_schema_name + "]." + EscapeDBObjectName(table_name);
-                }
-            }
-            else
-            {
-                if (string.IsNullOrEmpty(tab.md_schema_name))
-                {
-                    safetable_name = "[" + tab.md_db_name + "].." + EscapeDBObjectName(table_name);
-                }
-                else
-                {
-                    safetable_name = "[" + tab.md_db_name + "]." + "[" + tab.md_schema_name + "]." + EscapeDBObjectName(table_name);
-                }
-            }
-            return safetable_name;
+            // Oracle: schema = connection user. Tables in current schema use bare name.
+            // Cross-schema reference would be "SCHEMA"."TABLE" (no md_db_name MSSQL-isms).
+            return EscapeDBObjectName(tab.md_nome_tabella);
         }
 
 
@@ -1216,8 +1195,8 @@ FROM {fromTable}
                         u.user_token = token;
                     }
 
-                    // Oracle-native (port da mysql/metaQueryMySql.cs): SYSDATE invece di MSSQL getdate().
-                    connection.Execute(string.Format("UPDATE {0} SET \"LastLoginDate\"=SYSDATE, \"LastActivityDate\"=SYSDATE, \"IsLoggedIn\" = 1 WHERE {1} = {2}", infos.user_table_name, infos.user_id_column_name, u.user_id));
+                    // Oracle-native: SYSDATE + unquoted column names (canonical UPPER post-rename).
+                    connection.Execute(string.Format("UPDATE {0} SET LastLoginDate=SYSDATE, LastActivityDate=SYSDATE, IsLoggedIn = 1 WHERE {1} = {2}", infos.user_table_name, infos.user_id_column_name, u.user_id));
 
 
                     return u;
@@ -1227,19 +1206,28 @@ FROM {fromTable}
 
         private static user mapUserFields(SysInfo infos, SqlMapper.FastExpando user)
         {
-            string userid = user.Where(x => x.Key == infos.user_id_column_name).First().Value.ToString();
+            // Oracle: column case-folded a UPPER (rename canonico). `infos.*_column_name` da
+            // sys_info può essere lowercase → confronto case-insensitive.
+            string userid = user.Where(x => string.Equals(x.Key, infos.user_id_column_name, StringComparison.OrdinalIgnoreCase)).First().Value.ToString();
 
-            string display = user.Where(x => x.Key == infos.user_description_column_name).First().Value.ToString();
-            bool isAdmin = (bool)user.Where(x => x.Key == infos.isAdmin_column_name).First().Value;
-            string roleName = getRoleByUserID(userid).role_name;
-            string role_id = user.Where(x => x.Key == infos.role_id_column_name).First().Value.ToString();
-            string uName = user.Where(x => x.Key == infos.username_column_name).First().Value.ToString();
+            string display = user.Where(x => string.Equals(x.Key, infos.user_description_column_name, StringComparison.OrdinalIgnoreCase)).First().Value.ToString();
+            // Oracle: bool stored come NUMBER(1) → arriva come Int16/decimal, not bool. Normalize via Convert.ToBoolean.
+            object isAdminVal = user.Where(x => string.Equals(x.Key, infos.isAdmin_column_name, StringComparison.OrdinalIgnoreCase)).First().Value;
+            bool isAdmin = isAdminVal != null && isAdminVal != DBNull.Value && Convert.ToBoolean(Convert.ToInt32(isAdminVal));
+            role myRole = getRoleByUserID(userid);
+            string roleName = myRole?.role_name;
+            string role_id = user.Where(x => string.Equals(x.Key, infos.role_id_column_name, StringComparison.OrdinalIgnoreCase)).First().Value.ToString();
+            string uName = user.Where(x => string.Equals(x.Key, infos.username_column_name, StringComparison.OrdinalIgnoreCase)).First().Value.ToString();
             List<role> roles = getMultipleRoleRoleByUserID(userid);
+
+            // isSuperAdmin: from ruoli.superadmin via mapRoleFields. Mirror mysql/metaQueryMySql.cs:1371.
+            bool isSuperAdmin = myRole != null && myRole.superadmin;
 
             user u = new user()
             {
                 display_name = display,
                 isAdmin = isAdmin,
+                isSuperAdmin = isSuperAdmin,
                 role = roleName,
                 otherRoles = roles,
                 role_id = role_id,
@@ -1270,7 +1258,7 @@ FROM {fromTable}
             //     u.extra_keys.Add(extra_field, user_param != null ? user_param.ToString() : "");
             // }
 
-            KeyValuePair<string, object>? az_field = user.Where(x => x.Key == infos.azienda_id_column_name).FirstOrDefault();
+            KeyValuePair<string, object>? az_field = user.Where(x => string.Equals(x.Key, infos.azienda_id_column_name, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
             if (az_field != null)
             {
                 object id_azienda = az_field.Value.Value;
@@ -1286,10 +1274,24 @@ FROM {fromTable}
 
         private static role mapRoleFields(SysInfo infos, SqlMapper.FastExpando role)
         {
+            // Mirror mysql/metaQueryMySql.cs:1425: expose `superadmin` + `admin` flags letti
+            // da ruoli.superadmin / ruoli.admin. Senza, RawHelpers.checkAdmin fallirebbe
+            // anche per utenti con role admin.
+            bool superadminVal = false;
+            var saKv = role.FirstOrDefault(x => string.Equals(x.Key, "superadmin", StringComparison.OrdinalIgnoreCase));
+            if (!saKv.Equals(default(KeyValuePair<string, object>)) && saKv.Value != null)
+                superadminVal = RawHelpers.ParseBool(saKv.Value.ToString());
+            bool adminVal = false;
+            var aKv = role.FirstOrDefault(x => string.Equals(x.Key, "admin", StringComparison.OrdinalIgnoreCase));
+            if (!aKv.Equals(default(KeyValuePair<string, object>)) && aKv.Value != null)
+                adminVal = RawHelpers.ParseBool(aKv.Value.ToString());
+
             return new role()
             {
-                role_name = role.Where(x => x.Key == infos.role_description_column_name).First().Value.ToString(),
-                role_id = role.Where(x => x.Key == infos.role_id_column_name).First().Value.ToString(),
+                role_name = role.Where(x => string.Equals(x.Key, infos.role_description_column_name, StringComparison.OrdinalIgnoreCase)).First().Value.ToString(),
+                role_id = role.Where(x => string.Equals(x.Key, infos.role_id_column_name, StringComparison.OrdinalIgnoreCase)).First().Value.ToString(),
+                superadmin = superadminVal,
+                admin = adminVal,
             };
         }
 
@@ -1371,7 +1373,8 @@ FROM {fromTable}
 
                 using (OracleConnection connection = string.IsNullOrEmpty(infos.role_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.role_db_name))
                 {
-                    Dapper.SqlMapper.FastExpando role = ((List<Dapper.SqlMapper.FastExpando>)connection.Query(string.Format("SELECT {2}.{0}, {2}.{1} FROM {2} inner join {5} ON {2}.{6}={5}.{7} WHERE {3}='{4}'", infos.role_id_column_name, infos.role_description_column_name, infos.role_table_name, infos.user_id_column_name, user_id, infos.user_table_name, infos.role_id_column_name, infos.role_user_table_fk_name))).FirstOrDefault();
+                    // SELECT * so mapRoleFields can read `superadmin` + `admin` columns. Mirror MySQL pattern.
+                    Dapper.SqlMapper.FastExpando role = ((List<Dapper.SqlMapper.FastExpando>)connection.Query(string.Format("SELECT {2}.* FROM {2} inner join {5} ON {2}.{6}={5}.{7} WHERE {3}='{4}'", infos.role_id_column_name, infos.role_description_column_name, infos.role_table_name, infos.user_id_column_name, user_id, infos.user_table_name, infos.role_id_column_name, infos.role_user_table_fk_name))).FirstOrDefault();
                     if (role != null)
                     {
                         return mapRoleFields(infos, role);
@@ -1393,9 +1396,10 @@ FROM {fromTable}
                 using (OracleConnection connection = string.IsNullOrEmpty(infos.role_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.role_db_name))
                 {
                     var dbArgs = new DynamicParameters();
-                    dbArgs.Add("@uid", user_id);
+                    // Oracle: `uid` e' una reserved word (UID = current user) -> ORA-01745. Use p_uid.
+                    dbArgs.Add("@p_uid", user_id);
 
-                    string query = string.Format("SELECT {0}.{1}, {0}.{2} FROM {0} inner join utenti_ruoli on utenti_ruoli.{1} = {0}.{1} inner join utenti on utenti_ruoli.{6} = {4}.{6} WHERE {4}.{3}=@uid", infos.role_table_name, infos.role_id_column_name, infos.role_description_column_name, infos.user_id_column_name, infos.user_table_name, infos.role_user_table_fk_name, infos.user_id_column_name);
+                    string query = string.Format("SELECT {0}.{1}, {0}.{2} FROM {0} inner join utenti_ruoli on utenti_ruoli.{1} = {0}.{1} inner join utenti on utenti_ruoli.{6} = {4}.{6} WHERE {4}.{3}=@p_uid", infos.role_table_name, infos.role_id_column_name, infos.role_description_column_name, infos.user_id_column_name, infos.user_table_name, infos.role_user_table_fk_name, infos.user_id_column_name);
 
                     List<Dapper.SqlMapper.FastExpando> roles = ((List<Dapper.SqlMapper.FastExpando>)connection.Query(query, dbArgs));
 
@@ -2446,10 +2450,40 @@ FROM {fromTable}
             return RawHelpers.ParseNull(pkEntry.Value);
         }
 
+        // Oracle reserved keywords che vanno SEMPRE quotate UPPER quando usate come column name.
+        // Lista compatta dei più frequenti che si incrociano con WUIC field naming
+        // (Blob/Date/Number/Order/etc.). Lista completa: https://docs.oracle.com/database/121/SQLRF/ap_keywd001.htm
+        private static readonly HashSet<string> OracleReservedKeywords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "BLOB", "CLOB", "NCLOB", "ROW", "ROWID", "ROWNUM", "ROWS",
+            "DATE", "TIMESTAMP", "NUMBER", "FLOAT", "DOUBLE", "DECIMAL", "INTEGER", "SMALLINT", "REAL",
+            "CHAR", "VARCHAR", "VARCHAR2", "NVARCHAR2", "NCHAR", "RAW", "LONG",
+            "ORDER", "GROUP", "SELECT", "FROM", "WHERE", "JOIN", "UNION", "INTERSECT", "MINUS",
+            "INSERT", "UPDATE", "DELETE", "MERGE", "CREATE", "DROP", "ALTER", "TABLE", "INDEX",
+            "USER", "SESSION", "PUBLIC", "DEFAULT", "NULL", "TRUE", "FALSE",
+            "MODE", "SIZE", "TYPE", "UID", "LEVEL", "RESOURCE", "COMMENT",
+            "GRANT", "REVOKE", "AS", "ON", "AND", "OR", "NOT", "IN", "EXISTS", "LIKE", "BETWEEN", "IS",
+            "SET", "VALUES", "WITH", "BY", "ASC", "DESC", "DISTINCT", "ALL", "ANY", "SOME"
+        };
+
         public static string EscapeDBObjectName(string obj)
         {
             // SECURITY: see twin in KonvergenceCore/MetaModel/_Metadati_methods.cs:2403
+            // Oracle quirk: quoted identifiers preserve case literally; unquoted fold to UPPER.
+            // Migration renames physical tables/columns to UPPERCASE, so for safe identifiers
+            // (letter start, alphanumeric+underscore body) emit UPPER unquoted -> Oracle's
+            // case-fold matches the physical name. Leading-underscore identifiers MUST be quoted
+            // (Oracle requires letter start unless quoted) and preserve original case.
+            // Reserved keywords (BLOB, DATE, ORDER, etc.) DEVONO essere quotate UPPER per evitare
+            // ORA-00904 "identificativo non valido" quando si usano come column name.
             if (obj == null) return "\"\"";
+            if (obj.Length > 0 && obj[0] != '_' && System.Text.RegularExpressions.Regex.IsMatch(obj, "^[A-Za-z][A-Za-z0-9_]*$"))
+            {
+                string upper = obj.ToUpperInvariant();
+                if (OracleReservedKeywords.Contains(upper))
+                    return "\"" + upper + "\"";
+                return upper;
+            }
             return string.Concat("\"", obj.Replace("\"", "\"\""), "\"");
         }
 
@@ -2530,7 +2564,7 @@ FROM {fromTable}
             if (tab.md_is_reticular)
             {
                 string table_name = "tabella_reticolare";
-                safetable_name = (string.IsNullOrEmpty(tab.md_db_name) ? "" : "[" + tab.md_db_name + "]." + (!string.IsNullOrEmpty(tab.md_schema_name) ? "[" + tab.md_schema_name + "]" : "") + ".") + EscapeDBObjectName(table_name);
+                safetable_name = "" + EscapeDBObjectName(table_name);
             }
             return safetable_name;
         }
@@ -2577,7 +2611,11 @@ FROM {fromTable}
                     countQry = string.Format("SELECT {0} FROM {1} {2} {3} {4}", "count(*)", safetableName, join, where, "");
                     try
                     {
-                        totalRecords = connection.QueryColumn<Int32>(countQry).FirstOrDefault();
+                        // Oracle COUNT(*) → NUMBER → ODP.NET materializza come decimal.
+                        // QueryColumn<int>/long fa cast diretto → InvalidCastException.
+                        // Leggiamo come decimal (matcha NUMBER nativo), poi convert safe a Int32.
+                        decimal countDec = connection.QueryColumn<decimal>(countQry).FirstOrDefault();
+                        totalRecords = (countDec > int.MaxValue) ? int.MaxValue : (int)countDec;
                     }
                     catch (Exception ex)
                     {
@@ -2602,12 +2640,17 @@ FROM {fromTable}
                         {
                             if (string.IsNullOrEmpty(distinct))
                             {
-                                finalQry = string.Format("SELECT * FROM " +
+                                // Oracle: no `AS` per subquery alias; `Row` è reserved (ROWNUM/ROWID),
+                                // serve quoting "Row" stesso o un alias diverso. Usiamo `rn`.
+                                // ENT.* (qualified) anziché * → permette a InjectAutogeneratedSentinelColumn
+                                // di prepende `1 AS "__autogenerated", ` senza rompere la sintassi
+                                // (Oracle rifiuta `column, *` ma accetta `column, alias.*`).
+                                finalQry = string.Format("SELECT ENT.* FROM " +
                                     "(SELECT ROW_NUMBER() " +
-                                        "OVER ({5}) AS Row, " +
+                                        "OVER ({5}) AS rn, " +
                                         "{0} " +
-                                        "FROM {1} {2} {3} {4}) AS ENT ", fieldList, safetableName, join, where, "", orderBy) +
-                                        string.Format("WHERE Row BETWEEN {0} AND {1}", ((skiprecords == 0) ? 0 : skiprecords + 1), skiprecords + PageInfo.pageSize);
+                                        "FROM {1} {2} {3} {4}) ENT ", fieldList, safetableName, join, where, "", orderBy) +
+                                        string.Format("WHERE rn BETWEEN {0} AND {1}", ((skiprecords == 0) ? 0 : skiprecords + 1), skiprecords + PageInfo.pageSize);
                             }
                             else //Distinct for autocomplete text filters
                             {
@@ -2669,7 +2712,7 @@ FROM {fromTable}
 
                                     finalQry = "WITH t AS" +
                                         "(" +
-                                            " SELECT " + distColName + ", " + descAlias + ", ROW_NUMBER() OVER (order by X." + descAlias + ") AS Row " +
+                                            " SELECT " + distColName + ", " + descAlias + ", ROW_NUMBER() OVER (order by X." + descAlias + ") AS rn" +
                                             " FROM (" +
                                                     "SELECT DISTINCT " + safetableName + "." + distColName + ", " + descriptorExpr + " AS " + descAlias +
                                                     string.Format(" FROM {0} {1} {2} {3} ", safetableName, lookupJoin, where, "") +
@@ -2677,7 +2720,7 @@ FROM {fromTable}
                                         ")" +
                                         " SELECT " + distColName + ", " + descAlias +
                                         " FROM t where t." + descAlias + " like '%" + EscapeValue(autocompleteFilterValue) + "%' " +
-                                        string.Format(" AND Row BETWEEN {0} AND {1} ", ((skiprecords == 0) ? 0 : skiprecords + 1), skiprecords + PageInfo.pageSize) +
+                                        string.Format(" AND rn BETWEEN{0} AND {1} ", ((skiprecords == 0) ? 0 : skiprecords + 1), skiprecords + PageInfo.pageSize) +
                                         " order by t." + descAlias;
                                 }
                                 else
@@ -2686,7 +2729,7 @@ FROM {fromTable}
 
                                     finalQry = "WITH t AS" +
                                             "(" +
-                                                " SELECT " + distColName + ", ROW_NUMBER() OVER (order by X." + distColName + ") AS Row " +
+                                                " SELECT " + distColName + ", ROW_NUMBER() OVER (order by X." + distColName + ") AS rn" +
                                                 " FROM (" +
                                                         "SELECT " + distinctStr +
                                                         string.Format(" FROM {0} {1} {2} {3} ", safetableName, "", where, "") +
@@ -2694,7 +2737,7 @@ FROM {fromTable}
                                             ")" +
                                             " SELECT " + distColName + " as " + distinctAlias +
                                             " FROM t where TO_CHAR(t." + distColName + ") like '%" + EscapeValue(autocompleteFilterValue) + "%' " +
-                                            string.Format(" AND Row BETWEEN {0} AND {1} ", ((skiprecords == 0) ? 0 : skiprecords + 1), skiprecords + PageInfo.pageSize) +
+                                            string.Format(" AND rn BETWEEN{0} AND {1} ", ((skiprecords == 0) ? 0 : skiprecords + 1), skiprecords + PageInfo.pageSize) +
                                             " order by t." + distColName;
                                 }
                             }
@@ -2754,7 +2797,7 @@ FROM {fromTable}
 
             GroupInfo.ForEach(gi =>
             {
-                string currentFld = (string.IsNullOrEmpty(tab.md_db_name) ? "" : "[" + tab.md_db_name + "]." + (!string.IsNullOrEmpty(tab.md_schema_name) ? "[" + tab.md_schema_name + "]" : "") + ".") + EscapeDBObjectName(tab.md_nome_tabella) + "." + EscapeDBObjectName(gi.field);
+                string currentFld = "" + EscapeDBObjectName(tab.md_nome_tabella) + "." + EscapeDBObjectName(gi.field);
                 fieldList += (string.IsNullOrEmpty(fieldList) ? "" : ", ") + currentFld;
 
                 _Metadati_Colonne_Lookup col = lst.FirstOrDefault(x => x.mc_nome_colonna == gi.field) as _Metadati_Colonne_Lookup;
@@ -2787,7 +2830,7 @@ FROM {fromTable}
 
             GroupInfo.ForEach(gi =>
             {
-                string currentFld = (string.IsNullOrEmpty(tab.md_db_name) ? "" : "[" + tab.md_db_name + "]." + (!string.IsNullOrEmpty(tab.md_schema_name) ? "[" + tab.md_schema_name + "]" : "") + ".") + EscapeDBObjectName(tab.md_nome_tabella) + "." + EscapeDBObjectName(gi.field);
+                string currentFld = "" + EscapeDBObjectName(tab.md_nome_tabella) + "." + EscapeDBObjectName(gi.field);
                 fieldList += (string.IsNullOrEmpty(fieldList) ? "" : ", ") + currentFld;
                 fieldListForCount += (string.IsNullOrEmpty(fieldListForCount) ? "" : ", ") + currentFld;
 
@@ -2835,7 +2878,7 @@ FROM {fromTable}
 
             return "WITH t AS" +
                        "(" +
-                       " SELECT DISTINCT " + distList + ", ROW_NUMBER() OVER (order by " + orderListX + ") AS Row " +
+                       " SELECT DISTINCT " + distList + ", ROW_NUMBER() OVER (order by " + orderListX + ") AS rn" +
                        " FROM (" +
                        "SELECT DISTINCT " + fieldList +
                        string.Format(" FROM {0} {1} {2} {3} ", safetableName, join, where, "") +
@@ -2843,7 +2886,7 @@ FROM {fromTable}
                        ")" +
                        " SELECT " + distList + ", 1 as __group_header" +
                        string.Format(" FROM t {0} ", "") +
-                       string.Format(" WHERE Row BETWEEN {0} AND {1} ", ((skiprecords == 0) ? 0 : skiprecords + 1), skiprecords + PageInfo.pageSize) +
+                       string.Format(" WHERE rn BETWEEN {0} AND {1} ", ((skiprecords == 0) ? 0 : skiprecords + 1), skiprecords + PageInfo.pageSize) +
                        "order by " + orderListT;
         }
 
@@ -2882,7 +2925,7 @@ FROM {fromTable}
                             throw new Exception(string.Format("Colonna '{0}' non trovata. Default lookup filter definition '{1}'", filterPart[0], lookuprelatedCol.mc_display_string_in_view));
 
                         _Metadati_Tabelle currentFldLUpTabel = filteringCol._Metadati_Tabelle;
-                        string currentFldLUp = (string.IsNullOrEmpty(currentFldLUpTabel.md_db_name) ? "" : "[" + currentFldLUpTabel.md_db_name + "]." + (!string.IsNullOrEmpty(currentFldLUpTabel.md_schema_name) ? "[" + currentFldLUpTabel.md_schema_name + "]" : "") + ".") + EscapeDBObjectName(currentFldLUpTabel.md_nome_tabella) + "." + metaQuery.EscapeDBObjectName(RawHelpers.getStoreColumnName(filteringCol));
+                        string currentFldLUp = EscapeDBObjectName(currentFldLUpTabel.md_nome_tabella) + "." + metaQuery.EscapeDBObjectName(RawHelpers.getStoreColumnName(filteringCol));
                         innerWhere = AppendFilter(filteringCol, filterInfo, logicOperator, currentFldLUp, innerWhere, tab, "", user_id);
                     }
                 }
@@ -2955,7 +2998,7 @@ FROM {fromTable}
             if (tab.md_is_reticular)
             {
                 tableName = "tabella_reticolare";
-                safetableName = (string.IsNullOrEmpty(tab.md_db_name) ? "" : "[" + tab.md_db_name + "]." + (!string.IsNullOrEmpty(tab.md_schema_name) ? "[" + tab.md_schema_name + "]" : "") + ".") + EscapeDBObjectName(tableName);
+                safetableName = "" + EscapeDBObjectName(tableName);
                 where += ((where == "") ? " where " : " " + logicOperator + " ") + safetableName + "." + tab.reticular_key_name + " = " + (tab.reticular_key_value.HasValue ? tab.reticular_key_value.Value.ToString() : "null");
             }
 
@@ -3226,7 +3269,7 @@ FROM {fromTable}
             {
                 if (ap == null)
                 {
-                    string joinn = string.Format(" LEFT JOIN {0} AS {3} ON {1} = {2} ", safeEntityName, currentFld, safeUniqueEntityName + "." + EscapeDBObjectName(col.mc_ui_lookup_dataValueField), safeUniqueEntityName);
+                    string joinn = string.Format(" LEFT JOIN {0} {3} ON {1} = {2}", safeEntityName, currentFld, safeUniqueEntityName + "." + EscapeDBObjectName(col.mc_ui_lookup_dataValueField), safeUniqueEntityName);
                     var currentAP = new aliasPair()
                     {
                         table_name = col.mc_ui_lookup_entity_name,
@@ -3346,7 +3389,7 @@ FROM {fromTable}
                         if (fld != null)
                         {
                             safeColumnName = EscapeDBObjectName(RawHelpers.getStoreColumnName(fld));
-                            currentFld = (string.IsNullOrEmpty(tabel.md_db_name) ? "" : "[" + tabel.md_db_name + "]." + (!string.IsNullOrEmpty(tabel.md_schema_name) ? "[" + tabel.md_schema_name + "]" : "") + ".") + EscapeDBObjectName(tabel.md_nome_tabella) + "." + safeColumnName;
+                            currentFld = EscapeDBObjectName(tabel.md_nome_tabella) + "." + safeColumnName;
 
                             where = AppendFilter(fld, f.nestedFilters, (isFirstNested ? "" : f.nestedFilters.logic), currentFld, where, tabel, formulaLookup, userId, true);
                             isFirstNested = false;
@@ -4236,19 +4279,11 @@ FROM {fromTable}
 
         private static string GetTableName(_Metadati_Tabelle tab)
         {
-            string tablename = "";
-
-            if (!string.IsNullOrEmpty(tab.md_db_name))
-                tablename = "[" + tab.md_db_name + "].";
-
-            if (!string.IsNullOrEmpty(tab.md_schema_name))
-                tablename += "[" + tab.md_schema_name + "].";
-            else if (!string.IsNullOrEmpty(tab.md_db_name))
-                tablename += "dbo.";
-
-            tablename += EscapeDBObjectName(tab.md_nome_tabella);
-
-            return tablename;
+            // Oracle: no cross-DB references via `[db].dbo.table` (MSSQL 3-part naming).
+            // Each connection user IS the schema; tables in same schema use bare name,
+            // cross-schema uses `SCHEMA.TABLE` (quoted con `EscapeDBObjectName` se serve).
+            // md_db_name e md_schema_name MSSQL-era ignorati per Oracle.
+            return EscapeDBObjectName(tab.md_nome_tabella);
 
         }
 
@@ -4260,7 +4295,12 @@ FROM {fromTable}
             HashSet<string> changedFields = GetChangedFieldSet(entity);
             bool deltaMode = changedFields.Count > 0;
 
-            Dictionary<string, object> original = (importing ? new Dictionary<string, object>() : (Dictionary<string, object>)(entity["__original"]));
+            // Allineato a MySQL/PG: tollera mancanza di "__original" (importing=true o
+            // chiamate batch-restore che non popolano lo snapshot). Senza questo fallback
+            // KeyNotFoundException blocca update legittimi (session-restore, batch ops).
+            Dictionary<string, object> original = (importing || !entity.ContainsKey("__original") || entity["__original"] == null)
+                ? new Dictionary<string, object>()
+                : (entity["__original"] as Dictionary<string, object>) ?? new Dictionary<string, object>();
 
             _Metadati_Tabelle tabel = metadata[0]._Metadati_Tabelle;
             string table_name = tabel.md_nome_tabella;
@@ -4356,6 +4396,26 @@ FROM {fromTable}
 
                 if (fld.mc_validation_has.HasValue && fld.mc_validation_has.Value && fld.mc_validation_required.HasValue && fld.mc_validation_required.Value && valore == null && fld.mc_ui_column_type != "boolean" && fld.mc_ui_column_type != "number_boolean")
                     throw new ValidationException(string.Format("{0} non può essere null", fld.mc_display_string_in_view));
+
+                // Oracle ORA-01722 guard: JSON.NET deserializza numeri JSON come decimal/double.
+                // EscapeValue (ToString) sotto IT culture serialize 0 come "0", ma System.Text.Json
+                // deserializza number senza decimale a Int64/Decimal e ToString() = "0". Il caso
+                // "0.0" che rompe arriva dal JSON `0.0` letterale → deserializzato a double 0.0 →
+                // ToString() = "0" su .NET 6+, ma "0.0" su alcuni path. Per sicurezza Oracle
+                // (NUMBER integer-only column) normalizziamo: se il valore è numerico intero,
+                // strippiamo trailing ".0". Mantieni i veri decimal (es. 3.14).
+                if (valore != null && (valore is decimal || valore is double || valore is float))
+                {
+                    try
+                    {
+                        decimal d = Convert.ToDecimal(valore, System.Globalization.CultureInfo.InvariantCulture);
+                        if (d == Math.Truncate(d))
+                            valore = ((long)d).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                        else
+                            valore = d.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    }
+                    catch { /* fallthrough to EscapeValue */ }
+                }
 
                 valore = EscapeValue(valore);
 
@@ -4631,7 +4691,12 @@ FROM {fromTable}
 
             metadata.ForEach((fld) =>
             {
-                string safecolumn_name = RawHelpers.escapeDBObjectName(RawHelpers.getStoreColumnName(fld), "mysql");
+                // BUG fix: il porting da mysql usava RawHelpers.escapeDBObjectName(..., "mysql")
+                // che wrappa con backtick `Blob` → Oracle non li accetta. La gateway "oracle"
+                // wrappa `"Blob"` (CamelCase quoted) ma le colonne fisiche sono UPPER. Usa la
+                // EscapeDBObjectName locale che applica il fold-to-UPPER per safe identifiers
+                // e quote solo per leading-underscore / reserved words.
+                string safecolumn_name = EscapeDBObjectName(RawHelpers.getStoreColumnName(fld));
 
                 string current_fld = safetable_name + "." + safecolumn_name;
 
@@ -5180,7 +5245,7 @@ FROM {fromTable}
                 field_list += (field_list == "" ? "" : ", ") + tabel.reticular_key_name;
                 value_list += (value_list == "" ? "" : ", ") + tabel.reticular_key_value;
                 table_name = "tabella_reticolare";
-                safetable_name = (string.IsNullOrEmpty(tabel.md_db_name) ? "" : "[" + tabel.md_db_name + "]." + (!string.IsNullOrEmpty(tabel.md_schema_name) ? "[" + tabel.md_schema_name + "]" : "") + ".") + EscapeDBObjectName(table_name);
+                safetable_name = EscapeDBObjectName(table_name);
             }
 
             metadata.Where(x => x.mc_is_computed != true).ToList().ForEach((fld) =>
@@ -5742,13 +5807,15 @@ FROM {fromTable}
             {
                 var dbArgs = new DynamicParameters();
                 dbArgs.Add("md_id", md_id);
-                List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)con.Query("SELECT * FROM _Metadati_Condition_Group WHERE md_id=:md_id", dbArgs);
+                // Oracle: nomi tabella creati lowercase-quoted in migrazione. Unquoted CamelCase
+                // case-fold a UPPER → ORA-00942 perchè la table reale è `"_metadati_condition_group"`.
+                List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)con.Query("SELECT * FROM \"_metadati_condition_group\" WHERE md_id=:md_id", dbArgs);
                 List<WuicCore.MetaModel._Metadati_Condition_Group> ret = metaRawModel.convertDictionariesToList<WuicCore.MetaModel._Metadati_Condition_Group>(rows);
 
                 string ids = string.Join(",", ret.Select(x => x.CG_Id));
                 if (!string.IsNullOrWhiteSpace(ids))
                 {
-                    List<Dapper.SqlMapper.FastExpando> condRows = (List<Dapper.SqlMapper.FastExpando>)con.Query("SELECT * FROM _Metadati_Condition_Action_Group WHERE fk_cg_id IN (" + ids + ")");
+                    List<Dapper.SqlMapper.FastExpando> condRows = (List<Dapper.SqlMapper.FastExpando>)con.Query("SELECT * FROM \"_metadati_condition_action_group\" WHERE fk_cg_id IN (" + ids + ")");
                     List<WuicCore.MetaModel._Metadati_Condition_Action_Group> cond = metaRawModel.convertDictionariesToList<WuicCore.MetaModel._Metadati_Condition_Action_Group>(condRows);
                     ret.ForEach(c => c.ConditionActions = cond.Where(x => x.FK_CG_Id == c.CG_Id).ToList());
                 }
@@ -5761,7 +5828,7 @@ FROM {fromTable}
         {
             using (OracleConnection con = GetOpenConnection(true))
             {
-                List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)con.Query("SELECT * FROM _error_logs");
+                List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)con.Query("SELECT * FROM \"_error__logs\"");
                 return metaRawModel.convertDictionariesToList<_Error_Logs>(rows);
             }
         }
