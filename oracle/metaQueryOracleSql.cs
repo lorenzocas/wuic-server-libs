@@ -2526,22 +2526,90 @@ FROM {fromTable}
                             {
                                 //need to perform distinct and paging. No need to join. order by autocomplete field
                                 _Metadati_Colonne distCol = lst.FirstOrDefault(x => x.mc_nome_colonna == distinct);
-                                string distColName = RawHelpers.getStoreColumnName(distCol);
+                                string distColNameRaw = RawHelpers.getStoreColumnName(distCol);
+                                string distColName = EscapeDBObjectName(distColNameRaw);
+                                string distinctAlias = EscapeDBObjectName(distinct);
 
-                                string distinctStr = string.Format("DISTINCT {0}", safetableName + "." + distColName);
+                                // Oracle: lookupByID column → emit ANCHE il descrittivo (alias
+                                // `<entity>___<dataTextField>__<colName>`) oltre al raw FK ID.
+                                // Vedi PG/MSSQL/MySQL siblings — stessa logica, cast a VARCHAR2 per LIKE.
+                                _Metadati_Colonne_Lookup lookupCol = distCol as _Metadati_Colonne_Lookup;
+                                _Metadati_Tabelle relatedTable = null;
+                                if (lookupCol != null
+                                    && !string.IsNullOrEmpty(lookupCol.mc_ui_lookup_entity_name)
+                                    && !string.IsNullOrEmpty(lookupCol.mc_ui_lookup_dataTextField))
+                                {
+                                    relatedTable = mmd.GetMetadati_Tabelles(lookupCol.mc_ui_lookup_entity_name).FirstOrDefault();
+                                }
 
-                                finalQry = "WITH t AS" +
+                                if (relatedTable != null && !string.IsNullOrEmpty(lookupCol.mc_ui_lookup_dataValueField))
+                                {
+                                    string lookupTableSafe = GetTableName(relatedTable);
+                                    string lookupTableAlias = EscapeDBObjectName(
+                                        lookupCol.mc_ui_lookup_entity_name.Replace(" ", "_") + "_lk");
+
+                                    _Metadati_Colonne fkCol = relatedTable._Metadati_Colonnes
+                                        .FirstOrDefault(xk => xk.mc_nome_colonna == lookupCol.mc_ui_lookup_dataValueField)
+                                        ?? relatedTable._Metadati_Colonnes
+                                            .FirstOrDefault(xk => xk.mc_real_column_name == lookupCol.mc_ui_lookup_dataValueField);
+                                    string fkFieldSafe = EscapeDBObjectName(fkCol != null
+                                        ? RawHelpers.getStoreColumnName(fkCol)
+                                        : lookupCol.mc_ui_lookup_dataValueField);
+
+                                    _Metadati_Colonne textCol = relatedTable._Metadati_Colonnes
+                                        .FirstOrDefault(xk => xk.mc_nome_colonna == lookupCol.mc_ui_lookup_dataTextField)
+                                        ?? relatedTable._Metadati_Colonnes
+                                            .FirstOrDefault(xk => xk.mc_real_column_name == lookupCol.mc_ui_lookup_dataTextField);
+                                    string textFieldSafe = EscapeDBObjectName(textCol != null
+                                        ? RawHelpers.getStoreColumnName(textCol)
+                                        : lookupCol.mc_ui_lookup_dataTextField);
+
+                                    // Alias atteso dal frontend (spreadsheet-list-sf:1005 getLookupAliasField):
+                                    //   <entity>___<dataTextField>__<colName>
+                                    // Oracle: identifier max 30 char (pre-12.2) / 128 char (12.2+). Il
+                                    // getLookupAlias helper applica gia' lo shrink se needed, ma qui
+                                    // costruiamo l'alias manualmente — il frontend si aspetta il full name.
+                                    // Se Oracle 11g (30 char limit), il backend deve farlo via helper.
+                                    string descAlias = EscapeDBObjectName(
+                                        lookupCol.mc_ui_lookup_entity_name.Replace(" ", "_")
+                                        + "___" + lookupCol.mc_ui_lookup_dataTextField
+                                        + "__" + lookupCol.mc_nome_colonna);
+
+                                    string lookupJoin = " LEFT JOIN " + lookupTableSafe + " " + lookupTableAlias
+                                        + " ON " + safetableName + "." + distColName
+                                        + " = " + lookupTableAlias + "." + fkFieldSafe + " ";
+                                    string descriptorExpr = "TO_CHAR(" + lookupTableAlias + "." + textFieldSafe + ")";
+
+                                    finalQry = "WITH t AS" +
                                         "(" +
-                                            " SELECT " + distColName + ", ROW_NUMBER() OVER (order by X." + distColName + ") AS Row " +
+                                            " SELECT " + distColName + ", " + descAlias + ", ROW_NUMBER() OVER (order by X." + descAlias + ") AS Row " +
                                             " FROM (" +
-                                                    "SELECT " + distinctStr +
-                                                    string.Format(" FROM {0} {1} {2} {3} ", safetableName, "", where, "") +
-                                            ") as X" +
+                                                    "SELECT DISTINCT " + safetableName + "." + distColName + ", " + descriptorExpr + " AS " + descAlias +
+                                                    string.Format(" FROM {0} {1} {2} {3} ", safetableName, lookupJoin, where, "") +
+                                            ") X" +
                                         ")" +
-                                        " SELECT " + distColName + " as " + distinct +
-                                        " FROM t where t." + distColName + " like '%" + EscapeValue(autocompleteFilterValue) + "%' " +
+                                        " SELECT " + distColName + ", " + descAlias +
+                                        " FROM t where t." + descAlias + " like '%" + EscapeValue(autocompleteFilterValue) + "%' " +
                                         string.Format(" AND Row BETWEEN {0} AND {1} ", ((skiprecords == 0) ? 0 : skiprecords + 1), skiprecords + PageInfo.pageSize) +
-                                        "order by t." + distColName;
+                                        " order by t." + descAlias;
+                                }
+                                else
+                                {
+                                    string distinctStr = string.Format("DISTINCT {0}", safetableName + "." + distColName);
+
+                                    finalQry = "WITH t AS" +
+                                            "(" +
+                                                " SELECT " + distColName + ", ROW_NUMBER() OVER (order by X." + distColName + ") AS Row " +
+                                                " FROM (" +
+                                                        "SELECT " + distinctStr +
+                                                        string.Format(" FROM {0} {1} {2} {3} ", safetableName, "", where, "") +
+                                                ") X" +
+                                            ")" +
+                                            " SELECT " + distColName + " as " + distinctAlias +
+                                            " FROM t where TO_CHAR(t." + distColName + ") like '%" + EscapeValue(autocompleteFilterValue) + "%' " +
+                                            string.Format(" AND Row BETWEEN {0} AND {1} ", ((skiprecords == 0) ? 0 : skiprecords + 1), skiprecords + PageInfo.pageSize) +
+                                            " order by t." + distColName;
+                                }
                             }
                         }
                         #endregion
@@ -3473,23 +3541,36 @@ FROM {fromTable}
 
                 string rightExtraOperator = leftExtraOperator;
 
+                bool likeForceCharCast = false;
+
                 if (realOperator == "like")
                 {
+                    // Oracle: LIKE richiede CHAR/VARCHAR2 su entrambi i lati. getQuoteFromColumn
+                    // restituisce "" per NUMBER/INTEGER/CLOB/BLOB, e questo produceva
+                    // `column LIKE %%` (no apici) o `column LIKE %abc%` senza quote → ORA-00936/00904.
+                    // Forziamo quote='\'' qui e cast a VARCHAR2 (via TO_CHAR) sotto.
+                    string likeQuote = "'";
                     if (f.operatore == "contains")
                     {
-                        leftExtraOperator = quote + "%";
-                        rightExtraOperator = "%" + quote;
+                        leftExtraOperator = likeQuote + "%";
+                        rightExtraOperator = "%" + likeQuote;
                     }
-                    if (f.operatore == "startswith")
+                    else if (f.operatore == "startswith")
                     {
-                        leftExtraOperator = quote;
-                        rightExtraOperator = "%" + quote;
+                        leftExtraOperator = likeQuote;
+                        rightExtraOperator = "%" + likeQuote;
                     }
-                    if (f.operatore == "endswith")
+                    else if (f.operatore == "endswith")
                     {
-                        leftExtraOperator = quote + "%";
-                        rightExtraOperator = quote;
+                        leftExtraOperator = likeQuote + "%";
+                        rightExtraOperator = likeQuote;
                     }
+                    else
+                    {
+                        leftExtraOperator = likeQuote;
+                        rightExtraOperator = likeQuote;
+                    }
+                    likeForceCharCast = true;
                 }
 
                 if (realOperator == "is null")
@@ -3561,7 +3642,13 @@ FROM {fromTable}
                         f.value = "1";
                 }
 
-                where += ((where == "") ? " where " : " " + logicOperator + " ") + "( (" + (fld.mc_is_computed.HasValue && fld.mc_is_computed.Value ? fld.mc_computed_formula : currentFld) + ")" + realOperator + string.Format(" {0}{1}{2} {3} {4} )", leftExtraOperator, f.value, rightExtraOperator, async_extra_condition, (f.__extra ? " OR 1=1" : ""));
+                string likeLhs = (fld.mc_is_computed.HasValue && fld.mc_is_computed.Value ? fld.mc_computed_formula : currentFld);
+                if (likeForceCharCast)
+                {
+                    // Oracle: TO_CHAR per coerce NUMBER/INTEGER → VARCHAR2 sul LIKE.
+                    likeLhs = "TO_CHAR(" + likeLhs + ")";
+                }
+                where += ((where == "") ? " where " : " " + logicOperator + " ") + "( (" + likeLhs + ")" + realOperator + string.Format(" {0}{1}{2} {3} {4} )", leftExtraOperator, f.value, rightExtraOperator, async_extra_condition, (f.__extra ? " OR 1=1" : ""));
 
                 if (!isNested)
                     filterInfo.filters.Remove(f);
@@ -5692,7 +5779,200 @@ FROM {fromTable}
         }
         #endregion
 
+        // ─────────────────────────────────────────────────────────────────
+        //  ImportFile — Oracle flavor of `metaQueryMySql.ImportFile` (port).
+        //
+        //  Invocato da Services/UploadHandlerCustom.cs quando il body upload
+        //  ha `invoke_import_file=true` e DBMS=oracle. Mirror del PG port:
+        //    • `OracleConnection`/`OracleTransaction` (al posto di MySql/Npgsql)
+        //    • dialect="oracle" passato a `getStoreTableName`/`escapeDBObjectName`
+        //    • builder query Oracle-specific (BuildDynamicInsertQuery/UpdateQuery)
+        //    • FKey lookup via `metaQueryOracleSql.GetFlatData`
+        // ─────────────────────────────────────────────────────────────────
+        public static string ImportFile(uploadOptions uploadOption, string theName, string fileName, _Metadati_Tabelle tabel, metaModelRaw.metaRawModel context)
+        {
+            StringBuilder log = new StringBuilder();
+            int insertedRecord = 0;
+            int updatedRecord = 0;
+            int deletedRecord = 0;
+            int errorCount = 0;
+            using (OracleConnection con = GetOpenConnection(false))
+            {
+                using (OracleTransaction myTrans = con.BeginTransaction())
+                {
+                    if (tabel != null)
+                    {
+                        DataTable dt;
 
+                        if (uploadOption.fyle_type == "X")
+                            dt = RawHelpers.createDataTablefromXLS(theName, log, fileName, uploadOption, ref errorCount);
+                        else
+                            dt = RawHelpers.createDataTablefromCSV(theName, log, fileName, uploadOption, ref errorCount);
+
+                        var columns = dt.Columns.Cast<DataColumn>();
+                        List<_Metadati_Colonne> pkeys = tabel._Metadati_Colonnes.Where(x => x.mc_is_primary_key is true).ToList();
+
+                        bool returnValue;
+                        if (RawHelpers.CheckImportColumns(columns, tabel, log, uploadOption, fileName, out returnValue, ref errorCount, pkeys))
+                        {
+                            return log.ToString();
+                        }
+
+                        IEnumerable<Dictionary<string, object>> dicts =
+                            dt.Rows.OfType<DataRow>().Select(dataRow => columns.Select(column => new {
+                                Column = uploadOption.use_column_captions == "C"
+                                    ? tabel._Metadati_Colonnes.FirstOrDefault(x => x.mc_display_string_in_view == column.ColumnName.Replace("#", ".")).mc_nome_colonna
+                                    : column.ColumnName,
+                                Value = dataRow[column]
+                            }).ToDictionary(data => data.Column, data => data.Value));
+
+                        int recordCounter = 0;
+                        foreach (Dictionary<string, object> record in dicts)
+                        {
+                            string pk = "";
+                            bool fkeyParsed = false;
+
+                            recordCounter++;
+
+                            if (uploadOption.import_type.Contains("U"))
+                            {
+                                string table_name = RawHelpers.getStoreTableName(tabel, "oracle");
+
+                                string query_check_from = string.Format("SELECT * FROM {0} ", table_name);
+                                string query_check_where = "";
+                                bool flg = true;
+
+                                foreach (_Metadati_Colonne pkey in pkeys)
+                                {
+                                    object pkey_value = record[pkey.mc_nome_colonna];
+                                    if (pkey_value == null || string.IsNullOrEmpty(pkey_value.ToString()))
+                                    {
+                                        flg = false;
+                                        break;
+                                    }
+                                    else
+                                    {
+                                        string quote = "";
+                                        if (string.IsNullOrEmpty(tabel.md_primary_key_type) || tabel.md_primary_key_type == "GUID")
+                                            quote = "'";
+
+                                        query_check_where += (string.IsNullOrEmpty(query_check_where) ? " WHERE " : " AND ")
+                                            + RawHelpers.getStoreTableName(tabel, "oracle") + "."
+                                            + RawHelpers.escapeDBObjectName(pkey.mc_nome_colonna, "oracle") + " = "
+                                            + quote + pkey_value + quote;
+                                    }
+                                }
+
+                                if (flg)
+                                {
+                                    List<Dapper.SqlMapper.FastExpando> entity = (List<Dapper.SqlMapper.FastExpando>)con.Query(query_check_from + query_check_where, null, myTrans);
+                                    if (entity.Count > 0)
+                                    {
+                                        if (!parseFKeyOracle(uploadOption, tabel, record, context, ref errorCount, log, fileName, recordCounter))
+                                            return log.ToString();
+
+                                        fkeyParsed = true;
+
+                                        string update_query = BuildDynamicUpdateQuery(record, tabel._Metadati_Colonnes.ToList(), uploadOption.user_id, true);
+                                        string result = con.Execute(update_query, null, myTrans).ToString();
+
+                                        updatedRecord++;
+                                        continue;
+                                    }
+                                }
+                            }
+
+                            if (uploadOption.import_type.Contains("I"))
+                            {
+                                if (!fkeyParsed)
+                                {
+                                    if (!parseFKeyOracle(uploadOption, tabel, record, context, ref errorCount, log, fileName, recordCounter))
+                                        return log.ToString();
+                                }
+
+                                string insert_query = BuildDynamicInsertQuery(record, tabel._Metadati_Colonnes.ToList(), uploadOption.user_id, out pk, true);
+                                string result = con.Execute(insert_query, null, myTrans).ToString();
+                                insertedRecord++;
+                                continue;
+                            }
+                        }
+
+                        if (uploadOption.commit_level == "T")
+                        {
+                            myTrans.Rollback();
+                            log.AppendLine(string.Format("Total records to be inserted: {0}", insertedRecord));
+                            log.AppendLine(string.Format("Total records to be updated: {0}", updatedRecord));
+                            log.AppendLine(string.Format("Total records to be deleted: {0}", deletedRecord));
+                            log.AppendLine(string.Format("Test completed{0}.", errorCount == 0 ? " successfully" : " with " + errorCount + " errors"));
+                        }
+                        else
+                        {
+                            myTrans.Commit();
+                            log.AppendLine(string.Format("Total records inserted: {0}", insertedRecord));
+                            log.AppendLine(string.Format("Total records updated: {0}", updatedRecord));
+                            log.AppendLine(string.Format("Total records deleted: {0}", deletedRecord));
+                            log.AppendLine(string.Format("Import completed{0}.", errorCount == 0 ? " successfully" : " with " + errorCount + " errors"));
+                        }
+                    }
+                }
+            }
+
+            return log.ToString();
+        }
+
+        // FKey lookup helper — mirror di parseFKey (MySQL) / parseFKeyPg (PG)
+        // con dialect="oracle".
+        public static bool parseFKeyOracle(uploadOptions uploadOption, _Metadati_Tabelle tabel, Dictionary<string, object> record, metaModelRaw.metaRawModel context, ref int errorCount, StringBuilder log, string fileName, long recordCounter)
+        {
+            if (uploadOption.use_descriptive_fkey)
+            {
+                foreach (_Metadati_Colonne_Lookup lc in tabel._Metadati_Colonnes.OfType<_Metadati_Colonne_Lookup>())
+                {
+                    string key = (uploadOption.use_column_captions == "C" ? lc.mc_nome_colonna : lc.mc_display_string_in_view);
+                    if (record.ContainsKey(key))
+                    {
+                        if (record[key] != null && !string.IsNullOrEmpty(record[key].ToString()))
+                        {
+                            _Metadati_Tabelle tabbe = context.GetMetadati_Tabelles(lc.mc_ui_lookup_entity_name).FirstOrDefault();
+                            _Metadati_Colonne pkey = tabbe._Metadati_Colonnes.FirstOrDefault(x => x.mc_is_primary_key is true);
+                            rawPagedResult match;
+
+                            match = GetFlatData(uploadOption.user_id, tabbe.md_route_name, 0, null, null, null, RawHelpers.createStandardFilter(lc.mc_ui_lookup_dataTextField, record[key].ToString(), pkey), "AND", true, null, null);
+
+                            if (match.TotalRecords == 1)
+                            {
+                                IDictionary<string, object> found = match.results.OfType<Dapper.SqlMapper.FastExpando>().First().data;
+                                record[key] = found[pkey.mc_nome_colonna];
+                            }
+                            else
+                            {
+                                errorCount++;
+                                log.AppendLine(string.Format("Record {0}: Foreign key value error [{1} = {2}]", recordCounter, key, record[key]));
+                                if (uploadOption.commit_level == "I" || uploadOption.commit_level == "R")
+                                {
+                                    try
+                                    {
+                                        var ctx = System.WebCore.HttpContext.Current;
+                                        if (ctx != null && ctx.Response != null)
+                                        {
+                                            ctx.Response.Write(JsonConvert.SerializeObject(new uploadCallBackInfo { message = log.ToString(), filename = fileName, errorCount = errorCount }, Newtonsoft.Json.Formatting.Indented));
+                                        }
+                                    }
+                                    catch { /* best effort */ }
+                                    return false;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            record[key] = null;
+                        }
+                    }
+                }
+            }
+
+            return true;
+        }
 
     }
 

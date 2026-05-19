@@ -1735,7 +1735,72 @@ FROM {fromTable}
                                         dbArgs.Add(pair.field, null, dbtype, pDir, size);
                                     }
                                     else
-                                        dbArgs.Add(pair.field, (pair.value == null ? null : pair.value.ToString()), dbtype, pDir);
+                                    {
+                                        // PG e' strongly-typed: passare `value.ToString()` come
+                                        // text fa fallire la function-resolution se la firma usa
+                                        // INTEGER/NUMERIC/BOOLEAN (errcode 42883
+                                        // "function fn(p => text) does not exist").
+                                        // Mappiamo `Type` declared in md_props_bag.parameters
+                                        // → CLR type appropriato cosi' Npgsql deduce il DbType
+                                        // corretto in fase di bind.
+                                        object boundValue = null;
+                                        if (pair.value != null)
+                                        {
+                                            string rawStr = pair.value.ToString();
+                                            string declaredType = (pair.Type ?? string.Empty).ToLowerInvariant();
+                                            if (declaredType == "number" || declaredType == "int" || declaredType == "integer")
+                                            {
+                                                // Bind come Int32: la maggior parte delle SP/function
+                                                // PG con `INTEGER` accetta Int32. Se eccede il range,
+                                                // fallback Int64 (bigint).
+                                                if (int.TryParse(rawStr, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int iv))
+                                                    boundValue = iv;
+                                                else if (long.TryParse(rawStr, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out long lv))
+                                                    boundValue = lv;
+                                                else if (decimal.TryParse(rawStr, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out decimal dv))
+                                                    boundValue = dv;
+                                                else
+                                                    boundValue = rawStr;
+                                            }
+                                            else if (declaredType == "long" || declaredType == "bigint")
+                                            {
+                                                if (long.TryParse(rawStr, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out long lv))
+                                                    boundValue = lv;
+                                                else
+                                                    boundValue = rawStr;
+                                            }
+                                            else if (declaredType == "decimal" || declaredType == "numeric" || declaredType == "float" || declaredType == "double")
+                                            {
+                                                if (decimal.TryParse(rawStr, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out decimal dv))
+                                                    boundValue = dv;
+                                                else
+                                                    boundValue = rawStr;
+                                            }
+                                            else if (declaredType == "boolean" || declaredType == "bool")
+                                            {
+                                                if (bool.TryParse(rawStr, out bool bv))
+                                                    boundValue = bv;
+                                                else if (rawStr == "1" || rawStr.Equals("true", StringComparison.OrdinalIgnoreCase))
+                                                    boundValue = true;
+                                                else if (rawStr == "0" || rawStr.Equals("false", StringComparison.OrdinalIgnoreCase))
+                                                    boundValue = false;
+                                                else
+                                                    boundValue = rawStr;
+                                            }
+                                            else if (declaredType == "date" || declaredType == "datetime" || declaredType == "timestamp")
+                                            {
+                                                if (DateTime.TryParse(rawStr, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out DateTime dt))
+                                                    boundValue = dt;
+                                                else
+                                                    boundValue = rawStr;
+                                            }
+                                            else
+                                            {
+                                                boundValue = rawStr;
+                                            }
+                                        }
+                                        dbArgs.Add(pair.field, boundValue, dbtype, pDir);
+                                    }
                                 }
                             }
                         }
@@ -1841,7 +1906,14 @@ FROM {fromTable}
                         throw optEx;
                     }
 
-                    List<_Metadati_Colonne_Upload> upload_fixes = metadata.OfType<_Metadati_Colonne_Upload>().Where(x => x.isDBUpload).ToList();
+                    // Mirror mysql/metaQueryMySql.cs:2851 — upload_fixes deve includere
+                    // TUTTE le colonne upload (DB + filesystem). Pre-fix il PG provider
+                    // filtrava solo `isDBUpload`, saltando il file-move da
+                    // `<__guid>/` a `<recordId>/` per le colonne FS (Img, FilePath)
+                    // durante l'UPDATE → i file restavano nel temp guid folder, il
+                    // thumbnail della grid si rompeva su naturalWidth=0 perche'
+                    // `/upload/uploadsample/<recordId>/<filename>` non esisteva.
+                    List<_Metadati_Colonne_Upload> upload_fixes = metadata.OfType<_Metadati_Colonne_Upload>().ToList();
 
                     query = BuildDynamicUpdateQuery(entity, metadata, userId);
 
@@ -1865,6 +1937,19 @@ FROM {fromTable}
 
                     if (isMeta)
                         RawHelpers.logError(new Exception("Metadata update"), "Metadata Update", query);
+
+                    // RecordTranslations sync (mirror mysql/metaQueryMySql.cs:2893).
+                    // Aggiorna SOLO la lingua runtime dell'utente, e SOLO i campi
+                    // presenti in entity.__changes. No-op se RecordTranslations
+                    // non e' abilitato sulla route o l'entity non ha __changes.
+                    try
+                    {
+                        WEB_UI_CRAFTER.RecordTranslationsPostgres.OnUpdate(connection, null, tab, metadata, entity, userId);
+                    }
+                    catch (Exception rtEx)
+                    {
+                        RawHelpers.logError(rtEx, "RecordTranslationsPostgres.OnUpdate", route);
+                    }
 
                     // Mirror mysql/metaQueryMySql.cs:2949 (UpdateFlatData upload move).
                     // Stesso fix di InsertflatData: rootPath cade su ConfigHelper.GetSettingAsString("uploadFolder")
@@ -1996,7 +2081,20 @@ FROM {fromTable}
 
                     RawHelpers.setMetadataVersion(metadata.FirstOrDefault()._Metadati_Tabelle);
 
-                    return connection.Execute(query).ToString();
+                    string deleteResult = connection.Execute(query).ToString();
+
+                    // RecordTranslations cleanup (mirror mysql/metaQueryMySql.cs:3138).
+                    // No-op se RT non abilitato sulla route.
+                    try
+                    {
+                        WEB_UI_CRAFTER.RecordTranslationsPostgres.OnDelete(connection, null, tab, id.ToString());
+                    }
+                    catch (Exception rtEx)
+                    {
+                        RawHelpers.logError(rtEx, "RecordTranslationsPostgres.OnDelete", route);
+                    }
+
+                    return deleteResult;
 
                 }
                 catch (ValidationException e1)
@@ -2045,7 +2143,27 @@ FROM {fromTable}
                     RawHelpers.setMetadataVersion(metadata.FirstOrDefault()._Metadati_Tabelle);
 
 
-                    return connection.Execute(query).ToString();
+                    string deleteResult = connection.Execute(query).ToString();
+
+                    // RecordTranslations cleanup (mirror mysql/metaQueryMySql.cs:3253).
+                    // recordIdForTranslations: il valore della PK dall'entity.
+                    try
+                    {
+                        string pkColName = metadata.FirstOrDefault(m => m.mc_is_primary_key)?.mc_nome_colonna;
+                        string recordIdForTranslations = (pkColName != null && entity.ContainsKey(pkColName))
+                            ? RawHelpers.ParseNull(entity[pkColName])
+                            : null;
+                        if (!string.IsNullOrWhiteSpace(recordIdForTranslations))
+                        {
+                            WEB_UI_CRAFTER.RecordTranslationsPostgres.OnDelete(connection, null, tab, recordIdForTranslations);
+                        }
+                    }
+                    catch (Exception rtEx)
+                    {
+                        RawHelpers.logError(rtEx, "RecordTranslationsPostgres.OnDelete", route);
+                    }
+
+                    return deleteResult;
                 }
             }
             catch (ValidationException e1)
@@ -2176,6 +2294,23 @@ FROM {fromTable}
 
                     if (!string.IsNullOrEmpty(generated_pkey))
                         result = generated_pkey;
+
+                    // RecordTranslations seed (mirror mysql/metaQueryMySql.cs:3424).
+                    // No-op se la route non ha `RecordTranslations.Enabled=true` in
+                    // props_bag o globale. recordIdForTranslations: usa il pkey
+                    // generato dall'autoincrement se presente, altrimenti il
+                    // valore della PK fornito nell'entity.
+                    string recordIdForTranslations = ResolveRecordIdForTranslations(generated_pkey, result, metadata, entity);
+                    try
+                    {
+                        WEB_UI_CRAFTER.RecordTranslationsPostgres.OnInsert(connection, null, metadata[0]._Metadati_Tabelle, metadata, entity, recordIdForTranslations, userId);
+                    }
+                    catch (Exception rtEx)
+                    {
+                        // RecordTranslations e' opt-in via props_bag; un fallimento
+                        // qui NON deve aborire l'INSERT principale.
+                        RawHelpers.logError(rtEx, "RecordTranslationsPostgres.OnInsert", route);
+                    }
 
                     //NEED TO BLANK RESULT: IF THE TABLE HAS A FULL TEXT INDEX -> INSERT QUERY RETURNS THIS AUTOGENERATED VALUE THAT IS CLIENT SIDE ASSIGNED TO THE FIRST PRIMARY KEY COLUMN OF THE TABLE !!!!!
                     if (string.IsNullOrEmpty(metadata.FirstOrDefault()._Metadati_Tabelle.md_primary_key_type))
@@ -2440,6 +2575,18 @@ FROM {fromTable}
         // (metaQueryMySql.cs:1658). Newtonsoft.Json deserializza tipicamente in
         // JArray<JObject> o List<object>; questi helper normalizzano qualsiasi
         // forma in List<Dictionary<string, object>> per il loop M2M update.
+        // Mirror mysql/metaQueryMySql.cs:514 (ResolveRecordIdForTranslations).
+        // Priorità: generated_pkey (autoincrement) → result (from caller) → PK value in entity.
+        private static string ResolveRecordIdForTranslations(string generated_pkey, string result, IList<_Metadati_Colonne> metadata, IDictionary<string, object> entity)
+        {
+            if (!string.IsNullOrEmpty(generated_pkey)) return generated_pkey;
+            if (!string.IsNullOrEmpty(result)) return result;
+            string pkColumnName = metadata?.FirstOrDefault(m => m.mc_is_primary_key)?.mc_nome_colonna;
+            if (string.IsNullOrEmpty(pkColumnName) || entity == null) return null;
+            var pkEntry = entity.FirstOrDefault(kv => string.Equals(kv.Key, pkColumnName, StringComparison.OrdinalIgnoreCase));
+            return RawHelpers.ParseNull(pkEntry.Value);
+        }
+
         private static List<Dictionary<string, object>> GetDictionaryListValue(Dictionary<string, object> source, string key)
         {
             if (source == null || string.IsNullOrEmpty(key) || !source.TryGetValue(key, out object raw) || raw == null)
@@ -2642,22 +2789,117 @@ FROM {fromTable}
                             {
                                 //need to perform distinct and paging. No need to join. order by autocomplete field
                                 _Metadati_Colonne distCol = lst.FirstOrDefault(x => x.mc_nome_colonna == distinct);
-                                string distColName = RawHelpers.getStoreColumnName(distCol);
+                                // PG: case-sensitive identifier quoting (mirror MSSQL line 5580: escapeDBObjectName)
+                                string distColNameRaw = RawHelpers.getStoreColumnName(distCol);
+                                string distColName = EscapeDBObjectName(distColNameRaw);
+                                string distinctAlias = EscapeDBObjectName(distinct);
 
-                                string distinctStr = string.Format("DISTINCT {0}", safetableName + "." + distColName);
+                                string distinctStr;
 
-                                finalQry = "WITH t AS" +
+                                // PG: lookupByID column → ritorna ANCHE il DESCRITTIVO (join al related table)
+                                // oltre al raw FK ID. Il frontend `formatValueForDisplay` su lookupByID
+                                // cerca `rec[<entity>___<dataTextField>__<colName>]` (vedi
+                                // spreadsheet-list-sf.component.ts:730+); se l'alias e' presente, mostra
+                                // il descrittivo invece dell'ID raw. Senza questo branch il popup di
+                                // filtro mostra ID nudi (1, 4, 5, ...) invece dei SupplierName.
+                                // Il FK ID (distColName) viene comunque emesso, cosi' il client puo' usarlo
+                                // come filter value (via mapping display→value lato client).
+                                _Metadati_Colonne_Lookup lookupCol = distCol as _Metadati_Colonne_Lookup;
+                                _Metadati_Tabelle relatedTable = null;
+                                if (lookupCol != null
+                                    && !string.IsNullOrEmpty(lookupCol.mc_ui_lookup_entity_name)
+                                    && !string.IsNullOrEmpty(lookupCol.mc_ui_lookup_dataTextField))
+                                {
+                                    relatedTable = mmd.GetMetadati_Tabelles(lookupCol.mc_ui_lookup_entity_name).FirstOrDefault();
+                                }
+
+                                if (relatedTable != null && !string.IsNullOrEmpty(lookupCol.mc_ui_lookup_dataValueField))
+                                {
+                                    string lookupTableSafe = GetTableName(relatedTable);
+                                    string lookupTableAlias = EscapeDBObjectName(
+                                        lookupCol.mc_ui_lookup_entity_name.Replace(" ", "_") + "_lk");
+
+                                    // FK target su related table
+                                    _Metadati_Colonne fkCol = relatedTable._Metadati_Colonnes
+                                        .FirstOrDefault(xk => xk.mc_nome_colonna == lookupCol.mc_ui_lookup_dataValueField)
+                                        ?? relatedTable._Metadati_Colonnes
+                                            .FirstOrDefault(xk => xk.mc_real_column_name == lookupCol.mc_ui_lookup_dataValueField);
+                                    string fkFieldSafe = EscapeDBObjectName(fkCol != null
+                                        ? RawHelpers.getStoreColumnName(fkCol)
+                                        : lookupCol.mc_ui_lookup_dataValueField);
+
+                                    // Colonna descrittiva
+                                    _Metadati_Colonne textCol = relatedTable._Metadati_Colonnes
+                                        .FirstOrDefault(xk => xk.mc_nome_colonna == lookupCol.mc_ui_lookup_dataTextField)
+                                        ?? relatedTable._Metadati_Colonnes
+                                            .FirstOrDefault(xk => xk.mc_real_column_name == lookupCol.mc_ui_lookup_dataTextField);
+                                    string textFieldSafe = EscapeDBObjectName(textCol != null
+                                        ? RawHelpers.getStoreColumnName(textCol)
+                                        : lookupCol.mc_ui_lookup_dataTextField);
+
+                                    // Alias atteso dal frontend (vedi spreadsheet-list-sf:1005 getLookupAliasField):
+                                    //   <entity>___<dataTextField>__<colName>
+                                    string descAlias = EscapeDBObjectName(
+                                        lookupCol.mc_ui_lookup_entity_name.Replace(" ", "_")
+                                        + "___" + lookupCol.mc_ui_lookup_dataTextField
+                                        + "__" + lookupCol.mc_nome_colonna);
+
+                                    string lookupJoin = " LEFT JOIN " + lookupTableSafe + " AS " + lookupTableAlias
+                                        + " ON " + safetableName + "." + distColName
+                                        + " = " + lookupTableAlias + "." + fkFieldSafe + " ";
+                                    string descriptorExpr = "(" + lookupTableAlias + "." + textFieldSafe + ")::text";
+
+                                    // Filtro ilike sul descrittivo (non sull'ID).
+                                    finalQry = "WITH t AS" +
                                         "(" +
-                                            " SELECT " + distColName + ", ROW_NUMBER() OVER (order by X." + distColName + ") AS Row " +
+                                            " SELECT " + distColName + ", " + descAlias + ", ROW_NUMBER() OVER (order by X." + descAlias + ") AS Row " +
                                             " FROM (" +
-                                                    "SELECT " + distinctStr +
-                                                    string.Format(" FROM {0} {1} {2} {3} ", safetableName, "", where, "") +
+                                                    "SELECT DISTINCT " + safetableName + "." + distColName + ", " + descriptorExpr + " AS " + descAlias +
+                                                    string.Format(" FROM {0} {1} {2} {3} ", safetableName, lookupJoin, where, "") +
                                             ") as X" +
                                         ")" +
-                                        " SELECT " + distColName + " as " + distinct +
-                                        " FROM t where t." + distColName + " ilike '%" + EscapeValue(autocompleteFilterValue) + "%' " +
+                                        " SELECT " + distColName + ", " + descAlias +
+                                        " FROM t where (t." + descAlias + ")::text ilike '%" + EscapeValue(autocompleteFilterValue) + "%' " +
                                         string.Format(" AND Row BETWEEN {0} AND {1} ", ((skiprecords == 0) ? 0 : skiprecords + 1), skiprecords + PageInfo.pageSize) +
-                                        "order by t." + distColName;
+                                        " order by t." + descAlias;
+                                }
+                                // Parity con MSSQL (line 5584-5599): se la colonna distinct e' computed
+                                // (es. lookup risolto via formula), usiamo la formula come DISTINCT expression.
+                                else if (distCol.mc_is_computed.HasValue && distCol.mc_is_computed.Value && !string.IsNullOrEmpty(distCol.mc_computed_formula))
+                                {
+                                    distinctStr = distCol.mc_computed_formula;
+
+                                    finalQry = "WITH t AS" +
+                                           "(" +
+                                               " SELECT " + distColName + ", ROW_NUMBER() OVER (order by X." + distColName + ") AS Row " +
+                                               " FROM (" +
+                                                       "SELECT DISTINCT " + distinctStr + " AS " + distColName +
+                                                       string.Format(" FROM {0} {1} {2} {3} ", safetableName, join, where, "") +
+                                               ") as X" +
+                                           ")" +
+                                           " SELECT " + distColName +
+                                           " FROM t where (t." + distColName + ")::text ilike '%" + EscapeValue(autocompleteFilterValue) + "%' " +
+                                           string.Format(" AND Row BETWEEN {0} AND {1} ", ((skiprecords == 0) ? 0 : skiprecords + 1), skiprecords + PageInfo.pageSize * 3) +
+                                           "order by t." + distColName;
+                                }
+                                else
+                                {
+                                    // Parity con MSSQL line 5602-5616 + PG: cast a ::text per ilike anche su int/decimal/smallint.
+                                    distinctStr = string.Format("DISTINCT {0}", safetableName + "." + distColName);
+
+                                    finalQry = "WITH t AS" +
+                                            "(" +
+                                                " SELECT " + distColName + ", ROW_NUMBER() OVER (order by X." + distColName + ") AS Row " +
+                                                " FROM (" +
+                                                        "SELECT " + distinctStr +
+                                                        string.Format(" FROM {0} {1} {2} {3} ", safetableName, "", where, "") +
+                                                ") as X" +
+                                            ")" +
+                                            " SELECT " + distColName + " as " + distinctAlias +
+                                            " FROM t where (t." + distColName + ")::text ilike '%" + EscapeValue(autocompleteFilterValue) + "%' " +
+                                            string.Format(" AND Row BETWEEN {0} AND {1} ", ((skiprecords == 0) ? 0 : skiprecords + 1), skiprecords + PageInfo.pageSize) +
+                                            "order by t." + distColName;
+                                }
                             }
                         }
                         #endregion
@@ -3214,7 +3456,12 @@ FROM {fromTable}
             {
                 if (ap == null)
                 {
-                    string joinn = string.Format(" LEFT JOIN {0} AS {3} ON {1} = {2} ", safeEntityName, currentFld, safeUniqueEntityName + "." + EscapeDBObjectName(col.mc_ui_lookup_dataValueField), safeUniqueEntityName);
+                    // PG: cast a text su entrambi i lati del JOIN per neutralizzare i type mismatch
+                    // tra colonne FK varchar (es. `_mtdt__tnt__trzzzioni__tabelle.ruoloid VARCHAR`
+                    // dopo task #49) e PK integer (es. `ruoli.id_ruolo INT`). PG non ha implicit cast
+                    // `text = integer` (solo `integer = text`), quindi senza CAST esplicito il JOIN
+                    // fallisce con 42883 'operatore non e' completamente definito: text = integer'.
+                    string joinn = string.Format(" LEFT JOIN {0} AS {3} ON ({1})::text = ({2})::text ", safeEntityName, currentFld, safeUniqueEntityName + "." + EscapeDBObjectName(col.mc_ui_lookup_dataValueField), safeUniqueEntityName);
                     var currentAP = new aliasPair()
                     {
                         table_name = col.mc_ui_lookup_entity_name,
@@ -3330,7 +3577,14 @@ FROM {fromTable}
         private static string AppendFilter(_Metadati_Colonne fld, FilterInfos filterInfo, string logicOperator, string currentFld, string where, _Metadati_Tabelle tabel, string formulaLookup = "", string userId = "", bool isNested = false)
         {
 
-            filterInfo.filters.Where(x => (fld == null && x.nestedFilters != null) || (x.field != null && x.field.ToLower() == fld.mc_nome_colonna.ToLower() && x.field != "__extra" && !x.isHaving)).ToList().ForEach((f) =>
+            // PG: match il `field` del filter sia contro `mc_nome_colonna` (C# property name,
+            // es. `md_route_name`) sia contro `mc_real_column_name` (DB column name, es.
+            // `mdroutename`). MSSQL/MySQL metadata hanno mc_nome_colonna=DB-name (no
+            // underscore) quindi il match cross-DBMS funziona; su PG post-migrazione
+            // mysql->postgres mc_nome_colonna usa il nome C# (snake_case) e mc_real_column_name
+            // il nome DB → senza questo fallback il client che invia `field='mdroutename'`
+            // genera silenziosamente una query senza WHERE (130 rows invece di 1 filtrata).
+            filterInfo.filters.Where(x => (fld == null && x.nestedFilters != null) || (x.field != null && (x.field.ToLower() == fld.mc_nome_colonna.ToLower() || (!string.IsNullOrEmpty(fld.mc_real_column_name) && x.field.ToLower() == fld.mc_real_column_name.ToLower())) && x.field != "__extra" && !x.isHaving)).ToList().ForEach((f) =>
             {
                 if (f.nestedFilters != null && f.nestedFilters.filters.Count > 0)
                 {
@@ -3630,23 +3884,37 @@ FROM {fromTable}
 
                 string rightExtraOperator = leftExtraOperator;
 
+                bool ilikeForceTextCast = false;
+
                 if (realOperator == "ilike" || realOperator == "like")
                 {
+                    // PG: ilike/like richiedono text su entrambi i lati.
+                    // getQuoteFromColumn restituisce "" per int/decimal/bit/smallint, e questo produceva
+                    // SQL invalido tipo `column ilike %%` o `column ilike %abc%` (senza apici).
+                    // Forziamo quote='\'' qui e segnaliamo che il currentFld va castato a ::text sotto.
+                    string ilikeQuote = "'";
                     if (f.operatore == "contains")
                     {
-                        leftExtraOperator = quote + "%";
-                        rightExtraOperator = "%" + quote;
+                        leftExtraOperator = ilikeQuote + "%";
+                        rightExtraOperator = "%" + ilikeQuote;
                     }
-                    if (f.operatore == "startswith")
+                    else if (f.operatore == "startswith")
                     {
-                        leftExtraOperator = quote;
-                        rightExtraOperator = "%" + quote;
+                        leftExtraOperator = ilikeQuote;
+                        rightExtraOperator = "%" + ilikeQuote;
                     }
-                    if (f.operatore == "endswith")
+                    else if (f.operatore == "endswith")
                     {
-                        leftExtraOperator = quote + "%";
-                        rightExtraOperator = quote;
+                        leftExtraOperator = ilikeQuote + "%";
+                        rightExtraOperator = ilikeQuote;
                     }
+                    else
+                    {
+                        // generic ilike/like: avvolgi comunque value tra apici
+                        leftExtraOperator = ilikeQuote;
+                        rightExtraOperator = ilikeQuote;
+                    }
+                    ilikeForceTextCast = true;
                 }
 
                 if (realOperator == "is null")
@@ -3718,7 +3986,13 @@ FROM {fromTable}
                         f.value = "1";
                 }
 
-                where += ((where == "") ? " where " : " " + logicOperator + " ") + "( (" + (fld.mc_is_computed.Value ? fld.mc_computed_formula : currentFld) + ")" + realOperator + string.Format(" {0}{1}{2} {3} {4} )", leftExtraOperator, f.value, rightExtraOperator, async_extra_condition, (f.__extra ? " OR 1=1" : ""));
+                string ilikeLhs = (fld.mc_is_computed.Value ? fld.mc_computed_formula : currentFld);
+                if (ilikeForceTextCast)
+                {
+                    // PG: cast esplicito a text cosi ilike funziona anche su int/decimal/smallint/bit
+                    ilikeLhs = "(" + ilikeLhs + ")::text";
+                }
+                where += ((where == "") ? " where " : " " + logicOperator + " ") + "( (" + ilikeLhs + ")" + realOperator + string.Format(" {0}{1}{2} {3} {4} )", leftExtraOperator, f.value, rightExtraOperator, async_extra_condition, (f.__extra ? " OR 1=1" : ""));
 
                 if (!isNested)
                     filterInfo.filters.Remove(f);
@@ -5950,6 +6224,213 @@ FROM {fromTable}
             needFilter = Math.Max(needFilter, 0);
         }
         #endregion
+
+        // ─────────────────────────────────────────────────────────────────
+        //  ImportFile — PG flavor of `metaQueryMySql.ImportFile` (port).
+        //
+        //  Invocato da Services/UploadHandlerCustom.cs quando il body upload
+        //  ha `invoke_import_file=true` e DBMS=postgresql. Parsa il file XLS/CSV
+        //  in DataTable, poi per ogni riga decide INSERT vs UPDATE in base a
+        //  `uploadOption.import_type` (I, U, IU) e all'esistenza della PK.
+        //
+        //  Differenze MySQL→PG:
+        //    • `MySqlConnection`/`MySqlTransaction` → `NpgsqlConnection`/`NpgsqlTransaction`
+        //    • dialetto passato a `RawHelpers.getStoreTableName` / `escapeDBObjectName`
+        //      e a `BuildDynamicInsertQuery`/`BuildDynamicUpdateQuery`: usiamo
+        //      direttamente i builder PG perche' MySQL→PG quoting differisce
+        //      (PG usa "double quote", MySQL usa `backtick`).
+        //    • la FKey lookup chiama `metaQueryPostgreSql.GetFlatData` invece
+        //      di `metaQueryMySql.GetFlatData`.
+        // ─────────────────────────────────────────────────────────────────
+        public static string ImportFile(uploadOptions uploadOption, string theName, string fileName, _Metadati_Tabelle tabel, metaModelRaw.metaRawModel context)
+        {
+            StringBuilder log = new StringBuilder();
+            int insertedRecord = 0;
+            int updatedRecord = 0;
+            int deletedRecord = 0;
+            int errorCount = 0;
+            using (NpgsqlConnection con = GetOpenConnection(false))
+            {
+                using (NpgsqlTransaction myTrans = con.BeginTransaction())
+                {
+                    if (tabel != null)
+                    {
+                        DataTable dt;
+
+                        if (uploadOption.fyle_type == "X")
+                            dt = RawHelpers.createDataTablefromXLS(theName, log, fileName, uploadOption, ref errorCount);
+                        else
+                            dt = RawHelpers.createDataTablefromCSV(theName, log, fileName, uploadOption, ref errorCount);
+
+                        var columns = dt.Columns.Cast<DataColumn>();
+                        List<_Metadati_Colonne> pkeys = tabel._Metadati_Colonnes.Where(x => x.mc_is_primary_key is true).ToList();
+
+                        bool returnValue;
+                        if (RawHelpers.CheckImportColumns(columns, tabel, log, uploadOption, fileName, out returnValue, ref errorCount, pkeys))
+                        {
+                            return log.ToString();
+                        }
+
+                        IEnumerable<Dictionary<string, object>> dicts =
+                            dt.Rows.OfType<DataRow>().Select(dataRow => columns.Select(column => new {
+                                Column = uploadOption.use_column_captions == "C"
+                                    ? tabel._Metadati_Colonnes.FirstOrDefault(x => x.mc_display_string_in_view == column.ColumnName.Replace("#", ".")).mc_nome_colonna
+                                    : column.ColumnName,
+                                Value = dataRow[column]
+                            }).ToDictionary(data => data.Column, data => data.Value));
+
+                        int recordCounter = 0;
+                        foreach (Dictionary<string, object> record in dicts)
+                        {
+                            string pk = "";
+                            bool fkeyParsed = false;
+
+                            recordCounter++;
+
+                            if (uploadOption.import_type.Contains("U"))
+                            {
+                                // select using pkey values in record
+                                string table_name = RawHelpers.getStoreTableName(tabel, "postgresql");
+
+                                string query_check_from = string.Format("SELECT * FROM {0} ", table_name);
+                                string query_check_where = "";
+                                bool flg = true;
+
+                                foreach (_Metadati_Colonne pkey in pkeys)
+                                {
+                                    object pkey_value = record[pkey.mc_nome_colonna];
+                                    if (pkey_value == null || string.IsNullOrEmpty(pkey_value.ToString()))
+                                    {
+                                        flg = false;
+                                        break;
+                                    }
+                                    else
+                                    {
+                                        string quote = "";
+                                        if (string.IsNullOrEmpty(tabel.md_primary_key_type) || tabel.md_primary_key_type == "GUID")
+                                            quote = "'";
+
+                                        query_check_where += (string.IsNullOrEmpty(query_check_where) ? " WHERE " : " AND ")
+                                            + RawHelpers.getStoreTableName(tabel, "postgresql") + "."
+                                            + RawHelpers.escapeDBObjectName(pkey.mc_nome_colonna, "postgresql") + " = "
+                                            + quote + pkey_value + quote;
+                                    }
+                                }
+
+                                if (flg)
+                                {
+                                    List<Dapper.SqlMapper.FastExpando> entity = (List<Dapper.SqlMapper.FastExpando>)con.Query(query_check_from + query_check_where, null, myTrans);
+                                    if (entity.Count > 0)
+                                    {
+                                        if (!parseFKeyPg(uploadOption, tabel, record, context, ref errorCount, log, fileName, recordCounter))
+                                            return log.ToString();
+
+                                        fkeyParsed = true;
+
+                                        string update_query = BuildDynamicUpdateQuery(record, tabel._Metadati_Colonnes.ToList(), uploadOption.user_id, true);
+                                        string result = con.Execute(update_query, null, myTrans).ToString();
+
+                                        updatedRecord++;
+                                        continue;
+                                    }
+                                }
+                            }
+
+                            if (uploadOption.import_type.Contains("I"))
+                            {
+                                if (!fkeyParsed)
+                                {
+                                    if (!parseFKeyPg(uploadOption, tabel, record, context, ref errorCount, log, fileName, recordCounter))
+                                        return log.ToString();
+                                }
+
+                                string insert_query = BuildDynamicInsertQuery(record, tabel._Metadati_Colonnes.ToList(), uploadOption.user_id, out pk, true);
+                                string result = con.Execute(insert_query, null, myTrans).ToString();
+                                insertedRecord++;
+                                continue;
+                            }
+                        }
+
+                        if (uploadOption.commit_level == "T")
+                        {
+                            myTrans.Rollback();
+                            log.AppendLine(string.Format("Total records to be inserted: {0}", insertedRecord));
+                            log.AppendLine(string.Format("Total records to be updated: {0}", updatedRecord));
+                            log.AppendLine(string.Format("Total records to be deleted: {0}", deletedRecord));
+                            log.AppendLine(string.Format("Test completed{0}.", errorCount == 0 ? " successfully" : " with " + errorCount + " errors"));
+                        }
+                        else
+                        {
+                            myTrans.Commit();
+                            log.AppendLine(string.Format("Total records inserted: {0}", insertedRecord));
+                            log.AppendLine(string.Format("Total records updated: {0}", updatedRecord));
+                            log.AppendLine(string.Format("Total records deleted: {0}", deletedRecord));
+                            log.AppendLine(string.Format("Import completed{0}.", errorCount == 0 ? " successfully" : " with " + errorCount + " errors"));
+                        }
+                    }
+                }
+            }
+
+            return log.ToString();
+        }
+
+        // FKey lookup helper — risolve i valori descrittivi delle lookup
+        // (es. ApplicationCountries → CountryName) negli ID corrispondenti.
+        // Port di `metaQueryMySql.parseFKey` con dialect=postgresql.
+        public static bool parseFKeyPg(uploadOptions uploadOption, _Metadati_Tabelle tabel, Dictionary<string, object> record, metaModelRaw.metaRawModel context, ref int errorCount, StringBuilder log, string fileName, long recordCounter)
+        {
+            if (uploadOption.use_descriptive_fkey)
+            {
+                foreach (_Metadati_Colonne_Lookup lc in tabel._Metadati_Colonnes.OfType<_Metadati_Colonne_Lookup>())
+                {
+                    string key = (uploadOption.use_column_captions == "C" ? lc.mc_nome_colonna : lc.mc_display_string_in_view);
+                    if (record.ContainsKey(key))
+                    {
+                        if (record[key] != null && !string.IsNullOrEmpty(record[key].ToString()))
+                        {
+                            _Metadati_Tabelle tabbe = context.GetMetadati_Tabelles(lc.mc_ui_lookup_entity_name).FirstOrDefault();
+                            _Metadati_Colonne pkey = tabbe._Metadati_Colonnes.FirstOrDefault(x => x.mc_is_primary_key is true);
+                            rawPagedResult match;
+
+                            match = GetFlatData(uploadOption.user_id, tabbe.md_route_name, 0, null, null, null, RawHelpers.createStandardFilter(lc.mc_ui_lookup_dataTextField, record[key].ToString(), pkey), "AND", true, null, null);
+
+                            if (match.TotalRecords == 1)
+                            {
+                                IDictionary<string, object> found = match.results.OfType<Dapper.SqlMapper.FastExpando>().First().data;
+                                record[key] = found[pkey.mc_nome_colonna];
+                            }
+                            else
+                            {
+                                errorCount++;
+                                log.AppendLine(string.Format("Record {0}: Foreign key value error [{1} = {2}]", recordCounter, key, record[key]));
+                                if (uploadOption.commit_level == "I" || uploadOption.commit_level == "R")
+                                {
+                                    // Mirror MySQL: write JSON callback al Response stream
+                                    // (dynamic per evitare di accoppiarci alla shape
+                                    // di System.WebCore.HttpContext.ContextCurrent.Response).
+                                    try
+                                    {
+                                        var ctx = System.WebCore.HttpContext.Current;
+                                        if (ctx != null && ctx.Response != null)
+                                        {
+                                            ctx.Response.Write(JsonConvert.SerializeObject(new uploadCallBackInfo { message = log.ToString(), filename = fileName, errorCount = errorCount }, Newtonsoft.Json.Formatting.Indented));
+                                        }
+                                    }
+                                    catch { /* best effort: NON deve bloccare l'import path */ }
+                                    return false;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            record[key] = null;
+                        }
+                    }
+                }
+            }
+
+            return true;
+        }
 
     }
 

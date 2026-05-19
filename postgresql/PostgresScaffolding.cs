@@ -76,18 +76,37 @@ namespace metaModelRaw
         {
             var ret = new List<columnDefinition>();
             using (DbConnection con = PostGresProviderGateway.CreateOpenConnection(connection))
+            // LEFT JOIN su information_schema.key_column_usage + table_constraints
+            // per identificare le colonne PRIMARY KEY. Senza questa info,
+            // mc_is_primary_key resta 0 in metadata → UpdateflatData genera
+            // `UPDATE … SET id=...` (PK in SET invece che WHERE) + WHERE vuoto
+            // → 42601 syntax error. is_identity='YES' rileva IDENTITY/SERIAL.
             using (DbCommand cmd = DbProviderUtil.CreateTextCommand(con, @"
 select
-    column_name,
-    case when data_type='USER-DEFINED' then udt_name else data_type end as data_type,
-    is_nullable,
-    coalesce(character_maximum_length,0) as max_length,
-    coalesce(numeric_precision,0) as numeric_precision,
-    coalesce(numeric_scale,0) as numeric_scale,
-    column_default
-from information_schema.columns
-where table_schema=@schema and table_name=@table
-order by ordinal_position"))
+    c.column_name,
+    case when c.data_type='USER-DEFINED' then c.udt_name else c.data_type end as data_type,
+    c.is_nullable,
+    coalesce(c.character_maximum_length,0) as max_length,
+    coalesce(c.numeric_precision,0) as numeric_precision,
+    coalesce(c.numeric_scale,0) as numeric_scale,
+    c.column_default,
+    c.is_identity,
+    case when pkcols.column_name is not null then 'YES' else 'NO' end as is_primary_key
+from information_schema.columns c
+left join (
+    select kcu.column_name
+    from information_schema.table_constraints tc
+    inner join information_schema.key_column_usage kcu
+        on tc.constraint_schema = kcu.constraint_schema
+        and tc.constraint_name = kcu.constraint_name
+        and tc.table_schema = kcu.table_schema
+        and tc.table_name = kcu.table_name
+    where tc.constraint_type = 'PRIMARY KEY'
+        and tc.table_schema = @schema
+        and tc.table_name = @table
+) pkcols on pkcols.column_name = c.column_name
+where c.table_schema=@schema and c.table_name=@table
+order by c.ordinal_position"))
             {
                 // CreateOpenConnection ha gia' fatto Open(); evitiamo doppio Open (errore Npgsql).
                 DbProviderUtil.AddWithValue(cmd, "schema", schema);
@@ -96,6 +115,12 @@ order by ordinal_position"))
                 {
                     while (dr.Read())
                     {
+                        string defaultVal = RawHelpers.ParseNull(dr["column_default"]);
+                        bool isIdentity = RawHelpers.ParseNull(dr["is_identity"]).Equals("YES", StringComparison.OrdinalIgnoreCase);
+                        // SERIAL columns: is_identity='NO' ma column_default contiene `nextval('...seq'::regclass)`.
+                        bool isSequence = !string.IsNullOrEmpty(defaultVal) && defaultVal.IndexOf("nextval", StringComparison.OrdinalIgnoreCase) >= 0;
+                        bool isPk = RawHelpers.ParseNull(dr["is_primary_key"]).Equals("YES", StringComparison.OrdinalIgnoreCase);
+
                         ret.Add(new columnDefinition()
                         {
                             Name = RawHelpers.ParseNull(dr["column_name"]),
@@ -104,7 +129,9 @@ order by ordinal_position"))
                             MaximumLength = int.TryParse(RawHelpers.ParseNull(dr["max_length"]), out int maxLen) ? maxLen : 0,
                             NumericPrecision = int.TryParse(RawHelpers.ParseNull(dr["numeric_precision"]), out int precision) ? precision : 0,
                             NumericScale = int.TryParse(RawHelpers.ParseNull(dr["numeric_scale"]), out int scale) ? scale : 0,
-                            DefaultValue = RawHelpers.ParseNull(dr["column_default"])
+                            DefaultValue = defaultVal,
+                            InPrimaryKey = isPk,
+                            Identity = isIdentity || (isPk && isSequence)
                         });
                     }
                 }
@@ -561,6 +588,16 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
             if (!string.IsNullOrWhiteSpace(tableSchema))
                 effectiveSchema = NormalizeSchema(tableSchema);
 
+            // Resolve `connection` from `connName` if caller passed empty (i client
+            // E2E passano sempre `connection=''` + `connName='DataSQLConnection'`).
+            // Senza questo, GetPgTables/CreateOpenConnection esplodono con
+            // "ConnectionString property has not been initialized.".
+            if (string.IsNullOrWhiteSpace(connection))
+            {
+                string resolvedConnName = string.IsNullOrWhiteSpace(connName) ? "DataSQLConnection" : connName;
+                connection = ConfigHelper.ResolveConnectionString(resolvedConnName);
+            }
+
             using (metaRawModel mmd = new metaRawModel())
             {
                 if (!GetPgTables(connection, effectiveSchema).Any(x => string.Equals(x, tableName, StringComparison.OrdinalIgnoreCase)))
@@ -636,6 +673,16 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
             // PG: `db` non e' uno schema (MSSQL-ism); il DB e' gia' selezionato nella
             // connection string. NormalizeSchema(null) ritorna "public".
             string effectiveSchema = NormalizeSchema(null);
+
+            // Resolve `connection` from `connName` if caller passed empty (mirror
+            // pattern usato da scaffoldTable upstream). Senza questo, GetPgStored
+            // chiama CreateOpenConnection("") → InvalidOperationException
+            // "ConnectionString property has not been initialized.".
+            if (string.IsNullOrWhiteSpace(connection))
+            {
+                string resolvedConnName = string.IsNullOrWhiteSpace(connName) ? "DataSQLConnection" : connName;
+                connection = ConfigHelper.ResolveConnectionString(resolvedConnName);
+            }
 
             using (metaRawModel mmd = new metaRawModel())
             {

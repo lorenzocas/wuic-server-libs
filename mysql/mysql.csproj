@@ -76,14 +76,23 @@
       <KCBinDir>$(MSBuildProjectDirectory)\..\KonvergenceCore\bin\$(Configuration)\$(TargetFramework)\</KCBinDir>
     </PropertyGroup>
     <ItemGroup>
-      <!-- DLL specifiche del provider mysql che il backend ha bisogno per OData/EFCore -->
-      <ProviderRuntimeDlls Include="$(OutputPath)mysql.dll" />
-      <ProviderRuntimeDlls Include="$(OutputPath)mysql.pdb" Condition="Exists('$(OutputPath)mysql.pdb')" />
+      <!-- DEPS del provider mysql (NON mysql.dll stesso: Helpers.cs sibling-lookup
+           lo trova in C:\src\Wuic\mysql\bin\$(Configuration)\$(TargetFramework)\.
+           Duplicare mysql.dll in KonvergenceCore/bin causa "Assembly with same
+           name is already loaded" al primo Assembly.LoadFrom). -->
       <ProviderRuntimeDlls Include="$(OutputPath)Pomelo.EntityFrameworkCore.MySql.dll" Condition="Exists('$(OutputPath)Pomelo.EntityFrameworkCore.MySql.dll')" />
       <ProviderRuntimeDlls Include="$(OutputPath)MySqlConnector.dll" Condition="Exists('$(OutputPath)MySqlConnector.dll')" />
       <ProviderRuntimeDlls Include="$(OutputPath)MySql.Data.dll" Condition="Exists('$(OutputPath)MySql.Data.dll')" />
     </ItemGroup>
-    <Message Text="[mysql.csproj] Syncing provider deps to KonvergenceCore bin: $(KCBinDir)" Importance="high" Condition="Exists('$(KCBinDir)')" />
+    <!-- Anti-duplicate guard: rimuovi eventuali mysql.dll/mysql.pdb leftover
+         (a) in KonvergenceCore/bin/$(Configuration)/$(TargetFramework)/ (sync legacy)
+         (b) in KonvergenceCore/bin/ root (creato da .vscode/tasks.json `backend: providers sync`
+             — pre-fix che copiava esplicitamente la dll del provider in bin/ root). -->
+    <PropertyGroup>
+      <KCBinRoot>$(MSBuildProjectDirectory)\..\KonvergenceCore\bin\</KCBinRoot>
+    </PropertyGroup>
+    <Delete Files="$(KCBinDir)mysql.dll;$(KCBinDir)mysql.pdb;$(KCBinRoot)mysql.dll;$(KCBinRoot)mysql.pdb" Condition="Exists('$(KCBinDir)') or Exists('$(KCBinRoot)')" ContinueOnError="true" />
+    <Message Text="[mysql.csproj] Syncing provider deps (NOT mysql.dll itself) to KonvergenceCore bin: $(KCBinDir)" Importance="high" Condition="Exists('$(KCBinDir)')" />
     <Copy SourceFiles="@(ProviderRuntimeDlls)"
           DestinationFolder="$(KCBinDir)"
           SkipUnchangedFiles="true"

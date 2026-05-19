@@ -4097,11 +4097,68 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                                 _Metadati_Colonne distCol = lst.FirstOrDefault(x => x.mc_nome_colonna == distinct);
                                 string distColName = EscapeDBObjectName(RawHelpers.getStoreColumnName(distCol));
 
+                                // MySQL: lookupByID column → emit ANCHE il descrittivo (alias
+                                // `<entity>___<dataTextField>__<colName>`) oltre al raw FK ID.
+                                // Il frontend `formatValueForDisplay` su lookupByID legge l'alias
+                                // (spreadsheet-list-sf.component.ts:730+) e mostra il descrittivo
+                                // nel popup, mentre `selectedSet` memorizza il raw FK ID come filter
+                                // value (compat cross-DBMS: WHERE col = <id> rimane numerica).
+                                _Metadati_Colonne_Lookup lookupCol = distCol as _Metadati_Colonne_Lookup;
+                                _Metadati_Tabelle relatedTable = null;
+                                if (lookupCol != null
+                                    && !string.IsNullOrEmpty(lookupCol.mc_ui_lookup_entity_name)
+                                    && !string.IsNullOrEmpty(lookupCol.mc_ui_lookup_dataTextField))
+                                {
+                                    relatedTable = mmd.GetMetadati_Tabelles(lookupCol.mc_ui_lookup_entity_name).FirstOrDefault();
+                                }
 
-                                finalQry = " SELECT " + distColName + " as " + distinct +
-                                            string.Format(" FROM {0} where {0}.", safetableName) + distColName + " like '%" + EscapeValue(autocompleteFilterValue) + "%' " +
-                                            string.Format(" order by {0}.", safetableName) + distColName +
-                                            string.Format(" limit {1} offset {0} ", skiprecords, PageInfo.pageSize);
+                                if (relatedTable != null && !string.IsNullOrEmpty(lookupCol.mc_ui_lookup_dataValueField))
+                                {
+                                    string lookupTableSafe = GetTableName(relatedTable);
+                                    string lookupTableAlias = EscapeDBObjectName(
+                                        lookupCol.mc_ui_lookup_entity_name.Replace(" ", "_") + "_lk");
+
+                                    _Metadati_Colonne fkCol = relatedTable._Metadati_Colonnes
+                                        .FirstOrDefault(xk => xk.mc_nome_colonna == lookupCol.mc_ui_lookup_dataValueField)
+                                        ?? relatedTable._Metadati_Colonnes
+                                            .FirstOrDefault(xk => xk.mc_real_column_name == lookupCol.mc_ui_lookup_dataValueField);
+                                    string fkFieldSafe = EscapeDBObjectName(fkCol != null
+                                        ? RawHelpers.getStoreColumnName(fkCol)
+                                        : lookupCol.mc_ui_lookup_dataValueField);
+
+                                    _Metadati_Colonne textCol = relatedTable._Metadati_Colonnes
+                                        .FirstOrDefault(xk => xk.mc_nome_colonna == lookupCol.mc_ui_lookup_dataTextField)
+                                        ?? relatedTable._Metadati_Colonnes
+                                            .FirstOrDefault(xk => xk.mc_real_column_name == lookupCol.mc_ui_lookup_dataTextField);
+                                    string textFieldSafe = EscapeDBObjectName(textCol != null
+                                        ? RawHelpers.getStoreColumnName(textCol)
+                                        : lookupCol.mc_ui_lookup_dataTextField);
+
+                                    // Alias atteso dal frontend (spreadsheet-list-sf:1005 getLookupAliasField):
+                                    //   <entity>___<dataTextField>__<colName>
+                                    string descAlias = EscapeDBObjectName(
+                                        lookupCol.mc_ui_lookup_entity_name.Replace(" ", "_")
+                                        + "___" + lookupCol.mc_ui_lookup_dataTextField
+                                        + "__" + lookupCol.mc_nome_colonna);
+
+                                    string lookupJoin = " LEFT JOIN " + lookupTableSafe + " AS " + lookupTableAlias
+                                        + " ON " + safetableName + "." + distColName
+                                        + " = " + lookupTableAlias + "." + fkFieldSafe + " ";
+                                    string descriptorExpr = "CAST(" + lookupTableAlias + "." + textFieldSafe + " AS CHAR)";
+
+                                    finalQry = " SELECT DISTINCT " + safetableName + "." + distColName + ", " + descriptorExpr + " AS " + descAlias +
+                                        " FROM " + safetableName + " " + lookupJoin + " " + where + " " +
+                                        " HAVING " + descAlias + " like '%" + EscapeValue(autocompleteFilterValue) + "%' " +
+                                        " ORDER BY " + descAlias +
+                                        string.Format(" LIMIT {1} OFFSET {0} ", skiprecords, PageInfo.pageSize);
+                                }
+                                else
+                                {
+                                    finalQry = " SELECT " + distColName + " as " + distinct +
+                                                string.Format(" FROM {0} where {0}.", safetableName) + distColName + " like '%" + EscapeValue(autocompleteFilterValue) + "%' " +
+                                                string.Format(" order by {0}.", safetableName) + distColName +
+                                                string.Format(" limit {1} offset {0} ", skiprecords, PageInfo.pageSize);
+                                }
                             }
                         }
                         #endregion
