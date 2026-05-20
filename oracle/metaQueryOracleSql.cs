@@ -2174,7 +2174,38 @@ FROM {fromTable}
                     List<_Metadati_Colonne_Grid> multiple_check_fixes = metadata.OfType<_Metadati_Colonne_Grid>().ToList();
 
 
-                    string result = connection.Execute(query).ToString();
+                    // Oracle: se la query include `RETURNING <pk> INTO :p_new_id_out` (caso IDENTITY pk),
+                    // dobbiamo eseguirla via OracleCommand + OracleParameter Output per leggere
+                    // l'id appena generato. Dapper Execute() restituisce solo il rowcount.
+                    // Mirror PG (postgresql/metaQueryPostgreSql.cs:2285 ExecuteScalar su RETURNING).
+                    string result;
+                    if (query.IndexOf(":p_new_id_out", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        using (var oraCmd = new global::Oracle.ManagedDataAccess.Client.OracleCommand(query, connection))
+                        {
+                            var outP = new global::Oracle.ManagedDataAccess.Client.OracleParameter("p_new_id_out", global::Oracle.ManagedDataAccess.Client.OracleDbType.Decimal);
+                            outP.Direction = System.Data.ParameterDirection.Output;
+                            oraCmd.Parameters.Add(outP);
+                            oraCmd.ExecuteNonQuery();
+                            object outVal = outP.Value;
+                            if (outVal == null || outVal is global::Oracle.ManagedDataAccess.Types.OracleDecimal oraDec && oraDec.IsNull)
+                                result = "";
+                            else
+                                result = outVal.ToString();
+                            // Normalizza "1234.0" -> "1234" (ODP.NET puo' restituire decimal con .0 trailing).
+                            if (!string.IsNullOrEmpty(result) && result.IndexOf('.') >= 0)
+                            {
+                                int dot = result.IndexOf('.');
+                                bool allZerosAfter = true;
+                                for (int i = dot + 1; i < result.Length; i++) { if (result[i] != '0') { allZerosAfter = false; break; } }
+                                if (allZerosAfter) result = result.Substring(0, dot);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        result = connection.Execute(query).ToString();
+                    }
 
                     if (!string.IsNullOrEmpty(generated_pkey))
                         result = generated_pkey;
@@ -2481,8 +2512,39 @@ FROM {fromTable}
             {
                 string upper = obj.ToUpperInvariant();
                 if (OracleReservedKeywords.Contains(upper))
-                    return "\"" + upper + "\"";
+                {
+                    // Per identifiers che sono reserved keyword distinguiamo per case dell'input:
+                    // - input MIXED case (es. "Order") → quote+preserve case dell'input
+                    //   (migration tool ha creato la colonna come "Order" mixed-case quoted)
+                    // - input all-lower o all-upper (es. "type", "TYPE", "blob") → quote+UPPER
+                    //   (il bootstrap script Notification.cs/create-sp-oracle.sql creo' la
+                    //   colonna come "TYPE" upper. Anche se input e' lowercase, l'identifier
+                    //   fisico nel DB e' UPPER. Mirror del comportamento "default Oracle".)
+                    bool hasUpper = false, hasLower = false;
+                    foreach (char c in obj) { if (char.IsUpper(c)) hasUpper = true; else if (char.IsLower(c)) hasLower = true; }
+                    bool isMixedCase = hasUpper && hasLower;
+                    return isMixedCase ? ("\"" + obj + "\"") : ("\"" + upper + "\"");
+                }
                 return upper;
+            }
+            return string.Concat("\"", obj.Replace("\"", "\"\""), "\"");
+        }
+
+        /// <summary>
+        /// Variant di EscapeDBObjectName per ALIAS position (es. SELECT col AS alias).
+        /// Su Oracle, quoted alias preservano case literally -> il response JSON usa il
+        /// CamelCase originale del C# property name (es. "CityName" invece di "CITYNAME").
+        /// Necessario per cross-dialect compat con frontend template che usano
+        /// {{record.CityName}} CamelCase-bound.
+        /// </summary>
+        public static string EscapeAliasName(string obj)
+        {
+            if (obj == null) return "\"\"";
+            // Leading-underscore identifiers e identifier con caratteri non-safe: quoting standard.
+            if (obj.Length > 0 && obj[0] != '_' && System.Text.RegularExpressions.Regex.IsMatch(obj, "^[A-Za-z][A-Za-z0-9_]*$"))
+            {
+                // Quoting forzato per preservare CamelCase nel response.
+                return "\"" + obj + "\"";
             }
             return string.Concat("\"", obj.Replace("\"", "\"\""), "\"");
         }
@@ -2511,7 +2573,9 @@ FROM {fromTable}
         public static string GetCurrentFieldString(_Metadati_Tabelle tab, _Metadati_Colonne fld)
         {
             string safeColumnName = EscapeDBObjectName(RawHelpers.getStoreColumnName(fld));
-            string safeAlias = EscapeDBObjectName(fld.mc_nome_colonna);
+            // Alias: usiamo EscapeAliasName per preservare CamelCase nel response JSON
+            // (cross-dialect compat con template frontend `{{record.CityName}}`).
+            string safeAlias = EscapeAliasName(fld.mc_nome_colonna);
 
             string current_fld = GetTableName(tab) + "." + safeColumnName;
 
@@ -3190,7 +3254,8 @@ FROM {fromTable}
                 lst.ForEach((fld) =>
                 {
 
-                    string safeAlias = EscapeDBObjectName(fld.mc_nome_colonna);
+                    // Alias preservato CamelCase per cross-dialect compat (template `{{record.CityName}}`).
+                    string safeAlias = EscapeAliasName(fld.mc_nome_colonna);
 
                     string currentFld = GetCurrentFieldString(tab, fld);
 
@@ -4839,7 +4904,16 @@ FROM {fromTable}
                     if (!IsOptimisticComparableValue(originalValue))
                         continue;
 
-                    if (col.mc_db_column_type != "varbinary" && col.mc_db_column_type != "binary" && (!col.mc_is_db_computed.HasValue || !col.mc_is_db_computed.Value) && (!col.mc_is_computed.HasValue || !col.mc_is_computed.Value) && col.mc_db_column_type != "float" && col.mc_db_column_type != "point" && col.mc_db_column_type != "geometry")
+                    // Oracle: CLOB/NCLOB/BLOB columns cannot be used as equality-comparison key
+                    // in WHERE (ORA-22848). Skip them dall'optimistic predicate — il record
+                    // sara' considerato "unchanged for optimistic purposes" anche se modificato,
+                    // ma le altre colonne scalari sono sufficienti per detection di concurrent edit.
+                    // Allinea behavior a MSSQL/MySQL/PG dove i CLOB sono comparabili nativamente.
+                    string dbType = (col.mc_db_column_type ?? string.Empty).ToLowerInvariant();
+                    bool isLobType = dbType.Contains("text") || dbType == "clob" || dbType == "nclob" || dbType == "blob"
+                        || dbType == "ntext" || dbType == "varchar(max)" || dbType == "nvarchar(max)";
+
+                    if (col.mc_db_column_type != "varbinary" && col.mc_db_column_type != "binary" && (!col.mc_is_db_computed.HasValue || !col.mc_is_db_computed.Value) && (!col.mc_is_computed.HasValue || !col.mc_is_computed.Value) && col.mc_db_column_type != "float" && col.mc_db_column_type != "point" && col.mc_db_column_type != "geometry" && !isLobType)
                     {
                         string currentFld = RawHelpers.escapeDBObjectName(RawHelpers.getStoreColumnName(col), "oracle");
                         AppendOptimisticPredicate(col, currentFld, originalValue, ref fltr);
@@ -4852,7 +4926,10 @@ FROM {fromTable}
 
                     try
                     {
-                        return connection.QueryColumn<Int32>(optQry).FirstOrDefault() > 0;
+                        // Oracle ODP.NET: count(*) materializza come Decimal (NUMBER), non Int32.
+                        // Mirror del pattern usato gia' in Notifications/DeleteflatData (task #103/105).
+                        decimal cnt = connection.QueryColumn<decimal>(optQry).FirstOrDefault();
+                        return cnt > 0;
                     }
                     catch (Exception ex)
                     {
@@ -5569,6 +5646,19 @@ FROM {fromTable}
 
             query = string.Format("INSERT INTO {0}({1}) VALUES({2})", safetable_name, field_list, value_list);
 
+            // Oracle: per IDENTITY PK (no MAX/GUID/PARAMETRIC) e nessun local_generated_pkey gia'
+            // valorizzato (es. branch MAX/GUID/PARAMETRIC), aggiungi `RETURNING <pk> INTO :p_new_id_out`
+            // cosi' che InsertflatData/CloneData possano leggere l'id appena generato.
+            // Mirror PG (postgresql/metaQueryPostgreSql.cs:5827 RETURNING <pk>). MSSQL accodava
+            // `;select SCOPE_IDENTITY()`; in Oracle dobbiamo usare bind output parameter perche'
+            // INSERT non puo' restituire un risultato scalar diretto.
+            var identityPk = metadata.FirstOrDefault(x => x.mc_is_primary_key
+                && (string.IsNullOrEmpty(tabel.md_primary_key_type) || tabel.md_primary_key_type == "IDENTITY"));
+            if (identityPk != null && string.IsNullOrEmpty(local_generated_pkey))
+            {
+                query += " RETURNING " + EscapeDBObjectName(RawHelpers.getStoreColumnName(identityPk)) + " INTO :p_new_id_out";
+            }
+
             return query;
         }
 
@@ -5611,7 +5701,34 @@ FROM {fromTable}
 
                 query = BuildDynamicInsertQuery(entity, metadata, user_id, out generated_pkey);
 
-                string scope_identity = connection.Execute(query).ToString();
+                // Oracle: stesso branch RETURNING <pk> INTO :p_new_id_out di InsertflatData.
+                string scope_identity;
+                if (query.IndexOf(":p_new_id_out", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    using (var oraCmd = new global::Oracle.ManagedDataAccess.Client.OracleCommand(query, connection))
+                    {
+                        var outP = new global::Oracle.ManagedDataAccess.Client.OracleParameter("p_new_id_out", global::Oracle.ManagedDataAccess.Client.OracleDbType.Decimal);
+                        outP.Direction = System.Data.ParameterDirection.Output;
+                        oraCmd.Parameters.Add(outP);
+                        oraCmd.ExecuteNonQuery();
+                        object outVal = outP.Value;
+                        if (outVal == null || (outVal is global::Oracle.ManagedDataAccess.Types.OracleDecimal oraDec && oraDec.IsNull))
+                            scope_identity = "";
+                        else
+                            scope_identity = outVal.ToString();
+                        if (!string.IsNullOrEmpty(scope_identity) && scope_identity.IndexOf('.') >= 0)
+                        {
+                            int dot = scope_identity.IndexOf('.');
+                            bool allZerosAfter = true;
+                            for (int i = dot + 1; i < scope_identity.Length; i++) { if (scope_identity[i] != '0') { allZerosAfter = false; break; } }
+                            if (allZerosAfter) scope_identity = scope_identity.Substring(0, dot);
+                        }
+                    }
+                }
+                else
+                {
+                    scope_identity = connection.Execute(query).ToString();
+                }
 
                 if (!string.IsNullOrEmpty(generated_pkey))
                     scope_identity = generated_pkey;
@@ -6048,7 +6165,25 @@ FROM {fromTable}
                                 }
 
                                 string insert_query = BuildDynamicInsertQuery(record, tabel._Metadati_Colonnes.ToList(), uploadOption.user_id, out pk, true);
-                                string result = con.Execute(insert_query, null, myTrans).ToString();
+                                // Oracle: BuildDynamicInsertQuery appende `RETURNING <pk> INTO :p_new_id_out` per IDENTITY pk.
+                                // In ImportFile non ci serve il nuovo id (loop conta soltanto), quindi usiamo OracleCommand
+                                // con OracleParameter Output per soddisfare il bind. Dapper Execute non gestirebbe il bind.
+                                string result;
+                                if (insert_query.IndexOf(":p_new_id_out", StringComparison.OrdinalIgnoreCase) >= 0)
+                                {
+                                    using (var oraCmd = new global::Oracle.ManagedDataAccess.Client.OracleCommand(insert_query, con as global::Oracle.ManagedDataAccess.Client.OracleConnection))
+                                    {
+                                        oraCmd.Transaction = myTrans as global::Oracle.ManagedDataAccess.Client.OracleTransaction;
+                                        var outP = new global::Oracle.ManagedDataAccess.Client.OracleParameter("p_new_id_out", global::Oracle.ManagedDataAccess.Client.OracleDbType.Decimal);
+                                        outP.Direction = System.Data.ParameterDirection.Output;
+                                        oraCmd.Parameters.Add(outP);
+                                        result = oraCmd.ExecuteNonQuery().ToString();
+                                    }
+                                }
+                                else
+                                {
+                                    result = con.Execute(insert_query, null, myTrans).ToString();
+                                }
                                 insertedRecord++;
                                 continue;
                             }

@@ -96,7 +96,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
 
         public static void customizeImgDBInsert(Dictionary<string, object> entity, _Metadati_Colonne_Upload uploader, _Metadati_Tabelle tabel, string safetable_name, ref string field_list, ref string value_list, bool base64Image)
         {
-            field_list += (field_list == "" ? "" : ", ") + RawHelpers.escapeDBObjectName(uploader.MultipleUploadBlobFieldName, "oracle");
+            field_list += (field_list == "" ? "" : ", ") + metaQueryOracleSql.EscapeDBObjectName(uploader.MultipleUploadBlobFieldName);
             if (!string.IsNullOrEmpty(RawHelpers.ParseNull(entity[uploader.mc_nome_colonna])))
             {
                 // Resolve upload-time folder id: prefer __guid (multi-upload temp
@@ -185,7 +185,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
                         {
                             base64Converted = ImageToBase64(tmp_path);
                         }
-                        field_value_list += (field_value_list == "" ? "" : ", ") + uploader.MultipleUploadBlobFieldName + "='" + base64Converted + "'";
+                        field_value_list += (field_value_list == "" ? "" : ", ") + metaQueryOracleSql.EscapeDBObjectName(uploader.MultipleUploadBlobFieldName) + "='" + base64Converted + "'";
                     }
                 }
                 else
@@ -203,14 +203,14 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
                     ////for older version bytea Escape Format
                     ////use decode('...', 'hex')
 
-                    field_value_list += (field_value_list == "" ? "" : ", ") + RawHelpers.escapeDBObjectName(uploader.MultipleUploadBlobFieldName, "oracle") + "=hextoraw('" + hexString + "')";
+                    field_value_list += (field_value_list == "" ? "" : ", ") + metaQueryOracleSql.EscapeDBObjectName(uploader.MultipleUploadBlobFieldName) + "=hextoraw('" + hexString + "')";
 
                     ////append to query
                     ////alternative like openrowset ->  http://www.sql-workbench.net/manual/using.html#blob-support
                 }
             }
             else
-                field_value_list += (field_value_list == "" ? "" : ", ") + uploader.MultipleUploadBlobFieldName + "=" + "null";
+                field_value_list += (field_value_list == "" ? "" : ", ") + metaQueryOracleSql.EscapeDBObjectName(uploader.MultipleUploadBlobFieldName) + "=" + "null";
         }
 
         public static Exception customizeException(string method, Exception ex, user u, string route, string query, Dictionary<string, object> entity = null)
