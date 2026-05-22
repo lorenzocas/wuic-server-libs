@@ -103,16 +103,19 @@ namespace metaModelRaw
             {
                 using var connection = new OracleConnection(dataConnectionString);
                 using var cmd = connection.CreateCommand();
-                // UPPER(...) perche' i metadata Oracle in ALL_TAB_* sono uppercase
-                // se l'identifier non e' stato creato con virgolette.
+                // Match by (case-preserved) AS-STORED prima, fallback su UPPER per identifier non-quoted:
+                // ALL_TAB_*.TABLE_NAME e' uppercase se l'identifier originale non era quoted, ma e'
+                // case-preserved se l'identifier e' stato creato quoted (es. "_e2e_callbacks_demo",
+                // pattern obbligatorio per nomi con leading underscore). Comparare con OR copre entrambi
+                // i casi senza richiedere al chiamante di sapere a priori come e' stata creata la tabella.
                 cmd.CommandText = @"
                     SELECT COLUMN_NAME FROM ALL_TAB_IDENTITY_COLS
-                    WHERE TABLE_NAME = UPPER(:table)
-                      AND (:schema IS NULL OR OWNER = UPPER(:schema))
+                    WHERE (TABLE_NAME = :tbl OR TABLE_NAME = UPPER(:tbl))
+                      AND (:schema IS NULL OR OWNER = :schema OR OWNER = UPPER(:schema))
                     UNION
                     SELECT COLUMN_NAME FROM ALL_TAB_COLS
-                    WHERE TABLE_NAME = UPPER(:table)
-                      AND (:schema IS NULL OR OWNER = UPPER(:schema))
+                    WHERE (TABLE_NAME = :tbl OR TABLE_NAME = UPPER(:tbl))
+                      AND (:schema IS NULL OR OWNER = :schema OR OWNER = UPPER(:schema))
                       AND VIRTUAL_COLUMN = 'YES'";
                 cmd.BindByName = true;
                 var pSchema = cmd.CreateParameter();
@@ -120,7 +123,7 @@ namespace metaModelRaw
                 pSchema.Value = string.IsNullOrWhiteSpace(schemaName) ? (object)DBNull.Value : schemaName;
                 cmd.Parameters.Add(pSchema);
                 var pT = cmd.CreateParameter();
-                pT.ParameterName = "table";
+                pT.ParameterName = "tbl";  // ORA-01745: TABLE e' reserved keyword Oracle, non utilizzabile come bind variable name
                 pT.Value = tableName;
                 cmd.Parameters.Add(pT);
                 connection.Open();

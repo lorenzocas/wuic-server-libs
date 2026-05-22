@@ -417,11 +417,15 @@ namespace metaModelRaw
                         ? $"{QuoteAnsiSqlIdentifierPivot(tableName)} {QuoteAnsiSqlIdentifierPivot(baseAlias)}"
                         : $"{QuoteAnsiSqlIdentifierPivot(schemaName)}.{QuoteAnsiSqlIdentifierPivot(tableName)} {QuoteAnsiSqlIdentifierPivot(baseAlias)}";
 
+                    // Alias `__pivot_key`: Oracle rejects unquoted identifiers che iniziano per
+                    // underscore con ORA-00911 "_: carattere non valido dopo AS". Quoted preserva
+                    // il leading underscore + case lowercase. La ORDER BY deve usare lo stesso
+                    // quoted form per matchare l'alias.
                     var distinctPivotSql = $@"
-SELECT DISTINCT {pivotKeyExpr} AS __pivot_key
+SELECT DISTINCT {pivotKeyExpr} AS ""__pivot_key""
 FROM {fromTable}
 {whereClause}
-ORDER BY __pivot_key";
+ORDER BY ""__pivot_key""";
 
                     List<string> pivotKeys;
                     using (OracleConnection dataConnection = GetOpenConnection(false, connectionName))
@@ -504,7 +508,16 @@ FROM {fromTable}
 
         private static string QuoteAnsiSqlIdentifierPivot(string identifier)
         {
-            return $"\"{(identifier ?? string.Empty).Replace("\"", "\"\"")}\"";
+            // Delega a `EscapeDBObjectName` per coerenza con tutto il satellite Oracle:
+            //   - safe identifier (es. `Warehouse__ColdRoomTemperatures_Archive`) → UPPER unquoted
+            //     (`WAREHOUSE__COLDROOMTEMPERATURES_ARCHIVE`), match physical Oracle case-folded.
+            //   - leading-underscore (es. `__pivot_key`) → quoted preservando case (richiesto
+            //     da Oracle che non accetta unquoted identifier non-letter-start).
+            //   - reserved keyword → quoted UPPER per evitare ORA-00904.
+            // La vecchia impl quotava letteralmente preservando case → ORA-00942 ogni volta che
+            // il metadata `md_nome_tabella` aveva il physical name mixed-case mentre l'unquoted
+            // physical Oracle era UPPER. Mirror del fix `QId` in oracleDataProvider.cs.
+            return EscapeDBObjectName(identifier ?? string.Empty);
         }
 
         private static string ToProviderLiteralPivot(JToken token)
@@ -1155,7 +1168,8 @@ FROM {fromTable}
                 string stored = "loggedUserCount";
                 var dbArgs = new DynamicParameters();
                 dbArgs.Add("sessiontimeout", ConfigHelper.GetSettingAsString("sessionTimeoutMinutes"));
-                Int32 count = connection.QueryColumn<Int32>(stored, dbArgs, commandType: CommandType.StoredProcedure).FirstOrDefault();
+                // Oracle NUMBER -> Decimal in .NET; Dapper non narrow Decimal -> Int32.
+                Int32 count = (int)connection.QueryColumn<decimal>(stored, dbArgs, commandType: CommandType.StoredProcedure).FirstOrDefault();
 
                 return count;
             }
@@ -1995,7 +2009,8 @@ FROM {fromTable}
                 try
                 {
                     query = query.Replace("{{user}}", user_id.ToString());
-                    return connection.QueryColumn<Int32>(query).FirstOrDefault();
+                    // Oracle NUMBER -> Decimal; narrow esplicito a int.
+                    return (int)connection.QueryColumn<decimal>(query).FirstOrDefault();
                 }
                 catch (Exception EX)
                 {
@@ -2038,7 +2053,25 @@ FROM {fromTable}
                     if (!string.IsNullOrEmpty(query))
                     {
                         RawHelpers.setMetadataVersion(metadata.FirstOrDefault()._Metadati_Tabelle);
-                        result = connection.Execute(query).ToString();
+
+                        // FIX ORA-01704: se la SET clause contiene placeholder per BLOB/CLOB
+                        // (emessi da customizeImgDBUpdate), esegui via OracleCommand bindato
+                        // invece di Dapper Execute. Altrimenti hextoraw('<hex>') inline
+                        // sforerebbe il limite 4000 byte di Oracle string literal.
+                        var blobParams = ExtractBlobParamsFromEntity(entity);
+                        if (blobParams.Count > 0)
+                        {
+                            using (var oraCmd = new global::Oracle.ManagedDataAccess.Client.OracleCommand(query, connection))
+                            {
+                                oraCmd.BindByName = true;
+                                foreach (var p in blobParams) oraCmd.Parameters.Add(p);
+                                result = oraCmd.ExecuteNonQuery().ToString();
+                            }
+                        }
+                        else
+                        {
+                            result = connection.Execute(query).ToString();
+                        }
                         if (isMeta)
                             RawHelpers.logError(new Exception("Metadata update"), "Metadata Update", query);
                     }
@@ -2391,11 +2424,20 @@ FROM {fromTable}
                     // dobbiamo eseguirla via OracleCommand + OracleParameter Output per leggere
                     // l'id appena generato. Dapper Execute() restituisce solo il rowcount.
                     // Mirror PG (postgresql/metaQueryPostgreSql.cs:2285 ExecuteScalar su RETURNING).
+                    //
+                    // FIX ORA-01704: se la VALUES clause contiene placeholder per BLOB/CLOB
+                    // (emessi da customizeImgDBInsert), bind ogni payload via OracleParameter.
+                    // Necessario in entrambi i path (IDENTITY + plain).
                     string result;
+                    var blobParamsIns = ExtractBlobParamsFromEntity(entity);
                     if (query.IndexOf(":p_new_id_out", StringComparison.OrdinalIgnoreCase) >= 0)
                     {
                         using (var oraCmd = new global::Oracle.ManagedDataAccess.Client.OracleCommand(query, connection))
                         {
+                            oraCmd.BindByName = true;
+                            // BIND BLOB/CLOB params PRIMA dell'out param: l'ordine non conta
+                            // con BindByName=true ma manteniamo coerenza visiva con la query.
+                            foreach (var p in blobParamsIns) oraCmd.Parameters.Add(p);
                             var outP = new global::Oracle.ManagedDataAccess.Client.OracleParameter("p_new_id_out", global::Oracle.ManagedDataAccess.Client.OracleDbType.Decimal);
                             outP.Direction = System.Data.ParameterDirection.Output;
                             oraCmd.Parameters.Add(outP);
@@ -2413,6 +2455,15 @@ FROM {fromTable}
                                 for (int i = dot + 1; i < result.Length; i++) { if (result[i] != '0') { allZerosAfter = false; break; } }
                                 if (allZerosAfter) result = result.Substring(0, dot);
                             }
+                        }
+                    }
+                    else if (blobParamsIns.Count > 0)
+                    {
+                        using (var oraCmd = new global::Oracle.ManagedDataAccess.Client.OracleCommand(query, connection))
+                        {
+                            oraCmd.BindByName = true;
+                            foreach (var p in blobParamsIns) oraCmd.Parameters.Add(p);
+                            result = oraCmd.ExecuteNonQuery().ToString();
                         }
                     }
                     else
@@ -2712,31 +2763,53 @@ FROM {fromTable}
         public static string EscapeDBObjectName(string obj)
         {
             // SECURITY: see twin in KonvergenceCore/MetaModel/_Metadati_methods.cs:2403
-            // Oracle quirk: quoted identifiers preserve case literally; unquoted fold to UPPER.
-            // Migration renames physical tables/columns to UPPERCASE, so for safe identifiers
-            // (letter start, alphanumeric+underscore body) emit UPPER unquoted -> Oracle's
-            // case-fold matches the physical name. Leading-underscore identifiers MUST be quoted
-            // (Oracle requires letter start unless quoted) and preserve original case.
-            // Reserved keywords (BLOB, DATE, ORDER, etc.) DEVONO essere quotate UPPER per evitare
-            // ORA-00904 "identificativo non valido" quando si usano come column name.
+            //
+            // HEURISTIC-BY-CASE (rule v2, 2026-05-22):
+            //   Oracle quirk: unquoted identifiers case-fold a UPPER, quoted identifiers
+            //   preservano case letterale. Il single source of truth e' `md_nome_tabella`:
+            //   contiene il case fisico effettivo del DB (popolato dallo scaffold lookup di
+            //   `ALL_TABLES.table_name`).
+            //
+            //   Regola di emit:
+            //     - all-UPPER o all-lower (no mixed case) → emit unquoted
+            //       Oracle case-folde a UPPER → matcha physical UPPER (creato da CREATE TABLE
+            //       unquoted, scenario standard del migration tool e dello scaffold WUIC).
+            //     - MIXED case (sia upper sia lower) → quoted preservando case
+            //       Oracle case-sensitive su quoted → matcha physical mixed-case (creato da
+            //       CREATE TABLE "AbCdEEEfff" quoted, scenario custom o import-preserving).
+            //     - Leading underscore (es. "_metadati__colonne") → quoted preservando case
+            //       (Oracle richiede letter-start per unquoted identifier).
+            //     - Reserved keyword (BLOB, DATE, ORDER, ...) → quoted UPPER per evitare
+            //       ORA-00904 "identificativo non valido" quando usato come column name.
+            //
+            // Edge-case noto NON coperto: CREATE quoted ALL-lower (es. `CREATE TABLE "cities"`)
+            //   produce physical `cities` case-preserved. Metadata input `cities` (all-lower)
+            //   verrebbe emesso unquoted → Oracle case-folde a `CITIES` UPPER → ≠ physical.
+            //   Frequenza pratica vicina a 0 (chi crea quoted all-lower senza ragione?). Se mai
+            //   si verifica → upgradare il `md_nome_tabella` al case esatto MISTO (es. `Cities`).
             if (obj == null) return "\"\"";
             if (obj.Length > 0 && obj[0] != '_' && System.Text.RegularExpressions.Regex.IsMatch(obj, "^[A-Za-z][A-Za-z0-9_]*$"))
             {
                 string upper = obj.ToUpperInvariant();
+                bool hasUpper = false, hasLower = false;
+                foreach (char c in obj) { if (char.IsUpper(c)) hasUpper = true; else if (char.IsLower(c)) hasLower = true; }
+                bool isMixedCase = hasUpper && hasLower;
+
                 if (OracleReservedKeywords.Contains(upper))
                 {
-                    // Per identifiers che sono reserved keyword distinguiamo per case dell'input:
-                    // - input MIXED case (es. "Order") → quote+preserve case dell'input
-                    //   (migration tool ha creato la colonna come "Order" mixed-case quoted)
-                    // - input all-lower o all-upper (es. "type", "TYPE", "blob") → quote+UPPER
-                    //   (il bootstrap script Notification.cs/create-sp-oracle.sql creo' la
-                    //   colonna come "TYPE" upper. Anche se input e' lowercase, l'identifier
-                    //   fisico nel DB e' UPPER. Mirror del comportamento "default Oracle".)
-                    bool hasUpper = false, hasLower = false;
-                    foreach (char c in obj) { if (char.IsUpper(c)) hasUpper = true; else if (char.IsLower(c)) hasLower = true; }
-                    bool isMixedCase = hasUpper && hasLower;
+                    // Reserved word: mixed-case → quoted preserve; altrimenti quoted UPPER
+                    // (mirror del bootstrap Notification.cs/create-sp-oracle.sql che crea
+                    // la colonna come "TYPE" UPPER quoted anche da input lowercase).
                     return isMixedCase ? ("\"" + obj + "\"") : ("\"" + upper + "\"");
                 }
+                if (isMixedCase)
+                {
+                    // Mixed-case safe identifier → quoted preserve (physical creato con
+                    // CREATE TABLE "AbCdEEEfff" → case-preserved nel catalog Oracle).
+                    return "\"" + obj + "\"";
+                }
+                // All-upper o all-lower safe identifier → unquoted (Oracle case-folde a UPPER,
+                // matcha physical UPPER creato da CREATE TABLE unquoted).
                 return upper;
             }
             return string.Concat("\"", obj.Replace("\"", "\"\""), "\"");
@@ -2887,7 +2960,16 @@ FROM {fromTable}
             return safetable_name;
         }
 
-        public static string BuildDynamicSelectQuery(List<_Metadati_Colonne> lst, List<SortInfo> SortInfo, List<GroupInfo> GroupInfo, PageInfo PageInfo, FilterInfos filterInfo, string logicOperator, bool hasServerOperation, OracleConnection connection, out long totalRecords, List<AggregationInfo> aggregates, out List<AggregationResult> aggregateValues, string userId, string formulaLookup = "", int mcId = 0, string distinct = "")
+        // FIX 2026-05-22: aggiunti 4 optional params (skipOrder, extraFields,
+        // parentRoute, currentRecord) per matchare la signature attesa dal gateway
+        // KonvergenceCore/MetaModel/OracleProviderGateway.cs#BuildDynamicSelectQuery
+        // (riga ~287). Senza, FindCompatibleMethod scartava la signature satellite
+        // (15 params) perche' il gateway passa 19 args → MissingMethodException su
+        // ReportDesigner / nested route flows.
+        // I 4 params sono accettati ma attualmente unused nel body (mirror MySQL/PG
+        // che hanno la stessa firma 15-param). Quando servira' (es. nested currentRecord
+        // per mc_custom_join), il body verra' esteso.
+        public static string BuildDynamicSelectQuery(List<_Metadati_Colonne> lst, List<SortInfo> SortInfo, List<GroupInfo> GroupInfo, PageInfo PageInfo, FilterInfos filterInfo, string logicOperator, bool hasServerOperation, OracleConnection connection, out long totalRecords, List<AggregationInfo> aggregates, out List<AggregationResult> aggregateValues, string userId, string formulaLookup = "", int mcId = 0, string distinct = "", bool skipOrder = false, string extraFields = "", string parentRoute = "", SerializableDictionary<string, object> currentRecord = null)
         {
             if (PageInfo == null) { PageInfo = new PageInfo() { pageSize = 0, currentPage = 1 }; }
             if (filterInfo == null) { filterInfo = new FilterInfos(); filterInfo.filters = new List<filterElement>(); }
@@ -3182,7 +3264,15 @@ FROM {fromTable}
         private static string FinalizeServerSideGrouping(_Metadati_Tabelle tab, List<_Metadati_Colonne> lst, metaRawModel mmd, List<GroupInfo> GroupInfo, string safetableName, string join, string where, OracleConnection connection, int skiprecords, PageInfo PageInfo)
         {
             string fieldList = "";
-            string fieldListForCount = "";
+            // Oracle: niente CHECKSUM nativo (MSSQL-only); niente COUNT(DISTINCT col1, col2)
+            // (MySQL-only). Pattern Oracle-safe per "count delle combinazioni distinct":
+            //   COUNT(DISTINCT NVL(TO_CHAR(c1),'§') || '~' || NVL(TO_CHAR(c2),'§') || ...)
+            // - NVL(TO_CHAR(c),'§') protegge dal collasso NULL → '' (Oracle tratta NULL
+            //   come stringa vuota in ||, quindi senza NVL `NULL || '|' || 'a'` ed `'' ||
+            //   '|' || 'a'` collidono e contiamo meno righe distinct di quante ne abbiamo).
+            // - separatore '~' (carattere non-name, raramente in dati testuali) + sentinella
+            //   '§' (idem) riducono ulteriormente le collisioni accidentali.
+            string oracleCountDistinctExpr = "";
             string distList = "";
             string orderListX = "";
             string orderListT = "";
@@ -3191,7 +3281,8 @@ FROM {fromTable}
             {
                 string currentFld = "" + EscapeDBObjectName(tab.md_nome_tabella) + "." + EscapeDBObjectName(gi.field);
                 fieldList += (string.IsNullOrEmpty(fieldList) ? "" : ", ") + currentFld;
-                fieldListForCount += (string.IsNullOrEmpty(fieldListForCount) ? "" : ", ") + currentFld;
+                string thisTerm = "NVL(TO_CHAR(" + currentFld + "),'§')";
+                oracleCountDistinctExpr += (string.IsNullOrEmpty(oracleCountDistinctExpr) ? "" : " || '~' || ") + thisTerm;
 
                 _Metadati_Colonne distCol = lst.FirstOrDefault(x => x.mc_nome_colonna == gi.field);
                 string distColName = RawHelpers.getStoreColumnName(distCol);
@@ -3231,11 +3322,17 @@ FROM {fromTable}
                 }
             });
 
-            string countGroupQry = string.Format("SELECT COUNT(DISTINCT CHECKSUM ({0})) FROM {1} {2} {3} {4}", fieldListForCount, safetableName, join, where, "");
+            // Oracle: COUNT(DISTINCT expr) accetta una sola expression. Niente CHECKSUM,
+            // niente multi-col DISTINCT. Usiamo l'expr concat-con-NVL costruita sopra.
+            // Se nessun group field (edge case), fallback a COUNT(*).
+            string countGroupQry = string.IsNullOrEmpty(oracleCountDistinctExpr)
+                ? string.Format("SELECT COUNT(*) FROM {0} {1} {2}", safetableName, join, where)
+                : string.Format("SELECT COUNT(DISTINCT {0}) FROM {1} {2} {3}", oracleCountDistinctExpr, safetableName, join, where);
 
             try
             {
-                GroupInfo[0].groupCount = connection.QueryColumn<Int32>(countGroupQry).FirstOrDefault();
+                // Oracle COUNT(DISTINCT) -> NUMBER -> Decimal. Narrow esplicito a int.
+                GroupInfo[0].groupCount = (int)connection.QueryColumn<decimal>(countGroupQry).FirstOrDefault();
             }
             catch (Exception ex)
             {
@@ -3539,7 +3636,27 @@ FROM {fromTable}
             }
             else
             {
-                fixOrder = string.Format(" ORDER BY {0}.{1}", safetableName, EscapeDBObjectName(RawHelpers.getStoreColumnName(lst.First(x => !x.mc_is_computed.HasValue || !x.mc_is_computed.Value))));
+                // Default ORDER BY fallback: prima colonna non-computed e non-sortable-incompatible.
+                // Oracle ORA-22848: i tipi BLOB/CLOB/NCLOB/SDO_GEOMETRY/XMLTYPE/LONG non possono essere
+                // usati come chiave di confronto (ORDER BY/GROUP BY/DISTINCT). Skippiamo questi tipi
+                // — Oracle-specific quirk, MSSQL/MySQL/PG accettano varbinary/text sort (con caveat
+                // performance), Oracle rifiuta hard. Tipi sortable-incompatible noti su Oracle:
+                //   - BLOB / CLOB / NCLOB / LONG / LONG RAW
+                //   - SDO_GEOMETRY (Oracle Spatial)
+                //   - XMLTYPE
+                //   - ANYDATA / OPAQUE / cursor types
+                // Il `mc_db_column_type` metadata WUIC contiene il tipo SQL come stringa.
+                bool IsSortableType(_Metadati_Colonne c)
+                {
+                    string t = (c.mc_db_column_type ?? string.Empty).Trim().ToLowerInvariant();
+                    return t != "blob" && t != "clob" && t != "nclob" && t != "long" && t != "long raw"
+                        && t != "geometry" && t != "sdo_geometry" && t != "xmltype" && t != "xml"
+                        && t != "image" && t != "varbinary"  // MSSQL-flavor che potrebbe leakare da migrate
+                        && (c.mc_ui_column_type != "point" && c.mc_ui_column_type != "polygon" && c.mc_ui_column_type != "geometry");
+                }
+                _Metadati_Colonne fallbackSort = lst.FirstOrDefault(x => (!x.mc_is_computed.HasValue || !x.mc_is_computed.Value) && IsSortableType(x))
+                                              ?? lst.First(x => !x.mc_is_computed.HasValue || !x.mc_is_computed.Value);
+                fixOrder = string.Format(" ORDER BY {0}.{1}", safetableName, EscapeDBObjectName(RawHelpers.getStoreColumnName(fallbackSort)));
             }
 
             return fixOrder;
@@ -3676,13 +3793,25 @@ FROM {fromTable}
 
             string comboTxtValue;
 
-            var isAlias = !relatedTable._Metadati_Colonnes.Any(xk => xk.mc_real_column_name == col.mc_ui_lookup_dataValueField);
-            if (isAlias && relatedTable.md_nome_tabella != "tabella_reticolare")
+            // Defensive: alcune route lookup possono avere _Metadati_Colonnes null
+            // (caricamento lazy fallito, metadata orfana, ecc.). NullReferenceException
+            // qui rompe l'INTERA query getFlatRecordData del CALLER, non solo il lookup.
+            // Idem dataValueField null → ArgumentNullException su `.Any(xk => xk.mc_real... == null)`.
+            var relatedCols = relatedTable._Metadati_Colonnes;
+            string lookupDataValueField = col.mc_ui_lookup_dataValueField;
+            if (relatedCols != null && !string.IsNullOrEmpty(lookupDataValueField))
             {
-                string realName = relatedTable._Metadati_Colonnes.FirstOrDefault(xk => xk.mc_nome_colonna.ToLower() == col.mc_ui_lookup_dataValueField.ToLower()).mc_real_column_name;
-
-                if (!string.IsNullOrEmpty(realName))
-                    col.mc_ui_lookup_dataValueField = relatedTable._Metadati_Colonnes.FirstOrDefault(xk => xk.mc_nome_colonna.ToLower() == col.mc_ui_lookup_dataValueField.ToLower()).mc_real_column_name;
+                var isAlias = !relatedCols.Any(xk => xk.mc_real_column_name == lookupDataValueField);
+                if (isAlias && relatedTable.md_nome_tabella != "tabella_reticolare")
+                {
+                    string lookupDataValueFieldLower = lookupDataValueField.ToLower();
+                    _Metadati_Colonne match = relatedCols.FirstOrDefault(xk =>
+                        !string.IsNullOrEmpty(xk.mc_nome_colonna) &&
+                        xk.mc_nome_colonna.ToLower() == lookupDataValueFieldLower);
+                    string realName = match?.mc_real_column_name;
+                    if (!string.IsNullOrEmpty(realName))
+                        col.mc_ui_lookup_dataValueField = realName;
+                }
             }
 
             aliasPair ap = joins.Keys.FirstOrDefault(x => x.table_name == col.mc_ui_lookup_entity_name && x.fk_name != col.mc_ui_lookup_dataValueField);
@@ -3716,8 +3845,17 @@ FROM {fromTable}
                                     {
                                         if (joins.ContainsKey(apY))
                                         {
-                                            // Oracle: escape col/fk identifiers for reserved words + case-mixed names. Mirror task #61 PG.
-                                            string joinPart = " AND " + apX.alias_name + "." + EscapeDBObjectName(x.mc_nome_colonna) + "=" + apY.alias_name + "." + EscapeDBObjectName(apY.fk_name);
+                                            // Oracle: usa il PHYSICAL real_column_name (Oracle case-fold default UPPER
+                                            // su unquoted; lowercase quoted è case-preserved). `x.mc_nome_colonna` è
+                                            // il friendly C# CamelCase (es. "LastEditedBy") — con EscapeDBObjectName
+                                            // heuristic-by-case verrebbe quotato preservando mixed-case → ORA-00904
+                                            // vs physical UPPER `LASTEDITEDBY`. `getStoreColumnName(x)` ritorna
+                                            // `mc_real_column_name` (post-data-fix è UPPER).
+                                            // `apY.fk_name` viene da `mc_ui_lookup_dataValueField` che post-data-fix
+                                            // è gia' UPPER (132 row aggiornati 2026-05-22) → EscapeDBObjectName
+                                            // all-UPPER → unquoted → matcha physical. No serve resolve target table.
+                                            string xColPhysical = RawHelpers.getStoreColumnName(x);
+                                            string joinPart = " AND " + apX.alias_name + "." + EscapeDBObjectName(xColPhysical) + "=" + apY.alias_name + "." + EscapeDBObjectName(apY.fk_name);
                                             if (currentAP.alias_name == apX.alias_name)
                                             {
                                                 //TODO CREATE A NEW DERIVED ALIAS AND PLUG A NEW JOIN CLAUSE IN JOINS-ARRAY
@@ -4181,7 +4319,13 @@ FROM {fromTable}
 
                     f.value = d.ToString("yyyyMMdd");
 
-                    where += ((where == "") ? " where " : " " + logicOperator + " ") + "( (" + "DateAdd(day, datediff(day,0, " + currentFld + "), 0)" + ")" + realOperator + string.Format(" {0}{1}{2} {3} )", leftExtraOperator, f.value, rightExtraOperator, async_extra_condition);
+                    // FIX 2026-05-22: Oracle NON ha `DateAdd(day, datediff(day,0, X), 0)`
+                    // (sintassi MSSQL). Oracle equivalente per troncare a giorno: TRUNC(X).
+                    // Inoltre il right-side '20260607' deve essere convertito esplicitamente
+                    // con TO_DATE(...,'YYYYMMDD') perche' Oracle NLS_DATE_FORMAT default e'
+                    // 'DD-MON-RR' → confronto stringa-data fallirebbe (ORA-00904 per DateAdd
+                    // perche' non esiste, e anche se esistesse ORA-01861 per il confronto).
+                    where += ((where == "") ? " where " : " " + logicOperator + " ") + "( (" + "TRUNC(" + currentFld + "))" + realOperator + string.Format(" TO_DATE({0}{1}{2},'YYYYMMDD') {3} )", leftExtraOperator, f.value, rightExtraOperator, async_extra_condition);
 
                     if (!isNested)
                         filterInfo.filters.Remove(f);
@@ -4441,7 +4585,8 @@ FROM {fromTable}
 
                     f.value = d.ToString("yyyyMMdd");
 
-                    having += ((having == "") ? " having " : " " + logicOperator + " ") + string.Format("( {0}(", f.havingAggregation) + "DateAdd(day, datediff(day,0, " + currentFld + "), 0)" + ")" + realOperator + string.Format(" {0}{1}{2} {3} )", leftExtraOperator, f.value, rightExtraOperator, async_extra_condition);
+                    // FIX 2026-05-22: stesso fix di sopra, ma per HAVING clause (aggregations).
+                    having += ((having == "") ? " having " : " " + logicOperator + " ") + string.Format("( {0}(", f.havingAggregation) + "TRUNC(" + currentFld + "))" + realOperator + string.Format(" TO_DATE({0}{1}{2},'YYYYMMDD') {3} )", leftExtraOperator, f.value, rightExtraOperator, async_extra_condition);
                     filterInfo.filters.Remove(f);
 
                     return;
@@ -4904,15 +5049,19 @@ FROM {fromTable}
                 {
                     if (valore.ToString().IndexOf("@") != 0)
                     {
-                        //FIX UTC TIME ISSUE 
+                        //FIX UTC TIME ISSUE
                         string parsed = valore.ToString().Replace(@"""", "");
                         DateTime d = DateTime.Parse(parsed);
-                        valore = d.ToString("yyyy-MM-dd HH:mm:ss");
+                        // FIX 2026-05-22: vedi BuildDynamicInsertQuery (~6054) per dettagli.
+                        // Oracle NLS_DATE_FORMAT default 'DD-MON-RR' → confronto/INSERT
+                        // di '2026-05-22 00:00:00' fallisce con ORA-01843. Sentinel @ in
+                        // prefix per il quote-skip logic alla riga ~5234.
+                        valore = "@TO_TIMESTAMP('" + d.ToString("yyyy-MM-dd HH:mm:ss") + "','YYYY-MM-DD HH24:MI:SS')";
                     }
                 }
                 else if (fld.mc_ui_column_type == "date" && valore != null && valore.ToString() != "")
                 {
-                    //FIX UTC TIME ISSUE 
+                    //FIX UTC TIME ISSUE
                     string parsed = valore.ToString().Replace(@"""", "");
 
                     if (tabel.md_is_reticular || parsed.IndexOf("@") == 0)
@@ -4922,7 +5071,8 @@ FROM {fromTable}
                     else
                     {
                         DateTime d = DateTime.Parse(parsed);
-                        valore = d.ToString("yyyyMMdd");
+                        // FIX 2026-05-22: vedi datetime sopra.
+                        valore = "@TO_DATE('" + d.ToString("yyyyMMdd") + "','YYYYMMDD')";
                     }
 
                 }
@@ -5117,7 +5267,13 @@ FROM {fromTable}
                         }
                     }
 
-                    field_value_list += (field_value_list == "" ? "" : ", ") + current_fld + "=" + string.Format("{0}{1}{0}", ((fld.mc_db_column_type == "int" || fld.mc_db_column_type == "point" || fld.mc_db_column_type == "geometry" || valore.ToString() == "") ? "" : "'"), ((valore.ToString() == "") ? (string.IsNullOrEmpty(fld.convert_null_to_string) ? "null" : "'" + valore.ToString() + "'") : valore.ToString()));
+                    // FIX 2026-05-22: sentinel "@" prefix marca SQL expressions gia'
+                    // formattate (es. "@TO_DATE(...)" da date normalizer ~5039). Skip
+                    // quote + remove @ prefix.
+                    bool _isSqlExprUpd = (valore != null && valore.ToString().Length > 0 && valore.ToString()[0] == '@');
+                    string _updFinalQuote = _isSqlExprUpd ? "" : ((fld.mc_db_column_type == "int" || fld.mc_db_column_type == "point" || fld.mc_db_column_type == "geometry" || valore.ToString() == "") ? "" : "'");
+                    string _updFinalVal = _isSqlExprUpd ? valore.ToString().Substring(1) : ((valore.ToString() == "") ? (string.IsNullOrEmpty(fld.convert_null_to_string) ? "null" : "'" + valore.ToString() + "'") : valore.ToString());
+                    field_value_list += (field_value_list == "" ? "" : ", ") + current_fld + "=" + string.Format("{0}{1}{0}", _updFinalQuote, _updFinalVal);
 
                     if (fld.mc_ui_column_type == "upload")
                     {
@@ -5462,6 +5618,77 @@ FROM {fromTable}
             }
 
             return result;
+        }
+
+        // ----------------------------------------------------------------------
+        // FIX ORA-01704: BLOB / CLOB bind extraction.
+        //
+        // customizeImgDBInsert / customizeImgDBUpdate (Utility_oracle.cs) emettono
+        // placeholder `:blob_<op>_<col>` nella SQL invece di `hextoraw('<hex>')`
+        // inline (che eccede il limite 4000 byte di Oracle string literal). Il
+        // payload binario viaggia tramite chiavi marker nell'entity dict:
+        //   entity["__oracle_blob_param::<placeholder>::blob"] = byte[]
+        //   entity["__oracle_blob_param::<placeholder>::clob"] = string (base64)
+        //
+        // Prima di eseguire la query (UpdateflatData/InsertflatData/import), il
+        // chiamante invoca ExtractBlobParamsFromEntity per:
+        //   1. raccogliere tutti gli OracleParameter da bindare
+        //   2. ripulire le chiavi marker dall'entity (evita pollution su step
+        //      successivi tipo RecordTranslations / m2m sub-entity).
+        //
+        // Mirror MySQL/PostgreSQL satellite: entrambi usano gia' parametri
+        // (?p_<col> / $1) per BLOB; Oracle era l'unico che emetteva hextoraw.
+        // ----------------------------------------------------------------------
+        public static List<global::Oracle.ManagedDataAccess.Client.OracleParameter> ExtractBlobParamsFromEntity(IDictionary<string, object> entity)
+        {
+            var parameters = new List<global::Oracle.ManagedDataAccess.Client.OracleParameter>();
+            if (entity == null) return parameters;
+
+            string prefix = WEB_UI_CRAFTER.ProjectData.ServiziOracle.Utility.OracleBlobParamMarkerPrefix;
+            var keysToRemove = new List<string>();
+            foreach (var kv in entity)
+            {
+                if (kv.Key == null) continue;
+                if (!kv.Key.StartsWith(prefix, StringComparison.Ordinal)) continue;
+                keysToRemove.Add(kv.Key);
+
+                // chiave: __oracle_blob_param::<placeholder>::<kind>
+                string suffix = kv.Key.Substring(prefix.Length);
+                int sep = suffix.LastIndexOf("::", StringComparison.Ordinal);
+                string placeholder;
+                string kind;
+                if (sep > 0)
+                {
+                    placeholder = suffix.Substring(0, sep);
+                    kind = suffix.Substring(sep + 2).ToLowerInvariant();
+                }
+                else
+                {
+                    placeholder = suffix;
+                    kind = "blob";
+                }
+
+                global::Oracle.ManagedDataAccess.Client.OracleParameter p;
+                if (kind == "clob")
+                {
+                    string s = kv.Value as string ?? "";
+                    p = new global::Oracle.ManagedDataAccess.Client.OracleParameter(
+                        placeholder,
+                        global::Oracle.ManagedDataAccess.Client.OracleDbType.Clob);
+                    p.Value = s;
+                }
+                else
+                {
+                    byte[] bytes = kv.Value as byte[] ?? new byte[0];
+                    p = new global::Oracle.ManagedDataAccess.Client.OracleParameter(
+                        placeholder,
+                        global::Oracle.ManagedDataAccess.Client.OracleDbType.Blob);
+                    p.Value = bytes;
+                }
+                parameters.Add(p);
+            }
+            foreach (var k in keysToRemove) entity.Remove(k);
+            return parameters;
         }
 
         private static HashSet<string> GetOptimisticKeys(
@@ -5848,20 +6075,27 @@ FROM {fromTable}
                     {
                         if (valore.ToString().IndexOf("@") != 0)
                         {
-                            //FIX UTC TIME ISSUE 
+                            //FIX UTC TIME ISSUE
                             string parsed = valore.ToString().Replace(@"""", "");
                             DateTime d = DateTime.Parse(parsed);
-                            valore = d.ToString("yyyy-MM-dd HH:mm:ss");
+                            // FIX 2026-05-22: Oracle NLS_DATE_FORMAT default e' 'DD-MON-RR'
+                            // → INSERT '2026-05-22 00:00:00' fallisce con ORA-01843.
+                            // Emettiamo TO_TIMESTAMP(...) come SQL expression e marchiamo
+                            // con prefisso "@TO_" cosi' il quote logic a riga ~6213 lo
+                            // riconosce e NON quota di nuovo (matcha pattern indexOf("@")==0).
+                            valore = "@TO_TIMESTAMP('" + d.ToString("yyyy-MM-dd HH:mm:ss") + "','YYYY-MM-DD HH24:MI:SS')";
                         }
                     }
                     else if (fld.mc_ui_column_type == "date" && valore != null && valore.ToString() != "")
                     {
                         if (valore.ToString().IndexOf("@") != 0)
                         {
-                            //FIX UTC TIME ISSUE 
+                            //FIX UTC TIME ISSUE
                             string parsed = valore.ToString().Replace(@"""", "");
                             DateTime d = DateTime.Parse(parsed);
-                            valore = d.ToString("yyyyMMdd");
+                            // FIX 2026-05-22: vedi commento datetime sopra. TO_DATE per
+                            // date pure (senza time component).
+                            valore = "@TO_DATE('" + d.ToString("yyyyMMdd") + "','YYYYMMDD')";
                         }
                     }
                     else if (fld.mc_ui_column_type == "number" || fld.mc_ui_column_type == "number_slider")
@@ -6004,7 +6238,17 @@ FROM {fromTable}
                     }
 
                     string fix_quote = "";
-                    if ((fld.mc_db_column_type == "int" || fld.mc_db_column_type == "point" || fld.mc_db_column_type == "geometry" || (fld.mc_is_primary_key && !string.IsNullOrEmpty(tabel.md_primary_key_type)) || valore == null))
+                    // FIX 2026-05-22: sentinel "@" prefix indica una SQL expression gia'
+                    // formattata (es. "@TO_DATE(...)" emesso dal date/datetime normalizer
+                    // sopra, o "@SYSDATE", o "@<expr>" inviato dal client). Skippare il
+                    // wrap nei quote e rimuovere il prefisso @ prima dell'output.
+                    bool isSqlExpr = (valore != null && valore.ToString().Length > 0 && valore.ToString()[0] == '@');
+                    if (isSqlExpr)
+                    {
+                        fix_quote = "";
+                        valore = valore.ToString().Substring(1);
+                    }
+                    else if ((fld.mc_db_column_type == "int" || fld.mc_db_column_type == "point" || fld.mc_db_column_type == "geometry" || (fld.mc_is_primary_key && !string.IsNullOrEmpty(tabel.md_primary_key_type)) || valore == null))
                     {
                         fix_quote = "";
                     }
@@ -6159,11 +6403,15 @@ FROM {fromTable}
                 query = BuildDynamicInsertQuery(entity, metadata, user_id, out generated_pkey);
 
                 // Oracle: stesso branch RETURNING <pk> INTO :p_new_id_out di InsertflatData.
+                // FIX ORA-01704: bind BLOB/CLOB se presenti (clone con upload col).
                 string scope_identity;
+                var cloneBlobParams = ExtractBlobParamsFromEntity(entity);
                 if (query.IndexOf(":p_new_id_out", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     using (var oraCmd = new global::Oracle.ManagedDataAccess.Client.OracleCommand(query, connection))
                     {
+                        oraCmd.BindByName = true;
+                        foreach (var p in cloneBlobParams) oraCmd.Parameters.Add(p);
                         var outP = new global::Oracle.ManagedDataAccess.Client.OracleParameter("p_new_id_out", global::Oracle.ManagedDataAccess.Client.OracleDbType.Decimal);
                         outP.Direction = System.Data.ParameterDirection.Output;
                         oraCmd.Parameters.Add(outP);
@@ -6180,6 +6428,15 @@ FROM {fromTable}
                             for (int i = dot + 1; i < scope_identity.Length; i++) { if (scope_identity[i] != '0') { allZerosAfter = false; break; } }
                             if (allZerosAfter) scope_identity = scope_identity.Substring(0, dot);
                         }
+                    }
+                }
+                else if (cloneBlobParams.Count > 0)
+                {
+                    using (var oraCmd = new global::Oracle.ManagedDataAccess.Client.OracleCommand(query, connection))
+                    {
+                        oraCmd.BindByName = true;
+                        foreach (var p in cloneBlobParams) oraCmd.Parameters.Add(p);
+                        scope_identity = oraCmd.ExecuteNonQuery().ToString();
                     }
                 }
                 else
@@ -6341,7 +6598,9 @@ FROM {fromTable}
         {
             using (OracleConnection con = GetOpenConnection(true))
             {
-                return (int)con.QueryColumn<long>("select count(*) from _metadati__tabelle where coalesce(issystemroute,0)=0").FirstOrDefault();
+                // Oracle COUNT(*) -> NUMBER -> Decimal in .NET. Dapper non narrow Decimal -> Int64
+                // -> InvalidCastException. Usare <decimal> e narrow esplicito a int.
+                return (int)con.QueryColumn<decimal>("select count(*) from _metadati__tabelle where coalesce(issystemroute,0)=0").FirstOrDefault();
             }
         }
 
@@ -6392,15 +6651,31 @@ FROM {fromTable}
             {
                 var dbArgs = new DynamicParameters();
                 dbArgs.Add("md_id", md_id);
-                // Oracle: nomi tabella creati lowercase-quoted in migrazione. Unquoted CamelCase
-                // case-fold a UPPER → ORA-00942 perchè la table reale è `"_metadati_condition_group"`.
-                List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)con.Query("SELECT * FROM \"_metadati_condition_group\" WHERE md_id=:md_id", dbArgs);
+                // Mirror MSSQL/MySQL/PG (commit 99dec88): flat-projection con LEFT JOIN su
+                // condition_item per popolare i campi CI_* sulla classe _Metadati_Condition_Group
+                // (che ha sia CG_* sia CI_* come proprieta'). Una row per ogni item, con i CG_*
+                // duplicati. Il client (metadata-editor) raggruppa per CG_Id e estrae gli items.
+                //
+                // Oracle: tabelle con leading underscore vanno quoted lowercase. Colonne unquoted
+                // upper-case-folded (CG_Id mixed → CG_ID upper) — convertDictionariesToList e'
+                // case-insensitive sui match dict→property quindi i CamelCase delle property C#
+                // matchano comunque.
+                //
+                // Pre-fix la query era `SELECT * FROM "_metadati_condition_group" WHERE md_id=:md_id`
+                // senza JOIN → il client riceveva il group ma SENZA gli items associati → "Nessun
+                // record trovato" nel tab "Metadati correlati" anche con righe presenti nel DB.
+                string select = "SELECT CG_Id, CG_Name, \"_metadati_condition_group\".md_id, CI_Id, FK_CG_Id, CI_Evaluation_Trigger, CI_Comparison_Left_Field, CI_Comparison_Operator, CI_Comparison_Right_Field, CI_Formula, CI_Enabled FROM \"_metadati_condition_group\" LEFT JOIN \"_metadati_condition_item\" ON \"_metadati_condition_group\".CG_Id = \"_metadati_condition_item\".FK_CG_Id WHERE md_id=:md_id";
+                List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)con.Query(select, dbArgs);
                 List<WuicCore.MetaModel._Metadati_Condition_Group> ret = metaRawModel.convertDictionariesToList<WuicCore.MetaModel._Metadati_Condition_Group>(rows);
 
-                string ids = string.Join(",", ret.Select(x => x.CG_Id));
+                string ids = string.Join(",", ret.Select(x => x.CG_Id).Distinct());
                 if (!string.IsNullOrWhiteSpace(ids))
                 {
-                    List<Dapper.SqlMapper.FastExpando> condRows = (List<Dapper.SqlMapper.FastExpando>)con.Query("SELECT * FROM \"_metadati_condition_action_group\" WHERE fk_cg_id IN (" + ids + ")");
+                    // Mirror PG: flat-projection con INNER JOIN action_group + LEFT JOIN action_item.
+                    // Una row per ogni action item, con i CG_*/CAG_* duplicati. La classe
+                    // _Metadati_Condition_Action_Group ha sia CAG_* sia CAI_* come proprieta'.
+                    string selectCond = "SELECT CG_Id, CG_Name, \"_metadati_condition_group\".md_id, CAG_Id, CAG_Name, FK_CG_Id, CAG_Execute_If_False, CAI_Id, FK_CAG_Id, CAI_Target_Field, CAI_Target_Action, CAI_Target_Action_Param_Value, CAI_Formula, CAI_Enabled FROM \"_metadati_condition_group\" INNER JOIN \"_metadati_condition_action_group\" ON \"_metadati_condition_group\".CG_Id = \"_metadati_condition_action_group\".FK_CG_Id LEFT JOIN \"_metadati_condition_action_item\" ON \"_metadati_condition_action_group\".CAG_Id = \"_metadati_condition_action_item\".FK_CAG_Id WHERE FK_CG_Id IN (" + ids + ")";
+                    List<Dapper.SqlMapper.FastExpando> condRows = (List<Dapper.SqlMapper.FastExpando>)con.Query(selectCond);
                     List<WuicCore.MetaModel._Metadati_Condition_Action_Group> cond = metaRawModel.convertDictionariesToList<WuicCore.MetaModel._Metadati_Condition_Action_Group>(condRows);
                     ret.ForEach(c => c.ConditionActions = cond.Where(x => x.FK_CG_Id == c.CG_Id).ToList());
                 }
@@ -6443,11 +6718,26 @@ FROM {fromTable}
 
         public static List<bind_list> getDatabasesFromConnection(string connection, string provider)
         {
+            // Oracle e' un caso a parte: una connessione punta sempre a un singolo PDB (es. FREEPDB1)
+            // e all'interno del PDB i container "applicativi" sono gli SCHEMI (= OWNER), non altre db.
+            // Il framework WUIC usa "db" come parametro per `getTablesFromDB(connection, db)` che
+            // su Oracle viene normalizzato a `owner` (vedi OracleScaffolding.NormalizeOwner) e filtra
+            // `all_tables WHERE owner=:owner`. Quindi qui restituiamo l'elenco degli schemi NON di
+            // sistema (oracle_maintained='N') piu' lo schema corrente, cosi' la dropdown popola
+            // valori utili invece del nome del PDB (FREEPDB1) che non esiste come owner.
             using (var con = new OracleConnection(connection))
             {
                 con.Open();
-                var dbs = con.QueryColumn<string>("SELECT DISTINCT SYS_CONTEXT('USERENV', 'DB_NAME') FROM dual");
-                return dbs.Select(x => new bind_list() { valore = x, text = x }).ToList();
+                const string sql = @"
+                    SELECT username FROM all_users WHERE oracle_maintained = 'N'
+                    UNION
+                    SELECT SYS_CONTEXT('USERENV','CURRENT_SCHEMA') FROM dual
+                    ORDER BY 1";
+                var dbs = con.QueryColumn<string>(sql);
+                return dbs
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Select(x => new bind_list() { valore = x, text = x })
+                    .ToList();
             }
         }
 
@@ -6487,28 +6777,95 @@ FROM {fromTable}
                 // SELECT punta alla COLONNA BLOB (`MultipleUploadBlobFieldName`, es. `FileBlob`/
                 // `ImgBlob` di tipo BLOB), non alla colonna filename (`mc_nome_colonna`, es. `ImgDb`
                 // VARCHAR2 con il nome file). Mirror mysql/metaQueryMySql.cs:getUploadedFile:8060.
-                string q = $"SELECT {EscapeDBObjectName(uploader.MultipleUploadBlobFieldName)} FROM {tabel_name} WHERE {EscapeDBObjectName(pkey.mc_nome_colonna)}=:id";
+                //
+                // FIX 2026-05-22: usare `getStoreColumnName(pkey)` per ottenere il nome
+                // fisico case-aligned (es. `UPLOADID` UPPER) invece di `pkey.mc_nome_colonna`
+                // (friendly cross-DBMS, es. `UploadId` mixed-case). Con il vecchio path:
+                // `EscapeDBObjectName("UploadId")` → emette `"UploadId"` quoted preserve
+                // → Oracle case-sensitive lookup → fail con ORA-00904 perche' il physical
+                // e' `UPLOADID` UPPER. Mirror pattern WRITE (BuildDynamicUpdateQuery usa
+                // gia' `getStoreColumnName`).
+                string pkPhysical = RawHelpers.getStoreColumnName(pkey);
+                string q = $"SELECT {EscapeDBObjectName(uploader.MultipleUploadBlobFieldName)} FROM {tabel_name} WHERE {EscapeDBObjectName(pkPhysical)}=:id";
 
-                // ADO.NET ExecuteScalar via OracleCommand: restituisce direttamente lo
-                // scalar raw (NON il FastExpando di Dapper che wrappa la riga e fa fallire
-                // `blob is byte[]`). Identico al pattern PG.
-                using (var cmd = con.CreateCommand())
+                // FIX 2026-05-22: ODP.NET con default `InitialLOBFetchSize=0` ritorna
+                // `OracleBlob` (LOB pointer) per le colonne BLOB invece di `byte[]`.
+                // Il vecchio fallback `Convert.FromBase64String(blob.ToString())` chiamava
+                // `OracleBlob.ToString()` → restituisce il type name, non il contenuto
+                // → FormatException → 500.
+                // Pattern canonico ODP.NET: `cmd.InitialLOBFetchSize = -1` → driver
+                // materializza l'intero LOB inline come byte[] in un single round-trip.
+                // Si usa `OracleCommand` esplicito (non DbCommand generico) perche'
+                // `InitialLOBFetchSize` e' specifica della classe Oracle.
+                using (var oraCmd = new global::Oracle.ManagedDataAccess.Client.OracleCommand(q, con))
                 {
-                    cmd.CommandText = q;
-                    cmd.Parameters.Add(new OracleParameter("id", idValue ?? DBNull.Value));
-                    object blob = cmd.ExecuteScalar();
-                    if (blob == null || blob is DBNull)
+                    oraCmd.BindByName = true;
+                    oraCmd.InitialLOBFetchSize = -1;
+                    oraCmd.Parameters.Add(new global::Oracle.ManagedDataAccess.Client.OracleParameter("id", idValue ?? DBNull.Value));
+
+                    object raw = oraCmd.ExecuteScalar();
+                    if (raw == null || raw is DBNull)
                     {
                         file = null;
                     }
-                    else if (blob is byte[] asBytes)
+                    else if (raw is byte[] asBytes)
                     {
                         file = asBytes;
                     }
+                    else if (raw is global::Oracle.ManagedDataAccess.Types.OracleBlob oraBlob)
+                    {
+                        // Fallback per il caso in cui InitialLOBFetchSize=-1 sia ignorato
+                        // (ODP.NET vecchie versioni / wrap proxy).
+                        try
+                        {
+                            if (oraBlob.IsNull || oraBlob.Length == 0)
+                            {
+                                file = new byte[0];
+                            }
+                            else
+                            {
+                                long len = oraBlob.Length;
+                                if (len > int.MaxValue) len = int.MaxValue;
+                                file = new byte[len];
+                                oraBlob.Seek(0, System.IO.SeekOrigin.Begin);
+                                int read = oraBlob.Read(file, 0, (int)len);
+                                if (read < len)
+                                {
+                                    byte[] trimmed = new byte[read];
+                                    Buffer.BlockCopy(file, 0, trimmed, 0, read);
+                                    file = trimmed;
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            oraBlob.Dispose();
+                        }
+                    }
+                    else if (raw is string asString)
+                    {
+                        // base64Image=true path: la colonna e' CLOB/VARCHAR2 con base64.
+                        try { file = Convert.FromBase64String(asString); }
+                        catch { file = System.Text.Encoding.UTF8.GetBytes(asString); }
+                    }
+                    else if (raw is global::Oracle.ManagedDataAccess.Types.OracleClob oraClob)
+                    {
+                        try
+                        {
+                            string s = oraClob.Value ?? string.Empty;
+                            try { file = Convert.FromBase64String(s); }
+                            catch { file = System.Text.Encoding.UTF8.GetBytes(s); }
+                        }
+                        finally
+                        {
+                            oraClob.Dispose();
+                        }
+                    }
                     else
                     {
-                        // base64Image=true path: il valore in colonna e' una stringa base64.
-                        file = Convert.FromBase64String(blob.ToString());
+                        // tipo inatteso: log per diagnostica
+                        try { RawHelpers.logError(new InvalidCastException($"getUploadedFile: unexpected scalar type {raw.GetType().FullName} for BLOB column"), "getUploadedFile", q); } catch {}
+                        file = null;
                     }
                 }
             }
@@ -6617,7 +6974,23 @@ FROM {fromTable}
                                         fkeyParsed = true;
 
                                         string update_query = BuildDynamicUpdateQuery(record, tabel._Metadati_Colonnes.ToList(), uploadOption.user_id, true);
-                                        string result = con.Execute(update_query, null, myTrans).ToString();
+                                        // FIX ORA-01704: bind BLOB/CLOB se presenti (record con upload col).
+                                        var updBlobParams = ExtractBlobParamsFromEntity(record);
+                                        string result;
+                                        if (updBlobParams.Count > 0)
+                                        {
+                                            using (var oraCmd = new global::Oracle.ManagedDataAccess.Client.OracleCommand(update_query, con as global::Oracle.ManagedDataAccess.Client.OracleConnection))
+                                            {
+                                                oraCmd.Transaction = myTrans as global::Oracle.ManagedDataAccess.Client.OracleTransaction;
+                                                oraCmd.BindByName = true;
+                                                foreach (var p in updBlobParams) oraCmd.Parameters.Add(p);
+                                                result = oraCmd.ExecuteNonQuery().ToString();
+                                            }
+                                        }
+                                        else
+                                        {
+                                            result = con.Execute(update_query, null, myTrans).ToString();
+                                        }
 
                                         updatedRecord++;
                                         continue;
@@ -6637,15 +7010,29 @@ FROM {fromTable}
                                 // Oracle: BuildDynamicInsertQuery appende `RETURNING <pk> INTO :p_new_id_out` per IDENTITY pk.
                                 // In ImportFile non ci serve il nuovo id (loop conta soltanto), quindi usiamo OracleCommand
                                 // con OracleParameter Output per soddisfare il bind. Dapper Execute non gestirebbe il bind.
+                                // FIX ORA-01704: bind BLOB/CLOB se presenti (record con upload col).
                                 string result;
+                                var insBlobParams = ExtractBlobParamsFromEntity(record);
                                 if (insert_query.IndexOf(":p_new_id_out", StringComparison.OrdinalIgnoreCase) >= 0)
                                 {
                                     using (var oraCmd = new global::Oracle.ManagedDataAccess.Client.OracleCommand(insert_query, con as global::Oracle.ManagedDataAccess.Client.OracleConnection))
                                     {
                                         oraCmd.Transaction = myTrans as global::Oracle.ManagedDataAccess.Client.OracleTransaction;
+                                        oraCmd.BindByName = true;
+                                        foreach (var p in insBlobParams) oraCmd.Parameters.Add(p);
                                         var outP = new global::Oracle.ManagedDataAccess.Client.OracleParameter("p_new_id_out", global::Oracle.ManagedDataAccess.Client.OracleDbType.Decimal);
                                         outP.Direction = System.Data.ParameterDirection.Output;
                                         oraCmd.Parameters.Add(outP);
+                                        result = oraCmd.ExecuteNonQuery().ToString();
+                                    }
+                                }
+                                else if (insBlobParams.Count > 0)
+                                {
+                                    using (var oraCmd = new global::Oracle.ManagedDataAccess.Client.OracleCommand(insert_query, con as global::Oracle.ManagedDataAccess.Client.OracleConnection))
+                                    {
+                                        oraCmd.Transaction = myTrans as global::Oracle.ManagedDataAccess.Client.OracleTransaction;
+                                        oraCmd.BindByName = true;
+                                        foreach (var p in insBlobParams) oraCmd.Parameters.Add(p);
                                         result = oraCmd.ExecuteNonQuery().ToString();
                                     }
                                 }

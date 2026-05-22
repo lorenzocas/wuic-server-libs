@@ -98,9 +98,9 @@ namespace metaModelRaw
                         from user_constraints ac
                         join user_cons_columns acc on acc.constraint_name = ac.constraint_name
                         where ac.constraint_type = 'P'
-                          and ac.table_name = :table
+                          and ac.table_name = :tbl
                     ) pkcols on pkcols.column_name = c.column_name
-                    where c.table_name=:table
+                    where c.table_name=:tbl
                     order by c.column_id"
                 : @"select c.column_name, c.data_type, c.nullable, c.data_default, c.data_length, c.data_precision, c.data_scale,
                            c.identity_column,
@@ -112,9 +112,9 @@ namespace metaModelRaw
                         join all_cons_columns acc on acc.constraint_name = ac.constraint_name and acc.owner = ac.owner
                         where ac.constraint_type = 'P'
                           and ac.owner = :owner
-                          and ac.table_name = :table
+                          and ac.table_name = :tbl
                     ) pkcols on pkcols.column_name = c.column_name
-                    where c.owner=:owner and c.table_name=:table
+                    where c.owner=:owner and c.table_name=:tbl
                     order by c.column_id";
             using (DbConnection con = OracleProviderGateway.CreateOpenConnection(connection))
             using (DbCommand cmd = DbProviderUtil.CreateTextCommand(con, sql))
@@ -122,7 +122,13 @@ namespace metaModelRaw
                 // CreateOpenConnection gia' apre la connection — Open() di nuovo causa ORA-50005.
                 if (!string.IsNullOrEmpty(owner))
                     DbProviderUtil.AddWithValue(cmd, "owner", owner);
-                DbProviderUtil.AddWithValue(cmd, "table", tableName.ToUpperInvariant());
+                // NIENTE ToUpperInvariant(): all_tables.table_name conserva il case esatto come e' stato
+                // creato l'identifier — gli identifier creati quoted lowercase (es. "_e2e_callbacks_demo",
+                // obbligatorio per nomi con leading underscore) restano lowercase. Il dropdown 'table' a
+                // monte e' popolato da GetOracleTables che fa SELECT table_name FROM all_tables WHERE owner=...
+                // quindi il valore arriva qui gia' as-stored: usarlo tal quale (Oracle e' case-sensitive
+                // sui valori, non sugli unquoted identifier).
+                DbProviderUtil.AddWithValue(cmd, "tbl", tableName);
                 using (DbDataReader dr = cmd.ExecuteReader())
                 {
                     while (dr.Read())
@@ -251,15 +257,21 @@ namespace metaModelRaw
 
             List<bind_list> tblList = new List<bind_list>();
             string sql = string.IsNullOrEmpty(owner)
-                ? "select column_name, data_type from user_tab_columns where table_name=:table order by column_id"
-                : "select column_name, data_type from all_tab_columns where owner=:owner and table_name=:table order by column_id";
+                ? "select column_name, data_type from user_tab_columns where table_name=:tbl order by column_id"
+                : "select column_name, data_type from all_tab_columns where owner=:owner and table_name=:tbl order by column_id";
             using (DbConnection con = OracleProviderGateway.CreateOpenConnection(connection))
             using (DbCommand cmd = DbProviderUtil.CreateTextCommand(con, sql))
             {
                 // CreateOpenConnection gia' apre la connection — Open() di nuovo causa ORA-50005.
                 if (!string.IsNullOrEmpty(owner))
                     DbProviderUtil.AddWithValue(cmd, "owner", owner);
-                DbProviderUtil.AddWithValue(cmd, "table", tableName.ToUpperInvariant());
+                // NIENTE ToUpperInvariant(): all_tables.table_name conserva il case esatto come e' stato
+                // creato l'identifier — gli identifier creati quoted lowercase (es. "_e2e_callbacks_demo",
+                // obbligatorio per nomi con leading underscore) restano lowercase. Il dropdown 'table' a
+                // monte e' popolato da GetOracleTables che fa SELECT table_name FROM all_tables WHERE owner=...
+                // quindi il valore arriva qui gia' as-stored: usarlo tal quale (Oracle e' case-sensitive
+                // sui valori, non sugli unquoted identifier).
+                DbProviderUtil.AddWithValue(cmd, "tbl", tableName);
 
                 using (DbDataReader reader = cmd.ExecuteReader())
                 {
@@ -288,15 +300,16 @@ namespace metaModelRaw
 
             List<bind_list> tblList = new List<bind_list>();
             string sql = string.IsNullOrEmpty(owner)
-                ? "select column_name, data_type from user_tab_columns where table_name=:table order by column_id"
-                : "select column_name, data_type from all_tab_columns where owner=:owner and table_name=:table order by column_id";
+                ? "select column_name, data_type from user_tab_columns where table_name=:tbl order by column_id"
+                : "select column_name, data_type from all_tab_columns where owner=:owner and table_name=:tbl order by column_id";
             using (DbConnection con = OracleProviderGateway.CreateOpenConnection(connection))
             using (DbCommand cmd = DbProviderUtil.CreateTextCommand(con, sql))
             {
                 // CreateOpenConnection gia' apre la connection — Open() di nuovo causa ORA-50005.
                 if (!string.IsNullOrEmpty(owner))
                     DbProviderUtil.AddWithValue(cmd, "owner", owner);
-                DbProviderUtil.AddWithValue(cmd, "table", viewName.ToUpperInvariant());
+                // As-stored, vedi commento analogo in GetOracleColumns: all_views.view_name e' case-preserved.
+                DbProviderUtil.AddWithValue(cmd, "tbl", viewName);
 
                 using (DbDataReader reader = cmd.ExecuteReader())
                 {
@@ -560,13 +573,20 @@ WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
                 List<columnDefinition> columns = GetOracleColumns(connection, owner, tableName, log);
                 columnDefinition col = columns.FirstOrDefault(x => string.Equals(x.Name, column, StringComparison.OrdinalIgnoreCase));
                 if (col == null)
-                    return new Dictionary<string, string>() { { "log", "Colonna non trovata" } };
+                    return new Dictionary<string, string>() { { "message", "Colonna non trovata" }, { "log", "Colonna non trovata" } };
 
                 bool createMenu = false;
                 mmd.scaffoldOfColumnMySql(connection, connName, mmd, tableName, owner, col, log, ref createMenu, columns.Count);
+                // Shape parity con MSSQL/PG: il frontend `Scaffold Table` callback in metadata
+                // legge `postResults.message` (vedi _mtdt__cstom__actions__tabelle); PG include
+                // sia "message" sia "log", Oracle deve fare uguale altrimenti il dialog mostra
+                // un info-icon vuoto. Niente breaking change: i caller CLI/test che leggono
+                // "log" continuano a funzionare.
+                string logText = log.ToString();
                 return new Dictionary<string, string>()
                 {
-                    { "log", log.ToString() }
+                    { "message", logText },
+                    { "log", logText }
                 };
             }
         }
@@ -596,15 +616,34 @@ WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
             using (metaRawModel mmd = new metaRawModel())
             {
                 if (!GetOracleTables(connection, owner).Any(x => string.Equals(x, tableName, StringComparison.OrdinalIgnoreCase)))
-                    return new Dictionary<string, string>() { { "log", "Tabella non trovata" } };
+                    return new Dictionary<string, string>() { { "message", "Tabella non trovata" }, { "log", "Tabella non trovata" } };
 
                 List<columnDefinition> columns = GetOracleColumns(connection, owner, tableName, log);
                 foreach (columnDefinition col in columns)
                     mmd.scaffoldOfColumnMySql(connection, connName, mmd, tableName, owner, col, log, ref createMenu, columns.Count);
 
+                // Cache invalidation post-scaffold: senza questa chiamata la nuova route
+                // resta invisibile al runtime (cache `storedTableMeta` / `storedMeta`
+                // Application-scoped restano stale). Sintomo: navigare `/<route>/list`
+                // subito dopo scaffold mostra "Route X non trovata nei metadata", e
+                // anche logout/login non bastano — solo un restart del backend la trova.
+                // `InvalidateMetadataCachesAndSetVersion(true)` fa:
+                //   1) DB version bump (sys_info.projectmetadataversion)
+                //   2) clearMetas(true) → svuota tables/columns caches in-memory
+                //   3) clear users/roles/companies/auth restrictions caches
+                // Mirror del comportamento canonico (vedi `MetaService.invalidateMetadataRuntime`).
+                RawHelpers.InvalidateMetadataCachesAndSetVersion(clearAllMetadata: true);
+
+                // Shape parity con MSSQL/PG: il frontend `Scaffold Table` callback in metadata
+                // legge `postResults.message` (vedi _mtdt__cstom__actions__tabelle); PG include
+                // sia "message" sia "log", Oracle deve fare uguale altrimenti il dialog mostra
+                // un info-icon vuoto. Niente breaking change: i caller CLI/test che leggono
+                // "log" continuano a funzionare.
+                string logText = log.ToString();
                 return new Dictionary<string, string>()
                 {
-                    { "log", log.ToString() }
+                    { "message", logText },
+                    { "log", logText }
                 };
             }
         }
@@ -645,10 +684,13 @@ WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
             if (string.IsNullOrEmpty(logg))
                 logg = "Nessuna nuova colonna";
 
-            RawHelpers.setMetadataVersion();
+            // Full cache invalidation post-scaffold (vedi commento in scaffoldTable).
+            RawHelpers.InvalidateMetadataCachesAndSetVersion(clearAllMetadata: true);
 
+            // Shape parity con MSSQL/PG (vedi commento in scaffoldTable).
             return new Dictionary<string, string>()
             {
+                { "message", logg },
                 { "log", logg }
             };
         }
@@ -676,12 +718,23 @@ WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
             {
                 string storedName = GetOracleStored(connection, owner).FirstOrDefault(x => string.Equals(x, stored, StringComparison.OrdinalIgnoreCase));
                 if (string.IsNullOrEmpty(storedName))
-                    return new Dictionary<string, string>() { { "log", "Stored non trovata" } };
+                    return new Dictionary<string, string>() { { "message", "Stored non trovata" }, { "log", "Stored non trovata" } };
 
                 mmd.scaffoldOfStoredMySql(connection, connName, storedName, mmd, log, owner);
+
+                // Full cache invalidation post-scaffold (vedi commento in scaffoldTable).
+                RawHelpers.InvalidateMetadataCachesAndSetVersion(clearAllMetadata: true);
+
+                // Shape parity con MSSQL/PG: il frontend `Scaffold Table` callback in metadata
+                // legge `postResults.message` (vedi _mtdt__cstom__actions__tabelle); PG include
+                // sia "message" sia "log", Oracle deve fare uguale altrimenti il dialog mostra
+                // un info-icon vuoto. Niente breaking change: i caller CLI/test che leggono
+                // "log" continuano a funzionare.
+                string logText = log.ToString();
                 return new Dictionary<string, string>()
                 {
-                    { "log", log.ToString() }
+                    { "message", logText },
+                    { "log", logText }
                 };
             }
         }

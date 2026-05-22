@@ -404,7 +404,21 @@ public class oracleDataProvider : IMetaQuery
     // ===========================================================================
 
     private static string QId(string identifier)
-        => $"\"{(identifier ?? string.Empty).Replace("\"", "\"\"")}\"";
+    {
+        // Delega a `metaQueryOracleSql.EscapeDBObjectName` per coerenza con tutto il resto
+        // del satellite Oracle. Quel metodo gestisce correttamente:
+        //   - safe identifier (es. `Application__Cities`) → emette UPPER unquoted
+        //     (`APPLICATION__CITIES`), che Oracle case-folde e matcha il physical UPPER.
+        //   - identifier con leading underscore (es. `_metadati__colonne`) → quoted preservando
+        //     case (`"_metadati__colonne"`) perche' Oracle richiede letter-start unquoted.
+        //   - reserved keywords (es. ORDER, TYPE) → quoted UPPER per evitare ORA-00904.
+        //
+        // Il vecchio QId quotava tutto literalmente preservando il case dell'input — su Oracle
+        // significava ORA-00942 ogni volta che il metadata aveva il physical name mixed-case
+        // (es. md_nome_tabella='Application__Cities') ma il fisico era `APPLICATION__CITIES`
+        // UPPER. Pattern documentato in `metaQueryOracleSql.EscapeDBObjectName` line 2714.
+        return metaQueryOracleSql.EscapeDBObjectName(identifier ?? string.Empty);
+    }
 
     /// <summary>
     /// Versione Oracle di MetaService.previewViewDefinition.
@@ -570,6 +584,34 @@ FETCH FIRST 1 ROWS ONLY";
                 fromSb.Append(FromOf(firstTable));
                 var joinedAliasSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { firstTable.Alias };
 
+                // Map (alias → friendlyName → realName) per le JOIN columns: la viewDefinition
+                // JSON manda `sourceColumn`/`targetColumn` come C# friendly name (mc_nome_colonna,
+                // es. "StateProvinceID" mixed-case). Senza resolve to physical, EscapeDBObjectName
+                // emette "StateProvinceID" quoted preserve → ORA-00904 (physical UPPER su Oracle).
+                // Costruiamo il map dall'array completo di columns di ogni table (tutti, anche
+                // unselected — le FK column spesso non sono selected ma servono per la JOIN).
+                var realNameByAlias = new Dictionary<string, Dictionary<string, string>>(StringComparer.Ordinal);
+                foreach (var tbl in tables)
+                {
+                    string ta = Convert.ToString(tbl["tableAlias"] ?? "").Trim();
+                    if (string.IsNullOrWhiteSpace(ta)) continue;
+                    var allCols = tbl["columns"] as JArray ?? new JArray();
+                    var colMap = new Dictionary<string, string>(StringComparer.Ordinal);
+                    foreach (var c in allCols)
+                    {
+                        string friendly = Convert.ToString(c["alias"] ?? "").Trim();
+                        string real = Convert.ToString(c["realName"] ?? friendly).Trim();
+                        if (!string.IsNullOrWhiteSpace(friendly)) colMap[friendly] = real;
+                    }
+                    realNameByAlias[ta] = colMap;
+                }
+                string ResolveJoinColReal(string alias, string friendlyName)
+                {
+                    if (realNameByAlias.TryGetValue(alias, out var m) && m.TryGetValue(friendlyName, out var real))
+                        return real;
+                    return friendlyName; // fallback: client manda gia' il physical name
+                }
+
                 if (joins != null)
                 {
                     var parsedJoins = new List<(string SrcAlias, string SrcCol, string TgtAlias, string TgtCol, string JoinType)>();
@@ -595,9 +637,12 @@ FETCH FIRST 1 ROWS ONLY";
                             if (nid == srcNodeId) srcTblAlias = ta;
                             if (nid == tgtNodeId) tgtTblAlias = ta;
                         }
+                        // Resolve friendly → physical (per Oracle case-fold con EscapeDBObjectName).
+                        string srcColReal = ResolveJoinColReal(srcTblAlias, srcCol);
+                        string tgtColReal = ResolveJoinColReal(tgtTblAlias, tgtCol);
                         if (!string.IsNullOrWhiteSpace(srcTblAlias) && !string.IsNullOrWhiteSpace(tgtTblAlias)
-                            && !string.IsNullOrWhiteSpace(srcCol) && !string.IsNullOrWhiteSpace(tgtCol))
-                            parsedJoins.Add((srcTblAlias, srcCol, tgtTblAlias, tgtCol, joinType));
+                            && !string.IsNullOrWhiteSpace(srcColReal) && !string.IsNullOrWhiteSpace(tgtColReal))
+                            parsedJoins.Add((srcTblAlias, srcColReal, tgtTblAlias, tgtColReal, joinType));
                     }
 
                     var processed = new HashSet<int>();
@@ -865,6 +910,29 @@ FETCH FIRST 1 ROWS ONLY";
                 fromSb.Append(FromOf(firstTable));
                 var joinedAliasesCV = new HashSet<string>(StringComparer.Ordinal) { firstTable.Alias };
 
+                // Map alias → friendlyName → realName (vedi commento twin in previewViewDefinition).
+                var realNameByAliasCV = new Dictionary<string, Dictionary<string, string>>(StringComparer.Ordinal);
+                foreach (var tbl in tables)
+                {
+                    string ta2 = Convert.ToString(tbl["tableAlias"] ?? "").Trim();
+                    if (string.IsNullOrWhiteSpace(ta2)) continue;
+                    var allCols = tbl["columns"] as JArray ?? new JArray();
+                    var colMap = new Dictionary<string, string>(StringComparer.Ordinal);
+                    foreach (var c in allCols)
+                    {
+                        string friendly = Convert.ToString(c["alias"] ?? "").Trim();
+                        string real = Convert.ToString(c["realName"] ?? friendly).Trim();
+                        if (!string.IsNullOrWhiteSpace(friendly)) colMap[friendly] = real;
+                    }
+                    realNameByAliasCV[ta2] = colMap;
+                }
+                string ResolveJoinColRealCV(string alias, string friendlyName)
+                {
+                    if (realNameByAliasCV.TryGetValue(alias, out var m) && m.TryGetValue(friendlyName, out var real))
+                        return real;
+                    return friendlyName;
+                }
+
                 if (joins != null)
                 {
                     foreach (var join in joins)
@@ -884,6 +952,9 @@ FETCH FIRST 1 ROWS ONLY";
                             if (nid == srcAlias) srcTblAlias = ta;
                             if (nid == tgtAlias) tgtTblAlias = ta;
                         }
+                        // Resolve friendly → physical realName (per Oracle case-fold).
+                        srcCol = ResolveJoinColRealCV(srcTblAlias, srcCol);
+                        tgtCol = ResolveJoinColRealCV(tgtTblAlias, tgtCol);
                         if (string.IsNullOrWhiteSpace(srcTblAlias) || string.IsNullOrWhiteSpace(tgtTblAlias)
                             || string.IsNullOrWhiteSpace(srcCol) || string.IsNullOrWhiteSpace(tgtCol)) continue;
 
@@ -1173,5 +1244,156 @@ WHERE c.mc_ui_column_type = 'lookupByID'
             }
         }
         return true;
+    }
+
+    /// <summary>
+    /// Oracle-flavor di <c>MetaService.dropScaffoldedView</c>. Dispatch via
+    /// <c>TryDispatchToActiveProvider</c> dal MetaService MSSQL sibling.
+    /// Senza dispatch, il MSSQL impl aprirebbe una SqlConnection con la connection
+    /// string Oracle → "Stringa di connessione non valida" / ORA-irrelated.
+    ///
+    /// Differenze Oracle vs MSSQL impl:
+    ///   • niente <c>INFORMATION_SCHEMA.VIEWS</c>/<c>.TABLES</c> — usiamo <c>USER_VIEWS</c>/<c>USER_TABLES</c>.
+    ///   • niente <c>SELECT TOP 1 ... ORDER BY md_id DESC</c> — usiamo <c>FETCH FIRST 1 ROWS ONLY</c>.
+    ///   • table/view name su Oracle e' UPPER unquoted (case-fold default) — usiamo
+    ///     <c>UPPER(table_name)</c> nelle WHERE per match cross-case-input.
+    ///   • niente scheduler cleanup specifico (best-effort: se la tabella non esiste, no-op
+    ///     dentro try/catch).
+    /// Idempotente: se route non trovata o view non esiste, ritorna ok=true con
+    /// flag <c>dropped_view=false</c>.
+    /// </summary>
+    public string dropScaffoldedView(string user_id, string view_route)
+    {
+        var result = new SerializableDictionary<string, object>();
+        try
+        {
+            string uid = RawHelpers.authenticate();
+            RawHelpers.checkAdmin(uid);
+
+            string normalizedRoute = (view_route ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(normalizedRoute))
+                throw new ValidationException("view_route is required");
+
+            int removedMdId = 0;
+            int removedColumns = 0;
+            bool droppedView = false;
+            string tableName = string.Empty;
+
+            // 1) Lookup metadata row.
+            using (var metaConn = OracleProviderGateway.GetOpenConnection(true) as OracleConnection)
+            {
+                var metaRow = metaConn.Query(@"
+SELECT md_id, md_nome_tabella
+  FROM ""_metadati__tabelle""
+ WHERE TRIM(NVL(mdroutename, '')) = :route
+ ORDER BY md_id DESC
+ FETCH FIRST 1 ROWS ONLY",
+                    new { route = normalizedRoute }).FirstOrDefault();
+
+                if (metaRow != null)
+                {
+                    var rowDict = (System.Collections.Generic.IDictionary<string, object>)((Dapper.SqlMapper.FastExpando)metaRow).data;
+                    if (RawHelpers.CiTryGet(rowDict, "md_id", out var mdIdObj) && mdIdObj != null)
+                        removedMdId = Convert.ToInt32(mdIdObj);
+                    if (RawHelpers.CiTryGet(rowDict, "md_nome_tabella", out var tnObj) && tnObj != null)
+                        tableName = Convert.ToString(tnObj);
+                }
+            }
+
+            // 2) Drop physical VIEW/TABLE sul data DB se esiste.
+            if (!string.IsNullOrWhiteSpace(tableName))
+            {
+                string upperName = tableName.ToUpperInvariant();
+                try
+                {
+                    using (var dataConn = metaModelRaw.metaQueryOracleSql.GetOpenConnection(false))
+                    {
+                        // VIEW
+                        int viewExists = dataConn.QueryColumn<decimal>(
+                            "SELECT COUNT(*) FROM user_views WHERE view_name = :nm",
+                            new DynamicParameters(new { nm = upperName })).Select(x => (int)x).FirstOrDefault();
+                        if (viewExists > 0)
+                        {
+                            dataConn.Execute($"DROP VIEW {metaModelRaw.metaQueryOracleSql.EscapeDBObjectName(tableName)}");
+                        }
+                        // BASE TABLE
+                        int tblExists = dataConn.QueryColumn<decimal>(
+                            "SELECT COUNT(*) FROM user_tables WHERE table_name = :nm",
+                            new DynamicParameters(new { nm = upperName })).Select(x => (int)x).FirstOrDefault();
+                        if (tblExists > 0)
+                        {
+                            dataConn.Execute($"DROP TABLE {metaModelRaw.metaQueryOracleSql.EscapeDBObjectName(tableName)} CASCADE CONSTRAINTS");
+                        }
+                        // Conferma drop
+                        int stillExistsView = dataConn.QueryColumn<decimal>(
+                            "SELECT COUNT(*) FROM user_views WHERE view_name = :nm",
+                            new DynamicParameters(new { nm = upperName })).Select(x => (int)x).FirstOrDefault();
+                        int stillExistsTbl = dataConn.QueryColumn<decimal>(
+                            "SELECT COUNT(*) FROM user_tables WHERE table_name = :nm",
+                            new DynamicParameters(new { nm = upperName })).Select(x => (int)x).FirstOrDefault();
+                        droppedView = (stillExistsView + stillExistsTbl) == 0;
+                    }
+                }
+                catch
+                {
+                    droppedView = false;
+                }
+            }
+
+            // 3) Metadata cleanup (colonne + tabella).
+            if (removedMdId > 0)
+            {
+                using (var metaConnD = OracleProviderGateway.GetOpenConnection(true) as OracleConnection)
+                {
+                    // Conta colonne prima del delete (per il response).
+                    removedColumns = metaConnD.QueryColumn<decimal>(
+                        "SELECT COUNT(*) FROM \"_metadati__colonne\" WHERE md_id = :id",
+                        new DynamicParameters(new { id = removedMdId })).Select(x => (int)x).FirstOrDefault();
+
+                    // Best-effort: pulisci tabelle correlate che hanno FK su md_id.
+                    foreach (string relTable in new[] {
+                        "_metadati__u_i__stili__tabelle",
+                        "_metadati__u_i__stili__colonne",
+                        "_mtdt__tnt__trzzzioni__tabelle",
+                        "_mtdt__tnt__trzzzioni__colonne",
+                        "_mtdt__cstom__actions__tabelle",
+                        "_metadati_condition_group",
+                        "_metadati__colonne"
+                    })
+                    {
+                        try
+                        {
+                            metaConnD.Execute(
+                                $"DELETE FROM \"{relTable}\" WHERE md_id = :id",
+                                new DynamicParameters(new { id = removedMdId }));
+                        }
+                        catch { /* best-effort: tabelle correlate possono non avere md_id column */ }
+                    }
+
+                    // Delete final della riga _metadati__tabelle.
+                    metaConnD.Execute(
+                        "DELETE FROM \"_metadati__tabelle\" WHERE md_id = :id",
+                        new DynamicParameters(new { id = removedMdId }));
+                }
+
+                // Full cache invalidation post-delete (mirror scaffoldTable).
+                RawHelpers.InvalidateMetadataCachesAndSetVersion(clearAllMetadata: true);
+            }
+
+            result["ok"] = true;
+            result["dropped_view"] = droppedView;
+            result["removed_metadata"] = removedMdId > 0;
+            result["md_id"] = removedMdId;
+            result["removed_columns"] = removedColumns;
+            result["view_route"] = normalizedRoute;
+            return RawHelpers.serialize(result, null);
+        }
+        catch (Exception ex)
+        {
+            result["ok"] = false;
+            result["error"] = ex.Message;
+            result["view_route"] = view_route;
+            return RawHelpers.serialize(result, null);
+        }
     }
 }

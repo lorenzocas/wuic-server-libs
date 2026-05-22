@@ -2983,7 +2983,17 @@ FROM {fromTable}
         private static string FinalizeServerSideGrouping(_Metadati_Tabelle tab, List<_Metadati_Colonne> lst, metaRawModel mmd, List<GroupInfo> GroupInfo, string safetableName, string join, string where, NpgsqlConnection connection, int skiprecords, PageInfo PageInfo)
         {
             string fieldList = "";
-            string fieldListForCount = "";
+            // PG: niente CHECKSUM nativo (MSSQL-only); niente COUNT(DISTINCT col1, col2)
+            // (MySQL-only). Pattern PG-safe per "count delle combinazioni distinct":
+            //   COUNT(DISTINCT COALESCE(c1::text,'§') || '~' || COALESCE(c2::text,'§') || ...)
+            // - In PG `NULL || 'x'` ritorna NULL (semantic ANSI), quindi senza COALESCE l'intera
+            //   expression collassa a NULL e COUNT(DISTINCT NULL) = 0 — count completamente
+            //   sbagliato. COALESCE(...,'§') sostituisce ogni NULL con sentinella prima del
+            //   concat, evitando il collasso e distinguendo NULL da '' (cast::text di '' resta '').
+            // - `::text` cast esplicito perche' `||` in PG e' polimorfo solo se tutti gli operandi
+            //   sono text; senza cast su NUMERIC/INT/DATE PG solleva "operator does not exist".
+            // - separatore '~' + sentinella '§' (raramente in dati testuali) riducono collisioni.
+            string pgCountDistinctExpr = "";
             string distList = "";
             string orderListX = "";
             string orderListT = "";
@@ -2992,7 +3002,8 @@ FROM {fromTable}
             {
                 string currentFld = GetTablePrefix(tab) + EscapeDBObjectName(tab.md_nome_tabella) + "." + EscapeDBObjectName(gi.field);
                 fieldList += (string.IsNullOrEmpty(fieldList) ? "" : ", ") + currentFld;
-                fieldListForCount += (string.IsNullOrEmpty(fieldListForCount) ? "" : ", ") + currentFld;
+                string thisTerm = "COALESCE(" + currentFld + "::text,'§')";
+                pgCountDistinctExpr += (string.IsNullOrEmpty(pgCountDistinctExpr) ? "" : " || '~' || ") + thisTerm;
 
                 _Metadati_Colonne distCol = lst.FirstOrDefault(x => x.mc_nome_colonna == gi.field);
                 string distColName = RawHelpers.getStoreColumnName(distCol);
@@ -3025,7 +3036,12 @@ FROM {fromTable}
                 }
             });
 
-            string countGroupQry = string.Format("SELECT COUNT(DISTINCT CHECKSUM ({0})) FROM {1} {2} {3} {4}", fieldListForCount, safetableName, join, where, "");
+            // PG: COUNT(DISTINCT expr) accetta una sola expression. Niente CHECKSUM (MSSQL-only),
+            // niente multi-col DISTINCT (MySQL-only). Usiamo l'expr COALESCE+concat costruita sopra.
+            // Edge case: nessun group field → fallback a COUNT(*).
+            string countGroupQry = string.IsNullOrEmpty(pgCountDistinctExpr)
+                ? string.Format("SELECT COUNT(*) FROM {0} {1} {2}", safetableName, join, where)
+                : string.Format("SELECT COUNT(DISTINCT {0}) FROM {1} {2} {3}", pgCountDistinctExpr, safetableName, join, where);
 
             try
             {

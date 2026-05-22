@@ -607,6 +607,11 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
                 foreach (columnDefinition col in columns)
                     mmd.scaffoldOfColumnMySql(connection, connName, mmd, tableName, effectiveSchema, col, log, ref createMenu, columns.Count);
 
+                // Full cache invalidation post-scaffold: senza questa chiamata la nuova route
+                // resta invisibile al runtime (cache `storedTableMeta` / `storedMeta`
+                // Application-scoped restano stale). Mirror Oracle/MySQL satellite.
+                RawHelpers.InvalidateMetadataCachesAndSetVersion(clearAllMetadata: true);
+
                 return new Dictionary<string, string>()
                 {
                     { "message", log.ToString() }, { "log", log.ToString() }
@@ -652,7 +657,8 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
             if (string.IsNullOrEmpty(logg))
                 logg = "Nessuna nuova colonna";
 
-            RawHelpers.setMetadataVersion();
+            // Full cache invalidation post-scaffold (vedi commento in scaffoldTable).
+            RawHelpers.InvalidateMetadataCachesAndSetVersion(clearAllMetadata: true);
 
             return new Dictionary<string, string>()
             {
@@ -691,6 +697,10 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
                     return new Dictionary<string, string>() { { "message", "Stored non trovata" }, { "log", "Stored non trovata" } };
 
                 mmd.scaffoldOfStoredMySql(connection, connName, storedName, mmd, log, effectiveSchema);
+
+                // Full cache invalidation post-scaffold (vedi commento in scaffoldTable).
+                RawHelpers.InvalidateMetadataCachesAndSetVersion(clearAllMetadata: true);
+
                 return new Dictionary<string, string>()
                 {
                     { "message", log.ToString() }, { "log", log.ToString() }

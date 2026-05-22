@@ -94,6 +94,24 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
         }
 
 
+        // Marker prefix per BLOB payload bind-by-parameter.
+        // Convenzione: l'entity dict riceve chiavi `__oracle_blob_param::<placeholder>` = byte[]
+        // (per BLOB) o string (per base64 string lunga). Il chiamante (UpdateflatData/InsertflatData)
+        // estrae queste chiavi prima di eseguire la query, e bind ogni payload come OracleParameter
+        // con OracleDbType.Blob (byte[]) o OracleDbType.Clob (string base64).
+        // Necessario perche' Oracle limita SQL string literal a 4000 byte → un BLOB JPEG di
+        // ~30 KB dentro `hextoraw('...')` causa ORA-01704.
+        public const string OracleBlobParamMarkerPrefix = "__oracle_blob_param::";
+
+        private static string BuildBlobPlaceholderName(string columnPhysicalName, string opKind)
+        {
+            // Bind variable Oracle: solo [A-Za-z0-9_], inizio con lettera, max 30 char.
+            string safe = System.Text.RegularExpressions.Regex.Replace(columnPhysicalName ?? "", "[^A-Za-z0-9_]", "_");
+            string raw = "blob_" + (opKind ?? "x") + "_" + safe;
+            if (raw.Length > 28) raw = raw.Substring(0, 28);
+            return raw;
+        }
+
         public static void customizeImgDBInsert(Dictionary<string, object> entity, _Metadati_Colonne_Upload uploader, _Metadati_Tabelle tabel, string safetable_name, ref string field_list, ref string value_list, bool base64Image)
         {
             field_list += (field_list == "" ? "" : ", ") + metaQueryOracleSql.EscapeDBObjectName(uploader.MultipleUploadBlobFieldName);
@@ -121,9 +139,17 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
 
                 if (base64Image)
                 {
-                    string base64Converted = "";
-                    base64Converted = Utility.ImageToBase64(tmp_path);
-                    value_list += (value_list == "" ? "" : ", ") + "'" + base64Converted + "'";
+                    // Anche base64 puo' superare il limite 4000 byte di Oracle string literal:
+                    // un'immagine ~3 KB diventa ~4 KB base64 → ORA-01704. Bind come CLOB param.
+                    if (!System.IO.File.Exists(tmp_path))
+                    {
+                        value_list += (value_list == "" ? "" : ", ") + "null";
+                        return;
+                    }
+                    string base64Converted = Utility.ImageToBase64(tmp_path);
+                    string placeholder = BuildBlobPlaceholderName(uploader.MultipleUploadBlobFieldName, "ins");
+                    entity[OracleBlobParamMarkerPrefix + placeholder + "::clob"] = base64Converted ?? "";
+                    value_list += (value_list == "" ? "" : ", ") + ":" + placeholder;
                 }
                 else
                 {
@@ -135,12 +161,15 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
                     //serialize
                     byte[] bytes = System.IO.File.ReadAllBytes(tmp_path);
 
-                    ////HexFormat introduced in postgresql 9.0
-                    string hexString = RawHelpers.convertByteToHexString(bytes);
-
-                    ////append to query
-                    ////alternative like openrowset ->  http://www.sql-workbench.net/manual/using.html#blob-support
-                    value_list += (value_list == "" ? "" : ", ") + "hextoraw('" + hexString + "')";
+                    // FIX ORA-01704: invece di emettere `hextoraw('<hex>')` inline (string literal
+                    // soggetto al limite 4000 byte), emette `:blob_ins_<col>` placeholder e inietta
+                    // il byte[] nell'entity dict via marker key. UpdateflatData/InsertflatData
+                    // bind il payload come OracleParameter con OracleDbType.Blob a runtime.
+                    // Vecchio percorso (rotto su BLOB > ~2 KB):
+                    //     value_list += ... + "hextoraw('" + RawHelpers.convertByteToHexString(bytes) + "')";
+                    string placeholder = BuildBlobPlaceholderName(uploader.MultipleUploadBlobFieldName, "ins");
+                    entity[OracleBlobParamMarkerPrefix + placeholder + "::blob"] = bytes;
+                    value_list += (value_list == "" ? "" : ", ") + ":" + placeholder;
                 }
             }
             else
@@ -185,7 +214,10 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
                         {
                             base64Converted = ImageToBase64(tmp_path);
                         }
-                        field_value_list += (field_value_list == "" ? "" : ", ") + metaQueryOracleSql.EscapeDBObjectName(uploader.MultipleUploadBlobFieldName) + "='" + base64Converted + "'";
+                        // Bind base64 come CLOB param (potenzialmente > 4000 byte → ORA-01704).
+                        string placeholderB64 = BuildBlobPlaceholderName(uploader.MultipleUploadBlobFieldName, "upd");
+                        entity[OracleBlobParamMarkerPrefix + placeholderB64 + "::clob"] = base64Converted ?? "";
+                        field_value_list += (field_value_list == "" ? "" : ", ") + metaQueryOracleSql.EscapeDBObjectName(uploader.MultipleUploadBlobFieldName) + "=:" + placeholderB64;
                     }
                 }
                 else
@@ -197,16 +229,13 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
                     //serialize
                     byte[] bytes = System.IO.File.ReadAllBytes(tmp_path);
 
-                    ////HexFormat introduced in postgresql 9.0
-                    string hexString = RawHelpers.convertByteToHexString(bytes);
-
-                    ////for older version bytea Escape Format
-                    ////use decode('...', 'hex')
-
-                    field_value_list += (field_value_list == "" ? "" : ", ") + metaQueryOracleSql.EscapeDBObjectName(uploader.MultipleUploadBlobFieldName) + "=hextoraw('" + hexString + "')";
-
-                    ////append to query
-                    ////alternative like openrowset ->  http://www.sql-workbench.net/manual/using.html#blob-support
+                    // FIX ORA-01704: bind BLOB come OracleParameter invece di hextoraw('...') inline.
+                    // Vedi commento in customizeImgDBInsert per dettagli.
+                    // Vecchio percorso (rotto su BLOB > ~2 KB):
+                    //     field_value_list += ... + "=hextoraw('" + RawHelpers.convertByteToHexString(bytes) + "')";
+                    string placeholder = BuildBlobPlaceholderName(uploader.MultipleUploadBlobFieldName, "upd");
+                    entity[OracleBlobParamMarkerPrefix + placeholder + "::blob"] = bytes;
+                    field_value_list += (field_value_list == "" ? "" : ", ") + metaQueryOracleSql.EscapeDBObjectName(uploader.MultipleUploadBlobFieldName) + "=:" + placeholder;
                 }
             }
             else

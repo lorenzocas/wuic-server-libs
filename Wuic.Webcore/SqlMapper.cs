@@ -1760,9 +1760,17 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
                         EmitInt32(il, 4000); // [string] [4000]
                         il.Emit(OpCodes.Br_S, lenDone);
                         il.MarkLabel(isLong);
-                        EmitInt32(il, -1); // [string] [-1]
+                        // Per stringhe > 4000 char originariamente Dapper emetteva `Size = -1`
+                        // (convenzione MSSQL `varchar(max)` / SqlClient). Pero' ODP.NET su Oracle
+                        // rejecta -1 con `ArgumentOutOfRangeException` (set_Size accetta solo >= 0).
+                        // Soluzione cross-DBMS: emit 0 — il blocco `Brfalse_S, endOfSize` sotto
+                        // (line ~1781) salta la SetSize call quando size==0, lasciando il provider
+                        // inferire la lunghezza dal Value. Equivalente al path anonymous-object
+                        // Dapper (DynamicParameters) che non setta Size quando length > 4000.
+                        // SqlClient / Npgsql / MySql.Data: tutti supportano size-from-value default.
+                        EmitInt32(il, 0); // [string] [0]
                         il.MarkLabel(lenDone);
-                        il.Emit(OpCodes.Stloc_1); // [string] 
+                        il.Emit(OpCodes.Stloc_1); // [string]
                     }
                     if (prop.PropertyType.FullName == LinqBinary)
                     {
@@ -1872,6 +1880,19 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
                     {
                         p.Value = DateTime.SpecifyKind(dt, DateTimeKind.Unspecified);
                     }
+                }
+            }
+            // Oracle fix: l'IL generato da CreateParamInfoGenerator emette `Size=-1` per stringhe
+            // > 4000 char (convenzione MSSQL `varchar(max)` / SqlClient). ODP.NET rejecta -1 con
+            // ArgumentOutOfRangeException su set_Size — accetta solo size >= 0. Normalizziamo
+            // post-bind: Size=-1 → 0 (lascia ODP.NET inferire dalla lunghezza del Value, che e'
+            // il comportamento corretto per CLOB/large strings su Oracle). Mirror NpgsqlCommand
+            // fix sopra: post-process provider-specific dopo paramReader.
+            if (cmd.GetType().Name == "OracleCommand" && cmd.Parameters != null)
+            {
+                foreach (System.Data.IDbDataParameter p in cmd.Parameters)
+                {
+                    if (p.Size < 0) p.Size = 0;
                 }
             }
             return cmd;
