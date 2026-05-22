@@ -100,10 +100,10 @@ public sealed class oracleNotificationRepository : INotificationRepository
         const string listSql = @"SELECT id, user_id, type, message,
                                         NVL(target_json, '') AS target_json,
                                         NVL(payload_json, '') AS payload_json,
-                                        is_read, ""created_at"" AS created_at, read_at
+                                        is_read, created_at, read_at
                                  FROM ""_notifications""
                                  WHERE user_id = :user_id AND deleted_at IS NULL
-                                 ORDER BY ""created_at"" DESC, id DESC
+                                 ORDER BY created_at DESC, id DESC
                                  FETCH FIRST :take ROWS ONLY";
 
         await using (var listCmd = BuildCommand(cn, listSql, ("user_id", userId), ("take", take)))

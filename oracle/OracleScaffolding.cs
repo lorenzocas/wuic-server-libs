@@ -23,11 +23,11 @@ namespace metaModelRaw
             var ret = new List<string>();
             string sql = string.IsNullOrEmpty(owner)
                 ? "select table_name from user_tables order by table_name"
-                : "select table_name from all_tables where owner=@owner order by table_name";
+                : "select table_name from all_tables where owner=:owner order by table_name";
             using (DbConnection con = OracleProviderGateway.CreateOpenConnection(connection))
             using (DbCommand cmd = DbProviderUtil.CreateTextCommand(con, sql))
             {
-                con.Open();
+                // CreateOpenConnection gia' apre la connection — Open() di nuovo qui causa ORA-50005.
                 if (!string.IsNullOrEmpty(owner))
                     DbProviderUtil.AddWithValue(cmd, "owner", owner);
                 using (DbDataReader dr = cmd.ExecuteReader())
@@ -45,11 +45,11 @@ namespace metaModelRaw
             var ret = new List<string>();
             string sql = string.IsNullOrEmpty(owner)
                 ? "select view_name from user_views order by view_name"
-                : "select view_name from all_views where owner=@owner order by view_name";
+                : "select view_name from all_views where owner=:owner order by view_name";
             using (DbConnection con = OracleProviderGateway.CreateOpenConnection(connection))
             using (DbCommand cmd = DbProviderUtil.CreateTextCommand(con, sql))
             {
-                con.Open();
+                // CreateOpenConnection gia' apre la connection — Open() di nuovo qui causa ORA-50005.
                 if (!string.IsNullOrEmpty(owner))
                     DbProviderUtil.AddWithValue(cmd, "owner", owner);
                 using (DbDataReader dr = cmd.ExecuteReader())
@@ -67,11 +67,11 @@ namespace metaModelRaw
             var ret = new List<string>();
             string sql = string.IsNullOrEmpty(owner)
                 ? "select object_name from user_procedures where object_type in ('PROCEDURE','FUNCTION') order by object_name"
-                : "select object_name from all_procedures where owner=@owner and object_type in ('PROCEDURE','FUNCTION') order by object_name";
+                : "select object_name from all_procedures where owner=:owner and object_type in ('PROCEDURE','FUNCTION') order by object_name";
             using (DbConnection con = OracleProviderGateway.CreateOpenConnection(connection))
             using (DbCommand cmd = DbProviderUtil.CreateTextCommand(con, sql))
             {
-                con.Open();
+                // CreateOpenConnection gia' apre la connection — Open() di nuovo causa ORA-50005.
                 if (!string.IsNullOrEmpty(owner))
                     DbProviderUtil.AddWithValue(cmd, "owner", owner);
                 using (DbDataReader dr = cmd.ExecuteReader())
@@ -98,9 +98,9 @@ namespace metaModelRaw
                         from user_constraints ac
                         join user_cons_columns acc on acc.constraint_name = ac.constraint_name
                         where ac.constraint_type = 'P'
-                          and ac.table_name = @table
+                          and ac.table_name = :table
                     ) pkcols on pkcols.column_name = c.column_name
-                    where c.table_name=@table
+                    where c.table_name=:table
                     order by c.column_id"
                 : @"select c.column_name, c.data_type, c.nullable, c.data_default, c.data_length, c.data_precision, c.data_scale,
                            c.identity_column,
@@ -111,15 +111,15 @@ namespace metaModelRaw
                         from all_constraints ac
                         join all_cons_columns acc on acc.constraint_name = ac.constraint_name and acc.owner = ac.owner
                         where ac.constraint_type = 'P'
-                          and ac.owner = @owner
-                          and ac.table_name = @table
+                          and ac.owner = :owner
+                          and ac.table_name = :table
                     ) pkcols on pkcols.column_name = c.column_name
-                    where c.owner=@owner and c.table_name=@table
+                    where c.owner=:owner and c.table_name=:table
                     order by c.column_id";
             using (DbConnection con = OracleProviderGateway.CreateOpenConnection(connection))
             using (DbCommand cmd = DbProviderUtil.CreateTextCommand(con, sql))
             {
-                con.Open();
+                // CreateOpenConnection gia' apre la connection — Open() di nuovo causa ORA-50005.
                 if (!string.IsNullOrEmpty(owner))
                     DbProviderUtil.AddWithValue(cmd, "owner", owner);
                 DbProviderUtil.AddWithValue(cmd, "table", tableName.ToUpperInvariant());
@@ -251,12 +251,12 @@ namespace metaModelRaw
 
             List<bind_list> tblList = new List<bind_list>();
             string sql = string.IsNullOrEmpty(owner)
-                ? "select column_name, data_type from user_tab_columns where table_name=@table order by column_id"
-                : "select column_name, data_type from all_tab_columns where owner=@owner and table_name=@table order by column_id";
+                ? "select column_name, data_type from user_tab_columns where table_name=:table order by column_id"
+                : "select column_name, data_type from all_tab_columns where owner=:owner and table_name=:table order by column_id";
             using (DbConnection con = OracleProviderGateway.CreateOpenConnection(connection))
             using (DbCommand cmd = DbProviderUtil.CreateTextCommand(con, sql))
             {
-                con.Open();
+                // CreateOpenConnection gia' apre la connection — Open() di nuovo causa ORA-50005.
                 if (!string.IsNullOrEmpty(owner))
                     DbProviderUtil.AddWithValue(cmd, "owner", owner);
                 DbProviderUtil.AddWithValue(cmd, "table", tableName.ToUpperInvariant());
@@ -288,12 +288,12 @@ namespace metaModelRaw
 
             List<bind_list> tblList = new List<bind_list>();
             string sql = string.IsNullOrEmpty(owner)
-                ? "select column_name, data_type from user_tab_columns where table_name=@table order by column_id"
-                : "select column_name, data_type from all_tab_columns where owner=@owner and table_name=@table order by column_id";
+                ? "select column_name, data_type from user_tab_columns where table_name=:table order by column_id"
+                : "select column_name, data_type from all_tab_columns where owner=:owner and table_name=:table order by column_id";
             using (DbConnection con = OracleProviderGateway.CreateOpenConnection(connection))
             using (DbCommand cmd = DbProviderUtil.CreateTextCommand(con, sql))
             {
-                con.Open();
+                // CreateOpenConnection gia' apre la connection — Open() di nuovo causa ORA-50005.
                 if (!string.IsNullOrEmpty(owner))
                     DbProviderUtil.AddWithValue(cmd, "owner", owner);
                 DbProviderUtil.AddWithValue(cmd, "table", viewName.ToUpperInvariant());
@@ -341,7 +341,7 @@ LEFT JOIN (
     SELECT acc.TABLE_NAME, acc.COLUMN_NAME, ac.CONSTRAINT_NAME
     FROM ALL_CONSTRAINTS ac
     INNER JOIN ALL_CONS_COLUMNS acc ON ac.CONSTRAINT_NAME = acc.CONSTRAINT_NAME AND ac.OWNER = acc.OWNER
-    WHERE ac.OWNER = @db AND ac.CONSTRAINT_TYPE = 'P'
+    WHERE ac.OWNER = :db AND ac.CONSTRAINT_TYPE = 'P'
 ) pk ON pk.TABLE_NAME = c.TABLE_NAME AND pk.COLUMN_NAME = c.COLUMN_NAME
 LEFT JOIN (
     SELECT
@@ -353,13 +353,13 @@ LEFT JOIN (
     FROM ALL_CONSTRAINTS ac
     INNER JOIN ALL_CONS_COLUMNS acc ON ac.CONSTRAINT_NAME = acc.CONSTRAINT_NAME AND ac.OWNER = acc.OWNER
     INNER JOIN ALL_CONS_COLUMNS rcc ON ac.R_CONSTRAINT_NAME = rcc.CONSTRAINT_NAME AND ac.R_OWNER = rcc.OWNER AND acc.POSITION = rcc.POSITION
-    WHERE ac.OWNER = @db AND ac.CONSTRAINT_TYPE = 'R'
+    WHERE ac.OWNER = :db AND ac.CONSTRAINT_TYPE = 'R'
 ) fk ON fk.TABLE_NAME = c.TABLE_NAME AND fk.COLUMN_NAME = c.COLUMN_NAME
-WHERE c.OWNER = @db
+WHERE c.OWNER = :db
 ORDER BY c.TABLE_NAME, c.COLUMN_ID";
                 DbProviderUtil.AddWithValue(cmd, "db", owner);
 
-                con.Open();
+                // CreateOpenConnection gia' apre la connection — Open() di nuovo causa ORA-50005.
                 using (DbDataReader dr = cmd.ExecuteReader())
                 {
                     while (dr.Read())
@@ -389,7 +389,7 @@ SELECT
     t.md_nome_tabella
 FROM _metadati__colonne c
 INNER JOIN _metadati__tabelle t ON t.md_id = c.md_id
-WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
+WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
                 DbProviderUtil.AddWithValue(metaCmd, "db", owner);
 
                 using (DbDataReader dr = metaCmd.ExecuteReader())

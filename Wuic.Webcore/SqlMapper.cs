@@ -435,10 +435,12 @@ namespace Dapper
                     {
                         switch (number)
                         {
-                            case 60:
+                            case 54:    // ORA-00054 resource busy and acquire with NOWAIT
+                            case 60:    // ORA-00060 deadlock
                             case 1013:
                             case 3113:
                             case 3114:
+                            case 4068:  // ORA-04068 existing state of packages discarded
                             case 12170:
                             case 12514:
                             case 12541:
@@ -1824,15 +1826,30 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
             // dentro literal di stringa (preceduto da char non-token).
             if (cmd.GetType().Name == "OracleCommand" && !string.IsNullOrEmpty(sql))
             {
-                // 1) `@param` -> `:param` (Oracle ManagedDataAccess only accepts `:` placeholders).
-                sql = Regex.Replace(sql, @"(?<=^|[\s,(=<>!])@(\w+)", ":$1");
-                // 2) Quote leading-underscore TABLE identifiers in known positions
-                //    (FROM/JOIN/INTO/UPDATE/TABLE). Oracle rifiuta unquoted `_xxx` con ORA-00911.
-                sql = Regex.Replace(
-                    sql,
-                    @"(?<=\b(?:FROM|JOIN|INTO|UPDATE|TABLE)\s+)(_\w+)(?![\w""])",
-                    "\"$1\"",
-                    RegexOptions.IgnoreCase);
+                // Le regex Oracle-fix devono agire SOLO sulla parte SQL "vera" (codice),
+                // mai dentro string literal SQL (`'...'`). Esempio reale:
+                // `UPDATE ... SET MDPROPSBAG='{ "callback": "INSERT INTO _xxx" }'` —
+                // se applicate alla cieca, la regex `_xxx`→`"_xxx"` rompe il JSON literal
+                // e Oracle solleva ORA-00911 su token spuri. Soluzione: split su `'`,
+                // rewrite solo sui frammenti out-of-string (indice pari).
+                var parts = sql.Split('\'');
+                bool oddCount = parts.Length % 2 == 0; // un literal aperto/non chiuso => skip
+                if (!oddCount)
+                {
+                    for (int i = 0; i < parts.Length; i += 2)
+                    {
+                        // 1) `@param` -> `:param` (Oracle ManagedDataAccess only accepts `:` placeholders).
+                        parts[i] = Regex.Replace(parts[i], @"(?<=^|[\s,(=<>!])@(\w+)", ":$1");
+                        // 2) Quote leading-underscore TABLE identifiers in known positions
+                        //    (FROM/JOIN/INTO/UPDATE/TABLE). Oracle rifiuta unquoted `_xxx` con ORA-00911.
+                        parts[i] = Regex.Replace(
+                            parts[i],
+                            @"(?<=\b(?:FROM|JOIN|INTO|UPDATE|TABLE)\s+)(_\w+)(?![\w""])",
+                            "\"$1\"",
+                            RegexOptions.IgnoreCase);
+                    }
+                    sql = string.Join("'", parts);
+                }
             }
             cmd.CommandText = sql;
             if (commandTimeout.HasValue)

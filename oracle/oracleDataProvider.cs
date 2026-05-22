@@ -137,7 +137,7 @@ public class oracleDataProvider : IMetaQuery
             // Oracle: customSettings è CLOB; coalesce(CLOB, '') causa ORA-00932 (CLOB vs CHAR).
             // Wrap del literal vuoto in TO_CLOB per allineare i tipi.
             string settings = connection.Query<string>(
-                "select coalesce(customSettings, TO_CLOB('')) from utenti where id_utente=@id_utente",
+                "select coalesce(customSettings, TO_CLOB('')) from utenti where id_utente=:id_utente",
                 new { id_utente = user_id }).FirstOrDefault() ?? "";
 
             if (string.IsNullOrEmpty(key))
@@ -165,7 +165,7 @@ public class oracleDataProvider : IMetaQuery
         dict[key] = null;
         using (OracleConnection connection = metaQueryOracleSql.GetOpenConnection(true))
         {
-            connection.Execute("update utenti set customSettings=@customSettings where id_utente=@id_utente",
+            connection.Execute("update utenti set customSettings=:customSettings where id_utente=:id_utente",
                 new { customSettings = JsonConvert.SerializeObject(dict), id_utente = currentUserId });
         }
     }
@@ -173,16 +173,16 @@ public class oracleDataProvider : IMetaQuery
     public decimal readProgress(string guid)
     {
         using (DbConnection connection = metaQueryOracleSql.GetOpenConnection(true))
-            return connection.Query<decimal>("SELECT coalesce(progress, -1) FROM _progress_indicator WHERE guid=@guid", new { guid }).FirstOrDefault();
+            return connection.Query<decimal>("SELECT coalesce(progress, -1) FROM _progress_indicator WHERE guid=:guid", new { guid }).FirstOrDefault();
     }
 
     public void saveProgress(string guid, decimal progress)
     {
         using (DbConnection connection = metaQueryOracleSql.GetOpenConnection(true))
         {
-            int i = connection.Execute("UPDATE _progress_indicator SET progress=@progress WHERE guid=@guid", new { guid, progress });
+            int i = connection.Execute("UPDATE _progress_indicator SET progress=:progress WHERE guid=:guid", new { guid, progress });
             if (i == 0)
-                connection.Execute("INSERT INTO _progress_indicator(guid, progress) VALUES(@guid, @progress)", new { guid, progress });
+                connection.Execute("INSERT INTO _progress_indicator(guid, progress) VALUES(:guid, :progress)", new { guid, progress });
         }
     }
 
@@ -199,7 +199,7 @@ public class oracleDataProvider : IMetaQuery
 
         using (OracleConnection connection = metaQueryOracleSql.GetOpenConnection(true))
         {
-            int updated = connection.Execute("update utenti set customSettings=@customSettings where id_utente=@id_utente",
+            int updated = connection.Execute("update utenti set customSettings=:customSettings where id_utente=:id_utente",
                 new { customSettings = JsonConvert.SerializeObject(dict), id_utente = user_id });
             return updated.ToString();
         }
@@ -476,7 +476,7 @@ SELECT
     TRIM(NVL(NULLIF(mdschemaname, ''), '')) AS schema_name,
     TRIM(NVL(NULLIF(mdconnname, ''), 'DataSQLConnection')) AS conn_name
 FROM _metadati__tabelle
-WHERE TRIM(NVL(mdroutename, '')) = @route
+WHERE TRIM(NVL(mdroutename, '')) = :route
 FETCH FIRST 1 ROWS ONLY";
                 foreach (var tbl in tables)
                 {
@@ -507,7 +507,7 @@ FETCH FIRST 1 ROWS ONLY";
                 using (var dataConnSchema = metaQueryOracleSql.GetOpenConnection(false))
                 {
                     const string colSql = @"SELECT COLUMN_NAME, DATA_TYPE FROM ALL_TAB_COLUMNS
-                                            WHERE OWNER = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') AND TABLE_NAME = UPPER(@tableName)";
+                                            WHERE OWNER = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') AND TABLE_NAME = UPPER(:tableName)";
                     foreach (var info in tableInfos)
                     {
                         var dbCols = (List<Dapper.SqlMapper.FastExpando>)dataConnSchema.Query(colSql,
@@ -807,7 +807,7 @@ SELECT
     TRIM(NVL(NULLIF(mdschemaname, ''), '')) AS schema_name,
     TRIM(NVL(NULLIF(mdconnname, ''), 'DataSQLConnection')) AS conn_name
 FROM _metadati__tabelle
-WHERE TRIM(NVL(mdroutename, '')) = @route
+WHERE TRIM(NVL(mdroutename, '')) = :route
 FETCH FIRST 1 ROWS ONLY";
                 foreach (var tbl in tables)
                 {
@@ -826,7 +826,7 @@ FETCH FIRST 1 ROWS ONLY";
                 using (var dataConnCV = metaQueryOracleSql.GetOpenConnection(false))
                 {
                     const string colSql = @"SELECT COLUMN_NAME FROM ALL_TAB_COLUMNS
-                                            WHERE OWNER = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') AND TABLE_NAME = UPPER(@tableName)";
+                                            WHERE OWNER = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') AND TABLE_NAME = UPPER(:tableName)";
                     foreach (var info in tableInfos)
                     {
                         var dbCols = (List<Dapper.SqlMapper.FastExpando>)dataConnCV.Query(colSql, new { tableName = info.PhysicalName });
@@ -926,7 +926,7 @@ FROM {fromSb}";
                     bool exists;
                     var existRows = (List<Dapper.SqlMapper.FastExpando>)dataConn.Query(
                         @"SELECT 1 AS oid FROM ALL_VIEWS
-                          WHERE OWNER = SYS_CONTEXT('USERENV','CURRENT_SCHEMA') AND VIEW_NAME = UPPER(@name)",
+                          WHERE OWNER = SYS_CONTEXT('USERENV','CURRENT_SCHEMA') AND VIEW_NAME = UPPER(:name)",
                         new { name = safeViewName });
                     exists = existRows.Count > 0;
                     if (exists && !overwrite_if_exists)
@@ -1051,7 +1051,7 @@ WHERE c.mc_ui_column_type = 'lookupByID'
 
                     var sets = new List<string>();
                     var p = new DynamicParameters();
-                    p.Add("@mc_id", mcId);
+                    p.Add("mc_id", mcId);
                     int paramIdx = 0;
                     foreach (var prop in realPatch.Properties())
                     {
@@ -1066,7 +1066,7 @@ WHERE c.mc_ui_column_type = 'lookupByID'
                     }
                     if (sets.Count == 0) continue;
 
-                    string sql = "UPDATE \"_metadati__colonne\" SET " + string.Join(", ", sets) + " WHERE \"mc_id\" = @mc_id";
+                    string sql = "UPDATE \"_metadati__colonne\" SET " + string.Join(", ", sets) + " WHERE \"mc_id\" = :mc_id";
                     int n = metaConn.Execute(sql, p);
                     updated += n;
                 }
@@ -1162,12 +1162,12 @@ WHERE c.mc_ui_column_type = 'lookupByID'
         {
             using (var cmd = conn.CreateCommand())
             {
-                cmd.CommandText = "DELETE FROM \"_metadati__menu\" WHERE \"mm_uri_menu\" LIKE @nm";
+                cmd.CommandText = "DELETE FROM \"_metadati__menu\" WHERE \"mm_uri_menu\" LIKE :nm";
                 cmd.Parameters.Add(new OracleParameter("nm", "%" + name + "%"));
                 cmd.ExecuteNonQuery();
 
                 cmd.Parameters.Clear();
-                cmd.CommandText = "DELETE FROM \"_mtdt__cstom__actions__tabelle\" WHERE \"actioncallback\" LIKE @nm";
+                cmd.CommandText = "DELETE FROM \"_mtdt__cstom__actions__tabelle\" WHERE \"actioncallback\" LIKE :nm";
                 cmd.Parameters.Add(new OracleParameter("nm", "%" + name + "%"));
                 cmd.ExecuteNonQuery();
             }

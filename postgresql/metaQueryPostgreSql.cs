@@ -5966,6 +5966,14 @@ FROM {fromTable}
             if (string.IsNullOrWhiteSpace(route))
                 return;
 
+            // Shadow caching non e' applicabile a system route (mirror MSSQL/MySQL):
+            // le tabelle metadata e reticolari non hanno mai shadow tables materializzate,
+            // quindi il flush e' un no-op che evita un round-trip + try/catch su tabelle
+            // shadow inesistenti.
+            bool isSys = false;
+            try { isSys = RawHelpers.checkIsMetaData(route); } catch { }
+            if (isSys) return;
+
             string shadowTableName = RawHelpers.escapeDBObjectName("_shadow_" + route, "postgresql");
             using (NpgsqlConnection connection = GetOpenConnection(false))
             {

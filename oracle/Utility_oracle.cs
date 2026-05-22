@@ -476,8 +476,8 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
             {
                 myCmd = myConn.CreateCommand();
 
-                myCmd.CommandText = "SELECT ID_Utente, FK_Lingua, * from Utenti WHERE FK_Utente_WUIC = @FK_Utente_WUIC";
-                DbProviderUtil.AddWithValue(myCmd, "@FK_Utente_WUIC", utente.user_id);
+                myCmd.CommandText = "SELECT ID_Utente, FK_Lingua, * from Utenti WHERE FK_Utente_WUIC = :FK_Utente_WUIC";
+                DbProviderUtil.AddWithValue(myCmd, "FK_Utente_WUIC", utente.user_id);
 
                 myReader = myCmd.ExecuteReader();
                 if (myReader.Read())
@@ -585,8 +585,8 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
                             {
                                 myCmd = myConn.CreateCommand();
 
-                                myCmd.CommandText = string.Format("UPDATE {0} SET {1} = '{2}', NomeFoto = @NomeFoto , DataAggiornamento = getDate(), UtenteAggiornamento = {3} WHERE {4} = {5}", tableName, field, imgB64.ToString(), utente.user_id, keyName, keyValue);
-                                DbProviderUtil.AddWithValue(myCmd, "@NomeFoto", imgName);
+                                myCmd.CommandText = string.Format("UPDATE {0} SET {1} = '{2}', NomeFoto = :NomeFoto , DataAggiornamento = getDate(), UtenteAggiornamento = {3} WHERE {4} = {5}", tableName, field, imgB64.ToString(), utente.user_id, keyName, keyValue);
+                                DbProviderUtil.AddWithValue(myCmd, "NomeFoto", imgName);
                                 myCmd.ExecuteNonQuery();
                             }
                             catch (Exception)
@@ -617,8 +617,8 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
                     {
                         myCmd = myConn.CreateCommand();
 
-                        myCmd.CommandText = string.Format("UPDATE {0} SET {1} = '', NomeFoto = @NomeFoto WHERE {2} = {3} ", tableName, field, keyName, keyValue);
-                        DbProviderUtil.AddWithValue(myCmd, "@NomeFoto", imgName);
+                        myCmd.CommandText = string.Format("UPDATE {0} SET {1} = '', NomeFoto = :NomeFoto WHERE {2} = {3} ", tableName, field, keyName, keyValue);
+                        DbProviderUtil.AddWithValue(myCmd, "NomeFoto", imgName);
                         myCmd.ExecuteNonQuery();
                     }
                     catch (Exception ex)
@@ -796,7 +796,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
                         dbArgs.Add("username", username);
                         dbArgs.Add("password", password);
 
-                        int modified = connection.Execute(string.Format("UPDATE {0} SET IsLoggedIn = 0, ip = @ip WHERE motivo = @motivo AND username = @username AND password = @password",
+                        int modified = connection.Execute(string.Format("UPDATE {0} SET IsLoggedIn = 0, ip = :ip WHERE motivo = :motivo AND username = :username AND password = :password",
                             infos.user_table_name), dbArgs);
 
                         return modified >= 0;

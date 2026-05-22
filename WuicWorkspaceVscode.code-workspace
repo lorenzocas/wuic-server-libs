@@ -86,6 +86,34 @@
       ".."
     ],
     "git.openRepositoryInParentFolders": "always",
+    // Esclude folder con git nested (Claude Code worktrees, node_modules, ecc.)
+    // dall'auto-discovery che popola il pannello Source Control. Pre-fix VS Code
+    // mostrava i worktree sotto `<repo>/.claude/worktrees/<name>/` come repository
+    // separati, e l'utente vedeva le stesse modifiche del main duplicate sotto ogni
+    // worktree (i worktree linkano lo stesso .git → stesso staging area visualizzato
+    // sotto N entry, una per worktree). Va settato a LIVELLO WORKSPACE perche' i
+    // folder-level settings (es. KonvergenceCore/.vscode/settings.json) non si
+    // applicano alle directory fuori dal folder root (i worktree puntano via .git
+    // link al main, quindi VS Code li tratta come repo "esterni" al folder).
+    //
+    // I 3 repo legittimi che DEVONO restare visibili:
+    //   1. C:/src/Wuic/KonvergenceCore/.git              (main repo)
+    //   2. C:/src/Wuic/.git                              (monorepo "Wuic" parent — discovered via git.scanRepositories: [".."])
+    //   3. C:/src/Wuic/KonvergenceCore/wwwroot/my-workspace/.git  (Angular nested, 2 livelli sotto)
+    //
+    // `repositoryScanMaxDepth: 3` serve per coprire `wwwroot/my-workspace`.
+    // Valore default VS Code = 1 (troppo restrittivo per il sub-repo Angular).
+    "git.repositoryScanIgnoredFolders": [
+      "worktrees",
+      ".claude",
+      "node_modules",
+      "bin",
+      "obj",
+      ".angular",
+      "dist",
+      "publish"
+    ],
+    "git.repositoryScanMaxDepth": 3,
     "gitlens.codeLens.enabled": false,
     "gitlens.currentLine.enabled": false,
     "gitlens.hovers.enabled": false,

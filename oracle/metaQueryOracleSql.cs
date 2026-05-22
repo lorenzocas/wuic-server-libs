@@ -554,11 +554,11 @@ FROM {fromTable}
                 _Metadati_Tabelle tab = lst.First()._Metadati_Tabelle;
 
                 // Oracle: no 3-part `[db].dbo.table`. Schema implicit via connection user.
-                string table_name = metaQuery.EscapeDBObjectName(tab.md_nome_tabella);
+                string table_name = EscapeDBObjectName(tab.md_nome_tabella);
 
-                current_fld = table_name + "." + metaQuery.EscapeDBObjectName(categoryAxFld);
+                current_fld = table_name + "." + EscapeDBObjectName(categoryAxFld);
 
-                select_cols = aggregationFunction + "(" + table_name + "." + metaQuery.EscapeDBObjectName(valueField) + ") AS " + metaQuery.EscapeDBObjectName(valueField) + ", coalesce(" + metaQuery.EscapeDBObjectName(categoryAxFld) + ", 'NULLO') AS " + metaQuery.EscapeDBObjectName(categoryAxFld);
+                select_cols = aggregationFunction + "(" + table_name + "." + EscapeDBObjectName(valueField) + ") AS " + EscapeDBObjectName(valueField) + ", coalesce(" + EscapeDBObjectName(categoryAxFld) + ", 'NULLO') AS " + EscapeDBObjectName(categoryAxFld);
 
                 _Metadati_Colonne categoryColumn = lst.FirstOrDefault(x => x.mc_nome_colonna == categoryAxFld);
                 _Metadati_Colonne_Lookup categoryColumnLookUp = categoryColumn as _Metadati_Colonne_Lookup;
@@ -567,13 +567,20 @@ FROM {fromTable}
                 {
                     categoryAxFld = categoryColumnLookUp.mc_ui_lookup_entity_name + "___" + categoryColumnLookUp.mc_ui_lookup_dataTextField;
                     _Metadati_Tabelle relatedTable = mmd.GetMetadati_Tabelles(categoryColumnLookUp.mc_ui_lookup_entity_name).FirstOrDefault();
-                    string safeEntityName = metaQuery.EscapeDBObjectName(relatedTable.md_nome_tabella);
-                    string safeUniqueEntityName = metaQuery.EscapeDBObjectName(categoryColumnLookUp.mc_nome_colonna + "_" + categoryColumnLookUp.mc_ui_lookup_entity_name);
-                    string calculatedText = categoryColumnLookUp.mc_ui_lookup_computed_dataTextField;
-                    string safeTextField = metaQuery.EscapeDBObjectName(categoryColumnLookUp.mc_ui_lookup_dataTextField);
-                    join = string.Format(" LEFT JOIN {0} {3} ON {1} = {2}", safeEntityName, current_fld, safeUniqueEntityName + "." + metaQuery.EscapeDBObjectName(categoryColumnLookUp.mc_ui_lookup_dataValueField), safeUniqueEntityName);
+                    string safeEntityName = EscapeDBObjectName(relatedTable.md_nome_tabella);
+                    string safeUniqueEntityName = EscapeDBObjectName(categoryColumnLookUp.mc_nome_colonna + "_" + categoryColumnLookUp.mc_ui_lookup_entity_name);
+                    string calculatedText = NormalizeComputedTextSnippet(categoryColumnLookUp.mc_ui_lookup_computed_dataTextField);
+                    // friendly→physical resolution: vedi commento in JoinBuilder.
+                    _Metadati_Colonne textColCat = relatedTable?._Metadati_Colonnes
+                        ?.FirstOrDefault(xk => xk.mc_nome_colonna == categoryColumnLookUp.mc_ui_lookup_dataTextField)
+                        ?? relatedTable?._Metadati_Colonnes
+                            ?.FirstOrDefault(xk => xk.mc_real_column_name == categoryColumnLookUp.mc_ui_lookup_dataTextField);
+                    string safeTextField = EscapeDBObjectName(textColCat != null
+                        ? RawHelpers.getStoreColumnName(textColCat)
+                        : categoryColumnLookUp.mc_ui_lookup_dataTextField);
+                    join = string.Format(" LEFT JOIN {0} {3} ON {1} = {2}", safeEntityName, current_fld, safeUniqueEntityName + "." + EscapeDBObjectName(categoryColumnLookUp.mc_ui_lookup_dataValueField), safeUniqueEntityName);
                     group_by = safeUniqueEntityName + "." + safeTextField;
-                    select_cols = aggregationFunction + "(" + table_name + "." + metaQuery.EscapeDBObjectName(valueField) + ") AS " + metaQuery.EscapeDBObjectName(valueField) + ", coalesce(" + group_by + ", 'NULLO') AS " + safeTextField;
+                    select_cols = aggregationFunction + "(" + table_name + "." + EscapeDBObjectName(valueField) + ") AS " + EscapeDBObjectName(valueField) + ", coalesce(" + group_by + ", 'NULLO') AS " + safeTextField;
                 }
                 else
                 {
@@ -1082,7 +1089,7 @@ FROM {fromTable}
                 return "-2";  //throw new ValidationException(string.Format("E-mail '{0}' già utilizzata", email));
             }
 
-            string query = "select * from cms.register_requests where username=@username";
+            string query = "select * from cms.register_requests where username=:username";
             OracleCommand cmd = new OracleCommand(query, connection);
             cmd.Parameters.Add(new SqlParameter("username", user_name));
             OracleDataAdapter adpt = new OracleDataAdapter(cmd);
@@ -1092,7 +1099,7 @@ FROM {fromTable}
             if (dt.Rows.Count > 0)
                 return "-1"; //throw new ValidationException(string.Format("User name '{0}' già utilizzato", user_name));
 
-            query = "select * from cms.register_requests where email=@email";
+            query = "select * from cms.register_requests where email=:email";
             cmd = new OracleCommand(query, connection);
             cmd.Parameters.Add(new SqlParameter("email", email));
             adpt = new OracleDataAdapter(cmd);
@@ -1133,7 +1140,7 @@ FROM {fromTable}
             {
                 string stored = "loggedUserList";
                 var dbArgs = new DynamicParameters();
-                dbArgs.Add("@sessiontimeout", ConfigHelper.GetSettingAsString("sessionTimeoutMinutes"));
+                dbArgs.Add("sessiontimeout", ConfigHelper.GetSettingAsString("sessionTimeoutMinutes"));
                 List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)connection.Query(stored, dbArgs, commandType: CommandType.StoredProcedure);
 
                 return new rawPagedResult() { Agg = null, results = rows, TotalRecords = rows.Count };
@@ -1147,7 +1154,7 @@ FROM {fromTable}
             {
                 string stored = "loggedUserCount";
                 var dbArgs = new DynamicParameters();
-                dbArgs.Add("@sessiontimeout", ConfigHelper.GetSettingAsString("sessionTimeoutMinutes"));
+                dbArgs.Add("sessiontimeout", ConfigHelper.GetSettingAsString("sessionTimeoutMinutes"));
                 Int32 count = connection.QueryColumn<Int32>(stored, dbArgs, commandType: CommandType.StoredProcedure).FirstOrDefault();
 
                 return count;
@@ -1395,13 +1402,22 @@ FROM {fromTable}
 
                 using (OracleConnection connection = string.IsNullOrEmpty(infos.role_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.role_db_name))
                 {
-                    var dbArgs = new DynamicParameters();
-                    // Oracle: `uid` e' una reserved word (UID = current user) -> ORA-01745. Use p_uid.
-                    dbArgs.Add("@p_uid", user_id);
+                    // Oracle: la migration tool ha creato solo RUOLI + UTENTI (single id_ruolo FK
+                    // su utenti). NON ha creato la tabella many-to-many utenti_ruoli (presente su
+                    // MSSQL/MySQL/PG). Quindi qui usiamo direct join utenti->ruoli via id_ruolo.
+                    // Inline user_id (escaped) — i bind :name di Dapper/ODP.NET su questa query
+                    // davano ORA-03405 in qualche edge case di reader format. Inline è safe perche'
+                    // user_id viene da auth interno (no SQL injection risk).
+                    string safe_user_id = (user_id ?? "").Replace("'", "''");
+                    string query = string.Format("SELECT {0}.{1}, {0}.{2} FROM {0} INNER JOIN {3} ON {3}.{1}={0}.{1} WHERE {3}.{4}='{5}'",
+                        infos.role_table_name,           // {0} = ruoli
+                        infos.role_id_column_name,       // {1} = id_ruolo
+                        infos.role_description_column_name, // {2} = ruolo_des
+                        infos.user_table_name,           // {3} = utenti
+                        infos.user_id_column_name,       // {4} = id_utente
+                        safe_user_id);                   // {5} = literal-escaped user_id
 
-                    string query = string.Format("SELECT {0}.{1}, {0}.{2} FROM {0} inner join utenti_ruoli on utenti_ruoli.{1} = {0}.{1} inner join utenti on utenti_ruoli.{6} = {4}.{6} WHERE {4}.{3}=@p_uid", infos.role_table_name, infos.role_id_column_name, infos.role_description_column_name, infos.user_id_column_name, infos.user_table_name, infos.role_user_table_fk_name, infos.user_id_column_name);
-
-                    List<Dapper.SqlMapper.FastExpando> roles = ((List<Dapper.SqlMapper.FastExpando>)connection.Query(query, dbArgs));
+                    List<Dapper.SqlMapper.FastExpando> roles = ((List<Dapper.SqlMapper.FastExpando>)connection.Query(query));
 
                     List<role> roleList = new List<role>();
 
@@ -1576,7 +1592,15 @@ FROM {fromTable}
 
                     query = BuildDynamicSelectQuery(lst, SortInfo, GroupInfo, PageInfo, filterInfo, logicOperator, has_server_operation, connection, out totalRecords, aggregates, out aggregateValues, user_id, formula_lookup, mc_id);
 
-                    List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)connection.Query(query, commandTimeout: 2000);
+                    List<Dapper.SqlMapper.FastExpando> rows;
+                    try
+                    {
+                        rows = (List<Dapper.SqlMapper.FastExpando>)connection.Query(query, commandTimeout: 2000);
+                    }
+                    catch (Exception qex)
+                    {
+                        throw new Exception(qex.Message + " | DATA_SELECT_QUERY: " + (query?.Length > 1500 ? query.Substring(0, 1500) + "..." : query), qex);
+                    }
 
                     if (totalRecords == 0)
                         totalRecords = rows.Count;
@@ -1679,25 +1703,41 @@ FROM {fromTable}
             using (metaRawModel context = new metaRawModel())
             {
                 _Metadati_Tabelle metaStored = context.GetMetadati_Tabelles(stored).FirstOrDefault();
+                if (metaStored == null)
+                    throw new ValidationException(string.Format("Stored '{0}' not found", stored));
 
-                dynamic parameterDefinition = null;
+                Newtonsoft.Json.Linq.JArray parameterDefinition = null;
 
                 if (!string.IsNullOrEmpty(metaStored.md_props_bag))
                 {
-                    dynamic extraProps = RawHelpers.deserialize(metaStored.md_props_bag, null);
-                    if (extraProps != null)
+                    // Mirror PG fix: RawHelpers.deserialize ritorna ExpandoObject, ma il
+                    // loop `foreach (JToken jt in parameterDefinition)` richiede JArray.
+                    // Re-parse via Newtonsoft per garantire iterazione JToken.
+                    try
                     {
-                        parameterDefinition = extraProps.parameters;
+                        var props = Newtonsoft.Json.Linq.JObject.Parse(metaStored.md_props_bag);
+                        parameterDefinition = props["parameters"] as Newtonsoft.Json.Linq.JArray;
+                    }
+                    catch
+                    {
+                        parameterDefinition = null;
                     }
                 }
 
-                if (metaStored != null)
                 {
-                    using (OracleConnection connection = GetOpenConnection(false, metaStored.md_conn_name))
+                    // Oracle co-located stored: se md_conn_name=MetaDataSQLConnection
+                    // la funzione vive in metadatadb (parita' con PG, no cross-DB).
+                    bool isMetaForStored = !string.IsNullOrEmpty(metaStored.md_conn_name)
+                        && string.Equals(metaStored.md_conn_name, "MetaDataSQLConnection", StringComparison.OrdinalIgnoreCase);
+                    using (OracleConnection connection = GetOpenConnection(isMetaForStored, metaStored.md_conn_name))
                     {
-                        stored = RawHelpers.getStoreTableName(metaStored, "mssql");
+                        // BUG fix: era "mssql" (`[name]` brackets) → PLS-00103 su parse Oracle.
+                        // Usa "oracle" dialect → identifier safe (quoting solo per leading-_ /
+                        // reserved keywords, altrimenti unquoted con case-fold UPPER).
+                        stored = RawHelpers.getStoreTableName(metaStored, "oracle");
 
                         var dbArgs = new DynamicParameters();
+                        if (parameterDefinition == null) parameterDefinition = new Newtonsoft.Json.Linq.JArray();
                         foreach (JToken jt in parameterDefinition)
                         {
                             var pair = parameters.FirstOrDefault(x => x.field == jt["Name"].ToString());
@@ -1785,9 +1825,137 @@ FROM {fromTable}
                         List<Dapper.SqlMapper.FastExpando> rows = new List<SqlMapper.FastExpando>();
                         long conto = 0;
 
+                        // Oracle detection: FUNCTION ≠ PROCEDURE. CommandType.StoredProcedure
+                        // su FUNCTION → PLS-00221. Verifichiamo via USER_OBJECTS (case-insensitive
+                        // via UPPER). Per FUNCTION ritorniamo SYS_REFCURSOR con anonymous block:
+                        //   BEGIN OPEN :rc FOR SELECT <func>(:p1,...) FROM DUAL; END;
+                        // Solo per non-noResults — se noResults è true e' una procedure void.
+                        // Detection FUNCTION vs PROCEDURE via OracleCommand isolato (NON usare Dapper
+                        // sulla connection sharing — la SqlMapperRetry overlay puo' interferire e
+                        // generare ORA-01002 "cursore non valido" su connection con cmd attivi).
+                        bool isFunction = false;
+                        try
+                        {
+                            string objNameUpper = stored.ToUpperInvariant().Replace("\"", "").Trim();
+                            int dotIdx = objNameUpper.LastIndexOf('.');
+                            string objNameOnly = dotIdx >= 0 ? objNameUpper.Substring(dotIdx + 1) : objNameUpper;
+                            using (var detCmd = new global::Oracle.ManagedDataAccess.Client.OracleCommand(
+                                "SELECT object_type FROM user_objects WHERE object_name = :nm AND object_type IN ('FUNCTION','PROCEDURE') AND ROWNUM=1", connection))
+                            {
+                                detCmd.BindByName = true;
+                                detCmd.Parameters.Add(new global::Oracle.ManagedDataAccess.Client.OracleParameter("nm", objNameOnly));
+                                object raw = detCmd.ExecuteScalar();
+                                string objType = raw == null || raw == DBNull.Value ? null : raw.ToString();
+                                isFunction = string.Equals(objType, "FUNCTION", StringComparison.OrdinalIgnoreCase);
+                            }
+                        }
+                        catch { /* default to PROCEDURE behavior */ }
+
                         if (noResults)
                         {
                             connection.Execute(stored, dbArgs, commandType: CommandType.StoredProcedure, commandTimeout: 200);
+                        }
+                        else if (isFunction)
+                        {
+                            // FUNCTION → invoca via anonymous block con OUT REF CURSOR.
+                            // Costruiamo la chiamata con i parametri input (escludendo OUT/cursor).
+                            // Strip MSSQL-style '@' prefix dai parameter names. Il metadata
+                            // md_props_bag e' seedato con @prefix (MSSQL convention). Su Oracle
+                            // i bind sono :name (e Dapper li registra senza prefix).
+                            var inputParamNames = parameterDefinition
+                                .Where(jt => jt["Name"] != null)
+                                .Select(jt => jt["Name"].ToString().TrimStart('@', ':'))
+                                .Where(n => n != "count__" && n != "sortField__" && n != "sortDir__"
+                                         && n != "pageIndex__" && n != "pageSize__")
+                                .ToList();
+                            string argList = string.Join(", ", inputParamNames.Select(n => ":" + n));
+                            string callExpr = string.Format("{0}({1})", stored, argList);
+
+                            // Manual retry loop: il path FUNCTION/REF CURSOR bypassa SqlMapper.Execute
+                            // (che ha il retry layer SqlMapperRetry). Replichiamo qui la stessa logic:
+                            // legge SqlMapperRetry.MaxAttempts/BaseDelayMs dal config, retry su
+                            // OracleException.Number transient (54=NOWAIT, 60=deadlock, ecc.).
+                            int maxAttempts = 1, baseDelayMs = 100;
+                            try
+                            {
+                                string raw = ConfigHelper.GetSettingAsString("SqlMapperRetry:MaxAttempts");
+                                if (!string.IsNullOrEmpty(raw)) int.TryParse(raw, out maxAttempts);
+                                string rawD = ConfigHelper.GetSettingAsString("SqlMapperRetry:BaseDelayMs");
+                                if (!string.IsNullOrEmpty(rawD)) int.TryParse(rawD, out baseDelayMs);
+                                if (maxAttempts < 1) maxAttempts = 1;
+                            }
+                            catch { /* defaults */ }
+
+                            var transientOraNums = new System.Collections.Generic.HashSet<int> { 54, 60, 1013, 3113, 3114, 4068, 12170, 12514, 12541 };
+                            int attempt = 0;
+                            while (true)
+                            {
+                                attempt++;
+                                rows.Clear();
+                                try
+                                {
+                                    // Transaction esplicita: REF CURSOR + FOR UPDATE [NOWAIT] richiede
+                                    // che la transaction resti aperta finche' il reader e' attivo. Senza
+                                    // tx esplicita, ODP.NET puo' fare auto-commit dopo ExecuteNonQuery →
+                                    // ORA-01002 "cursore non valido" al primo Read.
+                                    using (var tx = connection.BeginTransaction())
+                                    using (var oraCmd = new global::Oracle.ManagedDataAccess.Client.OracleCommand())
+                                    {
+                                oraCmd.Connection = connection;
+                                oraCmd.Transaction = tx;
+                                // Assignment PL/SQL diretto: bypassa "DML inside query" gating
+                                // (ORA-14551) che scatta quando la function fa FOR UPDATE / DML
+                                // ed e' chiamata via SELECT FROM DUAL.
+                                oraCmd.CommandText = "BEGIN :rc_out := " + callExpr + "; END;";
+                                oraCmd.CommandType = CommandType.Text;
+                                oraCmd.BindByName = true;
+                                oraCmd.CommandTimeout = 200;
+
+                                var rcParam = new global::Oracle.ManagedDataAccess.Client.OracleParameter("rc_out",
+                                    global::Oracle.ManagedDataAccess.Client.OracleDbType.RefCursor);
+                                rcParam.Direction = ParameterDirection.Output;
+                                oraCmd.Parameters.Add(rcParam);
+                                foreach (var pname in inputParamNames)
+                                {
+                                    var pair = parameters.FirstOrDefault(x =>
+                                        x.field == pname
+                                        || x.field == "@" + pname
+                                        || x.field == ":" + pname);
+                                    object pv = pair != null ? pair.value : null;
+                                    var p = new global::Oracle.ManagedDataAccess.Client.OracleParameter(pname, pv ?? DBNull.Value);
+                                    oraCmd.Parameters.Add(p);
+                                }
+                                oraCmd.ExecuteNonQuery();
+
+                                // rcParam.Value e' direttamente il REF CURSOR ritornato dalla function.
+                                using (var reader = ((global::Oracle.ManagedDataAccess.Types.OracleRefCursor)rcParam.Value).GetDataReader())
+                                {
+                                    while (reader.Read())
+                                    {
+                                        // Lowercase keys: Oracle ritorna column names UPPER per default
+                                        // ma il frontend / consumer pattern e' lowercase (cross-DB compat).
+                                        var dict = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+                                        for (int i = 0; i < reader.FieldCount; i++)
+                                        {
+                                            string colName = reader.GetName(i).ToLowerInvariant();
+                                            object colVal = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                                            dict[colName] = colVal;
+                                        }
+                                        rows.Add(new SqlMapper.FastExpando { data = dict });
+                                    }
+                                }
+                                        tx.Commit();
+                                    }
+                                    break; // success
+                                }
+                                catch (global::Oracle.ManagedDataAccess.Client.OracleException oex)
+                                {
+                                    bool transient = transientOraNums.Contains(oex.Number);
+                                    if (!transient || attempt >= maxAttempts) throw;
+                                    int delayMs = baseDelayMs * (1 << (attempt - 1));
+                                    System.Threading.Thread.Sleep(delayMs);
+                                }
+                            }
                         }
                         else
                         {
@@ -1817,8 +1985,6 @@ FROM {fromTable}
                         return new rawPagedResult() { results = rows, TotalRecords = (__pageSize != 0 ? conto : rows.Count), Agg = null };
                     }
                 }
-                else
-                    throw new ValidationException(string.Format("Stored '{0}' not found", stored));
             }
         }
 
@@ -1864,17 +2030,18 @@ FROM {fromTable}
 
                     query = BuildDynamicUpdateQuery(entity, metadata, userId);
 
-                    if (string.IsNullOrEmpty(query))
+                    // NON early-return su query vuota: anche se nessun campo della
+                    // tabella padre e' stato modificato, le mutazioni sul collegato
+                    // m2m (___added / ___deleted) e i file-move FS DEVONO comunque
+                    // essere processati. Mirror semantico di MySQL/PG/MSSQL.
+                    string result = "";
+                    if (!string.IsNullOrEmpty(query))
                     {
-                        return "";
+                        RawHelpers.setMetadataVersion(metadata.FirstOrDefault()._Metadati_Tabelle);
+                        result = connection.Execute(query).ToString();
+                        if (isMeta)
+                            RawHelpers.logError(new Exception("Metadata update"), "Metadata Update", query);
                     }
-
-                    RawHelpers.setMetadataVersion(metadata.FirstOrDefault()._Metadati_Tabelle);
-
-                    string result = connection.Execute(query).ToString();
-
-                    if (isMeta)
-                        RawHelpers.logError(new Exception("Metadata update"), "Metadata Update", query);
 
                     // RecordTranslations sync (mirror task #73 PG).
                     try
@@ -1885,6 +2052,52 @@ FROM {fromTable}
                     {
                         RawHelpers.logError(rtEx, "RecordTranslationsOracle.OnUpdate", route);
                     }
+
+                    // Process m2m sub-entities (___added / ___deleted) — mirror
+                    // mysql/metaQueryMySql.cs:2900 + postgresql/metaQueryPostgreSql.cs:InsertflatData.
+                    // Mancante pre-fix → modifiche m2m che NON toccavano campi
+                    // della route principale non venivano persistite (la UPDATE
+                    // padre era vuota e tutto il restante codice veniva saltato).
+                    // Lookup case-insensitive perche' Oracle UPPER-folda gli
+                    // identifier non quotati, mentre la metadata propaga case
+                    // mista (es. `Id`, `CityID`, `FK_City`).
+                    multiple_check_fixes.ForEach(colGrid =>
+                    {
+                        string subRoute = colGrid.mc_ui_grid_manytomany_route;
+                        List<Dictionary<string, object>> collection = GetDictionaryListValue(entity, colGrid.mc_nome_colonna);
+                        if (collection == null) return;
+
+                        object parentLocalId = GetCI(entity, colGrid.mc_ui_grid_local_id_field);
+                        if (parentLocalId == null) return; // nessuna chiave parent → skip m2m
+
+                        foreach (Dictionary<string, object> subEntity in collection)
+                        {
+                            if (subEntity == null) continue;
+
+                            bool isAdded = subEntity.ContainsKey("___added") && subEntity["___added"] != null && (bool)subEntity["___added"];
+                            bool isDeleted = subEntity.ContainsKey("___deleted") && subEntity["___deleted"] != null && (bool)subEntity["___deleted"];
+
+                            if (isAdded)
+                            {
+                                if (isDeleted) continue;
+                                Dictionary<string, object> newMMEntity = new Dictionary<string, object>();
+                                newMMEntity[colGrid.mc_ui_grid_manytomany_related_id_field] = GetCI(subEntity, colGrid.mc_ui_grid_related_id_field);
+                                newMMEntity[colGrid.mc_ui_grid_manytomany_local_id_field] = parentLocalId;
+                                InsertflatData(newMMEntity, subRoute, userId);
+                            }
+                            else if (isDeleted)
+                            {
+                                bool wasSelected = subEntity.ContainsKey("___selected") && subEntity["___selected"] != null && (bool)subEntity["___selected"];
+                                if (wasSelected)
+                                {
+                                    Dictionary<string, object> MMEntityToDelete = new Dictionary<string, object>();
+                                    MMEntityToDelete[colGrid.mc_ui_grid_manytomany_related_id_field] = GetCI(subEntity, colGrid.mc_ui_grid_related_id_field);
+                                    MMEntityToDelete[colGrid.mc_ui_grid_manytomany_local_id_field] = parentLocalId;
+                                    DeleteflatData(MMEntityToDelete, subRoute, userId);
+                                }
+                            }
+                        }
+                    });
 
                     // Mirror mysql/metaQueryMySql.cs:2949 (UpdateFlatData upload move).
                     // Stesso fix di PG/MySQL: rootPath cade su ConfigHelper.GetSettingAsString("uploadFolder")
@@ -2212,12 +2425,15 @@ FROM {fromTable}
 
                     // RecordTranslations seed (mirror task #73 PG).
                     string recordIdForTranslations = ResolveRecordIdForTranslations(generated_pkey, result, metadata, entity);
+                    Console.WriteLine($"[ORA-RT] InsertflatData OnInsert: route={route} recId={recordIdForTranslations} mdHas={(metadata[0]?._Metadati_Tabelle != null)} propsBagLen={(metadata[0]?._Metadati_Tabelle?.md_props_bag?.Length ?? -1)}");
                     try
                     {
                         WEB_UI_CRAFTER.RecordTranslationsOracle.OnInsert(connection, null, metadata[0]._Metadati_Tabelle, metadata, entity, recordIdForTranslations, userId);
+                        Console.WriteLine($"[ORA-RT] OnInsert OK");
                     }
                     catch (Exception rtEx)
                     {
+                        Console.WriteLine($"[ORA-RT] OnInsert THREW: {rtEx.GetType().Name}: {rtEx.Message}");
                         RawHelpers.logError(rtEx, "RecordTranslationsOracle.OnInsert", route);
                     }
 
@@ -2236,43 +2452,39 @@ FROM {fromTable}
                             if (subTable != null)
                                 subColumns = subTable._Metadati_Colonnes.ToList();
                         }
-                        object[] collection = (object[])entity[colGrid.mc_nome_colonna];
-                        foreach (object item in collection)
+                        // Newtonsoft deserializza il payload m2m come List<object> o
+                        // JArray<JObject>, NON come object[]. Il cast diretto
+                        // `(object[])entity[...]` falliva con InvalidCastException.
+                        // Usiamo GetDictionaryListValue + lookup case-insensitive
+                        // per allinearci al pattern PG/MySQL.
+                        List<Dictionary<string, object>> collection = GetDictionaryListValue(entity, colGrid.mc_nome_colonna);
+                        if (collection == null) return;
+                        foreach (Dictionary<string, object> subEntity in collection)
                         {
-                            Dictionary<string, object> subEntity = (Dictionary<string, object>)item;
-                            string localfield = colGrid.mc_ui_grid_manytomany_related_id_field;
-                            if (subEntity.ContainsKey("___added") && subEntity["___added"] != null)
+                            if (subEntity == null) continue;
+                            bool isAdded = subEntity.ContainsKey("___added") && subEntity["___added"] != null && (bool)subEntity["___added"];
+                            bool isDeleted = subEntity.ContainsKey("___deleted") && subEntity["___deleted"] != null && (bool)subEntity["___deleted"];
+
+                            if (isAdded)
                             {
-                                if ((bool)subEntity["___added"])
-                                {
-                                    if (subEntity.ContainsKey("___deleted"))
-                                    {
-                                        object deleted = subEntity["___deleted"];
-                                        if (deleted != null)
-                                            if ((bool)deleted)
-                                                continue;
-                                    }
+                                if (isDeleted) continue;
 
-                                    entity[colGrid.mc_ui_grid_local_id_field] = result;
+                                entity[colGrid.mc_ui_grid_local_id_field] = result;
 
-                                    subEntity[colGrid.mc_ui_grid_manytomany_related_id_field] = subEntity[colGrid.mc_ui_grid_related_id_field];
-                                    subEntity[colGrid.mc_ui_grid_manytomany_local_id_field] = entity[colGrid.mc_ui_grid_local_id_field];
-
-                                    if (colGrid.mc_ui_grid_related_id_field != colGrid.mc_ui_grid_local_id_field)
-                                        subEntity[colGrid.mc_ui_grid_related_id_field] = subEntity[colGrid.mc_ui_grid_local_id_field];
-
-                                    string insertedID = InsertflatData(subEntity, subRoute, userId);
-
-                                }
+                                Dictionary<string, object> newMMEntity = new Dictionary<string, object>();
+                                newMMEntity[colGrid.mc_ui_grid_manytomany_related_id_field] = GetCI(subEntity, colGrid.mc_ui_grid_related_id_field);
+                                newMMEntity[colGrid.mc_ui_grid_manytomany_local_id_field] = entity[colGrid.mc_ui_grid_local_id_field];
+                                InsertflatData(newMMEntity, subRoute, userId);
                             }
-                            else if (subEntity.ContainsKey("___deleted") && (bool)subEntity["___deleted"])
+                            else if (isDeleted)
                             {
-                                if ((bool)subEntity["___selected"])
+                                bool wasSelected = subEntity.ContainsKey("___selected") && subEntity["___selected"] != null && (bool)subEntity["___selected"];
+                                if (wasSelected)
                                 {
-                                    subEntity[colGrid.mc_ui_grid_manytomany_related_id_field] = subEntity[colGrid.mc_ui_grid_related_id_field];
-                                    subEntity[colGrid.mc_ui_grid_manytomany_local_id_field] = entity[colGrid.mc_ui_grid_local_id_field];
-
-                                    DeleteflatData(subEntity, subRoute, userId);
+                                    Dictionary<string, object> MMEntityToDelete = new Dictionary<string, object>();
+                                    MMEntityToDelete[colGrid.mc_ui_grid_manytomany_related_id_field] = GetCI(subEntity, colGrid.mc_ui_grid_related_id_field);
+                                    MMEntityToDelete[colGrid.mc_ui_grid_manytomany_local_id_field] = GetCI(entity, colGrid.mc_ui_grid_local_id_field);
+                                    DeleteflatData(MMEntityToDelete, subRoute, userId);
                                 }
                             }
                         }
@@ -2554,6 +2766,41 @@ FROM {fromTable}
         // runtime — le query arrivano in OracleCommand cosi' come sono scritte nei `.cs`. Se in futuro emerge
         // un dialect mismatch lo riporta direttamente Oracle con ORA-xxxxx, e il fix va al sorgente.
 
+        // Computed-text snippet (mc_ui_lookup_computed_data_text_field) viene baked nel metadata in forma
+        // MSSQL/MySQL/PG-style con alias quoted-lowercase (es. "language_lingue"."lingua"). Su Oracle il
+        // JOIN builder emette l'alias come unquoted UPPER (LANGUAGE_LINGUE) → `"language_lingue"` lowercase
+        // non matcha. Questo helper rewrite le sezioni "ident"."ident" → IDENT.IDENT quando entrambi i token
+        // sono "safe" Oracle (letter start, alphanumeric+underscore, non reserved), allineando il riferimento
+        // all'alias JOIN. Identifier con spazi/special-chars/reserved-kw vengono lasciati quoted (corretto per
+        // Oracle case-sensitive matching). Sicuro perché agisce solo su pattern "ident"."ident" — non altera
+        // funzioni, literal stringhe single-quoted, o cast espliciti.
+        // Regex aggiornato: `a` accetta qualsiasi sequenza non-quote (es. "md_id_ metadati  tabelle"
+        // con spazi — alias quoted con case preservato dalla JOIN). `b` resta safe identifier
+        // (column name, sempre word-char). Match `"alias"."col"`.
+        private static readonly System.Text.RegularExpressions.Regex _ComputedTextDottedIdentRegex =
+            new System.Text.RegularExpressions.Regex(
+                "\"(?<a>[^\"]+)\"\\s*\\.\\s*\"(?<b>[A-Za-z][A-Za-z0-9_]*)\"",
+                System.Text.RegularExpressions.RegexOptions.Compiled);
+        public static string NormalizeComputedTextSnippet(string snippet)
+        {
+            if (string.IsNullOrEmpty(snippet)) return snippet;
+            if (snippet.IndexOf('"') < 0) return snippet;
+            return _ComputedTextDottedIdentRegex.Replace(snippet, m =>
+            {
+                string a = m.Groups["a"].Value;
+                string b = m.Groups["b"].Value;
+                // `a`: se safe ident (no spaces/special, not reserved) → UPPER unquoted.
+                //      Altrimenti (es. alias con spaces) → quoted preserve case.
+                bool aIsSafeIdent = System.Text.RegularExpressions.Regex.IsMatch(a, "^[A-Za-z][A-Za-z0-9_]*$")
+                                    && !OracleReservedKeywords.Contains(a.ToUpperInvariant());
+                string aOut = aIsSafeIdent ? a.ToUpperInvariant() : ("\"" + a + "\"");
+                // `b`: sempre column name (word-char). UPPER unquoted se safe, quoted UPPER se reserved.
+                bool bSafe = !OracleReservedKeywords.Contains(b.ToUpperInvariant());
+                string bOut = bSafe ? b.ToUpperInvariant() : ("\"" + b.ToUpperInvariant() + "\"");
+                return aOut + "." + bOut;
+            });
+        }
+
         public static object EscapeValue(object valore)
         {
             if (valore == null)
@@ -2606,17 +2853,24 @@ FROM {fromTable}
                 current_fld = string.Format(" CAST({0} AS NVARCHAR2(4000))", current_fld);
             }
 
-            if (fld.mc_db_column_type == "point" || fld.mc_ui_column_type == "point")
+            // Oracle/Spatial: la migration MySQL→Oracle salva geometry come BLOB
+            // (WKB passthrough con prefisso EWKB SRID a 4 byte LE). Due helper
+            // PL/SQL (vedi dbms/scripts/oracle-spatial-wkb-to-wkt.sql):
+            //   • WUIC_WKB_TO_POINTJSON → JSON {"lat":..,"lng":..} (mc_ui_column_type=point)
+            //   • WUIC_WKB_TO_WKT      → WKT POLYGON/MULTIPOLYGON (mc_ui_column_type=polygon|geometry)
+            // Mirror del dispatch PG sqlPointToString (cf. Helpers.cs:3823).
+            if (fld.mc_ui_column_type == "point"
+                || (fld.mc_db_column_type == "point"
+                    && fld.mc_ui_column_type != "geometry"
+                    && fld.mc_ui_column_type != "polygon"))
             {
-                // Oracle/Spatial: SDO_GEOMETRY conversion non implementata. Coerente con PG provider che
-                // ritorna NULL anch'esso (vedi mysql/metaQueryMySql.cs equivalente).
-                current_fld = " NULL ";
+                current_fld = " WUIC_WKB_TO_POINTJSON(" + current_fld + ") ";
             }
-
-            if (fld.mc_db_column_type == "geometry" || fld.mc_ui_column_type == "geometry")
+            else if (fld.mc_db_column_type == "geometry"
+                  || fld.mc_ui_column_type == "geometry"
+                  || fld.mc_ui_column_type == "polygon")
             {
-                // Oracle/Spatial: come sopra. La sintassi MSSQL `cast(... as geography).ToString()` non esiste in Oracle.
-                current_fld = " NULL ";
+                current_fld = " WUIC_WKB_TO_WKT(" + current_fld + ") ";
             }
 
             return current_fld;
@@ -2656,6 +2910,40 @@ FROM {fromTable}
 
                 if (mcId != 0)
                     lookuprelatedCol = mmd.GetMetadati_Colonnes(mcId.ToString()).OfType<_Metadati_Colonne_Lookup>().FirstOrDefault();
+
+                // Combo standalone: in `getFlatRecordComboData`, la FROM e' la lookup
+                // target (es. `_metadati__tabelle`) senza alias. Pero' la `formula_lookup`
+                // / `mc_ui_lookup_computed_dataTextField` della colonna chiamante puo'
+                // referenziare l'alias FK auto-generato (es. `"md_id_ metadati  tabelle"`,
+                // pattern `<dataValueField>_<lookup_entity_name>`) che pero' esiste solo
+                // in contesto grid-edit (dove il framework auto-genera il JOIN sulla
+                // lookup target). In combo standalone l'alias non esiste → ORA-00904.
+                //
+                // Fix: in combo standalone, se la formula referenzia un alias del pattern
+                // canonico, aggiungiamo un self-JOIN noop sulla stessa tabella che ricrea
+                // quell'alias. La grid-edit non e' impattata (lì `mcId == 0` e questo blocco
+                // viene saltato; l'auto-FK JOIN della grid-edit non collide con questo
+                // self-JOIN che e' presente solo nel combo standalone).
+                if (mcId != 0 && lookuprelatedCol != null
+                    && !string.IsNullOrEmpty(lookuprelatedCol.mc_nome_colonna)
+                    && !string.IsNullOrEmpty(lookuprelatedCol.mc_ui_lookup_entity_name)
+                    && !string.IsNullOrEmpty(lookuprelatedCol.mc_ui_lookup_dataValueField))
+                {
+                    string comboAlias = EscapeDBObjectName(lookuprelatedCol.mc_nome_colonna + "_" + lookuprelatedCol.mc_ui_lookup_entity_name);
+                    // Risolvi physical name del FK column nella lookup target
+                    _Metadati_Colonne fkCol = tab._Metadati_Colonnes
+                        .FirstOrDefault(xk => xk.mc_nome_colonna == lookuprelatedCol.mc_ui_lookup_dataValueField)
+                        ?? tab._Metadati_Colonnes
+                            .FirstOrDefault(xk => xk.mc_real_column_name == lookuprelatedCol.mc_ui_lookup_dataValueField);
+                    string fkPhysical = EscapeDBObjectName(fkCol != null
+                        ? RawHelpers.getStoreColumnName(fkCol)
+                        : lookuprelatedCol.mc_ui_lookup_dataValueField);
+                    // Self-JOIN noop: stessa table, ON pk=pk. Oracle ottimizza facilmente
+                    // (1:1 join via PK) → impatto perf trascurabile su combo (pochi record).
+                    string selfJoin = " " + GetSafeTableName(tab) + " " + comboAlias
+                        + " ON " + GetSafeTableName(tab) + "." + fkPhysical + " = " + comboAlias + "." + fkPhysical;
+                    joinsAppend.Add(selfJoin);
+                }
 
                 string orderBy = BuildDynamicOrderBy(SortInfo, lst, tab, pKey, clonedfilters);
                 string fieldList = BuildDynamicFieldList(mmd, lst, tab, joins, formulaLookup, joinsAppend, mcId);
@@ -2873,7 +3161,14 @@ FROM {fromTable}
                         string safeappend = EscapeDBObjectName(col.mc_ui_lookup_entity_name.Replace(" ", "_") + "___" + col.mc_ui_lookup_dataTextField + "__" + col.mc_nome_colonna);
 
                         string safeUniqueEntityName = EscapeDBObjectName(col.mc_nome_colonna + "_" + col.mc_ui_lookup_entity_name);
-                        string safeTextField = EscapeDBObjectName(col.mc_ui_lookup_dataTextField);
+                        // friendly→physical resolution: vedi commento in JoinBuilder.
+                        _Metadati_Colonne textCol = relatedTable._Metadati_Colonnes
+                            .FirstOrDefault(xk => xk.mc_nome_colonna == col.mc_ui_lookup_dataTextField)
+                            ?? relatedTable._Metadati_Colonnes
+                                .FirstOrDefault(xk => xk.mc_real_column_name == col.mc_ui_lookup_dataTextField);
+                        string safeTextField = EscapeDBObjectName(textCol != null
+                            ? RawHelpers.getStoreColumnName(textCol)
+                            : col.mc_ui_lookup_dataTextField);
 
                         fieldList += (string.IsNullOrEmpty(fieldList) ? "" : ", ") + string.Format("{0} AS {1}", safeUniqueEntityName + "." + safeTextField, safeappend);
                     }
@@ -2913,8 +3208,15 @@ FROM {fromTable}
 
                         string safeEntityName = GetTableName(relatedTable);
                         string safeUniqueEntityName = EscapeDBObjectName(col.mc_nome_colonna + "_" + col.mc_ui_lookup_entity_name);
-                        string safeTextField = EscapeDBObjectName(col.mc_ui_lookup_dataTextField);
-                        string calculatedText = col.mc_ui_lookup_computed_dataTextField;
+                        // friendly→physical resolution: vedi commento in JoinBuilder.
+                        _Metadati_Colonne textCol = relatedTable._Metadati_Colonnes
+                            .FirstOrDefault(xk => xk.mc_nome_colonna == col.mc_ui_lookup_dataTextField)
+                            ?? relatedTable._Metadati_Colonnes
+                                .FirstOrDefault(xk => xk.mc_real_column_name == col.mc_ui_lookup_dataTextField);
+                        string safeTextField = EscapeDBObjectName(textCol != null
+                            ? RawHelpers.getStoreColumnName(textCol)
+                            : col.mc_ui_lookup_dataTextField);
+                        string calculatedText = NormalizeComputedTextSnippet(col.mc_ui_lookup_computed_dataTextField);
 
                         fieldList += (string.IsNullOrEmpty(fieldList) ? "" : ", ") + string.Format("{0} AS {1}", string.IsNullOrEmpty(calculatedText) ? (safeUniqueEntityName + "." + safeTextField) : calculatedText, safeappend);
                         distList += (string.IsNullOrEmpty(distList) ? "" : ", ") + string.Format("{0}", safeappend);
@@ -2989,7 +3291,7 @@ FROM {fromTable}
                             throw new Exception(string.Format("Colonna '{0}' non trovata. Default lookup filter definition '{1}'", filterPart[0], lookuprelatedCol.mc_display_string_in_view));
 
                         _Metadati_Tabelle currentFldLUpTabel = filteringCol._Metadati_Tabelle;
-                        string currentFldLUp = EscapeDBObjectName(currentFldLUpTabel.md_nome_tabella) + "." + metaQuery.EscapeDBObjectName(RawHelpers.getStoreColumnName(filteringCol));
+                        string currentFldLUp = EscapeDBObjectName(currentFldLUpTabel.md_nome_tabella) + "." + EscapeDBObjectName(RawHelpers.getStoreColumnName(filteringCol));
                         innerWhere = AppendFilter(filteringCol, filterInfo, logicOperator, currentFldLUp, innerWhere, tab, "", user_id);
                     }
                 }
@@ -3279,7 +3581,17 @@ FROM {fromTable}
                     {
                         joinsAppend.AddRange(fld.mc_custom_join.Split(new string[] { "LEFT JOIN" }, StringSplitOptions.None));
                     }
-                    if (lookuprelatedCol != null && !string.IsNullOrEmpty(lookuprelatedCol.mc_custom_join))
+                    // Mirror MSSQL [_Metadati_methods.cs:5982]: applica il custom_join solo
+                    // quando la colonna corrente E' il dataValueField della lookup chiamante.
+                    // Senza questo filtro la stessa append viene ripetuta per ogni colonna del
+                    // SELECT (alias duplicato in N JOIN). Inoltre il pattern aliasing va attivato
+                    // anche con un SOLO LEFT JOIN nel custom_join: il primo definisce l'alias
+                    // di base, i subsequent (se presenti) vengono riscritti rimpiazzando
+                    // l'aliasToFix con il realTableName (cosi' in combo standalone gli alias
+                    // intermedi collassano sulla FROM table).
+                    if (lookuprelatedCol != null
+                        && !string.IsNullOrEmpty(lookuprelatedCol.mc_custom_join)
+                        && lookuprelatedCol.mc_ui_lookup_dataValueField == fld.mc_nome_colonna)
                     {
                         string[] all_joins = lookuprelatedCol.mc_custom_join.Split(new string[] { "LEFT JOIN" }, StringSplitOptions.None);
 
@@ -3287,14 +3599,45 @@ FROM {fromTable}
                         {
                             string firstJoin = all_joins[1];
 
-                            string realTableName = firstJoin.Split(new string[] { " AS " }, StringSplitOptions.None)[0].Trim();
-
-                            string aliasToFix = firstJoin.Split(new string[] { " AS " }, StringSplitOptions.None)[1].Split(new string[] { " ON " }, StringSplitOptions.None)[0].Trim();
-
-                            for (int lindx = 2; lindx < all_joins.Length; lindx++)
+                            // Parsing difensivo: supporta sia `table AS alias` sia `table alias`.
+                            // - `table AS alias ON ...` (SQL standard ANSI con keyword)
+                            // - `"table" "alias" ON ...` (Oracle/SQL standard implicit aliasing)
+                            // L'alias e' la parte tra fine-table-name e ` ON `.
+                            string realTableName;
+                            string aliasToFix;
+                            string[] asSplit = firstJoin.Split(new string[] { " AS " }, StringSplitOptions.None);
+                            if (asSplit.Length >= 2)
                             {
-                                string replaced = Regex.Replace(all_joins[lindx], Regex.Escape(aliasToFix), realTableName);
-                                joinsAppend.Add(replaced);
+                                // sintassi `table AS alias ON ...`
+                                realTableName = asSplit[0].Trim();
+                                aliasToFix = asSplit[1].Split(new string[] { " ON " }, StringSplitOptions.None)[0].Trim();
+                            }
+                            else
+                            {
+                                // sintassi implicita `table alias ON ...`: tokenizza la sezione
+                                // prima di ` ON `, ultimo token = alias, resto = table.
+                                string beforeOn = firstJoin.Split(new string[] { " ON " }, StringSplitOptions.None)[0].Trim();
+                                int lastSpace = beforeOn.LastIndexOf(' ');
+                                if (lastSpace < 0)
+                                {
+                                    // join malformato (manca alias) — skip rewriting per non crashare.
+                                    realTableName = beforeOn;
+                                    aliasToFix = null;
+                                }
+                                else
+                                {
+                                    realTableName = beforeOn.Substring(0, lastSpace).Trim();
+                                    aliasToFix = beforeOn.Substring(lastSpace + 1).Trim();
+                                }
+                            }
+
+                            if (!string.IsNullOrEmpty(aliasToFix))
+                            {
+                                for (int lindx = 2; lindx < all_joins.Length; lindx++)
+                                {
+                                    string replaced = Regex.Replace(all_joins[lindx], Regex.Escape(aliasToFix), realTableName);
+                                    joinsAppend.Add(replaced);
+                                }
                             }
                         }
                     }
@@ -3314,8 +3657,22 @@ FROM {fromTable}
         {
             string safeEntityName = GetTableName(relatedTable);
             string safeUniqueEntityName = EscapeDBObjectName(fld.mc_nome_colonna + "_" + col.mc_ui_lookup_entity_name);
-            string calculatedText = col.mc_ui_lookup_computed_dataTextField;
-            string safeTextField = EscapeDBObjectName(col.mc_ui_lookup_dataTextField);
+            string calculatedText = NormalizeComputedTextSnippet(col.mc_ui_lookup_computed_dataTextField);
+
+            // Risoluzione friendly→physical del dataTextField via metadata target.
+            // Su MSSQL `mc_nome_colonna` coincide col physical SQL name → l'identifier emesso
+            // matcha sempre. Su Oracle la migration ha rinominato alcuni physical names
+            // (es. `md_route_name` friendly → `mdroutename` physical) e i due divergono;
+            // emettere il friendly causa ORA-00904 "identificativo non valido". Stesso pattern
+            // canonical gia' usato a riga 3000-3006 (combo standalone descriptor) e gia'
+            // applicato qui sotto per `dataValueField` (line 3610-3617).
+            _Metadati_Colonne textCol = relatedTable?._Metadati_Colonnes
+                ?.FirstOrDefault(xk => xk.mc_nome_colonna == col.mc_ui_lookup_dataTextField)
+                ?? relatedTable?._Metadati_Colonnes
+                    ?.FirstOrDefault(xk => xk.mc_real_column_name == col.mc_ui_lookup_dataTextField);
+            string safeTextField = EscapeDBObjectName(textCol != null
+                ? RawHelpers.getStoreColumnName(textCol)
+                : col.mc_ui_lookup_dataTextField);
 
             string comboTxtValue;
 
@@ -3801,7 +4158,7 @@ FROM {fromTable}
                     //se f.value è del format YYYY-MM-ddTHH:mm:ssZ -> il DateTime.Parse applica UTC time. 
                     string parsed = f.value.ToString().Replace(@"""", "");
                     DateTime d = DateTime.Parse(parsed);
-                    f.value = d.ToString("yyyyMMdd HH:mm:ss").Replace(".", ":");
+                    f.value = d.ToString("yyyy-MM-dd HH:mm:ss");
 
                     where += ((where == "") ? " where " : " " + logicOperator + " ") + "( (" + "DATEADD(ms, -DATEPART(ms, " + currentFld + "), " + currentFld + ")" + ")" + realOperator + string.Format(" {0}{1}{2} {3} )", leftExtraOperator, f.value, rightExtraOperator, async_extra_condition);
                     if (!isNested)
@@ -3846,7 +4203,20 @@ FROM {fromTable}
                     // Oracle: TO_CHAR per coerce NUMBER/INTEGER → VARCHAR2 sul LIKE.
                     likeLhs = "TO_CHAR(" + likeLhs + ")";
                 }
-                where += ((where == "") ? " where " : " " + logicOperator + " ") + "( (" + likeLhs + ")" + realOperator + string.Format(" {0}{1}{2} {3} {4} )", leftExtraOperator, f.value, rightExtraOperator, async_extra_condition, (f.__extra ? " OR 1=1" : ""));
+                // Oracle: LIKE e' case-sensitive (a differenza di MSSQL con
+                // default collation). Per ricalcare il comportamento ILIKE di
+                // PG e CI-LIKE di MSSQL, wrappiamo entrambi i lati in UPPER()
+                // quando l'operatore e' un LIKE/contains/startswith/endswith.
+                // Il valore lato destro e' una stringa letterale gia' quoted,
+                // quindi applicare UPPER() all'intera expression e' sicuro.
+                string likeRhsValue = (f.value == null) ? string.Empty : Convert.ToString(f.value);
+                string rhsExpr = string.Format("{0}{1}{2}", leftExtraOperator, likeRhsValue, rightExtraOperator);
+                if (realOperator == "like")
+                {
+                    likeLhs = "UPPER(" + likeLhs + ")";
+                    rhsExpr = "UPPER(" + rhsExpr + ")";
+                }
+                where += ((where == "") ? " where " : " " + logicOperator + " ") + "( (" + likeLhs + ")" + realOperator + string.Format(" {0} {1} {2} )", rhsExpr, async_extra_condition, (f.__extra ? " OR 1=1" : ""));
 
                 if (!isNested)
                     filterInfo.filters.Remove(f);
@@ -3946,7 +4316,7 @@ FROM {fromTable}
                 innerRolePredicate += (string.IsNullOrEmpty(innerRolePredicate) ? " OR " : "") + "ruolo_id=\"" + or.role_id + "\"";
             });
 
-            predicate = string.Format("(utenteid=@user_id or ruoloid=@role_id {0} or aziendaid=@azienda_id) and md_id=@md_id", innerRolePredicate);
+            predicate = string.Format("(utenteid=:user_id or ruoloid=:role_id {0} or aziendaid=:azienda_id) and md_id=:md_id", innerRolePredicate);
             using (metaRawModel context = new metaRawModel())
             {
                 List<_Metadati_Utenti_Autorizzazioni_Tabelle> auth = context.GetMetadati_Utenti_Autorizzazioni_Tabelles(predicate, ute.role_id, userId, ute.azienda_id, tab.md_id).ToList();
@@ -4049,7 +4419,7 @@ FROM {fromTable}
                     //FIX UTC TIME ISSUE 
                     string parsed = f.value.ToString().Replace(@"""", "");
                     DateTime d = DateTime.Parse(parsed);
-                    f.value = d.AddHours(-1).ToString("yyyyMMdd HH:mm:ss");
+                    f.value = d.AddHours(-1).ToString("yyyy-MM-dd HH:mm:ss");
 
                     having += ((having == "") ? " where " : " " + logicOperator + " ") + string.Format("( {0}(", f.havingAggregation) + "DATEADD(ms, -DATEPART(ms, " + currentFld + "), " + currentFld + ")" + ")" + realOperator + string.Format(" {0}{1}{2} {3} )", leftExtraOperator, f.value, rightExtraOperator, async_extra_condition);
                     filterInfo.filters.Remove(f);
@@ -4101,15 +4471,15 @@ FROM {fromTable}
                     foreach (string fld in tabel.md_logging_insert_date_field_name.Split(','))
                     {
                         fieldList += (fieldList == "" ? "" : ", ") + fld;
-                        valueList += (valueList == "" ? "" : ", ") + "'" + DateTime.Now.ToString("yyyyMMdd HH:mm:ss").Replace(".", ":") + "'";
-                        entity[fld] = DateTime.Now.ToString("yyyyMMdd HH:mm:ss").Replace(".", ":");
+                        valueList += (valueList == "" ? "" : ", ") + "TO_DATE('" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "','YYYY-MM-DD HH24:MI:SS')";
+                        entity[fld] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                     }
                 }
                 else
                 {
                     fieldList += (fieldList == "" ? "" : ", ") + tabel.md_logging_insert_date_field_name;
-                    valueList += (valueList == "" ? "" : ", ") + "'" + DateTime.Now.ToString("yyyyMMdd HH:mm:ss").Replace(".", ":") + "'";
-                    entity[tabel.md_logging_insert_date_field_name] = DateTime.Now.ToString("yyyyMMdd HH:mm:ss").Replace(".", ":");
+                    valueList += (valueList == "" ? "" : ", ") + "TO_DATE('" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "','YYYY-MM-DD HH24:MI:SS')";
+                    entity[tabel.md_logging_insert_date_field_name] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                 }
             }
 
@@ -4120,15 +4490,15 @@ FROM {fromTable}
                     foreach (string fld in tabel.md_logging_last_mod_date_field_name.Split(','))
                     {
                         fieldList += (fieldList == "" ? "" : ", ") + fld;
-                        valueList += (valueList == "" ? "" : ", ") + "'" + DateTime.Now.ToString("yyyyMMdd HH:mm:ss").Replace(".", ":") + "'";
-                        entity[fld] = DateTime.Now.ToString("yyyyMMdd HH:mm:ss").Replace(".", ":");
+                        valueList += (valueList == "" ? "" : ", ") + "TO_DATE('" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "','YYYY-MM-DD HH24:MI:SS')";
+                        entity[fld] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                     }
                 }
                 else
                 {
                     fieldList += (fieldList == "" ? "" : ", ") + tabel.md_logging_last_mod_date_field_name;
-                    valueList += (valueList == "" ? "" : ", ") + "'" + DateTime.Now.ToString("yyyyMMdd HH:mm:ss").Replace(".", ":") + "'";
-                    entity[tabel.md_logging_last_mod_date_field_name] = DateTime.Now.ToString("yyyyMMdd HH:mm:ss").Replace(".", ":");
+                    valueList += (valueList == "" ? "" : ", ") + "TO_DATE('" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "','YYYY-MM-DD HH24:MI:SS')";
+                    entity[tabel.md_logging_last_mod_date_field_name] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                 }
             }
 
@@ -4168,14 +4538,14 @@ FROM {fromTable}
                 {
                     foreach (string fld in tabel.md_logging_last_mod_date_field_name.Split(','))
                     {
-                        fieldValueList += (fieldValueList == "" ? "" : ", ") + fld + "=" + string.Format("'{0}'", DateTime.Now.ToString("yyyyMMdd HH:mm:ss").Replace(".", ":"));
-                        entity["fld"] = DateTime.Now.ToString("yyyyMMdd HH:mm:ss").Replace(".", ":");
+                        fieldValueList += (fieldValueList == "" ? "" : ", ") + fld + "=" + string.Format("TO_DATE('{0}','YYYY-MM-DD HH24:MI:SS')", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                        entity["fld"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                     }
                 }
                 else
                 {
-                    fieldValueList += (fieldValueList == "" ? "" : ", ") + tabel.md_logging_last_mod_date_field_name + "=" + string.Format("'{0}'", DateTime.Now.ToString("yyyyMMdd HH:mm:ss").Replace(".", ":"));
-                    entity[tabel.md_logging_last_mod_date_field_name] = DateTime.Now.ToString("yyyyMMdd HH:mm:ss").Replace(".", ":");
+                    fieldValueList += (fieldValueList == "" ? "" : ", ") + tabel.md_logging_last_mod_date_field_name + "=" + string.Format("TO_DATE('{0}','YYYY-MM-DD HH24:MI:SS')", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                    entity[tabel.md_logging_last_mod_date_field_name] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                 }
 
             }
@@ -4190,8 +4560,8 @@ FROM {fromTable}
         {
             if (!string.IsNullOrEmpty(tabel.md_loggingdelete_date_field_name))
             {
-                deleteLog += (deleteLog == "" ? "" : ", ") + tabel.md_loggingdelete_date_field_name + "=" + string.Format("'{0}'", DateTime.Now.ToString("yyyyMMdd HH:mm:ss").Replace(".", ":"));
-                entity[tabel.md_loggingdelete_date_field_name] = DateTime.Now.ToString("yyyyMMdd HH:mm:ss").Replace(".", ":");
+                deleteLog += (deleteLog == "" ? "" : ", ") + tabel.md_loggingdelete_date_field_name + "=" + string.Format("TO_DATE('{0}','YYYY-MM-DD HH24:MI:SS')", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                entity[tabel.md_loggingdelete_date_field_name] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
             }
             if (!string.IsNullOrEmpty(tabel.md_logging_delete_user_field_name))
             {
@@ -4250,7 +4620,7 @@ FROM {fromTable}
                             var dbArgs = new DynamicParameters();
                             foreach (_Metadati_Colonne pk in pkeys)
                             {
-                                dbArgs.Add("@" + pk.mc_nome_colonna, row.data[pk.mc_nome_colonna].ToString());
+                                dbArgs.Add("" + pk.mc_nome_colonna, row.data[pk.mc_nome_colonna].ToString());
                             }
                             List<Dapper.SqlMapper.FastExpando> chartRows = (List<Dapper.SqlMapper.FastExpando>)con.Query(chartCol.mc_chart_select, dbArgs);
 
@@ -4300,20 +4670,66 @@ FROM {fromTable}
             }
         }
 
+        // Oracle: case-insensitive dict lookup helper. Oracle ritorna i nomi
+        // colonna in UPPER (unquoted), mentre la metadata propaga il nome con
+        // case mista (es. `FK_City`, `CityID`). Senza questo helper il lookup
+        // `data["FK_City"]` lancia KeyNotFoundException perche' la chiave reale
+        // e' `FK_CITY`.
+        private static object GetCI(IDictionary<string, object> data, string key)
+        {
+            if (data == null || key == null) return null;
+            if (data.TryGetValue(key, out object v)) return v;
+            foreach (var kv in data)
+            {
+                if (string.Equals(kv.Key, key, StringComparison.OrdinalIgnoreCase)) return kv.Value;
+            }
+            return null;
+        }
+
+        // Mirror PG / MySQL — il payload m2m dal frontend arriva come JArray<JObject>
+        // via Newtonsoft (no auto-cast a Dictionary). Normalizziamo a List<Dict>.
+        private static List<Dictionary<string, object>> GetDictionaryListValue(Dictionary<string, object> source, string key)
+        {
+            if (source == null || string.IsNullOrEmpty(key) || !source.TryGetValue(key, out object raw) || raw == null)
+                return null;
+            if (raw is List<Dictionary<string, object>> typed) return typed;
+            if (raw is IEnumerable<Dictionary<string, object>> typedEnum) return typedEnum.ToList();
+            if (raw is System.Collections.IEnumerable enumerable && !(raw is string))
+            {
+                List<Dictionary<string, object>> result = new List<Dictionary<string, object>>();
+                foreach (object item in enumerable)
+                {
+                    Dictionary<string, object> normalized = NormalizeToDictionary(item);
+                    if (normalized != null) result.Add(normalized);
+                }
+                return result;
+            }
+            return null;
+        }
+
+        // NormalizeToDictionary già definito altrove in questo file (caso JObject
+        // gestito dalla versione canonica). Vedi linea ~5424.
+
         private static List<Dictionary<string, object>> GetManyToManyOptions(string localKeyName, string row_id, _Metadati_Colonne pkey, string userId, _Metadati_Colonne_Grid gridCol, SqlMapper.FastExpando row, string relatedKeyName, _Metadati_Colonne manyToManyKey)
         {
             FilterInfos fltr = RawHelpers.createStandardFilter(localKeyName, row_id, pkey);
 
             string[] restriction = { gridCol.mc_ui_grid_related_id_field, gridCol.mc_ui_grid_display_field };
 
-            rawPagedResult relatedData = GetFlatData(userId, gridCol.mc_ui_grid_manytomany_route, 0, null, null, null, fltr, "AND", true, null, restriction.ToList());
+            // PG/MySQL mirror: NESSUNA restriction sulla bridge query — la
+            // restriction list (CityID, display_field) appartiene alla route
+            // 'cities', non a 'mm_associations'. Passando restriction qui, la
+            // SELECT su mm_associations cercava colonne inesistenti e il bridge
+            // tornava senza FK_City → fltrRemoteRoute restava vuoto → cities
+            // ritornava TUTTI i record (1000+) anziché solo quelli collegati.
+            rawPagedResult relatedData = GetFlatData(userId, gridCol.mc_ui_grid_manytomany_route, 0, null, null, null, fltr, "AND", true, null, null);
 
             FilterInfos fltrRemoteRoute = new FilterInfos() { logic = "OR" };
             fltrRemoteRoute.filters = new List<filterElement>();
 
             relatedData.results.OfType<Dapper.SqlMapper.FastExpando>().ToList().ForEach(rd =>
             {
-                fltrRemoteRoute.filters.Add(new filterElement() { field = gridCol.mc_ui_grid_related_id_field, operatore = "eq", value = rd.data[gridCol.mc_ui_grid_manytomany_related_id_field].ToString() });
+                fltrRemoteRoute.filters.Add(new filterElement() { field = gridCol.mc_ui_grid_related_id_field, operatore = "eq", value = GetCI(rd.data, gridCol.mc_ui_grid_manytomany_related_id_field)?.ToString() });
             });
             rawPagedResult relatedFullData = GetFlatData(userId, gridCol.mc_ui_grid_route, 0, null, null, null, fltrRemoteRoute, "OR", true, null, restriction.ToList(), "", 0, true);
 
@@ -4324,10 +4740,10 @@ FROM {fromTable}
                 foreach (Dapper.SqlMapper.FastExpando rd in relatedFullData.results)
                 {
                     Dictionary<string, object> cloned = new Dictionary<string, object>(rd.data);
-                    Dapper.SqlMapper.FastExpando selected = relatedData.results.OfType<Dapper.SqlMapper.FastExpando>().FirstOrDefault(x => x.data[localKeyName].ToString() == row.data[gridCol.mc_ui_grid_local_id_field].ToString() && x.data[relatedKeyName].ToString() == rd.data[gridCol.mc_ui_grid_related_id_field].ToString());
+                    Dapper.SqlMapper.FastExpando selected = relatedData.results.OfType<Dapper.SqlMapper.FastExpando>().FirstOrDefault(x => GetCI(x.data, localKeyName)?.ToString() == GetCI(row.data, gridCol.mc_ui_grid_local_id_field)?.ToString() && GetCI(x.data, relatedKeyName)?.ToString() == GetCI(rd.data, gridCol.mc_ui_grid_related_id_field)?.ToString());
                     if (selected != null)
                     {
-                        cloned[manyToManyKey.mc_nome_colonna] = selected.data[manyToManyKey.mc_nome_colonna];
+                        cloned[manyToManyKey.mc_nome_colonna] = GetCI(selected.data, manyToManyKey.mc_nome_colonna);
                         cloned["___selected"] = true;
                     }
                     else
@@ -4491,7 +4907,7 @@ FROM {fromTable}
                         //FIX UTC TIME ISSUE 
                         string parsed = valore.ToString().Replace(@"""", "");
                         DateTime d = DateTime.Parse(parsed);
-                        valore = d.ToString("yyyyMMdd HH:mm:ss").Replace(".", ":");
+                        valore = d.ToString("yyyy-MM-dd HH:mm:ss");
                     }
                 }
                 else if (fld.mc_ui_column_type == "date" && valore != null && valore.ToString() != "")
@@ -4660,7 +5076,11 @@ FROM {fromTable}
                         valore = fld.convert_null_to_string;
                 }
 
-                string current_fld = safetable_name + "." + safecolumn_name;
+                // Oracle UPDATE non accetta `tableName.column` in SET (ORA-00911 "_:
+                // carattere non valido"). Le altre dialects accettano la forma qualified.
+                // Per UPDATE su Oracle usiamo il column name bare; il WHERE su Oracle
+                // accetta entrambi ma per coerenza usiamo bare anche li'.
+                string current_fld = safecolumn_name;
 
                 if (fld.mc_is_primary_key)
                 {
@@ -4742,7 +5162,8 @@ FROM {fromTable}
             string query = "";
 
             _Metadati_Tabelle tabel = metadata[0]._Metadati_Tabelle;
-            string table_name = RawHelpers.getStoreTableName(tabel, "mysql");
+            // Oracle: use "oracle" dialect, NOT "mysql" (which emits MySQL backticks → ORA-00911).
+            string table_name = RawHelpers.getStoreTableName(tabel, "oracle");
             string safetable_name = table_name;
 
             if (!tabel.md_deletable)
@@ -4751,8 +5172,13 @@ FROM {fromTable}
             if (tabel.md_is_reticular)
             {
                 table_name = "tabella_reticolare";
-                safetable_name = (string.IsNullOrEmpty(tabel.md_db_name) ? "" : "`" + tabel.md_db_name + "`." + (!string.IsNullOrEmpty(tabel.md_schema_name) ? "`" + tabel.md_schema_name + "`" : "") + ".") + RawHelpers.escapeDBObjectName(table_name, "mysql");
+                safetable_name = RawHelpers.escapeDBObjectName(table_name, "oracle");
             }
+
+            // PK presenti in entity → WHERE su PK. Lookup case-insensitive: mc_nome_colonna
+            // arriva con case mista (es. "Id") mentre l'entity dal frontend a volte usa
+            // case diversa (es. "ID"). Senza CI il dict.lookup tira KeyNotFoundException.
+            bool hasAnyPkInEntity = metadata.Any(f => (f.mc_is_primary_key is true) && GetCI(entity, f.mc_nome_colonna) != null);
 
             metadata.ForEach((fld) =>
             {
@@ -4765,20 +5191,37 @@ FROM {fromTable}
 
                 string current_fld = safetable_name + "." + safecolumn_name;
 
+                // Quando l'entity NON contiene la PK (caso m2m DELETE: junction
+                // row identificato da FK composite, no PK numerica), costruiamo
+                // un WHERE su tutte le colonne NON-PK presenti nell'entity —
+                // tipicamente le 2 FK del bridge table.
+                if (!hasAnyPkInEntity && !(fld.mc_is_primary_key is true))
+                {
+                    object val = GetCI(entity, fld.mc_nome_colonna);
+                    if (val == null) return;
+                    bool isNum = int.TryParse(val.ToString(), out _);
+                    string q = isNum ? "" : "'";
+                    where += ((where == "") ? " where " : " AND ") + current_fld + " = " + q + val + q;
+                    return;
+                }
+
                 if (fld.mc_is_primary_key is true)
                 {
+                    object pkVal = GetCI(entity, fld.mc_nome_colonna);
+                    if (pkVal == null) return; // PK non in entity → skip (fallback gia' coperto sopra)
+
                     if (string.IsNullOrEmpty(tabel.md_primary_key_type) || tabel.md_primary_key_type == "GUID")
-                        where += ((where == "") ? " where " : " AND ") + current_fld + " = '" + entity[fld.mc_nome_colonna] + "'";
+                        where += ((where == "") ? " where " : " AND ") + current_fld + " = '" + pkVal + "'";
                     else
                     {
 
 
                         int ou;
                         string quote = "";
-                        if (!int.TryParse(entity[fld.mc_nome_colonna].ToString(), out ou))
+                        if (!int.TryParse(pkVal.ToString(), out ou))
                             quote = "'";
 
-                        where += ((where == "") ? " where " : " AND ") + current_fld + " = " + quote + entity[fld.mc_nome_colonna] + quote;
+                        where += ((where == "") ? " where " : " AND ") + current_fld + " = " + quote + pkVal + quote;
                     }
                 }
 
@@ -4801,7 +5244,8 @@ FROM {fromTable}
 
                         AppendLoggingDeleteFields(ref delete_log, tabel, user_id, entity);
                     }
-                    query = string.Format("UPDATE {0} SET {1} = 1 {3} {2}", safetable_name, safetable_name + "." + RawHelpers.getStoreColumnName(logic_del_key), where, string.IsNullOrEmpty(delete_log) ? "" : ", " + delete_log);
+                    // Oracle UPDATE non accetta tableName.col in SET (ORA-00911). Bare column only.
+                    query = string.Format("UPDATE {0} SET {1} = 1 {3} {2}", safetable_name, EscapeDBObjectName(RawHelpers.getStoreColumnName(logic_del_key)), where, string.IsNullOrEmpty(delete_log) ? "" : ", " + delete_log);
                 }
                 else
                 {
@@ -4810,14 +5254,9 @@ FROM {fromTable}
                         string delete_log = "";
                         if (tabel.md_logging_enable)
                         {
-                            //if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
-                            //{
-                            //    user_id = Utility.id_extraClient(ref user_id);
-                            //}
-
                             AppendLoggingDeleteFields(ref delete_log, tabel, user_id, entity);
                         }
-                        query = string.Format("UPDATE {0} SET {1} = 1 {3} {2}", safetable_name, safetable_name + ".[cancellato]", where, string.IsNullOrEmpty(delete_log) ? "" : ", " + delete_log);
+                        query = string.Format("UPDATE {0} SET {1} = 1 {3} {2}", safetable_name, EscapeDBObjectName("cancellato"), where, string.IsNullOrEmpty(delete_log) ? "" : ", " + delete_log);
                     }
                     else
                         throw new Exception("Missing logic delete key field.");
@@ -4843,7 +5282,8 @@ FROM {fromTable}
 
                             AppendLoggingDeleteFields(ref delete_log, tabel, user_id, entity);
                         }
-                        query = string.Format("UPDATE {0} SET {1} = '{4}' {3} {2}", safetable_name, safetable_name + "." + RawHelpers.getStoreColumnName(logic_del_key), where, string.IsNullOrEmpty(delete_log) ? "" : ", " + delete_log, logicDeleteValue);
+                        // Oracle: bare column in SET (no table-qualified prefix).
+                        query = string.Format("UPDATE {0} SET {1} = '{4}' {3} {2}", safetable_name, EscapeDBObjectName(RawHelpers.getStoreColumnName(logic_del_key)), where, string.IsNullOrEmpty(delete_log) ? "" : ", " + delete_log, logicDeleteValue);
                     }
                     else
                     {
@@ -5276,6 +5716,23 @@ FROM {fromTable}
                 return converted;
             }
 
+            // Newtonsoft JObject (payload m2m frontend → JArray<JObject>).
+            if (item is IEnumerable<KeyValuePair<string, object>> kvEnum)
+                return new Dictionary<string, object>(kvEnum);
+            try
+            {
+                System.Type t = item.GetType();
+                if (t.FullName == "Newtonsoft.Json.Linq.JObject")
+                {
+                    System.Reflection.MethodInfo toObject = t.GetMethod("ToObject", new System.Type[] { typeof(System.Type) });
+                    if (toObject != null)
+                    {
+                        Dictionary<string, object> asDict = toObject.Invoke(item, new object[] { typeof(Dictionary<string, object>) }) as Dictionary<string, object>;
+                        if (asDict != null) return asDict;
+                    }
+                }
+            }
+            catch { /* fallthrough */ }
             return null;
         }
 
@@ -5394,7 +5851,7 @@ FROM {fromTable}
                             //FIX UTC TIME ISSUE 
                             string parsed = valore.ToString().Replace(@"""", "");
                             DateTime d = DateTime.Parse(parsed);
-                            valore = d.ToString("yyyyMMdd HH:mm:ss").Replace(".", ":");
+                            valore = d.ToString("yyyy-MM-dd HH:mm:ss");
                         }
                     }
                     else if (fld.mc_ui_column_type == "date" && valore != null && valore.ToString() != "")
@@ -5620,9 +6077,9 @@ FROM {fromTable}
 
                         case "PARAMETRIC":
                             field_list += (field_list == "" ? "" : ", ") + current_fld;
-                            value_list += (value_list == "" ? "" : ", ") + "@" + fld.mc_nome_colonna;
+                            value_list += (value_list == "" ? "" : ", ") + ":" + fld.mc_nome_colonna;
 
-                            local_generated_pkey = "@" + fld.mc_nome_colonna;
+                            local_generated_pkey = ":" + fld.mc_nome_colonna;
 
                             break;
 
@@ -5807,16 +6264,27 @@ FROM {fromTable}
             if (string.IsNullOrWhiteSpace(route))
                 return;
 
+            // Shadow caching non e' applicabile a system route (mirror MSSQL/MySQL/PG):
+            // le tabelle metadata e reticolari non hanno mai shadow tables materializzate,
+            // quindi il flush e' un no-op. Senza questa guard, su Oracle il DELETE FROM
+            // "_shadow_<route>" provoca ORA-00942 (table doesn't exist) — catch'ato sotto,
+            // ma il throw stesso e' caro e fa pausare il debugger su "User-Unhandled".
+            bool isSys = false;
+            try { isSys = RawHelpers.checkIsMetaData(route); } catch { }
+            if (isSys) return;
+
             string shadowTableName = RawHelpers.escapeDBObjectName("_shadow_" + route, "oracle");
             using (OracleConnection connection = GetOpenConnection(false))
             {
                 var dbArgs = new DynamicParameters();
                 dbArgs.Add("route", EscapeValue(route));
-                try { connection.Execute(string.Format("DELETE FROM {0}", shadowTableName)); } catch { }
+                try { connection.Execute(string.Format("DELETE FROM {0}", shadowTableName)); }
+                catch (OracleException ex) when (ex.Number == 942) { /* table doesn't exist */ }
 
                 using (OracleConnection connection2 = GetOpenConnection(true))
                 {
-                    try { connection2.Execute("DELETE FROM _shadow_caching where route=:route", dbArgs); } catch { }
+                    try { connection2.Execute("DELETE FROM _shadow_caching where route=:route", dbArgs); }
+                    catch (OracleException ex) when (ex.Number == 942) { /* table doesn't exist */ }
                 }
             }
         }
@@ -6093,7 +6561,8 @@ FROM {fromTable}
                         }
 
                         IEnumerable<Dictionary<string, object>> dicts =
-                            dt.Rows.OfType<DataRow>().Select(dataRow => columns.Select(column => new {
+                            dt.Rows.OfType<DataRow>().Select(dataRow => columns.Select(column => new
+                            {
                                 Column = uploadOption.use_column_captions == "C"
                                     ? tabel._Metadati_Colonnes.FirstOrDefault(x => x.mc_display_string_in_view == column.ColumnName.Replace("#", ".")).mc_nome_colonna
                                     : column.ColumnName,

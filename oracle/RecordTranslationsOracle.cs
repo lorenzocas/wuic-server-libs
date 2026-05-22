@@ -105,7 +105,11 @@ namespace WEB_UI_CRAFTER
                 if (_schemaEnsured && string.Equals(_schemaEnsuredTable, tableName, StringComparison.OrdinalIgnoreCase))
                     return;
 
-                string quoted = "\"" + tableName.ToUpperInvariant().Replace("\"", "\"\"") + "\"";
+                // Quoted-lowercase per cross-DB consistency con MySQL/PG (i test
+                // E2E e i siblings read-path leggono `"_record_field_translations"`).
+                // Se quotassimo UPPER, Oracle creerebbe un'entita' distinta e i test
+                // su quoted-lowercase non vedrebbero le righe scritte dal runtime.
+                string quoted = "\"" + tableName.Replace("\"", "\"\"") + "\"";
                 // L'identifier `language` e' parola riservata Oracle: la
                 // virgolettiamo nello statement DDL e in tutte le query.
                 // Anonymous PL/SQL block: EXECUTE IMMEDIATE permette DDL
@@ -152,14 +156,15 @@ END;";
                 // della tabella non ce l'ha. ALL_TAB_COLUMNS usa uppercase.
                 if (!string.IsNullOrWhiteSpace(translationJsonFieldName) && IsValidIdentifier(translationJsonFieldName))
                 {
+                    // Quoted-lowercase table: ALL_TAB_COLUMNS preserva il case del nome.
                     string colExists = $@"
                         SELECT COUNT(*) FROM ALL_TAB_COLUMNS
-                        WHERE TABLE_NAME = '{tableName.ToUpperInvariant().Replace("'", "''")}'
-                          AND COLUMN_NAME = '{translationJsonFieldName.ToUpperInvariant().Replace("'", "''")}'";
+                        WHERE TABLE_NAME = '{tableName.Replace("'", "''")}'
+                          AND COLUMN_NAME = '{translationJsonFieldName.Replace("'", "''")}'";
                     int found = connection.ExecuteScalar<int>(colExists);
                     if (found == 0)
                     {
-                        string altQuotedCol = "\"" + translationJsonFieldName.ToUpperInvariant().Replace("\"", "\"\"") + "\"";
+                        string altQuotedCol = "\"" + translationJsonFieldName.Replace("\"", "\"\"") + "\"";
                         connection.Execute($"ALTER TABLE {quoted} ADD ({altQuotedCol} CLOB NULL)");
                     }
                 }
@@ -200,29 +205,33 @@ WHEN NOT MATCHED THEN
             string userId)
         {
             Settings settings = ResolveSettings(tableMetadata);
+            Console.WriteLine($"[ORA-RT-INNER] enabled={settings.Enabled} fields=[{string.Join(",", settings.FieldNames ?? new List<string>())}] recordId={recordId} mdId={tableMetadata?.md_id}");
             if (!settings.Enabled || string.IsNullOrWhiteSpace(recordId) || tableMetadata == null || metadataColumns == null || entity == null)
-                return;
+            { Console.WriteLine("[ORA-RT-INNER] early-return: enabled/recordId/etc check failed"); return; }
 
             List<string> configuredFields = (settings.FieldNames ?? new List<string>())
                 .Where(x => !string.IsNullOrWhiteSpace(x))
                 .Select(x => x.Trim())
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
-            if (configuredFields.Count == 0) return;
+            if (configuredFields.Count == 0) { Console.WriteLine("[ORA-RT-INNER] configuredFields empty"); return; }
 
             string tableName = IsValidIdentifier(settings.DefaultTableName) ? settings.DefaultTableName : DefaultTranslationsTableName;
             EnsureSchema(connection, tableName, settings.TranslationJsonFieldName);
 
-            string quotedTable = "\"" + tableName.ToUpperInvariant().Replace("\"", "\"\"") + "\"";
+            string quotedTable = "\"" + tableName.Replace("\"", "\"\"") + "\"";
             List<string> languages = ResolveLanguages(settings.DefaultLanguage);
             int timeout = ParseTimeout();
             string mergeSql = BuildMergeSql(quotedTable);
+            Console.WriteLine($"[ORA-RT-INNER] languages=[{string.Join(",", languages)}] tableName={tableName}");
 
+            int totalInserts = 0;
             foreach (string fieldName in configuredFields)
             {
                 _Metadati_Colonne column = metadataColumns.FirstOrDefault(x => string.Equals(x.mc_nome_colonna, fieldName, StringComparison.OrdinalIgnoreCase));
-                if (column == null || !IsTranslatableTextColumn(column)) continue;
-                if (!entity.ContainsKey(column.mc_nome_colonna)) continue;
+                if (column == null) { Console.WriteLine($"[ORA-RT-INNER] skip field '{fieldName}': no metadata column"); continue; }
+                if (!IsTranslatableTextColumn(column)) { Console.WriteLine($"[ORA-RT-INNER] skip field '{fieldName}': not translatable text (type={column.mc_db_column_type})"); continue; }
+                if (!entity.ContainsKey(column.mc_nome_colonna)) { Console.WriteLine($"[ORA-RT-INNER] skip field '{fieldName}': not in entity keys=[{string.Join(",", entity.Keys)}]"); continue; }
 
                 string translationValue = RawHelpers.ParseNull(entity[column.mc_nome_colonna]);
 
@@ -238,8 +247,10 @@ WHEN NOT MATCHED THEN
                         createdBy = userId,
                         updatedBy = userId
                     }, transaction: transaction, commandTimeout: timeout);
+                    totalInserts++;
                 }
             }
+            Console.WriteLine($"[ORA-RT-INNER] inserts done: {totalInserts}");
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -285,7 +296,7 @@ WHEN NOT MATCHED THEN
             string runtimeLanguage = ResolveRuntimeLanguage(userId, settings.DefaultLanguage);
             string tableName = IsValidIdentifier(settings.DefaultTableName) ? settings.DefaultTableName : DefaultTranslationsTableName;
             EnsureSchema(connection, tableName, settings.TranslationJsonFieldName);
-            string quotedTable = "\"" + tableName.ToUpperInvariant().Replace("\"", "\"\"") + "\"";
+            string quotedTable = "\"" + tableName.Replace("\"", "\"\"") + "\"";
             int timeout = ParseTimeout();
             string mergeSql = BuildMergeSql(quotedTable);
 
@@ -325,7 +336,7 @@ WHEN NOT MATCHED THEN
 
             string tableName = IsValidIdentifier(settings.DefaultTableName) ? settings.DefaultTableName : DefaultTranslationsTableName;
             EnsureSchema(connection, tableName, settings.TranslationJsonFieldName);
-            string quotedTable = "\"" + tableName.ToUpperInvariant().Replace("\"", "\"\"") + "\"";
+            string quotedTable = "\"" + tableName.Replace("\"", "\"\"") + "\"";
 
             string sql = $"DELETE FROM {quotedTable} WHERE md_id = :mdId AND id_record = :idRecord";
             connection.Execute(sql, new { mdId = tableMetadata.md_id, idRecord = recordId },

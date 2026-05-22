@@ -825,6 +825,13 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                 return;
             }
 
+            // Shadow caching disabilitato su system route: vedi guard equivalente in
+            // BuildDynamicSelectQuery sopra (mssql/_Metadati_methods.cs +
+            // mysql/metaQueryMySql.cs:shadowing=true). Flush e' no-op coerentemente.
+            bool isSys = false;
+            try { isSys = RawHelpers.checkIsMetaData(route); } catch { }
+            if (isSys) return;
+
             string shadowTableName = RawHelpers.escapeDBObjectName("_shadow_" + route, "mysql");
 
             using (MySqlConnection connection = metaQueryMySql.GetOpenConnection(false))
@@ -3983,7 +3990,10 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                 bool shadowing = false;
                 dynamic caching = null;
 
-                if (!string.IsNullOrEmpty(tab.md_props_bag))
+                // System route (is_system_route / reticular): shadow caching disabilitato
+                // a prescindere dal md_props_bag. Mirror MSSQL: tabelle metadata e reticolari
+                // non hanno mai shadow tables materializzate.
+                if (!tab.is_system_route && !tab.md_is_reticular && !string.IsNullOrEmpty(tab.md_props_bag))
                 {
                     dynamic extraProps = RawHelpers.deserialize(tab.md_props_bag, null);
                     if (extraProps is IDictionary<string, object> extraDict &&
