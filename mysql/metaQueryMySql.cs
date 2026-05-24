@@ -654,11 +654,27 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                 && (string.Equals(connectionName, "MetaDataSQLConnection", System.StringComparison.OrdinalIgnoreCase)
                  || string.Equals(connectionName, "DataSQLConnection", System.StringComparison.OrdinalIgnoreCase));
 
+            // Fix 2026-05-23: quando il caller passa un connectionName esplicito
+            // tra i nomi default (es. `md_conn_name = "MetaDataSQLConnection"` su una
+            // route NON system come `_mailing_lists`), il flag `isMetaDataQuery`
+            // calcolato a monte da `checkIsMetaData(route)` non riflette l'override
+            // di metadata. Senza derivare il "tipo effettivo" dal connectionName
+            // esplicito, le route con `md_conn_name=MetaDataSQLConnection` che non
+            // hanno `mdisreticular=1` o `is_system_route=true` venivano routate al
+            // DB Dati → "Table 'X.Y' doesn't exist".
+            // Mirror del comportamento di MetaModel/metaModelRaw.cs:GetOpenConnection
+            // (riga 772-775) e del fix gemello in postgresql/metaQueryPostgreSql.cs.
+            bool effectiveIsMetaDataQuery = isMetaDataQuery;
+            if (isDefaultName)
+            {
+                effectiveIsMetaDataQuery = string.Equals(connectionName, "MetaDataSQLConnection", System.StringComparison.OrdinalIgnoreCase);
+            }
+
             if (string.IsNullOrEmpty(connectionString))
             {
                 if (string.IsNullOrEmpty(connectionName) || isDefaultName)
                 {
-                    connectionString = ConfigHelper.ResolveConnectionString(isMetaDataQuery ? "MetaDataSQLConnection" : "DataSQLConnection");
+                    connectionString = ConfigHelper.ResolveConnectionString(effectiveIsMetaDataQuery ? "MetaDataSQLConnection" : "DataSQLConnection");
 
                     // -------------------------------------------------------
                     // Multi-tenant routing (flag-gated, opt-in).
@@ -684,7 +700,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                         if (idAzienda > 0)
                         {
                             string tenantCs = WEB_UI_CRAFTER.Helpers.MultiTenantHelpers
-                                .ResolveTenantConnectionString(idAzienda, isMetaDataQuery);
+                                .ResolveTenantConnectionString(idAzienda, effectiveIsMetaDataQuery);
                             if (!string.IsNullOrWhiteSpace(tenantCs))
                                 connectionString = tenantCs;
                         }
@@ -697,7 +713,9 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                         throw new Exception(string.Format("Connection '{0}' not found in web.config", connectionName));
                 }
 
-                if (!isMetaDataQuery)
+                // Fix 2026-05-23: anche il check connectionByUser deve usare il tipo
+                // effettivo (per route con `md_conn_name=DataSQLConnection` esplicito).
+                if (!effectiveIsMetaDataQuery)
                 {
                     bool connectionByUser = bool.Parse(ConfigHelper.GetSettingAsString("connectionByUser") ?? "false");
 

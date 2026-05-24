@@ -429,9 +429,22 @@ WHERE t.mddbname = @db OR (@db = '' AND IFNULL(t.mddbname, '') = '');";
             {
                 string effectiveDb = string.IsNullOrWhiteSpace(schema) ? db : schema;
                 string log = ctx.scaffoldTableMySql(ref connection, connName, effectiveDb, table, ref createMenu);
+
+                // Recupera l'md_id della tabella scaffoldata per ritornarlo al caller.
+                // Contract atteso da MetaService.ScaffoldTableForDbms / consumer pivot-builder:
+                // Dictionary contiene chiave "id" con l'md_id (MSSQL impl mirror, riga 1719 di
+                // metaModelRaw.cs; PG/Oracle mirror in [Postgres|Oracle]Scaffolding.cs).
+                // NB: lo `scaffoldView` su MySQL gia' ritorna "id" (riga 479) — solo scaffoldTable
+                // soffriva del gap. Senza, pivot-builder logga "Schedulazione non creata".
+                // Route name derivato via RawHelpers.getRouteName (snake-case lowercased).
+                string scaffoldedRoute = RawHelpers.getRouteName(table);
+                _Metadati_Tabelle scaffoldedTable = ctx.GetMetadati_Tabelles(scaffoldedRoute).FirstOrDefault();
+                string scaffoldedId = scaffoldedTable != null ? scaffoldedTable.md_id.ToString() : string.Empty;
+
                 return new Dictionary<string, string>()
                 {
-                    { "message", log }
+                    { "message", log },
+                    { "id", scaffoldedId }
                 };
             }
         }

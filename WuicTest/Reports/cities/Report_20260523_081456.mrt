@@ -11,7 +11,7 @@
       </Connessione>
     </Databases>
     <DataSources isList="true" count="1">
-      <cities Ref="3" type="Stimulsoft.Report.Dictionary.StiSqlSource" isKey="true">
+      <cities Ref="3" type="Stimulsoft.Report.Dictionary.StiOracleSource" isKey="true">
         <Alias>cities</Alias>
         <Columns isList="true" count="10">
           <value>people___FullName__LastEditedBy,Application_x0020__x0020_People,System.String</value>
@@ -27,7 +27,7 @@
         </Columns>
         <CommandTimeout>300</CommandTimeout>
         <Dictionary isRef="1" />
-        <Key>a0ea2eefa4d2415eb616449b486154a3</Key>
+        <Key>c2fd1fdea9094a97b322df02d7154b2c</Key>
         <Name>cities</Name>
         <NameInSource>Connessione</NameInSource>
         <Parameters isList="true" count="0" />
@@ -42,7 +42,7 @@
   </Dictionary>
   <EngineVersion>EngineV2</EngineVersion>
   <GlobalizationStrings isList="true" count="0" />
-  <Key>5fc9337b71d644978e4576924439589c</Key>
+  <Key>24fb096939dc45629757157f12d1ddc6</Key>
   <MetaTags isList="true" count="0" />
   <Pages isList="true" count="1">
     <Page1 Ref="4" type="Page" isKey="true">
@@ -62,41 +62,27 @@
         <cities_header Ref="6" type="HeaderBand" isKey="true">
           <Brush>Transparent</Brush>
           <ClientRectangle>0,1.8,19,0.6</ClientRectangle>
-          <Components isList="true" count="1">
-            <Text2 Ref="7" type="Text" isKey="true">
-              <Brush>Transparent</Brush>
-              <ClientRectangle>1.6,0,1.6,0.6</ClientRectangle>
-              <Conditions isList="true" count="0" />
-              <Expressions isList="true" count="0" />
-              <Font>Arial,8</Font>
-              <Name>Text2</Name>
-              <Page isRef="4" />
-              <Parent isRef="6" />
-              <Text>sdsd</Text>
-              <TextBrush>Black</TextBrush>
-              <Type>Expression</Type>
-            </Text2>
-          </Components>
+          <Components isList="true" count="0" />
           <Conditions isList="true" count="0" />
           <Expressions isList="true" count="0" />
           <Name>cities_header</Name>
           <Page isRef="4" />
           <Parent isRef="4" />
         </cities_header>
-        <cities_data Ref="8" type="DataBand" isKey="true">
+        <cities_data Ref="7" type="DataBand" isKey="true">
           <Brush>Transparent</Brush>
           <BusinessObjectGuid isNull="true" />
           <ClientRectangle>0,3.2,19,0.6</ClientRectangle>
           <Components isList="true" count="1">
-            <Text1 Ref="9" type="Text" isKey="true">
+            <Text1 Ref="8" type="Text" isKey="true">
               <Brush>Transparent</Brush>
-              <ClientRectangle>1.6,0,3,0.6</ClientRectangle>
+              <ClientRectangle>1,0,3,0.6</ClientRectangle>
               <Conditions isList="true" count="0" />
               <Expressions isList="true" count="0" />
               <Font>Arial,8</Font>
               <Name>Text1</Name>
               <Page isRef="4" />
-              <Parent isRef="8" />
+              <Parent isRef="7" />
               <Text>{cities.CityName}</Text>
               <TextBrush>Black</TextBrush>
             </Text1>
@@ -114,7 +100,7 @@
       </Components>
       <Conditions isList="true" count="0" />
       <Expressions isList="true" count="0" />
-      <Guid>81f743b9fcba49cd9f2c4886868f8647</Guid>
+      <Guid>73132f50ba3940128d0a010da265aba9</Guid>
       <Margins>1,1,1,1</Margins>
       <Name>Page1</Name>
       <PageHeight>29.7</PageHeight>
@@ -133,10 +119,10 @@
     <value>Stimulsoft.Report.Dll</value>
   </ReferencedAssemblies>
   <ReportAlias>Report</ReportAlias>
-  <ReportChanged>5/22/2026 8:56:42 PM</ReportChanged>
-  <ReportCreated>5/22/2026 8:56:42 PM</ReportCreated>
-  <ReportFile>C:\src\Wuic\WuicTest\Reports\cities\Report_20260522_205639.mrt</ReportFile>
-  <ReportGuid>77590baa55d847f4be2090f64da40b98</ReportGuid>
+  <ReportChanged>5/23/2026 8:14:58 AM</ReportChanged>
+  <ReportCreated>5/23/2026 8:14:58 AM</ReportCreated>
+  <ReportFile>C:\src\Wuic\WuicTest\Reports\cities\Report_20260523_081456.mrt</ReportFile>
+  <ReportGuid>5f84b1cde34a41afab93ea03a48937bf</ReportGuid>
   <ReportName>Report</ReportName>
   <ReportUnit>Centimeters</ReportUnit>
   <ReportVersion>2026.1.7.0</ReportVersion>

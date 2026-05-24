@@ -631,6 +631,22 @@ FROM {fromTable}
                 && (string.Equals(connectionName, "MetaDataSQLConnection", System.StringComparison.OrdinalIgnoreCase)
                  || string.Equals(connectionName, "DataSQLConnection", System.StringComparison.OrdinalIgnoreCase));
 
+            // Fix 2026-05-23: quando il caller passa un connectionName esplicito
+            // tra i nomi default (es. `md_conn_name = "MetaDataSQLConnection"` su una
+            // route NON system come `_mailing_lists`), il flag `isMetaDataQuery`
+            // calcolato a monte da `checkIsMetaData(route)` non riflette l'override
+            // di metadata. Senza derivare il "tipo effettivo" dal connectionName
+            // esplicito, le route con `md_conn_name=MetaDataSQLConnection` che non
+            // hanno `mdisreticular=1` o `is_system_route=true` venivano routate al
+            // DB Dati → 42P01 "la relazione X non esiste".
+            // Mirror del comportamento di MetaModel/metaModelRaw.cs:GetOpenConnection
+            // (riga 772-775) che onora `connectionName` direttamente quando non vuoto.
+            bool effectiveIsMetaDataQuery = isMetaDataQuery;
+            if (isDefaultName)
+            {
+                effectiveIsMetaDataQuery = string.Equals(connectionName, "MetaDataSQLConnection", System.StringComparison.OrdinalIgnoreCase);
+            }
+
             if (string.IsNullOrEmpty(connectionName) || isDefaultName)
             {
                 // ConfigHelper.ResolveConnectionString rispetta:
@@ -643,7 +659,7 @@ FROM {fromTable}
                 // Npgsql falliva con "Couldn't set data source" o si connetteva al DB
                 // 'postgres' di default (bug visibile in pg-Admin: tabelle non trovate
                 // perche' cercate nello schema sbagliato).
-                connectionString = ConfigHelper.ResolveConnectionString(isMetaDataQuery ? "MetaDataSQLConnection" : "DataSQLConnection");
+                connectionString = ConfigHelper.ResolveConnectionString(effectiveIsMetaDataQuery ? "MetaDataSQLConnection" : "DataSQLConnection");
 
                 // -------------------------------------------------------
                 // Multi-tenant routing (flag-gated, opt-in).
@@ -665,7 +681,7 @@ FROM {fromTable}
                     if (idAzienda > 0)
                     {
                         string tenantCs = WEB_UI_CRAFTER.Helpers.MultiTenantHelpers
-                            .ResolveTenantConnectionString(idAzienda, isMetaDataQuery);
+                            .ResolveTenantConnectionString(idAzienda, effectiveIsMetaDataQuery);
                         if (!string.IsNullOrWhiteSpace(tenantCs))
                             connectionString = tenantCs;
                     }
@@ -678,7 +694,9 @@ FROM {fromTable}
                     throw new Exception(string.Format("Connection '{0}' not found in web.config", connectionName));
             }
 
-            if (!isMetaDataQuery)
+            // Fix 2026-05-23: anche il check connectionByUser deve usare il tipo
+            // effettivo (per route con `md_conn_name=DataSQLConnection` esplicito).
+            if (!effectiveIsMetaDataQuery)
             {
                 bool connectionByUser = bool.Parse(ConfigHelper.GetSettingAsString("connectionByUser") ?? "false");
 
@@ -2733,6 +2751,43 @@ FROM {fromTable}
                 if (mcId != 0)
                     lookuprelatedCol = mmd.GetMetadati_Colonnes(mcId.ToString()).OfType<_Metadati_Colonne_Lookup>().FirstOrDefault();
 
+                // Combo standalone: in `getFlatRecordComboData`, la FROM e' la lookup
+                // target (es. `_metadati__tabelle`) senza alias. Pero' la `formula_lookup`
+                // / `mc_ui_lookup_computed_dataTextField` della colonna chiamante puo'
+                // referenziare l'alias FK auto-generato (es. `"md_id_ metadati  tabelle"`,
+                // pattern `<dataValueField>_<lookup_entity_name>`) che pero' esiste solo
+                // in contesto grid-edit (dove il framework auto-genera il JOIN sulla
+                // lookup target). In combo standalone l'alias non esiste → PG 42P01
+                // 'elemento FROM per la tabella "..." mancante'.
+                //
+                // Fix: in combo standalone, se la formula referenzia un alias del pattern
+                // canonico, aggiungiamo un self-JOIN noop sulla stessa tabella che ricrea
+                // quell'alias. La grid-edit non e' impattata (li' `mcId == 0` e questo blocco
+                // viene saltato; l'auto-FK JOIN della grid-edit non collide con questo
+                // self-JOIN che e' presente solo nel combo standalone).
+                // Port da oracle/metaQueryOracleSql.cs#BuildDynamicSelectQuery (2026-05-22).
+                if (mcId != 0 && lookuprelatedCol != null
+                    && !string.IsNullOrEmpty(lookuprelatedCol.mc_nome_colonna)
+                    && !string.IsNullOrEmpty(lookuprelatedCol.mc_ui_lookup_entity_name)
+                    && !string.IsNullOrEmpty(lookuprelatedCol.mc_ui_lookup_dataValueField))
+                {
+                    string comboAlias = EscapeDBObjectName(lookuprelatedCol.mc_nome_colonna + "_" + lookuprelatedCol.mc_ui_lookup_entity_name);
+                    // Risolvi physical name del FK column nella lookup target
+                    _Metadati_Colonne fkCol = tab._Metadati_Colonnes
+                        .FirstOrDefault(xk => xk.mc_nome_colonna == lookuprelatedCol.mc_ui_lookup_dataValueField)
+                        ?? tab._Metadati_Colonnes
+                            .FirstOrDefault(xk => xk.mc_real_column_name == lookuprelatedCol.mc_ui_lookup_dataValueField);
+                    string fkPhysical = EscapeDBObjectName(fkCol != null
+                        ? RawHelpers.getStoreColumnName(fkCol)
+                        : lookuprelatedCol.mc_ui_lookup_dataValueField);
+                    // Self-JOIN noop: stessa table, ON pk=pk. PG ottimizza facilmente
+                    // (1:1 join via PK) → impatto perf trascurabile su combo (pochi record).
+                    // `AS` esplicito per essere catturato dal dedup-by-alias di BuildFinalJoin.
+                    string selfJoin = " " + GetSafeTableName(tab) + " AS " + comboAlias
+                        + " ON " + GetSafeTableName(tab) + "." + fkPhysical + " = " + comboAlias + "." + fkPhysical;
+                    joinsAppend.Add(selfJoin);
+                }
+
                 string orderBy = BuildDynamicOrderBy(SortInfo, lst, tab, pKey, clonedfilters);
                 string fieldList = BuildDynamicFieldList(mmd, lst, tab, joins, formulaLookup, joinsAppend, mcId);
                 string join = BuildFinalJoin(tab, joins, joinsAppend);
@@ -3560,18 +3615,38 @@ FROM {fromTable}
             if (string.IsNullOrEmpty(tab.md_join_override))
             {
                 joinList = CreateJoinString(joins, joinList);
+
+                // FIX 2026-05-23: dedup per ALIAS, non per testo esatto. I join venivano
+                // duplicati quando lo stesso alias era prodotto sia da `joins` (Dictionary
+                // con ON-clause con `::text` cast) sia da `joinsAppend` (List con ON-clause
+                // senza cast) → testo diverso, dedup .Contains fallisce → Postgres 42712
+                // 'tabella di nome X specificata piu' di una volta'.
+                var aliasRegex = new System.Text.RegularExpressions.Regex(
+                    @"\bAS\s+(""[^""]+""|\w+)",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                var seenAliases = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (System.Text.RegularExpressions.Match m in aliasRegex.Matches(joinList))
+                    seenAliases.Add(m.Groups[1].Value);
+
                 foreach (string jj in joinsAppend)
                 {
-                    if (!string.IsNullOrWhiteSpace(jj))
+                    if (string.IsNullOrWhiteSpace(jj)) continue;
+                    string trimmed = jj.Trim();
+                    if (trimmed.StartsWith("AND "))
                     {
-                        if (!joinList.Contains(jj.Trim()))
-                        {
-                            if (jj.Trim().StartsWith("AND "))
-                                joinList += string.Format(" {0} ", jj.Trim());
-                            else
-                                joinList += string.Format(" LEFT JOIN {0} ", jj.Trim());
-                        }
+                        if (!joinList.Contains(trimmed))
+                            joinList += string.Format(" {0} ", trimmed);
+                        continue;
                     }
+                    // Extract alias from candidate join — skip if already present.
+                    var match = aliasRegex.Match(trimmed);
+                    if (match.Success)
+                    {
+                        string alias = match.Groups[1].Value;
+                        if (seenAliases.Contains(alias)) continue;
+                        seenAliases.Add(alias);
+                    }
+                    joinList += string.Format(" LEFT JOIN {0} ", trimmed);
                 }
             }
             else

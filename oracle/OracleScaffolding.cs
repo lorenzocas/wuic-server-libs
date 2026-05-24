@@ -640,10 +640,24 @@ WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
                 // un info-icon vuoto. Niente breaking change: i caller CLI/test che leggono
                 // "log" continuano a funzionare.
                 string logText = log.ToString();
+
+                // Recupera l'md_id della tabella scaffoldata per ritornarlo al caller.
+                // Contract atteso da MetaService.ScaffoldTableForDbms / consumer pivot-builder:
+                // Dictionary contiene chiave "id" con l'md_id (MSSQL impl mirror, riga 1719 di
+                // metaModelRaw.cs; PG mirror in PostgresScaffolding.cs). Senza questo, il
+                // pivot-builder logga "Schedulazione non creata: md_id della tabella non risolto
+                // dopo scaffolding" e l'auto-scheduler post-pivot non viene mai creato.
+                // Route name derivato via RawHelpers.getRouteName (snake-case lowercased) per
+                // matchare quello salvato da scaffoldOfTableMySql al primo scaffoldOfColumnMySql.
+                string scaffoldedRoute = RawHelpers.getRouteName(tableName);
+                _Metadati_Tabelle scaffoldedTable = mmd.GetMetadati_Tabelles(scaffoldedRoute).FirstOrDefault();
+                string scaffoldedId = scaffoldedTable != null ? scaffoldedTable.md_id.ToString() : string.Empty;
+
                 return new Dictionary<string, string>()
                 {
                     { "message", logText },
-                    { "log", logText }
+                    { "log", logText },
+                    { "id", scaffoldedId }
                 };
             }
         }
