@@ -763,14 +763,324 @@ FROM {fromTable}
                 return;
             }
 
-            // Split su `;` come delimitatore di statement; rimuoviamo whitespace.
-            var statements = script.Split(new[] { ";\r\n", ";\n", ";" }, StringSplitOptions.RemoveEmptyEntries);
+            // Pre-process: stripping SQLPLUS-only commands che non sono SQL e
+            // crashano OracleCommand.Execute con ORA-00900. I dump SQLcl/sqlplus
+            // emettono questi marker line-by-line e in mancanza di `;` finale
+            // si attaccano al INSERT successivo creando uno statement misto
+            // invalido (SET DEFINE OFF\nInsert into X VALUES (...);).
+            //
+            // Pattern stripped (line-prefix, case-insensitive):
+            //   REM <text>          -- commento sqlplus
+            //   PROMPT <text>       -- echo sqlplus
+            //   SET <option>        -- sqlplus session option (DEFINE OFF, SQLBLANKLINES, ecc.)
+            //   SPOOL <file>        -- output redirect sqlplus
+            //   WHENEVER ...        -- error handling sqlplus
+            //   EXIT; QUIT;         -- script terminators sqlplus
+            //   @<file>             -- include sqlplus
+            //   /                   -- statement terminator sqlplus (solo se da sola)
+            // NB: NON includere `/` standalone in questo strip — il `/` e' anche
+            // il terminator dei PL/SQL block (FUNCTION/PROCEDURE/PACKAGE/TRIGGER/
+            // TYPE BODY). Il SplitOracleStatements lo gestisce come boundary.
+            var sqlplusPattern = new System.Text.RegularExpressions.Regex(
+                @"^[ \t]*(REM\b|PROMPT\b|SET\s+[A-Z]|SPOOL\b|WHENEVER\b|EXIT\b|QUIT\b|@).*$",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Multiline);
+            string cleanedScript = sqlplusPattern.Replace(script, "");
+
+            // Splitter SQL-aware: split su `;` ma ignora `;` dentro string literals.
+            // Necessario per Oracle perche' i dump SQLcl emettono CLOB grandi come
+            // `TO_CLOB(q'[json content with ; chars]') || TO_CLOB(q'[more...]')`.
+            // Un dumb split su `;` spezza lo statement nel mezzo → ORA-00900.
+            //
+            // Tipi di literal Oracle gestiti:
+            //   'string'           : standard SQL, escape `''` per single quote
+            //   q'[...]'           : alternative quoting con delimiter [ ] ( ) { } < >
+            //   q'<X>...<X>'       : alternative quoting con delimiter generico (X = any char)
+            //   -- line comment    : skip fino a fine riga
+            //   /* block comment */: skip fino a `*/`
+            var statements = SplitOracleStatements(cleanedScript);
+
+            // 2-pass apply per gestire FK violations:
+            // Pass 1: DDL (CREATE/ALTER/DROP) → crea schema con FK enabled
+            // [Inter]: DISABLE ALL CONSTRAINTS (R = referential FK, C = check inc NOT NULL — escludiamo
+            //          SYS_C% per non perdere NOT NULL system. Conservativo: solo 'R' (FK)).
+            // Pass 2: DML (INSERT/UPDATE/DELETE) → senza FK enforcement → ordine alfabetico OK
+            // [Final]: ENABLE NOVALIDATE → riattiva FK senza ricontrollare dati esistenti
+            //
+            // Razionale: i dump SQLcl emettono INSERT in ordine alfabetico delle tabelle.
+            // APPLICATION__CITIES (LASTEDITEDBY FK su APPLICATION__PEOPLE) viene PRIMA di
+            // APPLICATION__PEOPLE → FK violation ORA-02291. Soluzione standard: deferral FK.
+            var insertPattern = new System.Text.RegularExpressions.Regex(
+                @"^\s*(INSERT\s+INTO|UPDATE|DELETE\s+FROM|MERGE\s+INTO)\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            // Strip `-- ...` line comments + whitespace dal head per la classification.
+            // I dump SQLcl emettono separators tipo `-- =============== DATA ===============`
+            // ATTACCATI (senza `;` finale) al primo INSERT → senza strip il classify
+            // sbaglia, l'INSERT cade in DDL pass (prima del disable FK) → ORA-02291.
+            var commentHeadStrip = new System.Text.RegularExpressions.Regex(
+                @"^(\s*(--[^\n]*\n|/\*[\s\S]*?\*/\s*))+");
+
+            var ddlStmts = new System.Collections.Generic.List<string>();
+            var dmlStmts = new System.Collections.Generic.List<string>();
             foreach (var stmt in statements)
             {
                 string trimmed = stmt.Trim();
                 if (string.IsNullOrWhiteSpace(trimmed)) continue;
-                connection.Execute(trimmed);
+                string headForClassify = commentHeadStrip.Replace(trimmed, "").TrimStart();
+                if (insertPattern.IsMatch(headForClassify)) dmlStmts.Add(trimmed);
+                else ddlStmts.Add(trimmed);
             }
+
+            // Errori idempotenti tollerati su DDL pass (retry-safe per CREATE su esistente).
+            //   ORA-00955: name is already used by an existing object
+            //   ORA-01408: such column list already indexed
+            //   ORA-02260: table can have only one primary key
+            //   ORA-02275: such a referential constraint already exists in the table
+            //   ORA-00942: table or view does not exist (DROP IF EXISTS pattern)
+            //   ORA-04043: object does not exist (DROP IF EXISTS pattern)
+            //   ORA-01418: specified index does not exist (DROP INDEX IF EXISTS)
+            var idempotentCodes = new System.Collections.Generic.HashSet<int> {
+                // DDL idempotent (object already exists / doesn't exist)
+                955, 1408, 2260, 2275, 942, 4043, 1418,
+                // DML data quirks tollerati (dump quality issues, no funzionale block)
+                //   ORA-01489: result of string concatenation too long — BLOB HEX > 32K char
+                //              (spatial data nei tutorial WWI), riga semplicemente skippata.
+                //   ORA-00001: unique constraint violated — re-apply su schema con dati gia' presenti.
+                1489, 1
+            };
+            int total = 0, ok = 0, skipped = 0, failed = 0;
+            string firstFailMsg = null, firstFailStmt = null;
+
+            void ExecOne(string stmt)
+            {
+                total++;
+                try
+                {
+                    connection.Execute(stmt);
+                    ok++;
+                }
+                catch (System.Exception ex)
+                {
+                    int oraCode = ExtractOraCode(ex);
+                    if (oraCode > 0 && idempotentCodes.Contains(oraCode))
+                    {
+                        skipped++;
+                        return;
+                    }
+                    failed++;
+                    if (firstFailMsg == null)
+                    {
+                        firstFailMsg = "ORA-" + oraCode + ": " + ex.Message.Split('\n')[0];
+                        firstFailStmt = stmt.Length > 400 ? stmt.Substring(0, 400) + "..." : stmt;
+                    }
+                }
+            }
+
+            // Pass 1: DDL
+            foreach (var s in ddlStmts) ExecOne(s);
+
+            // Inter: disable FK constraints (skip SYS_C% = NOT NULL system constraints)
+            if (dmlStmts.Count > 0)
+            {
+                try
+                {
+                    connection.Execute(@"
+BEGIN
+  FOR rec IN (SELECT table_name, constraint_name FROM user_constraints
+              WHERE constraint_type = 'R' AND status = 'ENABLED') LOOP
+    BEGIN EXECUTE IMMEDIATE 'ALTER TABLE ""' || rec.table_name || '"" DISABLE CONSTRAINT ""' || rec.constraint_name || '""'; EXCEPTION WHEN OTHERS THEN NULL; END;
+  END LOOP;
+END;");
+                }
+                catch (System.Exception exDis)
+                {
+                    System.Diagnostics.Trace.WriteLine("[ExecuteOracleScript] disable FK warn: " + exDis.Message);
+                }
+            }
+
+            // Pass 2: DML
+            foreach (var s in dmlStmts) ExecOne(s);
+
+            // Final: re-enable FK constraints NOVALIDATE
+            if (dmlStmts.Count > 0)
+            {
+                try
+                {
+                    connection.Execute(@"
+BEGIN
+  FOR rec IN (SELECT table_name, constraint_name FROM user_constraints
+              WHERE constraint_type = 'R' AND status = 'DISABLED') LOOP
+    BEGIN EXECUTE IMMEDIATE 'ALTER TABLE ""' || rec.table_name || '"" ENABLE NOVALIDATE CONSTRAINT ""' || rec.constraint_name || '""'; EXCEPTION WHEN OTHERS THEN NULL; END;
+  END LOOP;
+END;");
+                }
+                catch (System.Exception exEn)
+                {
+                    System.Diagnostics.Trace.WriteLine("[ExecuteOracleScript] enable FK warn: " + exEn.Message);
+                }
+            }
+
+            System.Diagnostics.Trace.WriteLine(
+                "[ExecuteOracleScript] ddl=" + ddlStmts.Count + " dml=" + dmlStmts.Count +
+                " total=" + total + " ok=" + ok + " skipped(idempotent)=" + skipped + " failed=" + failed);
+            if (failed > 0)
+            {
+                throw new System.InvalidOperationException(
+                    "ExecuteOracleScript: " + failed + "/" + total + " statements failed. " +
+                    "First: " + firstFailMsg + "\nStatement: " + firstFailStmt);
+            }
+        }
+
+        /// <summary>
+        /// Splitter SQL-aware per Oracle: divide uno script in statements separati
+        /// da `;` ignorando i `;` dentro literals e commenti.
+        /// I PL/SQL block (CREATE FUNCTION/PROCEDURE/PACKAGE/TRIGGER/TYPE BODY
+        /// + BEGIN/DECLARE anonymous) sono delimitati da `/` standalone, NON da `;`.
+        /// </summary>
+        private static System.Collections.Generic.List<string> SplitOracleStatements(string script)
+        {
+            var result = new System.Collections.Generic.List<string>();
+            if (string.IsNullOrEmpty(script)) return result;
+
+            // Pre-detect PL/SQL block: usiamo `/` come delimitatore di TOP-LEVEL
+            // block (su riga propria). Pattern: split su `\n/\n` o `\r\n/\r\n`.
+            // Ogni "chunk" e' processato separatamente: se INIZIA con
+            // CREATE [OR REPLACE] (FUNCTION|PROCEDURE|PACKAGE|TRIGGER|TYPE BODY)
+            // o DECLARE / BEGIN (anonymous block) → tutto come unico statement
+            // (skip split su `;`).
+            var plsqlStartPattern = new System.Text.RegularExpressions.Regex(
+                @"^(\s*(--[^\n]*\n|/\*[\s\S]*?\*/\s*))*\s*(CREATE\s+(OR\s+REPLACE\s+)?((FORCE\s+)?(EDITIONABLE\s+|NONEDITIONABLE\s+)?(FUNCTION|PROCEDURE|PACKAGE(\s+BODY)?|TRIGGER|TYPE\s+BODY))\b|DECLARE\b|BEGIN\b)",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            // Pre-process: insert `\n/\n` SEPARATOR before each CREATE OR REPLACE
+            // FUNCTION/PROCEDURE/PACKAGE/TYPE BODY/TRIGGER that's NOT already preceded
+            // by `/` standalone. Necessario perche' DBMS_METADATA puo' emettere
+            // FUNCTION inline col DDL precedente (es. tra CREATE TABLE e altre
+            // CREATE TABLE) senza emettere `/` prima — il `/` viene emesso solo
+            // come TERMINATOR della FUNCTION stessa. Per il nostro splitter dobbiamo
+            // garantire che la FUNCTION sia in un chunk separato.
+            string normalized = System.Text.RegularExpressions.Regex.Replace(
+                script,
+                @"(?<!^\s*/\s*\n)(?=\s*CREATE\s+(?:OR\s+REPLACE\s+)?(?:(?:FORCE\s+)?(?:EDITIONABLE\s+|NONEDITIONABLE\s+)?(?:FUNCTION|PROCEDURE|PACKAGE(?:\s+BODY)?|TRIGGER|TYPE\s+BODY)\b))",
+                "\n/\n",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Multiline);
+
+            // Split su `/` standalone line. Ogni chunk = potenziale PL/SQL block
+            // o gruppo di statement SQL.
+            var slashSplit = System.Text.RegularExpressions.Regex.Split(normalized, @"(?m)^\s*/\s*$");
+            foreach (var chunk in slashSplit)
+            {
+                string trimmedChunk = chunk?.Trim() ?? "";
+                if (string.IsNullOrWhiteSpace(trimmedChunk)) continue;
+
+                if (plsqlStartPattern.IsMatch(trimmedChunk))
+                {
+                    // PL/SQL block → tutto come unico statement (preserve i `;` interni)
+                    result.Add(trimmedChunk);
+                    continue;
+                }
+                // SQL plain chunk → split su `;` literal-aware
+                SplitOnSemicolonLiteralAware(trimmedChunk, result);
+            }
+            return result;
+        }
+
+        private static void SplitOnSemicolonLiteralAware(string script, System.Collections.Generic.List<string> result)
+        {
+            var sb = new System.Text.StringBuilder(1024);
+            int i = 0, n = script.Length;
+            while (i < n)
+            {
+                char c = script[i];
+
+                // -- line comment
+                if (c == '-' && i + 1 < n && script[i + 1] == '-')
+                {
+                    sb.Append(c);
+                    i++;
+                    while (i < n && script[i] != '\n') { sb.Append(script[i]); i++; }
+                    continue;
+                }
+                // /* block comment */
+                if (c == '/' && i + 1 < n && script[i + 1] == '*')
+                {
+                    sb.Append(c); sb.Append('*'); i += 2;
+                    while (i + 1 < n && !(script[i] == '*' && script[i + 1] == '/')) { sb.Append(script[i]); i++; }
+                    if (i + 1 < n) { sb.Append('*'); sb.Append('/'); i += 2; }
+                    continue;
+                }
+                // q'<delim>...<delim_close>' alternative quoting (Oracle-specific)
+                if ((c == 'q' || c == 'Q') && i + 2 < n && script[i + 1] == '\'')
+                {
+                    char openD = script[i + 2];
+                    char closeD = openD switch { '[' => ']', '{' => '}', '(' => ')', '<' => '>', _ => openD };
+                    sb.Append(c); sb.Append('\''); sb.Append(openD);
+                    i += 3;
+                    while (i + 1 < n && !(script[i] == closeD && script[i + 1] == '\''))
+                    {
+                        sb.Append(script[i]); i++;
+                    }
+                    if (i + 1 < n) { sb.Append(closeD); sb.Append('\''); i += 2; }
+                    continue;
+                }
+                // 'string' standard SQL — escape '' = embedded quote
+                if (c == '\'')
+                {
+                    sb.Append(c); i++;
+                    while (i < n)
+                    {
+                        if (script[i] == '\'')
+                        {
+                            // doubled '' = escape: keep entrambi e continua
+                            if (i + 1 < n && script[i + 1] == '\'')
+                            {
+                                sb.Append('\''); sb.Append('\''); i += 2;
+                                continue;
+                            }
+                            sb.Append('\''); i++;
+                            break; // end of string
+                        }
+                        sb.Append(script[i]); i++;
+                    }
+                    continue;
+                }
+                // ; → statement boundary
+                if (c == ';')
+                {
+                    string stmt = sb.ToString().Trim();
+                    if (!string.IsNullOrWhiteSpace(stmt)) result.Add(stmt);
+                    sb.Clear();
+                    i++;
+                    continue;
+                }
+                sb.Append(c);
+                i++;
+            }
+            string last = sb.ToString().Trim();
+            if (!string.IsNullOrWhiteSpace(last)) result.Add(last);
+        }
+
+        /// <summary>
+        /// Estrae il codice ORA-XXXXX dall'eccezione Oracle. Reflection-based per
+        /// non hardcodare il tipo concreto (OracleException). Ritorna 0 se non trovato.
+        /// </summary>
+        private static int ExtractOraCode(System.Exception ex)
+        {
+            try
+            {
+                // Oracle.ManagedDataAccess.Client.OracleException ha proprieta' Number (int)
+                var numProp = ex.GetType().GetProperty("Number");
+                if (numProp != null)
+                {
+                    object val = numProp.GetValue(ex);
+                    if (val is int i) return i;
+                    if (val != null && int.TryParse(val.ToString(), out int parsed)) return parsed;
+                }
+                // Fallback: parse del Message "ORA-NNNNN: ..."
+                var match = System.Text.RegularExpressions.Regex.Match(ex.Message ?? "", @"ORA-(\d{1,5})");
+                if (match.Success) return int.Parse(match.Groups[1].Value);
+            }
+            catch { }
+            return 0;
         }
 
         #endregion
@@ -5743,9 +6053,77 @@ FROM {fromTable}
                 if (bool.TryParse(value, out bool parsedBool))
                     value = parsedBool ? "1" : "0";
             }
+            else
+            {
+                // FIX 2026-05-26 ORA-01843: date/datetime/timestamp colonne richiedono
+                // TO_DATE(value, format) esplicito — Oracle altrimenti applica
+                // NLS_DATE_FORMAT default (es. 'DD-MON-RR' con language IT che si
+                // aspetta MAGG/GIU/LUG) e fallisce su '05/05/2026' o '2026-05-05T00:00:00'.
+                // Pattern detection: o mc_ui_column_type o mc_db_column_type contiene
+                // date/time/timestamp (case-insensitive).
+                string uiType = (col.mc_ui_column_type ?? string.Empty).ToLowerInvariant();
+                string dbType = (col.mc_db_column_type ?? string.Empty).ToLowerInvariant();
+                bool isDateLike = uiType == "date" || uiType == "datetime" || uiType == "time"
+                                 || uiType.Contains("date") || uiType.Contains("time")
+                                 || dbType == "date" || dbType == "datetime" || dbType == "timestamp"
+                                 || dbType.Contains("date") || dbType.Contains("timestamp");
+
+                if (isDateLike)
+                {
+                    // Parse il valore originale in DateTime (gestisce JValue, string ISO,
+                    // string locale-formatted, DateTime nativo).
+                    DateTime? parsed = TryParseAsDateTime(originalValue);
+                    if (parsed.HasValue)
+                    {
+                        string iso = parsed.Value.ToString("yyyy-MM-dd HH:mm:ss");
+                        fltr += (string.IsNullOrEmpty(fltr) ? "" : " AND ")
+                            + currentFld + "=TO_DATE('" + iso + "','YYYY-MM-DD HH24:MI:SS')";
+                        return;
+                    }
+                    // Fallback: se il parse fallisce, almeno strippa il `T` ISO e
+                    // wrappa in TO_DATE per dare Oracle un format hint riconoscibile.
+                    string fallback = value.Replace("T", " ").Trim();
+                    // Best-effort: assume ISO `YYYY-MM-DD HH:MM:SS`. Se la string non
+                    // matcha, Oracle ritornera' un errore esplicito invece di silent
+                    // misinterpretation.
+                    fltr += (string.IsNullOrEmpty(fltr) ? "" : " AND ")
+                        + currentFld + "=TO_DATE('" + EscapeValue(fallback) + "','YYYY-MM-DD HH24:MI:SS')";
+                    return;
+                }
+            }
 
             fltr += (string.IsNullOrEmpty(fltr) ? "" : " AND ")
                 + currentFld + "=" + quote + EscapeValue(value) + quote;
+        }
+
+        /// <summary>
+        /// Parsing tollerante di un valore in DateTime: gestisce
+        /// JValue (Newtonsoft.Json), DateTime nativo, DateTimeOffset, string ISO
+        /// ("2026-05-05T00:00:00"), string italiano locale ("05/05/2026 00:00:00").
+        /// Ritorna null se non riesce.
+        /// </summary>
+        private static DateTime? TryParseAsDateTime(object value)
+        {
+            if (value == null) return null;
+            if (value is DateTime dt) return dt;
+            if (value is DateTimeOffset dto) return dto.LocalDateTime;
+            if (value is JValue jv)
+            {
+                if (jv.Type == JTokenType.Date) return jv.Value<DateTime>();
+                value = jv.Value;
+                if (value is DateTime dt2) return dt2;
+                if (value == null) return null;
+            }
+            string s = value.ToString();
+            if (string.IsNullOrWhiteSpace(s)) return null;
+            // Try ISO 8601 first (es. "2026-05-05T00:00:00", "2026-05-05 00:00:00")
+            if (DateTime.TryParse(s, System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.AssumeLocal, out DateTime res))
+                return res;
+            // Fallback con culture default (es. it-IT "05/05/2026 00:00:00")
+            if (DateTime.TryParse(s, out DateTime res2))
+                return res2;
+            return null;
         }
 
         private static bool IsOptimisticComparableValue(object value)
