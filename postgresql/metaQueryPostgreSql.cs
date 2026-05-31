@@ -4735,15 +4735,24 @@ FROM {fromTable}
                 {
                     if (valore.ToString().IndexOf("@") != 0)
                     {
-                        //FIX UTC TIME ISSUE 
-                        string parsed = valore.ToString().Replace(@"""", "");
-                        DateTime d = DateTime.Parse(parsed);
-                        valore = d.ToString("yyyyMMdd HH:mm:ss").Replace(".", ":");
+                        // Handling esplicito tipizzato (vedi commento dettagliato
+                        // in InsertflatData per il razionale).
+                        DateTime d;
+                        if (valore is DateTime dtTyped)
+                        {
+                            d = dtTyped;
+                        }
+                        else
+                        {
+                            string parsed = valore.ToString().Replace(@"""", "");
+                            if (!DateTime.TryParse(parsed, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out d))
+                                d = DateTime.Parse(parsed, System.Globalization.CultureInfo.CurrentCulture);
+                        }
+                        valore = d.ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
                     }
                 }
                 else if (fld.mc_ui_column_type == "date" && valore != null && valore.ToString() != "")
                 {
-                    //FIX UTC TIME ISSUE 
                     string parsed = valore.ToString().Replace(@"""", "");
 
                     if (tabel.md_is_reticular || parsed.IndexOf("@") == 0)
@@ -4752,8 +4761,17 @@ FROM {fromTable}
                     }
                     else
                     {
-                        DateTime d = DateTime.Parse(parsed);
-                        valore = d.ToString("yyyyMMdd");
+                        DateTime d;
+                        if (valore is DateTime dtTyped2)
+                        {
+                            d = dtTyped2;
+                        }
+                        else
+                        {
+                            if (!DateTime.TryParse(parsed, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out d))
+                                d = DateTime.Parse(parsed, System.Globalization.CultureInfo.CurrentCulture);
+                        }
+                        valore = d.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
                     }
 
                 }
@@ -5661,20 +5679,55 @@ FROM {fromTable}
                     {
                         if (valore.ToString().IndexOf("@") != 0)
                         {
-                            //FIX UTC TIME ISSUE 
-                            string parsed = valore.ToString().Replace(@"""", "");
-                            DateTime d = DateTime.Parse(parsed);
-                            valore = d.ToString("yyyyMMdd HH:mm:ss").Replace(".", ":");
+                            // 2026-05-28: handling esplicito tipizzato.
+                            //
+                            // valore qui puo' essere:
+                            //   (a) DateTime gia' parsato da Newtonsoft.Json
+                            //       (DateParseHandling.DateTime auto-converte le
+                            //       stringhe ISO 8601 in ingresso) → uso diretto.
+                            //   (b) string ISO 8601 (es. "2026-04-05T14:30:00")
+                            //       da client che non ha auto-conversione → Parse
+                            //       con InvariantCulture.
+                            //   (c) string in formato CurrentCulture (es. it-IT
+                            //       "31/12/2026 00:00:00") che arriva quando
+                            //       EscapeValue upstream chiama ToString() su un
+                            //       DateTime con culture del processo → fallback
+                            //       a CurrentCulture Parse.
+                            //
+                            // Il format di output e' sempre ISO 8601 a precisione
+                            // secondi (no .fff: il datetime-picker UI non espone
+                            // i millisecondi e li tronca a 000 by contract).
+                            DateTime d;
+                            if (valore is DateTime dtTyped)
+                            {
+                                d = dtTyped;
+                            }
+                            else
+                            {
+                                string parsed = valore.ToString().Replace(@"""", "");
+                                if (!DateTime.TryParse(parsed, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out d))
+                                    d = DateTime.Parse(parsed, System.Globalization.CultureInfo.CurrentCulture);
+                            }
+                            valore = d.ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
                         }
                     }
                     else if (fld.mc_ui_column_type == "date" && valore != null && valore.ToString() != "")
                     {
                         if (valore.ToString().IndexOf("@") != 0)
                         {
-                            //FIX UTC TIME ISSUE 
-                            string parsed = valore.ToString().Replace(@"""", "");
-                            DateTime d = DateTime.Parse(parsed);
-                            valore = d.ToString("yyyyMMdd");
+                            // Stesso pattern del datetime (vedi commento sopra).
+                            DateTime d;
+                            if (valore is DateTime dtTyped2)
+                            {
+                                d = dtTyped2;
+                            }
+                            else
+                            {
+                                string parsed = valore.ToString().Replace(@"""", "");
+                                if (!DateTime.TryParse(parsed, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out d))
+                                    d = DateTime.Parse(parsed, System.Globalization.CultureInfo.CurrentCulture);
+                            }
+                            valore = d.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
                         }
                     }
                     else if (fld.mc_ui_column_type == "number" || fld.mc_ui_column_type == "number_slider")

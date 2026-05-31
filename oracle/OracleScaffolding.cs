@@ -526,7 +526,7 @@ WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
 
                     foreach (columnDefinition col in columns)
                     {
-                        mmd.scaffoldOfColumnMySql(connection, connName, mmd, tb, db, col, str, ref createMenu, columns.Count);
+                        scaffoldOfColumnOracle(connection, connName, mmd, tb, db, col, str, ref createMenu, columns.Count);
                     }
                 }
 
@@ -535,7 +535,7 @@ WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
                     List<columnDefinition> columns = GetOracleColumns(connection, owner, vw, str);
                     foreach (columnDefinition col in columns)
                     {
-                        mmd.scaffoldOfColumnMySql(connection, connName, mmd, vw, db, col, str, ref createMenu, columns.Count);
+                        scaffoldOfColumnOracle(connection, connName, mmd, vw, db, col, str, ref createMenu, columns.Count);
                     }
                 }
 
@@ -576,7 +576,7 @@ WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
                     return new Dictionary<string, string>() { { "message", "Colonna non trovata" }, { "log", "Colonna non trovata" } };
 
                 bool createMenu = false;
-                mmd.scaffoldOfColumnMySql(connection, connName, mmd, tableName, owner, col, log, ref createMenu, columns.Count);
+                scaffoldOfColumnOracle(connection, connName, mmd, tableName, owner, col, log, ref createMenu, columns.Count);
                 // Shape parity con MSSQL/PG: il frontend `Scaffold Table` callback in metadata
                 // legge `postResults.message` (vedi _mtdt__cstom__actions__tabelle); PG include
                 // sia "message" sia "log", Oracle deve fare uguale altrimenti il dialog mostra
@@ -620,7 +620,7 @@ WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
 
                 List<columnDefinition> columns = GetOracleColumns(connection, owner, tableName, log);
                 foreach (columnDefinition col in columns)
-                    mmd.scaffoldOfColumnMySql(connection, connName, mmd, tableName, owner, col, log, ref createMenu, columns.Count);
+                    scaffoldOfColumnOracle(connection, connName, mmd, tableName, owner, col, log, ref createMenu, columns.Count);
 
                 // Cache invalidation post-scaffold: senza questa chiamata la nuova route
                 // resta invisibile al runtime (cache `storedTableMeta` / `storedMeta`
@@ -688,7 +688,7 @@ WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
 
                     foreach (columnDefinition col in columns)
                     {
-                        mmd.scaffoldOfColumnMySql(connection, connName, mmd, viewT, owner, col, log, ref createMenu, columns.Count);
+                        scaffoldOfColumnOracle(connection, connName, mmd, viewT, owner, col, log, ref createMenu, columns.Count);
                         createMenu = false;
                     }
                 }
@@ -763,6 +763,387 @@ WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
                     childPinfo.SetValue(childClassObject, pinfo.GetValue(baseClassObj, null), null);
                 }
             }
+        }
+
+        // ============================================================
+        // Oracle-native COLUMN scaffolder (Fase A — 2026-05-28)
+        // ============================================================
+        //
+        // Sostituisce le 5 chiamate a `mmd.scaffoldOfColumnMySql(...)` in
+        // questo file. Quel metodo shared in metaModelRaw.cs e' MySQL-centric:
+        // `RawHelpers.getDBDataType` (Helpers.cs:3044) e' case-sensitive e
+        // riconosce solo i type-name MySQL lowercase. Tutti i type-name che
+        // Oracle ritorna da `all_tab_columns.data_type` sono UPPERCASE e
+        // diversi:
+        //   - `NUMBER`/`NUMBER(p,s)`         vs MySQL `int`/`decimal`
+        //   - `VARCHAR2`/`NVARCHAR2`         vs MySQL `varchar`
+        //   - `DATE`                         (Oracle DATE include time!)
+        //   - `TIMESTAMP(N)`/`TIMESTAMP(N) WITH (LOCAL) TIME ZONE` vs `datetime`
+        //   - `CLOB`/`NCLOB`                 vs MySQL `text`
+        //   - `BLOB`/`RAW`                   vs MySQL `blob`/`binary`
+        //   - `BINARY_FLOAT`/`BINARY_DOUBLE` vs MySQL `float`/`double`
+        // Tutti cadevano nel default → `varchar` → UI `text`, rompendo
+        // number/datetime widgets per qualunque tabella Oracle scaffoldata
+        // via API.
+        //
+        // Specificita' Oracle:
+        //   1. `DATE` mappa a `datetime` (NON `date`): in Oracle DATE include
+        //      sempre ora/minuti/secondi; non c'e' un date-only type nativo.
+        //   2. `NUMBER` senza precision/scale (default) mappa a `decimal`
+        //      (safer di `int`); `NUMBER(p,0)` mappa a `int`; `NUMBER(p,s)`
+        //      con s>0 mappa a `decimal`.
+        //   3. Oracle pre-23c non ha BOOLEAN nativo: convenzionalmente si usa
+        //      `NUMBER(1)` con 0/1. Lo lasciamo come `int` (UI number) — chi
+        //      vuole boolean UI deve patchare md_ui_column_type manualmente.
+        //
+        // `scaffoldOfTableMySql` resta usato (logica `_metadati__tabelle`
+        // row + menu opzionale e' provider-agnostica, promosso a
+        // `public static` 2026-05-28 nello stesso commit).
+        // ============================================================
+
+        /// <summary>
+        /// Maps an Oracle raw `data_type` (from `all_tab_columns.data_type`)
+        /// to a canonical type token consumed by
+        /// <see cref="SetTypeFromOracleColumn"/>. The `precision`/`scale`
+        /// hint is used for NUMBER classification (precision=0, scale=0
+        /// means unconstrained NUMBER; scale=0 with precision>0 is integer;
+        /// scale>0 is decimal).
+        /// </summary>
+        private static string GetOracleCanonicalType(string oracleRawType, int precision, int scale)
+        {
+            if (string.IsNullOrEmpty(oracleRawType)) return "varchar";
+            // Trim type-parameters: "TIMESTAMP(6)" → "TIMESTAMP",
+            // "NVARCHAR2(200)" → "NVARCHAR2", "INTERVAL DAY(2) TO SECOND(6)"
+            // → "INTERVAL DAY TO SECOND".
+            string t = oracleRawType.Trim().ToUpperInvariant();
+            int paren = t.IndexOf('(');
+            string typeOnly = paren > 0 ? t.Substring(0, paren).Trim() : t;
+            // Re-attach trailing "WITH TIME ZONE" suffix that arrives separately.
+            string suffix = paren > 0 && t.Length > paren ? t.Substring(t.LastIndexOf(')') + 1).Trim() : "";
+
+            // NUMBER classification: integer if scale==0, decimal otherwise.
+            if (typeOnly == "NUMBER")
+            {
+                if (scale > 0) return "decimal";
+                // scale==0 with precision==0 = unconstrained NUMBER; treat as
+                // decimal for safety (it could hold non-integers in practice).
+                if (precision == 0) return "decimal";
+                return "int";
+            }
+
+            switch (typeOnly)
+            {
+                // Oracle 22+ INTEGER alias → integer
+                case "INTEGER":
+                case "SMALLINT":
+                    return "int";
+
+                case "FLOAT":
+                case "BINARY_FLOAT":
+                case "BINARY_DOUBLE":
+                case "DOUBLE PRECISION":
+                case "REAL":
+                    return "float";
+
+                // character family
+                case "VARCHAR2":
+                case "VARCHAR":
+                case "NVARCHAR2":
+                case "CHAR":
+                case "NCHAR":
+                    return "varchar";
+
+                case "CLOB":
+                case "NCLOB":
+                case "LONG":
+                    return "text";
+
+                case "XMLTYPE":
+                    return "xml";
+
+                // date/time family — Oracle quirk: DATE includes time
+                case "DATE":
+                    return "datetime";
+
+                case "TIMESTAMP":
+                    // TIMESTAMP / TIMESTAMP(N) / TIMESTAMP(N) WITH (LOCAL) TIME ZONE
+                    // tutti mappano a `datetime`. Il suffisso "WITH TIME ZONE"
+                    // o "WITH LOCAL TIME ZONE" non cambia la classificazione UI.
+                    return "datetime";
+
+                case "INTERVAL DAY TO SECOND":
+                case "INTERVAL YEAR TO MONTH":
+                    // No first-class UI widget for INTERVAL; treat as text.
+                    return "varchar";
+
+                case "RAW":
+                case "LONG RAW":
+                case "BLOB":
+                case "BFILE":
+                    return "binary";
+
+                case "ROWID":
+                case "UROWID":
+                    return "varchar";
+
+                // Spatial types (SDO_GEOMETRY) arrive as the type name
+                case "SDO_GEOMETRY":
+                    return "geometry";
+
+                default:
+                    // Unknown / user-defined object types → fall back to varchar.
+                    // (PG had the same default for ENUM USER-DEFINED.)
+                    return "varchar";
+            }
+        }
+
+        /// <summary>
+        /// Applies the canonical type → `mc_ui_column_type` mapping and
+        /// appends the column row to the model. Mirrors PG's
+        /// SetTypeFromPostgresColumn (includes `datetime` case, missing in
+        /// the MySQL-centric shared switch).
+        /// </summary>
+        private static void SetTypeFromOracleColumn(metaRawModel mm, columnDefinition col, _Metadati_Colonne cm, string canonical)
+        {
+            switch (canonical)
+            {
+                case "varchar":
+                    cm.mc_default_value = col.DefaultValue;
+                    cm.mc_ui_column_type = "text";
+                    if (col.MaximumLength > 0)
+                        cm.mc_max_length = col.MaximumLength;
+                    mm.AddColonna(cm);
+                    break;
+
+                case "text":
+                case "xml":
+                    cm.mc_default_value = col.DefaultValue;
+                    cm.mc_ui_column_type = "txt_area";
+                    if (canonical == "xml")
+                        cm.mc_disable_sorting = true;
+                    mm.AddColonna(cm);
+                    break;
+
+                case "binary":
+                    cm.mc_default_value = col.DefaultValue;
+                    cm.mc_ui_column_type = "txt_area";
+                    cm.mc_hide_in_list = true;
+                    cm.mc_hide_in_edit = true;
+                    cm.mc_logic_editable = false;
+                    mm.AddColonna(cm);
+                    break;
+
+                case "int":
+                    {
+                        cm.mc_default_value = col.DefaultValue;
+                        cm.mc_ui_column_type = "number";
+                        _Metadati_Colonne_Slider numCol = new _Metadati_Colonne_Slider();
+                        RawHelpers.cloneToChild(cm, numCol);
+                        numCol.mc_ui_slider_decimals = 0;
+                        numCol.mc_ui_slider_format = "N";
+                        mm.AddColonna(numCol);
+                    }
+                    break;
+
+                case "decimal":
+                    {
+                        cm.mc_default_value = col.DefaultValue;
+                        cm.mc_ui_column_type = "number";
+                        _Metadati_Colonne_Slider numCol = new _Metadati_Colonne_Slider();
+                        RawHelpers.cloneToChild(cm, numCol);
+                        // Oracle NUMBER without explicit scale → use 4 decimals as
+                        // a reasonable default (mirrors PG `numeric` default).
+                        numCol.mc_ui_slider_decimals = (short)(col.NumericScale > 0 ? col.NumericScale : 4);
+                        numCol.mc_ui_slider_format = "N";
+                        mm.AddColonna(numCol);
+                    }
+                    break;
+
+                case "float":
+                    {
+                        cm.mc_default_value = col.DefaultValue;
+                        cm.mc_ui_column_type = "number";
+                        cm.mc_db_column_type = "float";
+                        _Metadati_Colonne_Slider numCol = new _Metadati_Colonne_Slider();
+                        RawHelpers.cloneToChild(cm, numCol);
+                        numCol.mc_ui_slider_decimals = 4;
+                        numCol.mc_ui_slider_format = "N";
+                        mm.AddColonna(numCol);
+                    }
+                    break;
+
+                case "date":
+                    // (Not used for Oracle — DATE maps to "datetime" — but kept
+                    // for forward compat if a future provider emits "date".)
+                    cm.mc_default_value = col.DefaultValue;
+                    cm.mc_ui_column_type = "date";
+                    mm.AddColonna(cm);
+                    break;
+
+                case "datetime":
+                    cm.mc_default_value = col.DefaultValue;
+                    cm.mc_ui_column_type = "datetime";
+                    mm.AddColonna(cm);
+                    break;
+
+                case "time":
+                    cm.mc_default_value = col.DefaultValue;
+                    cm.mc_ui_column_type = "time";
+                    mm.AddColonna(cm);
+                    break;
+
+                case "geometry":
+                    cm.mc_ui_column_type = "polygon";
+                    mm.AddColonna(cm);
+                    break;
+
+                default:
+                    cm.mc_default_value = col.DefaultValue;
+                    cm.mc_ui_column_type = "text";
+                    mm.AddColonna(cm);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Oracle-native equivalent of metaRawModel.scaffoldOfColumnMySql.
+        /// Same control flow (table ensure + alias + PK detection + _Metadati_Colonne
+        /// row + type mapping), but type-mapping uses
+        /// <see cref="GetOracleCanonicalType"/> + <see cref="SetTypeFromOracleColumn"/>
+        /// instead of the MySQL-centric RawHelpers.getDBDataType +
+        /// setTypeFromSMOColumnMySql.
+        /// </summary>
+        public static string scaffoldOfColumnOracle(
+            string connection,
+            string connName,
+            metaRawModel mm,
+            string table,
+            string db,
+            columnDefinition column,
+            StringBuilder log,
+            ref bool createMenu,
+            int colCount,
+            List<columnDefinition> columns = null)
+        {
+            RawHelpers.authenticate();
+            _Metadati_Tabelle md = metaRawModel.scaffoldOfTableMySql(connection, connName, table, mm, log, db, ref createMenu, column.InPrimaryKey);
+
+            string column_name = column.Name;
+            string alias = RawHelpers.getValidColumnName(column.Name);
+
+            System.Text.RegularExpressions.Regex rgx = new System.Text.RegularExpressions.Regex("^[0-9].*$");
+            if (rgx.IsMatch(alias))
+                alias = "C" + alias;
+
+            string aliasLower = alias.ToLowerInvariant();
+            if (aliasLower == "data" || aliasLower == "row" || aliasLower == "default" || aliasLower == RawHelpers.getRouteName(table))
+            {
+                alias = alias + "_field";
+            }
+
+            _Metadati_Colonne cm = mm.GetMetadati_ColonnesForScaffolding(alias, table, md.md_route_name).FirstOrDefault();
+            if (cm != null)
+                return "Colonna esistente";
+
+            bool mc_is_primary_key = column.InPrimaryKey;
+            bool mc_hide_in_edit = mc_is_primary_key;
+            bool mc_hide_in_list = mc_is_primary_key;
+            bool mc_logic_editable = !mc_is_primary_key;
+
+            if (column.Identity)
+            {
+                mc_hide_in_edit = true;
+                mc_logic_editable = false;
+            }
+
+            string canonical = GetOracleCanonicalType(column.DataType, column.NumericPrecision, column.NumericScale);
+
+            // PK type detection. Oracle 12c+ supports `GENERATED [ALWAYS|BY DEFAULT]
+            // AS IDENTITY` → identity_column='YES' in all_tab_columns; older code
+            // uses SEQUENCE + trigger or .NEXTVAL default. GetOracleColumns marks
+            // both as Identity=true. Integer PK without identity falls back to
+            // "MAX" pattern (SELECT MAX(id)+1).
+            if (mc_is_primary_key)
+            {
+                if (column.Identity)
+                {
+                    md.md_primary_key_type = "IDENTITY";
+                }
+                else if (canonical == "int")
+                {
+                    if (columns != null && columns.Count(x => x.InPrimaryKey) > 1)
+                    {
+                        mc_hide_in_edit = false;
+                        mc_hide_in_list = false;
+                        mc_logic_editable = true;
+                        md.md_primary_key_type = "";
+                    }
+                    else
+                    {
+                        if (columns == null || !columns.Any(x => x.Identity))
+                            md.md_primary_key_type = "MAX";
+                        else
+                        {
+                            mc_hide_in_edit = false;
+                            mc_hide_in_list = false;
+                            mc_logic_editable = true;
+                        }
+                    }
+                }
+                else
+                {
+                    mc_hide_in_edit = false;
+                    mc_hide_in_list = false;
+                    mc_logic_editable = true;
+                    if (columns == null || !columns.Any(x => x.Identity))
+                        md.md_primary_key_type = "";
+                }
+
+                mm.UpdateTabella(md);
+            }
+
+            int mc_ordine = 1;
+            if (md._Metadati_Colonnes.Count > 0)
+                mc_ordine = md._Metadati_Colonnes.Max(x => x.mc_ordine).Value + 10;
+
+            bool mc_validation_required = !column.Nullable;
+            bool mc_has_validation = mc_validation_required;
+            string mc_required_err_msg = mc_validation_required ? "Campo obbligatorio" : "";
+
+            string friendlyName = RawHelpers.getDisplayName(column_name);
+
+            cm = new _Metadati_Colonne()
+            {
+                mc_db_column_type = canonical,
+                mc_nome_colonna = alias,
+                mc_real_column_name = column_name,
+                mc_display_string_in_edit = friendlyName,
+                mc_display_string_in_view = friendlyName,
+                mc_hide_in_edit = mc_hide_in_edit,
+                mc_hide_in_list = mc_hide_in_list,
+                mc_is_primary_key = mc_is_primary_key,
+                mc_is_range_filter = false,
+                mc_logic_converter_has = false,
+                mc_logic_editable = mc_logic_editable,
+                mc_logic_nullable = true,
+                mc_ordine = mc_ordine,
+                mc_show_in_filters = false,
+                mc_validation_has = mc_has_validation,
+                mc_validation_required = mc_validation_required,
+                mc_validation_message = mc_required_err_msg,
+                md_id = md.md_id,
+                mc_grant_by_default = true
+            };
+
+            if (colCount >= 20)
+                cm.mc_ui_grid_size_width = 50;
+            else if (colCount >= 10)
+                cm.mc_ui_grid_size_width = 100;
+
+            SetTypeFromOracleColumn(mm, column, cm, canonical);
+
+            log.AppendLine(string.Format("Added column '{0}' of Table '{1}'<br />", column_name, table));
+            return "";
         }
     }
 }

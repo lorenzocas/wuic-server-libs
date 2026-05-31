@@ -3092,34 +3092,50 @@ END;");
             //     - Reserved keyword (BLOB, DATE, ORDER, ...) → quoted UPPER per evitare
             //       ORA-00904 "identificativo non valido" quando usato come column name.
             //
-            // Edge-case noto NON coperto: CREATE quoted ALL-lower (es. `CREATE TABLE "cities"`)
-            //   produce physical `cities` case-preserved. Metadata input `cities` (all-lower)
-            //   verrebbe emesso unquoted → Oracle case-folde a `CITIES` UPPER → ≠ physical.
-            //   Frequenza pratica vicina a 0 (chi crea quoted all-lower senza ragione?). Se mai
-            //   si verifica → upgradare il `md_nome_tabella` al case esatto MISTO (es. `Cities`).
+            // FIX 2026-05-28: la vecchia regola "all-lower → unquoted UPPER" rompeva
+            // il caso "CREATE TABLE ... ("id" ...)" (column quoted-lowercase).
+            // GetOracleColumns ritorna `id` lowercase (case-preserved da
+            // all_tab_columns.column_name); EscapeDBObjectName('id') emetteva
+            // `ID` unquoted → Oracle case-folde a `ID` → ORA-00904 contro
+            // physical `id` lowercase.
+            //
+            // Nuova regola: lowercase contiene case-info (Oracle case-folde
+            // unquoted a UPPER, mai a lower). Se il metadata ritorna un
+            // identifier all-lower, l'unico modo perche' sia presente cosi'
+            // e' che sia stato CREATE-quoted preservando case → emit quoted
+            // per match physical lowercase preservato.
+            //   - ALL-UPPER → unquoted (Oracle case-folde a UPPER, match
+            //     physical UPPER creato da CREATE unquoted, scenario standard).
+            //   - ALL-LOWER → quoted preserve (match physical lowercase
+            //     creato da CREATE TABLE "id" quoted, caso scaffolder-cross-dbms).
+            //   - MIXED      → quoted preserve (case-preserved, no ambiguity).
+            //   - Leading underscore → quoted preserve (Oracle richiede
+            //     letter-start unquoted).
+            //   - Reserved keyword → quoted UPPER per evitare ORA-00904.
             if (obj == null) return "\"\"";
             if (obj.Length > 0 && obj[0] != '_' && System.Text.RegularExpressions.Regex.IsMatch(obj, "^[A-Za-z][A-Za-z0-9_]*$"))
             {
                 string upper = obj.ToUpperInvariant();
+                string lower = obj.ToLowerInvariant();
                 bool hasUpper = false, hasLower = false;
                 foreach (char c in obj) { if (char.IsUpper(c)) hasUpper = true; else if (char.IsLower(c)) hasLower = true; }
                 bool isMixedCase = hasUpper && hasLower;
+                bool isAllLower = hasLower && !hasUpper;
 
                 if (OracleReservedKeywords.Contains(upper))
                 {
-                    // Reserved word: mixed-case → quoted preserve; altrimenti quoted UPPER
-                    // (mirror del bootstrap Notification.cs/create-sp-oracle.sql che crea
-                    // la colonna come "TYPE" UPPER quoted anche da input lowercase).
                     return isMixedCase ? ("\"" + obj + "\"") : ("\"" + upper + "\"");
                 }
                 if (isMixedCase)
                 {
-                    // Mixed-case safe identifier → quoted preserve (physical creato con
-                    // CREATE TABLE "AbCdEEEfff" → case-preserved nel catalog Oracle).
                     return "\"" + obj + "\"";
                 }
-                // All-upper o all-lower safe identifier → unquoted (Oracle case-folde a UPPER,
-                // matcha physical UPPER creato da CREATE TABLE unquoted).
+                if (isAllLower)
+                {
+                    // Quoted preserve (NEW 2026-05-28): vedi commento sopra.
+                    return "\"" + obj + "\"";
+                }
+                // All-upper safe identifier → unquoted.
                 return upper;
             }
             return string.Concat("\"", obj.Replace("\"", "\"\""), "\"");
@@ -3172,16 +3188,45 @@ END;");
             {
                 string a = m.Groups["a"].Value;
                 string b = m.Groups["b"].Value;
-                // `a`: se safe ident (no spaces/special, not reserved) → UPPER unquoted.
-                //      Altrimenti (es. alias con spaces) → quoted preserve case.
-                bool aIsSafeIdent = System.Text.RegularExpressions.Regex.IsMatch(a, "^[A-Za-z][A-Za-z0-9_]*$")
-                                    && !OracleReservedKeywords.Contains(a.ToUpperInvariant());
-                string aOut = aIsSafeIdent ? a.ToUpperInvariant() : ("\"" + a + "\"");
-                // `b`: sempre column name (word-char). UPPER unquoted se safe, quoted UPPER se reserved.
-                bool bSafe = !OracleReservedKeywords.Contains(b.ToUpperInvariant());
-                string bOut = bSafe ? b.ToUpperInvariant() : ("\"" + b.ToUpperInvariant() + "\"");
-                return aOut + "." + bOut;
+                // FIX 2026-05-28: allineato a EscapeDBObjectName.
+                // Regola:
+                //   - all-UPPER safe ident → unquoted (Oracle case-folde a UPPER,
+                //     matcha physical UPPER creato unquoted, scenario standard).
+                //   - all-LOWER safe ident → quoted preserve (match physical
+                //     lowercase preservato da CREATE TABLE "x" quoted).
+                //   - MIXED → quoted preserve (case-preserved).
+                //   - reserved keyword → quoted UPPER.
+                //   - non-safe (es. spaces, leading underscore) → quoted preserve.
+                return EmitOracleQualifiedIdent(a) + "." + EmitOracleQualifiedIdent(b);
             });
+        }
+
+        // Helper condiviso da NormalizeComputedTextSnippet — applica la stessa
+        // regola di casing di EscapeDBObjectName per identifier word-char.
+        private static string EmitOracleQualifiedIdent(string ident)
+        {
+            if (string.IsNullOrEmpty(ident)) return "\"\"";
+            bool isSafeIdent = System.Text.RegularExpressions.Regex.IsMatch(ident, "^[A-Za-z][A-Za-z0-9_]*$");
+            if (!isSafeIdent)
+            {
+                // Non-safe (spaces, leading underscore, special chars) → quoted preserve.
+                return "\"" + ident.Replace("\"", "\"\"") + "\"";
+            }
+            string upper = ident.ToUpperInvariant();
+            bool hasUpper = false, hasLower = false;
+            foreach (char c in ident) { if (char.IsUpper(c)) hasUpper = true; else if (char.IsLower(c)) hasLower = true; }
+            bool isMixedCase = hasUpper && hasLower;
+            bool isAllLower = hasLower && !hasUpper;
+
+            if (OracleReservedKeywords.Contains(upper))
+            {
+                return isMixedCase ? ("\"" + ident + "\"") : ("\"" + upper + "\"");
+            }
+            if (isMixedCase || isAllLower)
+            {
+                return "\"" + ident + "\"";
+            }
+            return upper;
         }
 
         public static object EscapeValue(object valore)
@@ -3904,7 +3949,11 @@ END;");
             {
                 bool invertSort = false;
 
-                string pkOrder = string.Format("{0}.{1} ASC", safetableName, RawHelpers.getStoreColumnName(pKey));
+                // FIX 2026-05-28: il column name della PK deve passare per `EscapeDBObjectName`
+                // altrimenti per identificatori quoted-lowercase (es. tabella creata con `"id"`)
+                // Oracle case-folda il bare `id` -> `ID` e ORA-00904 perche' la colonna fisica e' `"id"`.
+                // Pattern: `"_e2e_datetime_locale_demo".id ASC` (rotto) -> `"_e2e_datetime_locale_demo"."id" ASC` (corretto).
+                string pkOrder = string.Format("{0}.{1} ASC", safetableName, EscapeDBObjectName(RawHelpers.getStoreColumnName(pKey)));
                 if (clonedfilters.filters.FirstOrDefault(x => x.field == "__extra") != null)
                 {
                     var flr = clonedfilters.filters.FirstOrDefault(x => x.field == pKey.mc_nome_colonna);
@@ -5359,30 +5408,45 @@ END;");
                 {
                     if (valore.ToString().IndexOf("@") != 0)
                     {
-                        //FIX UTC TIME ISSUE
-                        string parsed = valore.ToString().Replace(@"""", "");
-                        DateTime d = DateTime.Parse(parsed);
-                        // FIX 2026-05-22: vedi BuildDynamicInsertQuery (~6054) per dettagli.
-                        // Oracle NLS_DATE_FORMAT default 'DD-MON-RR' → confronto/INSERT
-                        // di '2026-05-22 00:00:00' fallisce con ORA-01843. Sentinel @ in
-                        // prefix per il quote-skip logic alla riga ~5234.
-                        valore = "@TO_TIMESTAMP('" + d.ToString("yyyy-MM-dd HH:mm:ss") + "','YYYY-MM-DD HH24:MI:SS')";
+                        // 2026-05-28: typed-DateTime handling (vedi commento
+                        // dettagliato in BuildDynamicInsertQuery, ~6452, per
+                        // il razionale completo).
+                        DateTime d;
+                        if (valore is DateTime dtTyped)
+                        {
+                            d = dtTyped;
+                        }
+                        else
+                        {
+                            string parsed = valore.ToString().Replace(@"""", "");
+                            if (!DateTime.TryParse(parsed, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out d))
+                                d = DateTime.Parse(parsed, System.Globalization.CultureInfo.CurrentCulture);
+                        }
+                        valore = "@TO_TIMESTAMP('" + d.ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture) + "','YYYY-MM-DD HH24:MI:SS')";
                     }
                 }
                 else if (fld.mc_ui_column_type == "date" && valore != null && valore.ToString() != "")
                 {
-                    //FIX UTC TIME ISSUE
-                    string parsed = valore.ToString().Replace(@"""", "");
+                    string parsedRaw = valore.ToString().Replace(@"""", "");
 
-                    if (tabel.md_is_reticular || parsed.IndexOf("@") == 0)
+                    if (tabel.md_is_reticular || parsedRaw.IndexOf("@") == 0)
                     {
-                        valore = parsed;
+                        valore = parsedRaw;
                     }
                     else
                     {
-                        DateTime d = DateTime.Parse(parsed);
-                        // FIX 2026-05-22: vedi datetime sopra.
-                        valore = "@TO_DATE('" + d.ToString("yyyyMMdd") + "','YYYYMMDD')";
+                        // Stesso pattern del datetime sopra.
+                        DateTime d;
+                        if (valore is DateTime dtTyped2)
+                        {
+                            d = dtTyped2;
+                        }
+                        else
+                        {
+                            if (!DateTime.TryParse(parsedRaw, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out d))
+                                d = DateTime.Parse(parsedRaw, System.Globalization.CultureInfo.CurrentCulture);
+                        }
+                        valore = "@TO_DATE('" + d.ToString("yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture) + "','YYYYMMDD')";
                     }
 
                 }
@@ -5581,7 +5645,18 @@ END;");
                     // formattate (es. "@TO_DATE(...)" da date normalizer ~5039). Skip
                     // quote + remove @ prefix.
                     bool _isSqlExprUpd = (valore != null && valore.ToString().Length > 0 && valore.ToString()[0] == '@');
-                    string _updFinalQuote = _isSqlExprUpd ? "" : ((fld.mc_db_column_type == "int" || fld.mc_db_column_type == "point" || fld.mc_db_column_type == "geometry" || valore.ToString() == "") ? "" : "'");
+                    // FIX 2026-05-28: vedi BuildDynamicInsertQuery (~6717) per il razionale.
+                    // I numeric (decimal/float/double/numeric/number/number_slider) devono
+                    // essere emessi UNQUOTED in Oracle SQL per evitare implicit string→number
+                    // conversion che dipende da NLS_NUMERIC_CHARACTERS della sessione.
+                    string _updFinalQuote = _isSqlExprUpd ? "" : ((fld.mc_db_column_type == "int"
+                        || fld.mc_db_column_type == "decimal"
+                        || fld.mc_db_column_type == "float"
+                        || fld.mc_db_column_type == "double"
+                        || fld.mc_db_column_type == "numeric"
+                        || fld.mc_ui_column_type == "number"
+                        || fld.mc_ui_column_type == "number_slider"
+                        || fld.mc_db_column_type == "point" || fld.mc_db_column_type == "geometry" || valore.ToString() == "") ? "" : "'");
                     string _updFinalVal = _isSqlExprUpd ? valore.ToString().Substring(1) : ((valore.ToString() == "") ? (string.IsNullOrEmpty(fld.convert_null_to_string) ? "null" : "'" + valore.ToString() + "'") : valore.ToString());
                     field_value_list += (field_value_list == "" ? "" : ", ") + current_fld + "=" + string.Format("{0}{1}{0}", _updFinalQuote, _updFinalVal);
 
@@ -6453,27 +6528,51 @@ END;");
                     {
                         if (valore.ToString().IndexOf("@") != 0)
                         {
-                            //FIX UTC TIME ISSUE
-                            string parsed = valore.ToString().Replace(@"""", "");
-                            DateTime d = DateTime.Parse(parsed);
-                            // FIX 2026-05-22: Oracle NLS_DATE_FORMAT default e' 'DD-MON-RR'
-                            // → INSERT '2026-05-22 00:00:00' fallisce con ORA-01843.
-                            // Emettiamo TO_TIMESTAMP(...) come SQL expression e marchiamo
-                            // con prefisso "@TO_" cosi' il quote logic a riga ~6213 lo
-                            // riconosce e NON quota di nuovo (matcha pattern indexOf("@")==0).
-                            valore = "@TO_TIMESTAMP('" + d.ToString("yyyy-MM-dd HH:mm:ss") + "','YYYY-MM-DD HH24:MI:SS')";
+                            // 2026-05-28: typed-DateTime handling. valore puo' essere
+                            //   (a) DateTime gia' parsato da Newtonsoft → uso diretto
+                            //   (b) string ISO 8601 → Parse Invariant
+                            //   (c) string CurrentCulture (es. "31/12/2026 00:00:00"
+                            //       da EscapeValue.ToString() su DateTime con culture
+                            //       it-IT) → fallback CurrentCulture
+                            // Format output sempre Invariant ISO 8601, precisione
+                            // secondi (no .fff: datetime-picker UI non li espone).
+                            //
+                            // FIX 2026-05-22 (preservato): Oracle NLS_DATE_FORMAT default
+                            // 'DD-MON-RR' → INSERT '2026-05-22 00:00:00' fallisce con
+                            // ORA-01843. Emettiamo TO_TIMESTAMP(...) come SQL expression
+                            // marcato con prefix "@TO_" → quote logic ~6213 lo
+                            // riconosce e NON quota di nuovo.
+                            DateTime d;
+                            if (valore is DateTime dtTyped)
+                            {
+                                d = dtTyped;
+                            }
+                            else
+                            {
+                                string parsed = valore.ToString().Replace(@"""", "");
+                                if (!DateTime.TryParse(parsed, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out d))
+                                    d = DateTime.Parse(parsed, System.Globalization.CultureInfo.CurrentCulture);
+                            }
+                            valore = "@TO_TIMESTAMP('" + d.ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture) + "','YYYY-MM-DD HH24:MI:SS')";
                         }
                     }
                     else if (fld.mc_ui_column_type == "date" && valore != null && valore.ToString() != "")
                     {
                         if (valore.ToString().IndexOf("@") != 0)
                         {
-                            //FIX UTC TIME ISSUE
-                            string parsed = valore.ToString().Replace(@"""", "");
-                            DateTime d = DateTime.Parse(parsed);
-                            // FIX 2026-05-22: vedi commento datetime sopra. TO_DATE per
-                            // date pure (senza time component).
-                            valore = "@TO_DATE('" + d.ToString("yyyyMMdd") + "','YYYYMMDD')";
+                            // Stesso pattern del datetime (vedi sopra).
+                            DateTime d;
+                            if (valore is DateTime dtTyped2)
+                            {
+                                d = dtTyped2;
+                            }
+                            else
+                            {
+                                string parsed = valore.ToString().Replace(@"""", "");
+                                if (!DateTime.TryParse(parsed, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out d))
+                                    d = DateTime.Parse(parsed, System.Globalization.CultureInfo.CurrentCulture);
+                            }
+                            valore = "@TO_DATE('" + d.ToString("yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture) + "','YYYYMMDD')";
                         }
                     }
                     else if (fld.mc_ui_column_type == "number" || fld.mc_ui_column_type == "number_slider")
@@ -6626,7 +6725,21 @@ END;");
                         fix_quote = "";
                         valore = valore.ToString().Substring(1);
                     }
-                    else if ((fld.mc_db_column_type == "int" || fld.mc_db_column_type == "point" || fld.mc_db_column_type == "geometry" || (fld.mc_is_primary_key && !string.IsNullOrEmpty(tabel.md_primary_key_type)) || valore == null))
+                    // FIX 2026-05-28: numeric columns (decimal/float/double/numeric/number_slider)
+                    // devono essere emessi UNQUOTED. Se quotati come stringa, Oracle li converte
+                    // implicitly usando NLS_NUMERIC_CHARACTERS della sessione → in IT culture la
+                    // sessione ODP.NET puo' avere decimal=',' (group='.'), quindi '9876.4321'
+                    // diventa ORA-01722 "valore stringa non valido". I numeric literals Oracle
+                    // SQL invece usano SEMPRE '.' come decimal point indipendentemente da NLS,
+                    // quindi emettere "9876.4321" unquoted e' safe.
+                    else if ((fld.mc_db_column_type == "int"
+                              || fld.mc_db_column_type == "decimal"
+                              || fld.mc_db_column_type == "float"
+                              || fld.mc_db_column_type == "double"
+                              || fld.mc_db_column_type == "numeric"
+                              || fld.mc_ui_column_type == "number"
+                              || fld.mc_ui_column_type == "number_slider"
+                              || fld.mc_db_column_type == "point" || fld.mc_db_column_type == "geometry" || (fld.mc_is_primary_key && !string.IsNullOrEmpty(tabel.md_primary_key_type)) || valore == null))
                     {
                         fix_quote = "";
                     }

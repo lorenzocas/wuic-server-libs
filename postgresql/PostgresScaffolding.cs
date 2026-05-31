@@ -512,7 +512,7 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
 
                     foreach (columnDefinition col in columns)
                     {
-                        mmd.scaffoldOfColumnMySql(connection, connName, mmd, tb, db, col, str, ref createMenu, columns.Count);
+                        scaffoldOfColumnPostgres(connection, connName, mmd, tb, db, col, str, ref createMenu, columns.Count);
                     }
                 }
 
@@ -521,7 +521,7 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
                     List<columnDefinition> columns = GetPgColumns(connection, effectiveSchema, vw, str);
                     foreach (columnDefinition col in columns)
                     {
-                        mmd.scaffoldOfColumnMySql(connection, connName, mmd, vw, db, col, str, ref createMenu, columns.Count);
+                        scaffoldOfColumnPostgres(connection, connName, mmd, vw, db, col, str, ref createMenu, columns.Count);
                     }
                 }
 
@@ -564,7 +564,7 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
                     return new Dictionary<string, string>() { { "message", "Colonna non trovata" }, { "log", "Colonna non trovata" } };
 
                 bool createMenu = false;
-                mmd.scaffoldOfColumnMySql(connection, connName, mmd, tableName, effectiveSchema, col, log, ref createMenu, columns.Count);
+                scaffoldOfColumnPostgres(connection, connName, mmd, tableName, effectiveSchema, col, log, ref createMenu, columns.Count);
                 return new Dictionary<string, string>()
                 {
                     { "message", log.ToString() }, { "log", log.ToString() }
@@ -605,7 +605,7 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
 
                 List<columnDefinition> columns = GetPgColumns(connection, effectiveSchema, tableName, log);
                 foreach (columnDefinition col in columns)
-                    mmd.scaffoldOfColumnMySql(connection, connName, mmd, tableName, effectiveSchema, col, log, ref createMenu, columns.Count);
+                    scaffoldOfColumnPostgres(connection, connName, mmd, tableName, effectiveSchema, col, log, ref createMenu, columns.Count);
 
                 // Full cache invalidation post-scaffold: senza questa chiamata la nuova route
                 // resta invisibile al runtime (cache `storedTableMeta` / `storedMeta`
@@ -661,7 +661,7 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
 
                     foreach (columnDefinition col in columns)
                     {
-                        mmd.scaffoldOfColumnMySql(connection, connName, mmd, viewT, effectiveSchema, col, log, ref createMenu, columns.Count);
+                        scaffoldOfColumnPostgres(connection, connName, mmd, viewT, effectiveSchema, col, log, ref createMenu, columns.Count);
                         createMenu = false;
                     }
                 }
@@ -732,6 +732,433 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
                     childPinfo.SetValue(childClassObject, pinfo.GetValue(baseClassObj, null), null);
                 }
             }
+        }
+
+        // ============================================================
+        // PG-native COLUMN scaffolder (Fase A — 2026-05-28)
+        // ============================================================
+        //
+        // Sostituisce le 5 chiamate a `mmd.scaffoldOfColumnMySql(...)`
+        // in questo file. Quel metodo shared in metaModelRaw.cs e' MySQL-
+        // centric: chiama RawHelpers.getDBDataType che riconosce solo i
+        // type-name MySQL (`int`/`decimal`/`datetime`/`varchar`/...). I
+        // type-name che PG ritorna da information_schema.columns sono
+        // diversi:
+        //   - `integer`/`int4`/`bigint`/`int8` vs MySQL `int`
+        //   - `numeric`/`decimal`              vs MySQL `decimal`
+        //   - `timestamp without time zone`    vs MySQL `datetime`
+        //   - `character varying`/`bpchar`     vs MySQL `varchar`
+        //   - `boolean`/`bool`                 vs MySQL `tinyint(1)`/`bit`
+        //   - `uuid`/`bytea`/`json`/`jsonb`    (no MySQL analog)
+        // Tutti i tipi PG sopra cadevano nel default → UI `text`,
+        // rompendo number-editor / date-picker / datetime-picker per
+        // qualunque tabella PG scaffoldata via API. Il bug si manifesta
+        // anche su CRUD INSERT: il branch type-aware "number" in
+        // BuildDynamicInsertQuery ha il fix `.Replace(",", ".")` per
+        // normalizzare il decimal separator italiano, ma con
+        // mc_ui_column_type="text" quel branch non scatta → il
+        // `valore.ToString()` raw produce "9876,4321" e PG rifiuta
+        // con 22P02. Riferimenti:
+        //   - skill: scripts/docs-driven-tests/sql/datetime-locale-test/
+        //   - orchestrator: scripts/test-datetime-locale-roundtrip.ps1
+        //
+        // `scaffoldOfTableMySql` resta usato (logica `_metadati__tabelle`
+        // row + menu opzionale e' provider-agnostica), promosso a
+        // `public static` 2026-05-28 nello stesso commit.
+        // ============================================================
+
+        /// <summary>
+        /// Maps a PG raw `data_type` (information_schema.columns.data_type
+        /// or udt_name for USER-DEFINED) to a canonical type token consumed
+        /// by <see cref="SetTypeFromPostgresColumn"/>.
+        /// </summary>
+        private static string GetPostgresCanonicalType(string pgRawType)
+        {
+            if (string.IsNullOrEmpty(pgRawType)) return "varchar";
+            string t = pgRawType.Trim().ToLowerInvariant();
+            switch (t)
+            {
+                // integer family
+                case "smallint":
+                case "int2":
+                case "integer":
+                case "int":
+                case "int4":
+                case "bigint":
+                case "int8":
+                case "smallserial":
+                case "serial":
+                case "serial4":
+                case "bigserial":
+                case "serial8":
+                    return "int";
+
+                // decimal / fixed-point
+                case "numeric":
+                case "decimal":
+                    return "decimal";
+
+                // float family
+                case "real":
+                case "float4":
+                case "double precision":
+                case "float8":
+                    return "float";
+
+                case "money":
+                    return "money";
+
+                // character family
+                case "character varying":
+                case "varchar":
+                case "character":
+                case "char":
+                case "bpchar":
+                case "name":
+                    return "varchar";
+
+                case "text":
+                    return "text";
+
+                case "xml":
+                    return "xml";
+
+                case "json":
+                case "jsonb":
+                    // present as textarea (mirror MSSQL xml mapping)
+                    return "text";
+
+                // boolean
+                case "boolean":
+                case "bool":
+                    return "boolean";
+
+                // date/time family
+                case "date":
+                    return "date";
+
+                case "timestamp without time zone":
+                case "timestamp":
+                case "timestamp with time zone":
+                case "timestamptz":
+                    return "datetime";
+
+                case "time without time zone":
+                case "time":
+                case "time with time zone":
+                case "timetz":
+                    return "time";
+
+                case "interval":
+                    return "varchar";
+
+                // binary
+                case "bytea":
+                    return "binary";
+
+                case "uuid":
+                    return "uniqueidentifier";
+
+                // spatial (PostGIS arrives as udt_name)
+                case "point":
+                    return "point";
+                case "polygon":
+                case "geometry":
+                case "geography":
+                    return "geometry";
+
+                default:
+                    // Unknown PG type — fall back to varchar/text. ENUM types
+                    // arrive as the enum name (USER-DEFINED) and land here.
+                    return "varchar";
+            }
+        }
+
+        /// <summary>
+        /// Applies the canonical type → `mc_ui_column_type` mapping and
+        /// appends the column row to the model. Mirrors the MySQL
+        /// `setTypeFromSMOColumnMySql` but with a distinct `datetime` case
+        /// (MySQL collapsed datetime into date for historical reasons).
+        /// </summary>
+        private static void SetTypeFromPostgresColumn(metaRawModel mm, columnDefinition col, _Metadati_Colonne cm, string canonical)
+        {
+            switch (canonical)
+            {
+                case "varchar":
+                    cm.mc_default_value = col.DefaultValue;
+                    cm.mc_ui_column_type = "text";
+                    if (col.MaximumLength > 0)
+                        cm.mc_max_length = col.MaximumLength;
+                    mm.AddColonna(cm);
+                    break;
+
+                case "text":
+                case "xml":
+                    cm.mc_default_value = col.DefaultValue;
+                    cm.mc_ui_column_type = "txt_area";
+                    if (canonical == "xml")
+                        cm.mc_disable_sorting = true;
+                    mm.AddColonna(cm);
+                    break;
+
+                case "binary":
+                    cm.mc_default_value = col.DefaultValue;
+                    cm.mc_ui_column_type = "txt_area";
+                    cm.mc_hide_in_list = true;
+                    cm.mc_hide_in_edit = true;
+                    cm.mc_logic_editable = false;
+                    mm.AddColonna(cm);
+                    break;
+
+                case "int":
+                    {
+                        cm.mc_default_value = col.DefaultValue;
+                        cm.mc_ui_column_type = "number";
+                        _Metadati_Colonne_Slider numCol = new _Metadati_Colonne_Slider();
+                        RawHelpers.cloneToChild(cm, numCol);
+                        numCol.mc_ui_slider_decimals = 0;
+                        numCol.mc_ui_slider_format = "N";
+                        mm.AddColonna(numCol);
+                    }
+                    break;
+
+                case "decimal":
+                    {
+                        cm.mc_default_value = col.DefaultValue;
+                        cm.mc_ui_column_type = "number";
+                        _Metadati_Colonne_Slider numCol = new _Metadati_Colonne_Slider();
+                        RawHelpers.cloneToChild(cm, numCol);
+                        numCol.mc_ui_slider_decimals = (short)col.NumericScale;
+                        numCol.mc_ui_slider_format = "N";
+                        mm.AddColonna(numCol);
+                    }
+                    break;
+
+                case "float":
+                    {
+                        cm.mc_default_value = col.DefaultValue;
+                        cm.mc_ui_column_type = "number";
+                        cm.mc_db_column_type = "float";
+                        _Metadati_Colonne_Slider numCol = new _Metadati_Colonne_Slider();
+                        RawHelpers.cloneToChild(cm, numCol);
+                        numCol.mc_ui_slider_decimals = 4;
+                        numCol.mc_ui_slider_format = "N";
+                        mm.AddColonna(numCol);
+                    }
+                    break;
+
+                case "money":
+                    {
+                        cm.mc_default_value = col.DefaultValue;
+                        cm.mc_ui_column_type = "number";
+                        _Metadati_Colonne_Slider monCol = new _Metadati_Colonne_Slider();
+                        RawHelpers.cloneToChild(cm, monCol);
+                        monCol.mc_ui_slider_decimals = (short)col.NumericScale;
+                        monCol.mc_ui_slider_format = "C";
+                        mm.AddColonna(monCol);
+                    }
+                    break;
+
+                case "boolean":
+                    cm.mc_default_value = col.DefaultValue;
+                    cm.mc_ui_column_type = "boolean";
+                    if (!col.Nullable && string.IsNullOrEmpty(cm.mc_default_value))
+                        cm.mc_default_value = "false";
+                    mm.AddColonna(cm);
+                    break;
+
+                case "date":
+                    cm.mc_default_value = col.DefaultValue;
+                    cm.mc_ui_column_type = "date";
+                    mm.AddColonna(cm);
+                    break;
+
+                case "datetime":
+                    cm.mc_default_value = col.DefaultValue;
+                    cm.mc_ui_column_type = "datetime";
+                    mm.AddColonna(cm);
+                    break;
+
+                case "time":
+                    cm.mc_default_value = col.DefaultValue;
+                    cm.mc_ui_column_type = "time";
+                    mm.AddColonna(cm);
+                    break;
+
+                case "uniqueidentifier":
+                    cm.mc_default_value = col.DefaultValue;
+                    cm.mc_ui_column_type = "text";
+                    cm.mc_logic_editable = false;
+                    cm.mc_hide_in_edit = true;
+                    cm.mc_hide_in_list = true;
+                    mm.AddColonna(cm);
+                    break;
+
+                case "point":
+                    cm.mc_ui_column_type = "point";
+                    mm.AddColonna(cm);
+                    break;
+
+                case "geometry":
+                    cm.mc_ui_column_type = "polygon";
+                    mm.AddColonna(cm);
+                    break;
+
+                default:
+                    cm.mc_default_value = col.DefaultValue;
+                    cm.mc_ui_column_type = "text";
+                    mm.AddColonna(cm);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// PG-native equivalent of metaRawModel.scaffoldOfColumnMySql.
+        /// Same control flow (table ensure + alias resolution + PK detection
+        /// + _Metadati_Colonne row creation + type mapping), but the
+        /// type-mapping step uses <see cref="GetPostgresCanonicalType"/> +
+        /// <see cref="SetTypeFromPostgresColumn"/> instead of the
+        /// MySQL-centric RawHelpers.getDBDataType + setTypeFromSMOColumnMySql.
+        /// </summary>
+        public static string scaffoldOfColumnPostgres(
+            string connection,
+            string connName,
+            metaRawModel mm,
+            string table,
+            string db,
+            columnDefinition column,
+            StringBuilder log,
+            ref bool createMenu,
+            int colCount,
+            List<columnDefinition> columns = null)
+        {
+            RawHelpers.authenticate();
+            _Metadati_Tabelle md = metaRawModel.scaffoldOfTableMySql(connection, connName, table, mm, log, db, ref createMenu, column.InPrimaryKey);
+
+            string column_name = column.Name;
+            string alias = RawHelpers.getValidColumnName(column.Name);
+
+            System.Text.RegularExpressions.Regex rgx = new System.Text.RegularExpressions.Regex("^[0-9].*$");
+            if (rgx.IsMatch(alias))
+                alias = "C" + alias;
+
+            string aliasLower = alias.ToLowerInvariant();
+            if (aliasLower == "data" || aliasLower == "row" || aliasLower == "default" || aliasLower == RawHelpers.getRouteName(table))
+            {
+                alias = alias + "_field";
+            }
+
+            _Metadati_Colonne cm = mm.GetMetadati_ColonnesForScaffolding(alias, table, md.md_route_name).FirstOrDefault();
+            if (cm != null)
+                return "Colonna esistente";
+
+            bool mc_is_primary_key = column.InPrimaryKey;
+            bool mc_hide_in_edit = mc_is_primary_key;
+            bool mc_hide_in_list = mc_is_primary_key;
+            bool mc_logic_editable = !mc_is_primary_key;
+
+            if (column.Identity)
+            {
+                mc_hide_in_edit = true;
+                mc_logic_editable = false;
+            }
+
+            string canonical = GetPostgresCanonicalType(column.DataType);
+
+            // PK type detection: IDENTITY (PG `is_identity='YES'` or SERIAL)
+            // → "IDENTITY"; pure-integer non-identity → "MAX" pattern;
+            // UUID → "GUID"; everything else → manual.
+            if (mc_is_primary_key)
+            {
+                if (column.Identity)
+                {
+                    md.md_primary_key_type = "IDENTITY";
+                }
+                else if (canonical == "int")
+                {
+                    if (columns != null && columns.Count(x => x.InPrimaryKey) > 1)
+                    {
+                        mc_hide_in_edit = false;
+                        mc_hide_in_list = false;
+                        mc_logic_editable = true;
+                        md.md_primary_key_type = "";
+                    }
+                    else
+                    {
+                        if (columns == null || !columns.Any(x => x.Identity))
+                        {
+                            md.md_primary_key_type = "MAX";
+                        }
+                        else
+                        {
+                            mc_hide_in_edit = false;
+                            mc_hide_in_list = false;
+                            mc_logic_editable = true;
+                        }
+                    }
+                }
+                else if (canonical == "uniqueidentifier")
+                {
+                    md.md_primary_key_type = "GUID";
+                }
+                else
+                {
+                    mc_hide_in_edit = false;
+                    mc_hide_in_list = false;
+                    mc_logic_editable = true;
+                    if (columns == null || !columns.Any(x => x.Identity))
+                        md.md_primary_key_type = "";
+                }
+
+                mm.UpdateTabella(md);
+            }
+
+            int mc_ordine = 1;
+            if (md._Metadati_Colonnes.Count > 0)
+                mc_ordine = md._Metadati_Colonnes.Max(x => x.mc_ordine).Value + 10;
+
+            bool mc_validation_required = !column.Nullable;
+            bool mc_has_validation = mc_validation_required;
+            string mc_required_err_msg = mc_validation_required ? "Campo obbligatorio" : "";
+
+            string friendlyName = RawHelpers.getDisplayName(column_name);
+
+            cm = new _Metadati_Colonne()
+            {
+                // PG-native canonical token (es. "decimal","datetime"); downstream
+                // BuildDynamic*Query branches detectano questo per emettere
+                // SQL type-safe (Replace(",", ".") sul decimal, TO_TIMESTAMP
+                // sul datetime, ecc.).
+                mc_db_column_type = canonical,
+                mc_nome_colonna = alias,
+                mc_real_column_name = column_name,
+                mc_display_string_in_edit = friendlyName,
+                mc_display_string_in_view = friendlyName,
+                mc_hide_in_edit = mc_hide_in_edit,
+                mc_hide_in_list = mc_hide_in_list,
+                mc_is_primary_key = mc_is_primary_key,
+                mc_is_range_filter = false,
+                mc_logic_converter_has = false,
+                mc_logic_editable = mc_logic_editable,
+                mc_logic_nullable = true,
+                mc_ordine = mc_ordine,
+                mc_show_in_filters = false,
+                mc_validation_has = mc_has_validation,
+                mc_validation_required = mc_validation_required,
+                mc_validation_message = mc_required_err_msg,
+                md_id = md.md_id,
+                mc_grant_by_default = true
+            };
+
+            if (colCount >= 20)
+                cm.mc_ui_grid_size_width = 50;
+            else if (colCount >= 10)
+                cm.mc_ui_grid_size_width = 100;
+
+            SetTypeFromPostgresColumn(mm, column, cm, canonical);
+
+            log.AppendLine(string.Format("Added column '{0}' of Table '{1}'<br />", column_name, table));
+            return "";
         }
     }
 }
