@@ -44,7 +44,7 @@
   </url>
   <url>
     <loc>https://wuic-framework.com/downloads</loc>
-    <lastmod>2026-05-02</lastmod>
+    <lastmod>2026-05-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -93,6 +93,30 @@
   <url>
     <loc>https://wuic-framework.com/blog/flottamezzi-free-fleet-management</loc>
     <lastmod>2026-05-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/blog/building-reports-without-code-sql-view-to-mrt</loc>
+    <lastmod>2026-05-04</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/blog/dashboard-designer-drag-and-drop-metadata</loc>
+    <lastmod>2026-05-04</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/blog/mobile-first-auto-layout-zero-config</loc>
+    <lastmod>2026-05-04</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/blog/native-linux-deployment-four-dbms</loc>
+    <lastmod>2026-05-04</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>

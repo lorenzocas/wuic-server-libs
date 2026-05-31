@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  WUIC icon — variant A: "bolt mark".
+  Single stylized lightning bolt on a dark rounded tile. The cleanest of
+  the three variants, recognizable at favicon size (16×16 and 32×32) and
+  scales up to app-icon size (1024×1024) without losing shape.
+
+  Colors lifted from public/assets/og-image.svg so the brand stays
+  internally consistent:
+    background gradient #0b132b → #1c2541 → #3a506b
+    accent     gradient #5bc0be → #6fffe9 (teal → cyan)
+  Soft glow under the bolt for a hint of depth.
+
+  Use as:
+    - browser tab favicon (link rel="icon" type="image/svg+xml")
+    - PWA / install icon (referenced from manifest.json)
+    - GitHub avatar, social media profile picture
+    - any context where a square WUIC mark is needed without the wordmark
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="bgA" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#0b132b"/>
+      <stop offset="60%"  stop-color="#1c2541"/>
+      <stop offset="100%" stop-color="#3a506b"/>
+    </linearGradient>
+    <linearGradient id="accentA" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#5bc0be"/>
+      <stop offset="100%" stop-color="#6fffe9"/>
+    </linearGradient>
+    <filter id="glowA" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="256" height="256" rx="48" ry="48" fill="url(#bgA)"/>
+  <!-- Lightning bolt path, centred at 128,128, ~160px tall -->
+  <path d="M 152 40 L 80 144 L 120 144 L 104 216 L 176 112 L 136 112 L 152 40 Z"
+        fill="url(#accentA)" filter="url(#glowA)"/>
+</svg>

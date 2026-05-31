@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  WUIC icon — variant C: "metadata grid + bolt".
+  A 3×3 grid of dots (the metadata schema / table cells) with a lightning
+  bolt slashing through it. The concept-heaviest variant: visually says
+  "metadata becomes UI instantly", which is the WUIC pitch in one icon.
+  Loses some readability at favicon size but very recognizable above 48px.
+
+  Same palette as og-image:
+    background gradient #0b132b → #1c2541 → #3a506b
+    accent     gradient #5bc0be → #6fffe9
+    grid dots  #5bc0be at lower opacity so they read as background context
+
+  Use as:
+    - blog post cover image (1200×630 variant easy to derive)
+    - landing page hero accent
+    - presentation slide footer mark
+    - any context where the brand needs to communicate the "metadata→UI"
+      story even without a tagline
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="bgC" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#0b132b"/>
+      <stop offset="60%"  stop-color="#1c2541"/>
+      <stop offset="100%" stop-color="#3a506b"/>
+    </linearGradient>
+    <linearGradient id="accentC" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#5bc0be"/>
+      <stop offset="100%" stop-color="#6fffe9"/>
+    </linearGradient>
+    <filter id="glowC" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="256" height="256" rx="48" ry="48" fill="url(#bgC)"/>
+
+  <!-- 3×3 metadata grid of dots; each dot is a "column" in the schema. -->
+  <g fill="#5bc0be" opacity="0.55">
+    <circle cx="68"  cy="68"  r="10"/>
+    <circle cx="128" cy="68"  r="10"/>
+    <circle cx="188" cy="68"  r="10"/>
+    <circle cx="68"  cy="128" r="10"/>
+    <circle cx="128" cy="128" r="10"/>
+    <circle cx="188" cy="128" r="10"/>
+    <circle cx="68"  cy="188" r="10"/>
+    <circle cx="128" cy="188" r="10"/>
+    <circle cx="188" cy="188" r="10"/>
+  </g>
+
+  <!-- Lightning bolt slashing diagonally through the grid -->
+  <path d="M 156 36 L 76 144 L 120 144 L 100 220 L 180 112 L 136 112 L 156 36 Z"
+        fill="url(#accentC)" filter="url(#glowC)"/>
+</svg>

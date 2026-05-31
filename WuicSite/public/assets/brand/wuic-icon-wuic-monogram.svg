@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  WUIC icon — variant E: "WUIC monogram completo".
+  Le 4 lettere "WUIC" disegnate come glifi custom, disposte una accanto
+  all'altra in un layout orizzontale incastonato in una tile quadrata.
+  Si legge come scritta, ma la composizione e' compatta e scala bene fino
+  a 48x48 prima di perdere leggibilita'.
+  Per sotto-48 (favicon 16/32) meglio usare wuic-icon-w-tipo.svg.
+
+  Palette og-image:
+    background gradient #0b132b → #1c2541 → #3a506b
+    accent     gradient #5bc0be → #6fffe9
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="bgE" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#0b132b"/>
+      <stop offset="60%"  stop-color="#1c2541"/>
+      <stop offset="100%" stop-color="#3a506b"/>
+    </linearGradient>
+    <linearGradient id="accentE" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#5bc0be"/>
+      <stop offset="100%" stop-color="#6fffe9"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="256" height="256" rx="48" ry="48" fill="url(#bgE)"/>
+
+  <!-- Lettera W (4 strokes geometrici, larga ~70px) -->
+  <g fill="url(#accentE)">
+    <path d="M 28 88   L 44 88   L 56 144 L 60 144 L 72 88  L 88 88  L 70 168 L 50 168 Z"/>
+    <path d="M 72 88   L 88 88   L 100 144 L 104 144 L 116 88 L 132 88 L 114 168 L 94 168 Z"/>
+  </g>
+
+  <!-- Lettera U (~38px larga) -->
+  <path d="M 142 88 L 158 88 L 158 144
+           Q 158 160 168 160
+           Q 178 160 178 144 L 178 88 L 194 88 L 194 148
+           Q 194 172 168 172
+           Q 142 172 142 148 Z"
+        fill="url(#accentE)"/>
+
+  <!-- Lettera I (sottile, centrata) -->
+  <rect x="202" y="88" width="16" height="80" rx="2" fill="url(#accentE)"/>
+
+  <!-- Lettera C (open curve) -->
+  <path d="M 234 100
+           Q 234 88 224 88
+           L 232 88
+           Q 220 88 212 96
+           Q 204 104 204 128
+           Q 204 152 212 160
+           Q 220 168 232 168
+           Q 244 168 248 156
+           L 232 156
+           Q 226 156 222 150
+           Q 218 144 218 128
+           Q 218 112 222 106
+           Q 226 100 232 100 Z"
+        fill="url(#accentE)" transform="translate(-10 0)"/>
+
+  <!-- Sottile bolt accent in basso a destra, come "punto" del logo -->
+  <path d="M 218 188 L 206 212 L 214 212 L 210 230 L 226 206 L 218 206 L 222 188 Z"
+        fill="url(#accentE)" opacity="0.7"/>
+</svg>

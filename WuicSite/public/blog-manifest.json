@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-05-17T22:40:47.903Z",
-  "count": 6,
+  "generatedAt": "2026-05-31T15:12:23.881Z",
+  "count": 10,
   "posts": [
     {
       "slug": "crmapp-free-crm-on-wuic",
@@ -51,6 +51,77 @@
       ],
       "readingMinutes": 6,
       "sourcePath": "assets/blog/flottamezzi-free-fleet-management.md"
+    },
+    {
+      "slug": "building-reports-without-code-sql-view-to-mrt",
+      "title": "Building reports without code: SQL view to .mrt to printed PDF in one route",
+      "date": "2026-05-04",
+      "author": "Lorenzo Castrico",
+      "description": "WUIC's report engine binds a Stimulsoft .mrt file to a metadata route. Write a SQL view, scaffold it, point the .mrt at the route, drop the route into a menu — the report runs in the embedded viewer with the right data, right filters, and right permissions. No per-report TypeScript, no per-report backend code, no separate auth layer.",
+      "tags": [
+        "reports",
+        "stimulsoft",
+        "sql",
+        "metadata",
+        "mrt",
+        "pdf"
+      ],
+      "readingMinutes": 8,
+      "sourcePath": "assets/blog/building-reports-without-code-sql-view-to-mrt.md"
+    },
+    {
+      "slug": "dashboard-designer-drag-and-drop-metadata",
+      "title": "The dashboard designer: drag-and-drop that writes JSON metadata, not Angular code",
+      "date": "2026-05-04",
+      "author": "Lorenzo Castrico",
+      "description": "Most low-code dashboards are exported to a proprietary binary or compiled to a per-tenant Angular bundle. WUIC ships an in-browser designer (palette + canvas + property panel) that writes a single JSON column (dom_board.boardcontent) plus per-board CSS sheets (dom_board_sheet) and the runtime renders it without recompile. This post explains the designer UX, the palette of components, the CSS attachment story, and the one trade-off we made about Angular markup inside the JSON.",
+      "tags": [
+        "dashboard",
+        "designer",
+        "metadata",
+        "drag-and-drop",
+        "primeng",
+        "css"
+      ],
+      "readingMinutes": 10,
+      "sourcePath": "assets/blog/dashboard-designer-drag-and-drop-metadata.md"
+    },
+    {
+      "slug": "mobile-first-auto-layout-zero-config",
+      "title": "Mobile-first auto-layout with zero config: how WUIC reflows enterprise tables on a phone",
+      "date": "2026-05-04",
+      "author": "Lorenzo Castrico",
+      "description": "Most enterprise UIs are desktop-only. WUIC's list-grid and edit-form switch to mobile layouts automatically below 768px — table becomes card stack, two-column form becomes vertical flex, no per-screen template, no per-column responsive flag. This post explains the exact split between runtime swap (TS) and CSS-only fallback (SCSS) and why we picked that split.",
+      "tags": [
+        "angular",
+        "primeng",
+        "responsive",
+        "mobile",
+        "list-grid",
+        "edit-form"
+      ],
+      "readingMinutes": 7,
+      "sourcePath": "assets/blog/mobile-first-auto-layout-zero-config.md"
+    },
+    {
+      "slug": "native-linux-deployment-four-dbms",
+      "title": "WUIC on Linux, natively: one binary, four DBMS choices, one shell installer",
+      "date": "2026-05-04",
+      "author": "Lorenzo Castrico",
+      "description": "WUIC ships a native Linux deploy on Ubuntu 22.04: .NET 10 + Kestrel + systemd + nginx, with provider drop-in for SQL Server, MySQL, PostgreSQL and Oracle. Same WuicCore.dll on Windows/IIS and Linux — for non-MSSQL DBMSs the runtime loads one satellite provider DLL alongside it. This post walks through the install one-liner, what each DBMS variant actually does on Linux, and what's still Windows-only.",
+      "tags": [
+        "linux",
+        "dotnet",
+        "dbms",
+        "mssql",
+        "mysql",
+        "postgresql",
+        "oracle",
+        "ubuntu",
+        "nginx"
+      ],
+      "readingMinutes": 8,
+      "sourcePath": "assets/blog/native-linux-deployment-four-dbms.md"
     },
     {
       "slug": "rag-chatbot-with-claude-and-bge-m3",

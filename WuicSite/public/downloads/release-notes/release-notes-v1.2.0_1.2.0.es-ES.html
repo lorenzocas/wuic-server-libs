@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Release Notes v1.2.0_1.2.0 - WUIC Framework</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; color: #1e293b; background: #ffffff; line-height: 1.6; overflow-wrap: anywhere; word-wrap: break-word; }
+a { color: #6366f1; text-decoration: none; }
+a:hover { color: #4f46e5; text-decoration: underline; }
+
+/* Site-style header (mini-navbar) */
+.rn-header { background: rgba(255, 255, 255, 0.95); border-bottom: 1px solid #e2e8f0; backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 10; }
+.rn-header-inner { max-width: 1200px; margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.rn-brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: #0f172a; font-size: 1.15rem; }
+.rn-brand-bolt { display: inline-block; width: 24px; height: 24px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M13 2L3 14h7l-1 8 10-12h-7l1-8z'/></svg>") center/contain no-repeat; mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M13 2L3 14h7l-1 8 10-12h-7l1-8z'/></svg>") center/contain no-repeat; }
+.rn-back { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border: 1px solid #c7d2fe; border-radius: 6px; color: #4f46e5; background: #eef2ff; font-size: 0.9rem; transition: background 0.15s, border-color 0.15s; }
+.rn-back:hover { background: #e0e7ff; border-color: #a5b4fc; text-decoration: none; }
+
+/* Article container: same width as Site .container */
+.rn-article { max-width: 880px; margin: 0 auto; padding: 48px 24px 80px; }
+
+/* Headings: site palette */
+h1, h2, h3, h4 { color: #0f172a; line-height: 1.25; font-weight: 700; }
+h1 { font-size: 2rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; margin-bottom: 1.25rem; }
+h2 { font-size: 1.4rem; margin-top: 2.25rem; margin-bottom: 0.75rem; }
+h3 { font-size: 1.125rem; margin-top: 1.5rem; margin-bottom: 0.5rem; color: #334155; }
+
+p { margin: 0.75rem 0; color: #334155; }
+strong { color: #0f172a; font-weight: 600; }
+
+ul, ol { padding-left: 1.4rem; margin: 0.75rem 0; }
+li { margin: 0.25rem 0; color: #334155; }
+
+hr { border: 0; border-top: 1px solid #e2e8f0; margin: 2.5rem 0; }
+
+/* Inline code: tinta indigo che richiama il brand */
+code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.9em; }
+code { background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; padding: 0.1em 0.4em; border-radius: 4px; word-break: break-word; }
+pre { background: #f8fafc; border: 1px solid #e2e8f0; padding: 1rem 1.25rem; border-radius: 8px; overflow-x: auto; max-width: 100%; margin: 1rem 0; }
+pre code { background: transparent; color: #1e293b; border: 0; padding: 0; word-break: normal; }
+
+/* Tables: scrollabili, header indigo-tint */
+.table-wrap { overflow-x: auto; max-width: 100%; margin: 1.25rem 0; border: 1px solid #e2e8f0; border-radius: 8px; }
+table { border-collapse: collapse; width: max-content; min-width: 100%; background: #ffffff; }
+th, td { border-bottom: 1px solid #e2e8f0; padding: 0.65rem 0.95rem; text-align: left; vertical-align: top; font-size: 0.95rem; }
+th { background: #f8fafc; color: #0f172a; font-weight: 600; border-bottom-color: #cbd5e1; }
+tr:last-child td { border-bottom: 0; }
+td { color: #334155; }
+
+/* Blockquote: brand accent */
+blockquote { border-left: 3px solid #6366f1; margin: 1.25rem 0; padding: 0.6rem 1.1rem; color: #475569; background: #eef2ff; border-radius: 0 6px 6px 0; }
+blockquote p { color: #475569; }
+
+img { max-width: 100%; height: auto; border-radius: 6px; }
+</style>
+<script>
+// Wrap tables post-render in scroll container (markdown converter emits raw <table>).
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('table').forEach(t => {
+    if (t.parentElement && t.parentElement.classList.contains('table-wrap')) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+});
+</script>
+</head>
+<body>
+<header class="rn-header">
+  <div class="rn-header-inner">
+    <a href="/" class="rn-brand"><span class="rn-brand-bolt"></span><span>WUIC</span></a>
+    <a href="/downloads" class="rn-back">&larr; Volver a las descargas</a>
+  </div>
+</header>
+<article class="rn-article">
+<h1 id="notas-de-la-version-wuic-framework-v1.2.0">Notas de la versión — WUIC Framework v1.2.0</h1>
+<p><strong>Fecha</strong>: 19 de mayo de 2026
+<strong>Versión publicada anterior</strong>: 1.1.0 (13 de mayo de 2026)
+<strong>Backend</strong>: .NET 10 + IIS / Linux nginx
+<strong>Frontend</strong>: Angular 21</p>
+<hr />
+<p>Esta versión extiende el framework a dos nuevos DBMS — PostgreSQL y Oracle — y corrige un bug del filtro de Spreadsheet que aparecía en rutas con server-side operations habilitadas cuando la columna era de tipo lookup.</p>
+<ul>
+<li><strong>Proveedor PostgreSQL</strong> y <strong>Proveedor Oracle</strong>: ambos instalables como drop-in (<code>postgresql.dll</code> / <code>oracle.dll</code> junto a <code>WuicCore.dll</code>), utilizables como data store o como metadata store, con paridad de features respecto a MSSQL y MySQL.</li>
+<li><strong>Filtro Spreadsheet en columnas lookup</strong> en modo server-side: el popup ahora muestra los descriptores de la lookup (p. ej., <code>Woodgrove Bank Crandon Lakes</code>) y aplica el filtro usando el ID de clave foránea, eliminando el error SQL que generaban los proveedores con tipado estricto.</li>
+</ul>
+<hr />
+<h2 id="proveedor-postgresql">🗄️ Proveedor PostgreSQL</h2>
+<p>Drop-in compatible con PostgreSQL 14+ (probado en 16). Instalación: colocar <code>postgresql.dll</code> junto a <code>WuicCore.dll</code> en el physical path del sitio IIS, o en el directorio de publish del binario Linux. El wizard de setup <code>firstRun</code> expone automáticamente &quot;PostgreSQL&quot; en el dropdown DBMS cuando detecta la DLL.</p>
+<p><strong>Cobertura funcional.</strong> Todas las superficies core del framework operan nativamente sobre PG con la misma semántica que las versiones MSSQL/MySQL: CRUD, server-side paging, sorting, grouping, agregaciones, lookup autocomplete, OData, scheduled jobs, audit, notificaciones, retry policy, concurrencia optimista, validations, callbacks/events, importación/exportación XLS, exportación PDF, multi-tenant.</p>
+<p><strong>Tipos PG-específicos soportados.</strong> <code>boolean</code> (mapeado automáticamente desde/hacia el almacenamiento interno <code>smallint</code> usado para paridad con MSSQL/MySQL), <code>varchar</code>/<code>text</code>, <code>numeric</code>, <code>integer</code>/<code>bigint</code>, <code>timestamp</code>, <code>date</code>, <code>bytea</code> (upload binario), <code>geometry</code> (PostGIS — visualización en mapas vía <code>ST_AsText</code>).</p>
+<p><strong>Archivos preconfigurados en el paquete.</strong></p>
+<ul>
+<li><code>appsettings.postgres.json</code> / <code>appsettings.linux.postgres.json</code> / <code>appsettings.multi-tenant.postgres.json</code> — entornos self-contained listos, activables con <code>ASPNETCORE_ENVIRONMENT=postgres</code>.</li>
+<li><code>dbms/scripts/first-run/*.postgres.sql</code> — bootstrap de metadata + DDL/DML del tutorial WideWorldImporters.</li>
+</ul>
+<h2 id="proveedor-oracle">🗄️ Proveedor Oracle</h2>
+<p>Drop-in compatible con Oracle 19c / 21c / Free 23c. Instalación <code>oracle.dll</code> con el mismo procedimiento del proveedor PostgreSQL; &quot;Oracle&quot; aparece automáticamente en el dropdown firstRun.</p>
+<p><strong>Cobertura funcional.</strong> Idéntica a PostgreSQL — todas las superficies core con la misma semántica que las versiones MSSQL/MySQL.</p>
+<p><strong>Longitud de identificadores.</strong> Oracle 11g/12.1 (máx. 30 caracteres) aún no está soportado — los alias lookup generados por el framework exceden el límite. Oracle 12.2+ (128 caracteres) es el mínimo soportado.</p>
+<p><strong>Archivos preconfigurados en el paquete.</strong></p>
+<ul>
+<li><code>appsettings.oracle.json</code> / <code>appsettings.linux.oracle.json</code> / <code>appsettings.multi-tenant.oracle.json</code>.</li>
+<li><code>dbms/scripts/first-run/*.oracle.sql</code> — bootstrap de metadata + tutorial.</li>
+</ul>
+<hr />
+<h2 id="bug-fixes-destacados">🐛 Bug fixes destacados</h2>
+<ul>
+<li><strong>Filtro popup Spreadsheet en columnas lookup cuando <code>md_server_side_operations=true</code></strong>: el popup de columna funnel de <code>&lt;wuic-list-spreadsheet&gt;</code> en una columna <code>lookupByID</code> mostraba IDs numéricos desnudos (p. ej., <code>1, 4, 5</code>) en lugar de los descriptores (p. ej., <code>Woodgrove Bank Crandon Lakes</code>). En PG/Oracle la aplicación del filtro generaba un error SQL (<code>42601 ilike %%</code> en PostgreSQL, <code>ORA-00904</code> en Oracle) porque el cliente transmitía la cadena descriptora contra la columna FK numérica. El servidor ahora emite el descriptor joinado (<code>&lt;entity&gt;___&lt;dataTextField&gt;__&lt;colName&gt;</code>) junto al FK ID y el cliente visualiza el descriptor en el popup pero transmite el ID raw como filter value: el <code>WHERE col = &lt;id&gt;</code> permanece numérico y cross-DBMS-safe. No se requiere acción del lado consumer.</li>
+</ul>
+<hr />
+<h2 id="paquetes-actualizados">📦 Paquetes actualizados</h2>
+<table>
+<thead>
+<tr>
+<th>Package</th>
+<th>De</th>
+<th>A</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WuicCore</td>
+<td>1.1.0</td>
+<td>1.2.0</td>
+</tr>
+<tr>
+<td>Wuic.Webcore</td>
+<td>1.1.0</td>
+<td>1.2.0</td>
+</tr>
+<tr>
+<td>WuicOData</td>
+<td>1.1.0</td>
+<td>1.2.0</td>
+</tr>
+<tr>
+<td>RuntimeEfCore</td>
+<td>1.1.0</td>
+<td>1.2.0</td>
+</tr>
+<tr>
+<td>Wuic.MySqlProvider</td>
+<td>1.1.0</td>
+<td>1.2.0</td>
+</tr>
+<tr>
+<td>Wuic.PostgresProvider</td>
+<td>—</td>
+<td>1.2.0</td>
+</tr>
+<tr>
+<td>Wuic.OracleProvider</td>
+<td>—</td>
+<td>1.2.0</td>
+</tr>
+<tr>
+<td>wuic-framework-lib (NPM)</td>
+<td>1.1.0</td>
+<td>1.2.0</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="actualizaciones-operativas-recomendadas-para-quien-actualiza">🔧 Actualizaciones operativas recomendadas para quien actualiza</h2>
+<ol>
+<li><strong>Para usuarios de MSSQL o MySQL</strong>: ninguna acción requerida. El fix del filtro Spreadsheet se aplica a todos los proveedores de forma transparente tras el primer refresh del cliente.</li>
+<li><strong>Para activar PostgreSQL</strong>: copiar <code>postgresql.dll</code> (junto con sus dependencias de runtime — <code>Npgsql.dll</code>, <code>Npgsql.EntityFrameworkCore.PostgreSQL.dll</code>, <code>Microsoft.Extensions.Logging.Abstractions.dll</code>) al physical path del sitio IIS o al directorio de publish Linux, reiniciar el backend. Seleccionar PostgreSQL en el wizard firstRun, o apuntar <code>ASPNETCORE_ENVIRONMENT=postgres</code> para usar <code>appsettings.postgres.json</code> preconfigurado.</li>
+<li><strong>Para activar Oracle</strong>: mismo procedimiento — <code>oracle.dll</code> + <code>Oracle.EntityFrameworkCore.dll</code> + <code>Oracle.ManagedDataAccess.dll</code>. Verificar que la versión del DB target sea ≥ 12.2 (constraint de longitud de identificadores).</li>
+<li><strong>Cache del cliente</strong>: tras la actualización, un hard refresh del navegador (<code>Ctrl+F5</code>) es suficiente para alinear el cliente con el nuevo contrato del filtro popup. No se requiere invalidación de metadata en el servidor.</li>
+</ol>
+
+</article>
+</body>
+</html>

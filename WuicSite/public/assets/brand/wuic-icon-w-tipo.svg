@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  WUIC icon — variant D: "W tipografica con bolt nel valley centrale".
+  Una W bold geometrica, ma anziché due valli "normali" la valle centrale
+  e' un fulmine: la lettera incorpora il motivo del brand senza essere un
+  bolt sopra una tile. La W si legge come W, l'occhio nota il bolt come
+  dettaglio caratteristico solo guardando piu' attentamente.
+
+  Stessa palette di og-image.svg:
+    background gradient #0b132b → #1c2541 → #3a506b
+    accent     gradient #5bc0be → #6fffe9
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="bgD" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#0b132b"/>
+      <stop offset="60%"  stop-color="#1c2541"/>
+      <stop offset="100%" stop-color="#3a506b"/>
+    </linearGradient>
+    <linearGradient id="accentD" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#5bc0be"/>
+      <stop offset="100%" stop-color="#6fffe9"/>
+    </linearGradient>
+    <linearGradient id="boltD" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#6fffe9"/>
+      <stop offset="100%" stop-color="#5bc0be"/>
+    </linearGradient>
+    <filter id="glowD" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="256" height="256" rx="48" ry="48" fill="url(#bgD)"/>
+
+  <!--
+    W shape, costruita da 5 path:
+      - 2 strokes esterni (sinistro e destro)
+      - valle sinistra: un cuneo geometrico
+      - valle destra: un cuneo geometrico
+      - centro: NON un cuneo banale ma un fulmine vero (zigzag) che salta
+        in alto sopra l'apice della W (asymmetry voluta — l'occhio ricorda
+        il dettaglio)
+  -->
+  <!-- Stroke esterno sinistro -->
+  <path d="M 36 64 L 76 64 L 92 168 L 56 168 Z"
+        fill="url(#accentD)"/>
+  <!-- Valle sinistra (cuneo che scende e risale) -->
+  <path d="M 92 168 L 76 64 L 108 64 L 124 168 Z"
+        fill="url(#accentD)" opacity="0.85"/>
+
+  <!-- Centro: fulmine vero che spunta sopra la linea della W -->
+  <path d="M 144 36 L 108 130 L 132 130 L 116 220 L 168 110 L 142 110 L 158 36 Z"
+        fill="url(#boltD)" filter="url(#glowD)"/>
+
+  <!-- Valle destra (cuneo) -->
+  <path d="M 132 168 L 148 64 L 180 64 L 164 168 Z"
+        fill="url(#accentD)" opacity="0.85"/>
+  <!-- Stroke esterno destro -->
+  <path d="M 180 64 L 220 64 L 200 168 L 164 168 Z"
+        fill="url(#accentD)"/>
+</svg>

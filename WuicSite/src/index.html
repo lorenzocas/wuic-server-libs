@@ -46,8 +46,20 @@
   <meta name="twitter:image:alt" content="WUIC Framework">
 
   <!-- ─── Icons ─────────────────────────────────────────────────────── -->
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <link rel="apple-touch-icon" href="favicon.ico">
+  <!-- SVG primario per browser moderni (Chrome/Edge/Firefox/Safari 9+):
+       il vettoriale e' nitido a ogni DPR/zoom + supporta dark mode tramite
+       prefers-color-scheme dentro l'SVG se vogliamo aggiungerlo in futuro. -->
+  <link rel="icon" type="image/svg+xml" href="assets/brand/wuic-icon-w-faceted.svg">
+  <!-- PNG fallback (~10KB) per browser legacy + Android home-screen launchers
+       che non leggono lo svg fino a Chrome 105+. 32x32 e' la size che IE/Edge
+       legacy preferiscono per la tab. -->
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/png/wuic-icon-w-faceted-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/brand/png/wuic-icon-w-faceted-192.png">
+  <!-- Apple touch icon (iOS home screen, 180x180 e' la spec corrente). -->
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/brand/png/wuic-icon-w-faceted-180.png">
+  <!-- ICO legacy mantenuto per browser molto vecchi che cercano /favicon.ico
+       per default (IE, alcuni crawler). Il file fisico resta in public/. -->
+  <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
 
   <!-- ─── Performance hints ─────────────────────────────────────────── -->
   <!-- preconnect to PayPal: the SDK is loaded only on the /pricing page,

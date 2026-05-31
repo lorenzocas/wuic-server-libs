@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  WUIC icon — variant F: "W faceted / origami".
+  Una W costruita da 4 facce triangolari con tonalita' diverse del teal,
+  che danno un effetto di profondita' / origami / cristallo. Il bordo
+  spigoloso evoca un fulmine senza esserlo letteralmente; la struttura
+  geometrica e' coerente con il framework metadata-driven (forma costruita
+  da blocchi). Distintiva, non ricalca nessun logo esistente (Webpack /
+  Vercel / Webflow non hanno questa shape).
+
+  Palette og-image, ma con piu' shade per il facet:
+    background gradient #0b132b → #1c2541 → #3a506b
+    accent shades:      #5bc0be  light face
+                        #4aa39d  mid face
+                        #387c78  dark face
+                        #6fffe9  highlight edge
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="bgF" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#0b132b"/>
+      <stop offset="60%"  stop-color="#1c2541"/>
+      <stop offset="100%" stop-color="#3a506b"/>
+    </linearGradient>
+    <linearGradient id="lightFace" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#6fffe9"/>
+      <stop offset="100%" stop-color="#5bc0be"/>
+    </linearGradient>
+    <linearGradient id="midFace" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#5bc0be"/>
+      <stop offset="100%" stop-color="#4aa39d"/>
+    </linearGradient>
+    <linearGradient id="darkFace" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#4aa39d"/>
+      <stop offset="100%" stop-color="#387c78"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="256" height="256" rx="48" ry="48" fill="url(#bgF)"/>
+
+  <!--
+    W faceted: l'altezza della W va da y=56 a y=200, larghezza da x=40 a x=216.
+    La W ha 5 punti chiave in alto e 2 valli in basso.
+    Punti alto:  (40,56) (88,56) (128,56) (168,56) (216,56)
+    Valle bassa: (76,200) (180,200)
+    Apice centrale alto: (128,56)
+    Apici intermedi: (76,160) (180,160)
+
+    Suddivisione in 4 facce triangolari + edge highlight:
+      face L1 (light):  (40,56)  (88,56)  (76,200)
+      face L2 (mid):    (88,56)  (76,200) (128,128)
+      face R1 (mid):    (128,128)(180,200)(168,56)
+      face R2 (light):  (168,56) (180,200)(216,56)
+    Edge highlight: una sottile linea bianca/cyan lungo i bordi superiori per
+    il "ghiaccio".
+  -->
+  <!-- Face L1: stroke esterno sinistro -->
+  <polygon points="40,56 88,56 76,200" fill="url(#lightFace)"/>
+  <!-- Face L2: valle sinistra che scende verso il centro -->
+  <polygon points="88,56 128,140 76,200" fill="url(#midFace)"/>
+  <!-- Face C: triangolo centrale piccolo che fa "salire" la valle al centro -->
+  <polygon points="88,56 168,56 128,140" fill="url(#darkFace)"/>
+  <!-- Face R2: valle destra -->
+  <polygon points="168,56 180,200 128,140" fill="url(#midFace)"/>
+  <!-- Face R1: stroke esterno destro -->
+  <polygon points="168,56 216,56 180,200" fill="url(#lightFace)"/>
+
+  <!-- Edge highlights per dare il senso "cristallo" -->
+  <g stroke="#6fffe9" stroke-width="1.6" fill="none" opacity="0.7">
+    <polyline points="40,56 88,56"/>
+    <polyline points="168,56 216,56"/>
+  </g>
+</svg>

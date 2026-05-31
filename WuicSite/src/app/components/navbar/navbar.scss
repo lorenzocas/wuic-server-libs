@@ -18,13 +18,23 @@
 .navbar-brand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-size: 1.25rem;
   font-weight: 800;
   color: #6366f1;
   letter-spacing: -0.5px;
 
+  // Lasciato per backward-compat se torniamo a pi-bolt come fallback.
   i { font-size: 1.5rem; }
+
+  .navbar-brand-logo {
+    width: 32px;
+    height: 32px;
+    display: block;
+    // Slight elevation on hover (visual feedback senza cambiare la shape).
+    transition: transform 0.18s ease;
+  }
+  &:hover .navbar-brand-logo { transform: translateY(-1px); }
 }
 
 .navbar-links {

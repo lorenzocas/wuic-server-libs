@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Release Notes v1.2.1_1.2.1 - WUIC Framework</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; color: #1e293b; background: #ffffff; line-height: 1.6; overflow-wrap: anywhere; word-wrap: break-word; }
+a { color: #6366f1; text-decoration: none; }
+a:hover { color: #4f46e5; text-decoration: underline; }
+
+/* Site-style header (mini-navbar) */
+.rn-header { background: rgba(255, 255, 255, 0.95); border-bottom: 1px solid #e2e8f0; backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 10; }
+.rn-header-inner { max-width: 1200px; margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.rn-brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: #0f172a; font-size: 1.15rem; }
+.rn-brand-bolt { display: inline-block; width: 24px; height: 24px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M13 2L3 14h7l-1 8 10-12h-7l1-8z'/></svg>") center/contain no-repeat; mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M13 2L3 14h7l-1 8 10-12h-7l1-8z'/></svg>") center/contain no-repeat; }
+.rn-back { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border: 1px solid #c7d2fe; border-radius: 6px; color: #4f46e5; background: #eef2ff; font-size: 0.9rem; transition: background 0.15s, border-color 0.15s; }
+.rn-back:hover { background: #e0e7ff; border-color: #a5b4fc; text-decoration: none; }
+
+/* Article container: same width as Site .container */
+.rn-article { max-width: 880px; margin: 0 auto; padding: 48px 24px 80px; }
+
+/* Headings: site palette */
+h1, h2, h3, h4 { color: #0f172a; line-height: 1.25; font-weight: 700; }
+h1 { font-size: 2rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; margin-bottom: 1.25rem; }
+h2 { font-size: 1.4rem; margin-top: 2.25rem; margin-bottom: 0.75rem; }
+h3 { font-size: 1.125rem; margin-top: 1.5rem; margin-bottom: 0.5rem; color: #334155; }
+
+p { margin: 0.75rem 0; color: #334155; }
+strong { color: #0f172a; font-weight: 600; }
+
+ul, ol { padding-left: 1.4rem; margin: 0.75rem 0; }
+li { margin: 0.25rem 0; color: #334155; }
+
+hr { border: 0; border-top: 1px solid #e2e8f0; margin: 2.5rem 0; }
+
+/* Inline code: tinta indigo che richiama il brand */
+code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.9em; }
+code { background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; padding: 0.1em 0.4em; border-radius: 4px; word-break: break-word; }
+pre { background: #f8fafc; border: 1px solid #e2e8f0; padding: 1rem 1.25rem; border-radius: 8px; overflow-x: auto; max-width: 100%; margin: 1rem 0; }
+pre code { background: transparent; color: #1e293b; border: 0; padding: 0; word-break: normal; }
+
+/* Tables: scrollabili, header indigo-tint */
+.table-wrap { overflow-x: auto; max-width: 100%; margin: 1.25rem 0; border: 1px solid #e2e8f0; border-radius: 8px; }
+table { border-collapse: collapse; width: max-content; min-width: 100%; background: #ffffff; }
+th, td { border-bottom: 1px solid #e2e8f0; padding: 0.65rem 0.95rem; text-align: left; vertical-align: top; font-size: 0.95rem; }
+th { background: #f8fafc; color: #0f172a; font-weight: 600; border-bottom-color: #cbd5e1; }
+tr:last-child td { border-bottom: 0; }
+td { color: #334155; }
+
+/* Blockquote: brand accent */
+blockquote { border-left: 3px solid #6366f1; margin: 1.25rem 0; padding: 0.6rem 1.1rem; color: #475569; background: #eef2ff; border-radius: 0 6px 6px 0; }
+blockquote p { color: #475569; }
+
+img { max-width: 100%; height: auto; border-radius: 6px; }
+</style>
+<script>
+// Wrap tables post-render in scroll container (markdown converter emits raw <table>).
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('table').forEach(t => {
+    if (t.parentElement && t.parentElement.classList.contains('table-wrap')) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+});
+</script>
+</head>
+<body>
+<header class="rn-header">
+  <div class="rn-header-inner">
+    <a href="/" class="rn-brand"><span class="rn-brand-bolt"></span><span>WUIC</span></a>
+    <a href="/downloads" class="rn-back">&larr; Volver a las descargas</a>
+  </div>
+</header>
+<article class="rn-article">
+<h1 id="notas-de-la-version-wuic-framework-v1.2.1">Notas de la versión — WUIC Framework v1.2.1</h1>
+<p><strong>Fecha</strong>: 31 de mayo de 2026
+<strong>Versión publicada anteriormente</strong>: 1.2.0 (27 de mayo de 2026)
+<strong>Backend</strong>: .NET 10 + IIS / Linux nginx
+<strong>Frontend</strong>: Angular 21</p>
+<hr />
+<p>Versión de mantenimiento centrada en una clase de bugs latentes que afectaban a los campos <code>datetime</code> y <code>decimal</code> en escenarios cross-DBMS / cross-locale. La mayoría de los usuarios con workstation en locale italiana se han visto afectados al menos una vez — el componente time de las marcas temporales se truncaba a medianoche en INSERT y UPDATE, y los decimales con separador no invariante producían <code>ORA-01722</code> en Oracle cuando la sesión ODP.NET heredaba la cultura italiana de Windows.</p>
+<p>Los fixes son transversales a los 4 providers soportados (MSSQL, MySQL, PostgreSQL, Oracle) y todos los tests roundtrip end-to-end pasan tanto en locale de sesión DB inglesa (<code>en-US</code>) como italiana (<code>Italiano dmy</code>, <code>lc_time=Italian_Italy.1252</code>).</p>
+<hr />
+<h2 id="correcciones-de-bugs-destacadas">🐛 Correcciones de bugs destacadas</h2>
+<ul>
+<li><p><strong>Componente <code>time</code> truncado en INSERT/UPDATE de campos <code>DATETIME2</code> / <code>DATETIME(n)</code> / <code>TIMESTAMP</code></strong>: el scaffolder de los metadatos colapsaba todos los tipos temporales del DB origen sobre el único tipo UI <code>date</code>. Resultado: una columna de SQL Server <code>DATETIME2(3)</code> (o MySQL <code>DATETIME(3)</code>, PostgreSQL <code>timestamp without time zone</code>, Oracle <code>TIMESTAMP(0)</code>) era tratada como pura fecha y el framework emitía <code>'20261231'</code> en lugar de <code>'20261231 23:59:58'</code> en INSERT/UPDATE — la hora introducida en la UI se perdía al guardar. El scaffolder ahora distingue <code>date</code> (fecha pura) de <code>datetime</code> (fecha + hora) y el guardado preserva el componente time con precisión al segundo. La precisión sub-segundo (<code>.fff</code>) permanece truncada intencionadamente por coherencia con el date-time picker UI que no la expone.</p>
+</li>
+<li><p><strong>Oracle <code>ORA-01722: número no válido</code> en campos <code>NUMBER(p,s)</code> desde workstation italiana</strong>: los providers emitían los valores numéricos quoted como string en las <code>INSERT</code>/<code>UPDATE</code> (ej. <code>VALUES (..., '9876.4321', ...)</code>). Oracle convertía la string en número usando <code>NLS_NUMERIC_CHARACTERS</code> de la sesión, que ODP.NET deriva del thread .NET <code>CurrentCulture</code>: en cultura italiana el decimal es <code>,</code> y <code>.</code> se convierte en separador de grupo → <code>'9876.4321'</code> se interpretaba como expresión de grupo inválida. Ahora los valores numéricos (<code>decimal</code>, <code>float</code>, <code>double</code>, <code>numeric</code>) se emiten como literales SQL sin quoting: los literales numéricos Oracle usan siempre <code>.</code> como punto decimal independientemente de NLS.</p>
+</li>
+<li><p><strong>Oracle <code>ORA-00904: identificador no válido</code> en tablas con identificadores quoted-lowercase</strong>: una tabla creada con DDL <code>CREATE TABLE &quot;my_table&quot; (&quot;id&quot; NUMBER, ...)</code> (lowercase quoted, case-preserving) no era legible por el framework. La lógica de quoting reconocía los mixed-case y las reserved keywords pero trataba los all-lower como &quot;safe identifier&quot; y los emitía bare (Oracle los case-folda a UPPER), causando el mismatch con el físico <code>&quot;id&quot;</code>. Ahora los identificadores all-lowercase se preservan con quoting explícito.</p>
+</li>
+<li><p><strong>Parsing/formatting locale-invariante de fechas y timestamps en el server</strong>: el path de parsing/emit de <code>DateTime</code> en Oracle y PostgreSQL usaba el thread <code>CurrentCulture</code>. Ahora el parsing intenta primero <code>InvariantCulture</code> y hace fallback a <code>CurrentCulture</code> solo si es necesario; el formatting para las cláusulas SQL (<code>TO_TIMESTAMP(...)</code> / literal <code>yyyy-MM-dd HH:mm:ss</code>) usa siempre <code>InvariantCulture</code>. Efecto user-visible: el round-trip permanece bit-perfect independientemente del <code>CultureInfo.CurrentCulture</code> del proceso backend.</p>
+</li>
+<li><p><strong>Oracle <code>ORDER BY</code> sobre PK lowercase</strong>: la cláusula <code>ORDER BY</code> añadida automáticamente sobre la clave primaria emitía el nombre de columna sin pasar por la lógica de quoting → producía <code>ORA-00904</code> en tablas con PK <code>&quot;id&quot;</code> lowercase quoted. Ahora la PK pasa por el mismo quoting que todas las otras columnas.</p>
+</li>
+</ul>
+<hr />
+<h2 id="compatibilidad-db-cross-locale">🗄️ Compatibilidad DB cross-locale</h2>
+<p>Los tests de roundtrip end-to-end ahora cubren las siguientes combinaciones provider × sesión DB:</p>
+<table>
+<thead>
+<tr>
+<th>Provider</th>
+<th>Sesión DB probada</th>
+<th>Resultado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MSSQL</td>
+<td><code>@@LANGUAGE=Italian</code>, <code>date_format=dmy</code>, <code>Latin1_General_CI_AS</code></td>
+<td>OK</td>
+</tr>
+<tr>
+<td>MySQL</td>
+<td><code>lc_time_names=en_US</code>, <code>utf8mb4_0900_ai_ci</code>, <code>time_zone=SYSTEM</code></td>
+<td>OK</td>
+</tr>
+<tr>
+<td>PostgreSQL</td>
+<td><code>DateStyle=ISO,DMY</code>, <code>lc_time=Italian_Italy.1252</code></td>
+<td>OK</td>
+</tr>
+<tr>
+<td>Oracle</td>
+<td><code>NLS_LANGUAGE=AMERICAN</code>, <code>NLS_TERRITORY=AMERICA</code>, <code>NLS_NUMERIC_CHARACTERS=.,</code></td>
+<td>OK</td>
+</tr>
+</tbody>
+</table>
+<p>Las fechas se garantizan invariantes end-to-end (<code>2026-12-31T23:59:58.000</code> permanece <code>2026-12-31T23:59:58.000</code> independientemente de la sesión DB y CurrentCulture del backend), al igual que los decimales (<code>9876.4321</code> permanece <code>9876.4321</code>).</p>
+<hr />
+<h2 id="paquetes-actualizados">📦 Paquetes actualizados</h2>
+<table>
+<thead>
+<tr>
+<th>Package</th>
+<th>De</th>
+<th>A</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WuicCore</td>
+<td>1.2.0</td>
+<td>1.2.1</td>
+</tr>
+<tr>
+<td>Wuic.Webcore</td>
+<td>1.2.0</td>
+<td>1.2.1</td>
+</tr>
+<tr>
+<td>WuicOData</td>
+<td>1.2.0</td>
+<td>1.2.1</td>
+</tr>
+<tr>
+<td>RuntimeEfCore</td>
+<td>1.2.0</td>
+<td>1.2.1</td>
+</tr>
+<tr>
+<td>Wuic.MySqlProvider</td>
+<td>1.2.0</td>
+<td>1.2.1</td>
+</tr>
+<tr>
+<td>Wuic.PostgresProvider</td>
+<td>1.2.0</td>
+<td>1.2.1</td>
+</tr>
+<tr>
+<td>Wuic.OracleProvider</td>
+<td>1.2.0</td>
+<td>1.2.1</td>
+</tr>
+<tr>
+<td>wuic-framework-lib (NPM)</td>
+<td>1.2.0</td>
+<td>1.2.1</td>
+</tr>
+</tbody>
+</table>
+
+</article>
+</body>
+</html>

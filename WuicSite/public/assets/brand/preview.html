@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>WUIC icon variants — preview</title>
+  <style>
+    :root {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      color-scheme: light dark;
+    }
+    body { margin: 0; padding: 40px; background: #f5f7fb; color: #0f172a; }
+    h1 { margin: 0 0 8px; font-size: 22px; }
+    p.lede { margin: 0 0 32px; color: #475569; max-width: 720px; line-height: 1.55; }
+    .group-heading {
+      font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em;
+      color: #6366f1; margin: 32px 0 12px;
+    }
+    .variant {
+      background: #fff; border-radius: 16px; padding: 32px; margin-bottom: 16px;
+      box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -8px rgba(15,23,42,0.08);
+    }
+    .variant h2 { margin: 0 0 4px; font-size: 18px; }
+    .variant .filename {
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      font-size: 12px; color: #6366f1; margin: 0 0 8px;
+    }
+    .variant .why { margin: 0 0 16px; color: #475569; font-size: 14px; }
+    .sizes { display: flex; gap: 24px; align-items: flex-end; flex-wrap: wrap; }
+    .sample { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .sample .label { font-size: 11px; color: #64748b; }
+    .sample img { display: block; }
+    .row-bg {
+      display: flex; gap: 24px; margin-top: 16px; padding: 16px; border-radius: 10px;
+      align-items: center;
+    }
+    .row-bg.light { background: #f1f5f9; }
+    .row-bg.dark  { background: #0b132b; color: #cbd5e1; }
+    .row-bg .label { font-size: 12px; min-width: 80px; }
+    .recommended {
+      display: inline-block; background: #dcfce7; color: #166534;
+      font-size: 11px; padding: 2px 8px; border-radius: 999px;
+      margin-left: 8px; vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <h1>WUIC icon variants</h1>
+  <p class="lede">
+    6 SVG concepts. The first 3 (typographic) are the most recent — they
+    incorporate the letter W or the full "WUIC" mark and look less generic
+    than a plain bolt. The bottom 3 (bolt-based) are the older draft.
+    Same palette as <code>og-image.svg</code>: deep navy background +
+    teal/cyan accent.
+  </p>
+
+  <p class="group-heading">Typographic (latest)</p>
+
+  <!-- ─── Variant D: W with bolt as central valley ─────────────────── -->
+  <div class="variant">
+    <h2>Variant D — W with bolt valley <span class="recommended">recommended</span></h2>
+    <p class="filename">wuic-icon-w-tipo.svg</p>
+    <p class="why">
+      Bold geometric W where the central valley is a real lightning bolt
+      that overshoots the top of the letter. Reads as W first, the brand
+      detail (bolt) is noticed on a second glance. Scales down to favicon
+      size without losing identity.
+    </p>
+    <div class="sizes">
+      <div class="sample"><img src="wuic-icon-w-tipo.svg" width="16"  height="16"  alt=""/><span class="label">16</span></div>
+      <div class="sample"><img src="wuic-icon-w-tipo.svg" width="32"  height="32"  alt=""/><span class="label">32</span></div>
+      <div class="sample"><img src="wuic-icon-w-tipo.svg" width="64"  height="64"  alt=""/><span class="label">64</span></div>
+      <div class="sample"><img src="wuic-icon-w-tipo.svg" width="128" height="128" alt=""/><span class="label">128</span></div>
+      <div class="sample"><img src="wuic-icon-w-tipo.svg" width="256" height="256" alt=""/><span class="label">256</span></div>
+    </div>
+    <div class="row-bg light"><span class="label">light bg</span>
+      <img src="wuic-icon-w-tipo.svg" width="48" height="48"/>
+      <img src="wuic-icon-w-tipo.svg" width="64" height="64"/>
+      <img src="wuic-icon-w-tipo.svg" width="96" height="96"/>
+    </div>
+    <div class="row-bg dark"><span class="label">dark bg</span>
+      <img src="wuic-icon-w-tipo.svg" width="48" height="48"/>
+      <img src="wuic-icon-w-tipo.svg" width="64" height="64"/>
+      <img src="wuic-icon-w-tipo.svg" width="96" height="96"/>
+    </div>
+  </div>
+
+  <!-- ─── Variant E: full WUIC monogram ────────────────────────────── -->
+  <div class="variant">
+    <h2>Variant E — Full WUIC monogram</h2>
+    <p class="filename">wuic-icon-wuic-monogram.svg</p>
+    <p class="why">
+      All 4 letters "WUIC" drawn as custom glyphs in one horizontal row +
+      a small bolt accent in the bottom-right corner. Readable as a word
+      down to ~48×48. Use for blog covers, profile banners, anywhere the
+      mark has space to breathe. Not ideal for 16×16 favicon (use D for
+      that).
+    </p>
+    <div class="sizes">
+      <div class="sample"><img src="wuic-icon-wuic-monogram.svg" width="16"  height="16"  alt=""/><span class="label">16</span></div>
+      <div class="sample"><img src="wuic-icon-wuic-monogram.svg" width="32"  height="32"  alt=""/><span class="label">32</span></div>
+      <div class="sample"><img src="wuic-icon-wuic-monogram.svg" width="64"  height="64"  alt=""/><span class="label">64</span></div>
+      <div class="sample"><img src="wuic-icon-wuic-monogram.svg" width="128" height="128" alt=""/><span class="label">128</span></div>
+      <div class="sample"><img src="wuic-icon-wuic-monogram.svg" width="256" height="256" alt=""/><span class="label">256</span></div>
+    </div>
+    <div class="row-bg light"><span class="label">light bg</span>
+      <img src="wuic-icon-wuic-monogram.svg" width="48" height="48"/>
+      <img src="wuic-icon-wuic-monogram.svg" width="64" height="64"/>
+      <img src="wuic-icon-wuic-monogram.svg" width="96" height="96"/>
+    </div>
+    <div class="row-bg dark"><span class="label">dark bg</span>
+      <img src="wuic-icon-wuic-monogram.svg" width="48" height="48"/>
+      <img src="wuic-icon-wuic-monogram.svg" width="64" height="64"/>
+      <img src="wuic-icon-wuic-monogram.svg" width="96" height="96"/>
+    </div>
+  </div>
+
+  <!-- ─── Variant F: faceted W ─────────────────────────────────────── -->
+  <div class="variant">
+    <h2>Variant F — Faceted W (origami)</h2>
+    <p class="filename">wuic-icon-w-faceted.svg</p>
+    <p class="why">
+      W built from 4 triangular facets in different shades of teal — gives
+      a folded paper / crystal feel. Geometric like the framework itself.
+      Distinct from any common tech logo (Webpack / Vercel / Webflow don't
+      have this shape). Edge highlights at the top give the "ice" finish.
+    </p>
+    <div class="sizes">
+      <div class="sample"><img src="wuic-icon-w-faceted.svg" width="16"  height="16"  alt=""/><span class="label">16</span></div>
+      <div class="sample"><img src="wuic-icon-w-faceted.svg" width="32"  height="32"  alt=""/><span class="label">32</span></div>
+      <div class="sample"><img src="wuic-icon-w-faceted.svg" width="64"  height="64"  alt=""/><span class="label">64</span></div>
+      <div class="sample"><img src="wuic-icon-w-faceted.svg" width="128" height="128" alt=""/><span class="label">128</span></div>
+      <div class="sample"><img src="wuic-icon-w-faceted.svg" width="256" height="256" alt=""/><span class="label">256</span></div>
+    </div>
+    <div class="row-bg light"><span class="label">light bg</span>
+      <img src="wuic-icon-w-faceted.svg" width="48" height="48"/>
+      <img src="wuic-icon-w-faceted.svg" width="64" height="64"/>
+      <img src="wuic-icon-w-faceted.svg" width="96" height="96"/>
+    </div>
+    <div class="row-bg dark"><span class="label">dark bg</span>
+      <img src="wuic-icon-w-faceted.svg" width="48" height="48"/>
+      <img src="wuic-icon-w-faceted.svg" width="64" height="64"/>
+      <img src="wuic-icon-w-faceted.svg" width="96" height="96"/>
+    </div>
+  </div>
+
+  <p class="group-heading">Bolt-based (earlier draft, kept for reference)</p>
+
+  <!-- ─── Variant A: bolt ──────────────────────────────────────────── -->
+  <div class="variant">
+    <h2>Variant A — Bolt</h2>
+    <p class="filename">wuic-icon-bolt.svg</p>
+    <p class="why">Single lightning bolt on a dark tile. Generic.</p>
+    <div class="sizes">
+      <div class="sample"><img src="wuic-icon-bolt.svg" width="16"  height="16"/><span class="label">16</span></div>
+      <div class="sample"><img src="wuic-icon-bolt.svg" width="32"  height="32"/><span class="label">32</span></div>
+      <div class="sample"><img src="wuic-icon-bolt.svg" width="64"  height="64"/><span class="label">64</span></div>
+      <div class="sample"><img src="wuic-icon-bolt.svg" width="128" height="128"/><span class="label">128</span></div>
+      <div class="sample"><img src="wuic-icon-bolt.svg" width="256" height="256"/><span class="label">256</span></div>
+    </div>
+  </div>
+
+  <!-- ─── Variant B: two bolts as W ────────────────────────────────── -->
+  <div class="variant">
+    <h2>Variant B — Two bolts as W</h2>
+    <p class="filename">wuic-icon-w-bolts.svg</p>
+    <p class="why">Two bolts side-by-side forming a stylized W.</p>
+    <div class="sizes">
+      <div class="sample"><img src="wuic-icon-w-bolts.svg" width="16"  height="16"/><span class="label">16</span></div>
+      <div class="sample"><img src="wuic-icon-w-bolts.svg" width="32"  height="32"/><span class="label">32</span></div>
+      <div class="sample"><img src="wuic-icon-w-bolts.svg" width="64"  height="64"/><span class="label">64</span></div>
+      <div class="sample"><img src="wuic-icon-w-bolts.svg" width="128" height="128"/><span class="label">128</span></div>
+      <div class="sample"><img src="wuic-icon-w-bolts.svg" width="256" height="256"/><span class="label">256</span></div>
+    </div>
+  </div>
+
+  <!-- ─── Variant C: grid + bolt ───────────────────────────────────── -->
+  <div class="variant">
+    <h2>Variant C — Metadata grid + bolt</h2>
+    <p class="filename">wuic-icon-grid-bolt.svg</p>
+    <p class="why">3×3 grid + bolt overlay. Concept-heavy.</p>
+    <div class="sizes">
+      <div class="sample"><img src="wuic-icon-grid-bolt.svg" width="16"  height="16"/><span class="label">16</span></div>
+      <div class="sample"><img src="wuic-icon-grid-bolt.svg" width="32"  height="32"/><span class="label">32</span></div>
+      <div class="sample"><img src="wuic-icon-grid-bolt.svg" width="64"  height="64"/><span class="label">64</span></div>
+      <div class="sample"><img src="wuic-icon-grid-bolt.svg" width="128" height="128"/><span class="label">128</span></div>
+      <div class="sample"><img src="wuic-icon-grid-bolt.svg" width="256" height="256"/><span class="label">256</span></div>
+    </div>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  WUIC icon — variant B: "W made of two bolts".
+  Stylized "W" letter where each downstroke is a lightning bolt. More
+  distinctive than a generic bolt: tells the viewer the brand is "WUIC"
+  even without the wordmark. Slightly harder to read at very small sizes
+  (16×16) but excellent at 32px+.
+
+  Same palette as the og-image:
+    background gradient #0b132b → #1c2541 → #3a506b
+    accent     gradient #5bc0be → #6fffe9
+
+  Use as:
+    - app icon (PWA, install banner, dock icon)
+    - blog post cover image when paired with the wordmark
+    - GitHub avatar / social profile
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="bgB" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#0b132b"/>
+      <stop offset="60%"  stop-color="#1c2541"/>
+      <stop offset="100%" stop-color="#3a506b"/>
+    </linearGradient>
+    <linearGradient id="accentB" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#5bc0be"/>
+      <stop offset="100%" stop-color="#6fffe9"/>
+    </linearGradient>
+    <filter id="glowB" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="256" height="256" rx="48" ry="48" fill="url(#bgB)"/>
+
+  <!-- Left bolt — first stroke of the W -->
+  <path d="M 80 56 L 44 144 L 70 144 L 56 200 L 110 116 L 84 116 L 100 56 Z"
+        fill="url(#accentB)" filter="url(#glowB)"/>
+  <!-- Right bolt — second stroke of the W -->
+  <path d="M 176 56 L 140 144 L 166 144 L 152 200 L 206 116 L 180 116 L 196 56 Z"
+        fill="url(#accentB)" filter="url(#glowB)"/>
+</svg>

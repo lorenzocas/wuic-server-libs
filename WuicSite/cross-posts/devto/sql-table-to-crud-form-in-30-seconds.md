@@ -1,10 +1,9 @@
 ---
 title: "From SQL table to working CRUD form in 30 seconds: a metadata-driven scaffolding approach"
-slug: sql-table-to-crud-form-in-30-seconds
-date: 2026-05-01
-author: Lorenzo Castrico
+published: false
 description: "How WUIC turns a CREATE TABLE statement into a complete CRUD UI — list, edit form, validation, lookup widgets — without writing a single TypeScript file. The actual scaffolding endpoint, what it inspects, and what it skips."
-tags: scaffolding, crud, angular, sql-server, metadata-driven
+tags: database, angular, sqlserver, lowcode
+canonical_url: https://wuic-framework.com/blog/sql-table-to-crud-form-in-30-seconds
 ---
 
 The cleanest demo of WUIC is also the boring one: write a SQL `CREATE TABLE`, hit one endpoint, refresh the browser. There's a working list page, an edit form, validation rules, lookup widgets, sortable columns, mobile responsiveness — and you wrote no Angular. No controller. No service. No DTOs.
@@ -47,7 +46,7 @@ Refresh the app. There's a new menu entry "Vendors" with:
 
 That's the headline. Now the substance.
 
-![Auto-generated list-grid: sort, filter, group, paginate — all from metadata, zero per-route code](/assets/wuic-framework-docs/screenshots/list-grid__list-grid-base__desktop.gif)
+![Auto-generated list-grid: sort, filter, group, paginate — all from metadata, zero per-route code](https://wuic-framework.com/assets/wuic-framework-docs/screenshots/list-grid__list-grid-base__desktop.gif)
 
 ## What the scaffolder actually inspects
 
@@ -92,9 +91,9 @@ Each tweak is a SQL `UPDATE` away from being live. No rebuild, no Angular recomp
 
 Same metadata, different archetype — the route can render as a kanban board or a spreadsheet without re-scaffolding:
 
-![Kanban archetype rendered from the same metadata](/assets/wuic-framework-docs/screenshots/kanban-list__kanban-base__desktop.gif)
+![Kanban archetype rendered from the same metadata](https://wuic-framework.com/assets/wuic-framework-docs/screenshots/kanban-list__kanban-base__desktop.gif)
 
-![Spreadsheet archetype — Excel-style bulk edit, also from the same metadata route](/assets/wuic-framework-docs/screenshots/spreadsheet-list__spreadsheet-animation__desktop.gif)
+![Spreadsheet archetype — Excel-style bulk edit, also from the same metadata route](https://wuic-framework.com/assets/wuic-framework-docs/screenshots/spreadsheet-list__spreadsheet-animation__desktop.gif)
 
 ## What scaffolding *does not* do
 
@@ -121,8 +120,8 @@ A short list, because honest documentation matters:
 
 ## Try it
 
-The scaffolding endpoint runs on the [public demo](/sandbox). The demo data is reset every 24 hours, so you can `CREATE TABLE foo (id int identity, name nvarchar(100))`, scaffold it, see the auto-generated CRUD, then leave — by tomorrow the schema is clean again.
+The scaffolding endpoint runs on the [public demo](https://wuic-framework.com/sandbox). The demo data is reset every 24 hours, so you can `CREATE TABLE foo (id int identity, name nvarchar(100))`, scaffold it, see the auto-generated CRUD, then leave — by tomorrow the schema is clean again.
 
-If you want to read the source: the scaffolder is `MetaController.AsmxProxy.scaffoldTable` and the runtime metadata loader is `MetadataService.loadFromDb`. The codebase chatbot ([previous post](/blog/rag-chatbot-with-claude-and-bge-m3)) can find the exact files for you faster than I can paste links.
+If you want to read the source: the scaffolder is `MetaController.AsmxProxy.scaffoldTable` and the runtime metadata loader is `MetadataService.loadFromDb`. The codebase chatbot ([previous post](https://wuic-framework.com/blog/rag-chatbot-with-claude-and-bge-m3)) can find the exact files for you faster than I can paste links.
 
 These three posts are the first batch — the next two we're writing dig into the **mobile auto-layout** (how a desktop table becomes a card stack with zero per-screen config) and the **workflow engine** (multi-step business processes from a graph metadata table). Subscribe via the RSS feed, or just check back here.

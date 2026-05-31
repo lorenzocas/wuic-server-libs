@@ -1,15 +1,14 @@
 ---
 title: "Why we built a metadata-driven Angular framework instead of using Retool"
-slug: why-metadata-driven-not-retool
-date: 2026-05-01
-author: Lorenzo Castrico
+published: false
 description: "Honest origin story behind WUIC: the moment Retool stopped scaling for our team, the tradeoffs we weighed, and what we did instead."
-tags: angular, metadata-driven, retool, low-code, framework
+tags: angular, lowcode, retool, framework
+canonical_url: https://wuic-framework.com/blog/why-metadata-driven-not-retool
 ---
 
 When you start a B2B project and someone says *"we'll use Retool, it's faster"*, they're usually right. For the first three internal tools, they always are. Drag-and-drop panels over a Postgres database, an SSO connector, a couple of approval flows — done in two afternoons. We were that team. For a year and a half, we shipped real value through Retool dashboards.
 
-This is the story of why we eventually stopped, and why we ended up building [WUIC](/) — a closed-source, metadata-driven Angular framework — instead of switching to one of the obvious open-source alternatives.
+This is the story of why we eventually stopped, and why we ended up building [WUIC](https://wuic-framework.com/) — a closed-source, metadata-driven Angular framework — instead of switching to one of the obvious open-source alternatives.
 
 ## The wall
 
@@ -45,7 +44,7 @@ Not "low-code" — there's still real code to write, and we wanted that. *Less* 
 
 ## What WUIC actually is
 
-![WUIC theme switcher — same metadata, multiple visual themes, runtime switch](/assets/wuic-framework-docs/screenshots/themes__themes-switch__desktop.gif)
+![WUIC theme switcher — same metadata, multiple visual themes, runtime switch](https://wuic-framework.com/assets/wuic-framework-docs/screenshots/themes__themes-switch__desktop.gif)
 
 WUIC is two databases worth of metadata + a runtime that turns it into a working Angular app:
 
@@ -60,7 +59,7 @@ Given those, the runtime renders:
 - A report designer that produces PDF + Excel from the same metadata.
 - A workflow engine where each step is a route, and the graph between them is more metadata.
 - A mobile responsive layout that derives card stacks from the same column metadata that drives desktop tables.
-- An in-product RAG chatbot that answers questions about the data + the framework itself ([more on that in the next post](/blog/rag-chatbot-with-claude-and-bge-m3)).
+- An in-product RAG chatbot that answers questions about the data + the framework itself ([more on that in the next post](https://wuic-framework.com/blog/rag-chatbot-with-claude-and-bge-m3)).
 
 You can drop down to plain Angular components anywhere — `<wuic-list-grid>` is a regular standalone component, you can wrap it, replace it, override its template. We deliberately kept the framework at "code-saver" level rather than "low-code platform". Less typing, full developer control.
 
@@ -85,6 +84,6 @@ It's been roughly 18 months since we cut the first Retool screen. The trade-off,
 
 If you're early-stage and doing 5 internal panels with 10 internal users, **we'd still tell you to use Retool**. It really is faster. The break-even point in our case was around screen #15 + first customer-facing dashboard.
 
-If you're past that, and you want to learn about the alternatives we considered side-by-side — including how WUIC compares against Refine, Budibase, and AppSmith feature-by-feature — there's a [comparison page](/comparison) for that, and the [feature gallery](/gallery) shows the framework actually doing things. Or [skip the talking and try it](/sandbox).
+If you're past that, and you want to learn about the alternatives we considered side-by-side — including how WUIC compares against Refine, Budibase, and AppSmith feature-by-feature — there's a [comparison page](https://wuic-framework.com/comparison) for that, and the [feature gallery](https://wuic-framework.com/gallery) shows the framework actually doing things. Or [skip the talking and try it](https://wuic-framework.com/sandbox).
 
-The next post in this series digs into one specific feature — the [in-product RAG chatbot](/blog/rag-chatbot-with-claude-and-bge-m3) — and why we ended up building one from scratch when "just integrate ChatGPT" would have shipped in a week. Spoiler: it's about citations.
+The next post in this series digs into one specific feature — the [in-product RAG chatbot](https://wuic-framework.com/blog/rag-chatbot-with-claude-and-bge-m3) — and why we ended up building one from scratch when "just integrate ChatGPT" would have shipped in a week. Spoiler: it's about citations.
