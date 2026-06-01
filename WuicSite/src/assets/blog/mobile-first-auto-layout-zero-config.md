@@ -15,11 +15,11 @@ This post walks through how it's wired, and where it draws the line.
 
 ## The default behavior
 
-![Desktop list-grid — the dense enterprise table at 1920×1080](/assets/wuic-framework-docs/screenshots/list-grid__list-grid-base__desktop.gif)
-
 Open any list page on the [public demo](/sandbox) at 1920×1080 and you see a `<p-table>` from PrimeNG: dense, columnar, scrollable, with sort/filter/group headers. The classic enterprise table.
 
 Now resize the window below 768px (or open it on a phone). The table disappears, and in its place is a vertical stack of cards. Each card has the row's most important fields (the ones flagged `mddetailaction=1` or with high `mc_ordine`), a tap-target, and a small action chip in the corner.
+
+![Same list-grid resized live — desktop table swaps to vertical card stack the moment the viewport crosses 768px](/assets/wuic-framework-docs/screenshots/list-grid__list-grid-responsive__mobile.gif)
 
 No metadata change. No `if (mobile) { ... }` in your app code. Same route, same datasource, same metadata — the framework swaps the template.
 

@@ -17,6 +17,8 @@ For these questions, the answer that matters is the file path. A confident-sound
 
 So we built a real RAG. This post is the engineering story: the architecture, the numbers, what worked, what didn't.
 
+![&lt;wuic-rag-chatbot&gt; in action — natural-language question about the codebase, streamed answer with clickable file-path citations](/assets/wuic-framework-docs/screenshots/rag-chatbot__rag-chatbot-conversation__desktop.gif)
+
 ## What "in-product RAG" means here
 
 The chatbot lives inside the framework as `<wuic-rag-chatbot>`, an Angular standalone component. A user opens any WUIC-built application (or our docs), clicks the floating button bottom-right, asks a natural-language question. The answer comes back with **citations**: real file paths in the codebase that the user can click to open the matching markdown chunk.
