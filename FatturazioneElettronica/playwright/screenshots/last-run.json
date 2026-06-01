@@ -6,153 +6,100 @@
     "password": "Test123!",
     "apiUser": "admin_test_2",
     "apiPassword": "Test123!",
-    "filter": "(09-|5[0-8]-)",
+    "filter": "^(6[0-9]|7[01])-",
     "bail": false,
     "headed": false,
     "outDir": "C:\\src\\Wuic\\FatturazioneElettronica\\playwright\\screenshots"
   },
   "results": [
     {
-      "file": "09-invio-fattura-sdi.mjs",
-      "id": "09",
-      "name": "Invio fattura via SdiController (XML + markAsSent)",
-      "status": "pass",
-      "out": {
-        "fatturaId": 326,
-        "fileXml": "C:\\src\\Wuic\\FatturazioneElettronica\\wwwroot\\Upload\\sdi-out\\IT12345678901_00002.xml",
-        "xmlSize": 2815
-      },
-      "durationMs": 854
+      "file": "60-dashboard-magazzino-kpi.mjs",
+      "id": "60",
+      "name": "Dashboard magazzino_kpi (4 KPI + stacked bar + tabella)",
+      "status": "skip",
+      "reason": "frontend not reachable"
     },
     {
-      "file": "50-fattura-save-guard.mjs",
-      "id": "50",
-      "name": "Fattura - save guard blocca salvataggio senza righe",
-      "status": "pass",
-      "out": {
-        "clienteId": 319
-      },
-      "durationMs": 7841
+      "file": "61-dashboard-varianti-kpi.mjs",
+      "id": "61",
+      "name": "Dashboard varianti_kpi (4 KPI + bar per attributo + ranking)",
+      "status": "skip",
+      "reason": "frontend not reachable"
     },
     {
-      "file": "51-fattura-sp-calcola-scadenze.mjs",
-      "id": "51",
-      "name": "sp_calcola_scadenze - SP server-side via getFlatDataFromStored",
-      "status": "pass",
-      "out": {
-        "pagamentoId": 12,
-        "nRate": 3,
-        "sumImporto": 1200
-      },
-      "durationMs": 343
+      "file": "62-dashboard-magazzino-storico.mjs",
+      "id": "62",
+      "name": "Dashboard magazzino_storico (4 KPI + line 30gg + tabella movimenti)",
+      "status": "skip",
+      "reason": "frontend not reachable"
     },
     {
-      "file": "52-fattura-stato-dictionary-splitbutton.mjs",
-      "id": "52",
-      "name": "Fattura - stato dictionary widget + splitbutton solo in __new",
-      "status": "pass",
-      "out": {
-        "dictPairs": 4,
-        "optTexts": [
-          "Bozza",
-          "Emessa",
-          "Annullata",
-          "Pagata"
-        ]
-      },
-      "durationMs": 8776
+      "file": "63-toolbar-prodotti-genera-matrice-varianti.mjs",
+      "id": "63",
+      "name": "Toolbar action: prodotti/Genera matrice varianti",
+      "status": "skip",
+      "reason": "frontend not reachable"
     },
     {
-      "file": "53-fattura-row-action-xml-download.mjs",
-      "id": "53",
-      "name": "Fattura - row action \"Scarica XML\" (btn_xml_download)",
-      "status": "pass",
-      "out": {
-        "fatturaId": 328,
-        "fileXml": "C:\\src\\Wuic\\FatturazioneElettronica\\wwwroot\\Upload\\sdi-out\\IT12345678901_00002.xml",
-        "xmlSize": 2828,
-        "ui": {
-          "suggestedFilename": "IT12345678901_00002.xml",
-          "url": "blob:http://localhost:4200/602ef476-1c35-43a9-a2b4-552b6ee83309"
-        }
-      },
-      "durationMs": 3485
+      "file": "64-toolbar-magazzini-movimento-manuale.mjs",
+      "id": "64",
+      "name": "Toolbar action: magazzini/Movimento manuale",
+      "status": "skip",
+      "reason": "frontend not reachable"
     },
     {
-      "file": "54-fattura-report-rendering.mjs",
-      "id": "54",
-      "name": "Fattura - rendering report Stampa (Report.mrt Aruba PEC layout)",
-      "status": "pass",
-      "out": {
-        "fatturaId": 329,
-        "hits": {
-          "FATTURA": true,
-          "PRODOTTI": true,
-          "RIEPILOGO_or_CALCOLO": true,
-          "METODO_PAG": false
-        },
-        "screenshot": "C:\\src\\Wuic\\FatturazioneElettronica\\playwright\\screenshots\\PASS_54_report_1778318334531.png"
-      },
-      "durationMs": 7695
+      "file": "65-toolbar-giacenze-inventario-fisico.mjs",
+      "id": "65",
+      "name": "Toolbar action: magazzino_giacenze/Inventario fisico",
+      "status": "skip",
+      "reason": "frontend not reachable"
     },
     {
-      "file": "55-fattura-invio-sdi-pipeline.mjs",
-      "id": "55",
-      "name": "Invio SDI - pipeline completa (XSD + CADES-BES + provider Mock)",
-      "status": "pass",
-      "out": {
-        "fatturaId": 330,
-        "sdiId": "WUIC-SIM-20260509091855-8df05151",
-        "provider": "Mock",
-        "signedBytes": 4146
-      },
-      "durationMs": 797
+      "file": "66-toolbar-giacenze-riconcilia-snapshot.mjs",
+      "id": "66",
+      "name": "Toolbar action: magazzino_giacenze/Riconcilia snapshot",
+      "status": "skip",
+      "reason": "frontend not reachable"
     },
     {
-      "file": "56-sdi-notification-reception.mjs",
-      "id": "56",
-      "name": "Ricezione notifiche SDI (applier + bell + idempotency)",
-      "status": "pass",
-      "out": {
-        "fatturaIdRC": 331,
-        "fatturaIdNS": 332,
-        "sdiIdRC": "WUIC-SIM-20260509091856-926c5af7",
-        "sdiIdNS": "WUIC-SIM-20260509091857-3a5d91cd",
-        "bellRowsCreated": 2
-      },
-      "durationMs": 2313
+      "file": "67-row-action-prodotto-varianti-apri-padre.mjs",
+      "id": "67",
+      "name": "Row action: prodotto_varianti/Apri prodotto padre",
+      "status": "skip",
+      "reason": "frontend not reachable"
     },
     {
-      "file": "57-sdi-conservazione-sostitutiva.mjs",
-      "id": "57",
-      "name": "Conservazione sostitutiva post-notifica SDI (Filesystem provider, 10y AgID)",
-      "status": "pass",
-      "out": {
-        "fatturaId": 333,
-        "conservationIndexId": 4,
-        "provider": "Filesystem",
-        "sha256": "1e312286b54b55c604a2bf76088772edc29b3e6874d1558c4e508722b4575164"
-      },
-      "durationMs": 1978
+      "file": "68-row-action-attr-valori-apri-attributo.mjs",
+      "id": "68",
+      "name": "Row action: prodotto_attributi_valori/Apri attributo padre",
+      "status": "skip",
+      "reason": "frontend not reachable"
     },
     {
-      "file": "58-fiscal-comunicazioni-periodiche.mjs",
-      "id": "58",
-      "name": "Comunicazioni periodiche fiscali (LIPE Q1 + Esterometro M01 + CU + list/download)",
-      "status": "pass",
-      "out": {
-        "lipeId": 13,
-        "esterometroId": 14,
-        "cuId": 15,
-        "lipeDueId": 16,
-        "lipeDueSkipped": false
-      },
-      "durationMs": 621
+      "file": "69-row-action-giacenze-storico-movimenti.mjs",
+      "id": "69",
+      "name": "Row action: magazzino_giacenze/Storico movimenti",
+      "status": "skip",
+      "reason": "frontend not reachable"
+    },
+    {
+      "file": "70-row-action-movimenti-rettifica-opposta.mjs",
+      "id": "70",
+      "name": "Row action: magazzino_movimenti/Crea rettifica opposta",
+      "status": "skip",
+      "reason": "frontend not reachable"
+    },
+    {
+      "file": "71-row-action-magazzini-vedi-giacenze.mjs",
+      "id": "71",
+      "name": "Row action: magazzini/Vedi giacenze",
+      "status": "skip",
+      "reason": "frontend not reachable"
     }
   ],
-  "pass": 10,
+  "pass": 0,
   "fail": 0,
-  "skip": 0,
-  "total": 10,
-  "runAt": "2026-05-09T09:19:01.396Z"
+  "skip": 12,
+  "total": 12,
+  "runAt": "2026-06-01T12:36:25.401Z"
 }
