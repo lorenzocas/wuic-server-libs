@@ -477,6 +477,18 @@ def search_loaded(
     bm25: Dict,
     query: str,
     top_k: int = 8,
+    # Finestra di candidati pre-cross-encoder. Default None => comportamento
+    # storico `max(30, top_k*4)` (eval invariata). Passando un valore esplicito
+    # si DISACCOPPIA la dimensione del pool di candidati dal numero di risultati
+    # restituiti: serve al server chatbot per over-fetch (dedup locali docs)
+    # SENZA alterare il ranking dei top risultati — aumentare top_k da solo
+    # allargherebbe la finestra e cambierebbe cosa vede il CE (bug 2026-06-01:
+    # list-grid.md spariva sotto i window-chunk di list-grid.component.ts).
+    candidate_window: Optional[int] = None,
+    # Quanti docs/pages "garantire" nel pool candidati anche se fuori finestra (vedi
+    # commento nel corpo). 0 = comportamento storico. Default 5: assicura che un doc
+    # pertinente entri sempre nello stadio di ranking e possa beneficiare del boost.
+    doc_recall_guarantee: int = 5,
     # Defaults tuned on eval_queries.v3.jsonl (178 queries, Apr 2026):
     #   Hit@8 = 0.7303, MRR@8 = 0.4150 at these values.
     # Previous static defaults: Hit@8 = 0.6910, MRR@8 = 0.3925.
@@ -589,7 +601,28 @@ def search_loaded(
         blended.append((doc_id, s))
     blended.sort(key=lambda x: x[1], reverse=True)
 
-    candidates = [doc_id for doc_id, _ in blended[: max(30, top_k * 4)]]
+    cw = candidate_window if candidate_window is not None else max(30, top_k * 4)
+    candidates = [doc_id for doc_id, _ in blended[:cw]]
+    # Doc-recall guarantee: un doc rilevante ma debolmente matchato (es. designer.md
+    # per "come creo una dashboard") puo' restare FUORI dal pool di candidati, e il
+    # boost docs (post-CE) non puo' premiare cio' che non e' stato recuperato. Qui
+    # garantiamo che i migliori `docs/pages` (per score blended) entrino comunque nel
+    # pool: vengono poi scorati dal CE e, se davvero pertinenti, il boost li fa
+    # emergere. Se NON sono pertinenti, lo score CE basso li lascia in fondo (il
+    # boost e' moltiplicativo, non forza in cima un doc irrilevante).
+    if doc_recall_guarantee > 0:
+        in_pool = set(candidates)
+        added = 0
+        for doc_id, _ in blended:
+            if added >= doc_recall_guarantee:
+                break
+            if doc_id in in_pool:
+                continue
+            rp = (docs[doc_id].get("rel_path") or "").replace("\\", "/").lower()
+            if "/docs/pages/" in rp and rp.endswith(".md"):
+                candidates.append(doc_id)
+                in_pool.add(doc_id)
+                added += 1
     reranked = rerank_light(
         query,
         docs,
@@ -633,6 +666,9 @@ def search_loaded(
         # because both are semantically about "insert". The intent boost fixes
         # this as a light tiebreaker.
         q_tokens_raw_ce = set(tokenize(query))
+        # Token espansi IT->EN per il match titolo-doc (gli slug docs sono misti:
+        # `datasource.md` EN, `scaffolding-iniziale.md` IT).
+        q_tokens_expanded_ce = expand_query_tokens(q_tokens_raw_ce)
         n = max(1, len(top_for_ce))
         # Normalize intent boost on the post-CE pool too
         raw_intent_boosts = []
@@ -652,6 +688,9 @@ def search_loaded(
             # che sia un moltiplicatore del ranking finale, non un bias pre-CE.
             rpath = docs[doc_id].get("rel_path") or ""
             score *= compute_source_priority_boost(rpath)
+            # Boost titolo documentazione: parole della query che matchano il
+            # titolo di una pagina docs/pages la fanno emergere in cima.
+            score *= compute_doc_title_boost(rpath, docs[doc_id].get("text", ""), q_tokens_expanded_ce)
             blended_ce.append((doc_id, score))
         blended_ce.sort(key=lambda x: x[1], reverse=True)
         reranked = [d for d, _ in blended_ce] + reranked[cross_encoder_top_n:]
@@ -849,16 +888,25 @@ def compute_intent_path_boost(q_tokens_raw: set, rpath_lower: str, intent_weight
 
 
 # Source priority tier. Applied as a multiplicative boost to the final CE-blended
-# score: docs/skill chunks ARE user-facing ground truth (spiegazioni + snippet
-# mirati ai consumatori del framework), WuicTest/ sono esempi curati dei pattern
-# architetturali, il codice core del framework e' Tier-3 (baseline). Questo
-# fa emergere le pagine di docs e le skill quando matchano semanticamente, anche
-# se il CE da' score leggermente piu' alto a un chunk di codice core.
+# score.
 #
-# Valori tunati empiricamente 2026-04-20 sul set v4 doclabels relabel holdout.
-SOURCE_TIER_DOCS = 1.40         # docs/pages/*.md + skills/**/*.md
+# RANKING DELLA DOCUMENTAZIONE (richiesta utente 2026-06-01):
+# la `docs/pages/*.md` e' la documentazione UFFICIALE developer-facing e deve
+# emergere SEMPRE in cima quando matcha. Le `skills/**/*.md` e i playbook in
+# `scripts/*.md` sono invece guide AI-oriented (istruzioni per l'agente, NON per
+# lo sviluppatore): in passato condividevano lo stesso boost 1.40 delle docs e
+# finivano per scavalcarle nei risultati del chatbot. Vengono ora DEMOSSE sotto
+# la baseline cosi' che una pagina di documentazione vinca sempre su una skill a
+# parita' (o quasi) di rilevanza semantica.
+#
+# Ordine tier risultante:  docs  >  esempi WuicTest  >  codice core  >  guide AI
+#
+# Valori tunati empiricamente 2026-04-20 (holdout v4 doclabels relabel) e
+# rivisti 2026-06-01 per separare docs da skill.
+SOURCE_TIER_DOCS = 1.55         # docs/pages/*.md — documentazione ufficiale (massima priorita')
 SOURCE_TIER_WUICTEST = 1.30     # WuicTest/* (esempi ready-to-read)
-SOURCE_TIER_CORE = 1.00         # tutto il resto (baseline)
+SOURCE_TIER_CORE = 1.00         # codice core framework (baseline)
+SOURCE_TIER_SKILL = 0.80        # skills/**/*.md + scripts/*.md playbook — guide AI, NON developer docs
 
 
 def compute_source_priority_boost(rpath: str) -> float:
@@ -869,16 +917,86 @@ def compute_source_priority_boost(rpath: str) -> float:
     if not rpath:
         return SOURCE_TIER_CORE
     norm = rpath.replace("\\", "/").lower()
-    # Tier 1: documentazione + skill guides
+    # Tier 1: documentazione ufficiale developer-facing
     if "/docs/pages/" in norm and norm.endswith(".md"):
         return SOURCE_TIER_DOCS
-    if "/skills/" in norm and norm.endswith(".md"):
-        return SOURCE_TIER_DOCS
+    # Tier "AI guide": skill + playbook interni. Demosse SOTTO la baseline: sono
+    # istruzioni per l'agente, non risposte per lo sviluppatore. Controllato
+    # PRIMA di WuicTest/core perche' una skill puo' citare path WuicTest.
+    if norm.endswith(".md") and ("/skills/" in norm or "/scripts/" in norm):
+        return SOURCE_TIER_SKILL
     # Tier 2: esempi WuicTest
     if norm.startswith("wuictest/") or "/wuictest/" in norm:
         return SOURCE_TIER_WUICTEST
     # Tier 3: baseline
     return SOURCE_TIER_CORE
+
+
+# --- Boost titolo documentazione -------------------------------------------
+# Richiesta utente: le PAROLE presenti nella documentazione, SOPRATTUTTO nei
+# TITOLI ma anche nei contenuti, devono portare il link alla doc in cima ai
+# risultati. Questo boost moltiplicativo extra si applica SOLO alle pagine
+# `docs/pages/*.md` e premia il match dei token di query contro il titolo della
+# pagina, ricavato da: (a) slug del filename (es. `field-widget-lookup.md` ->
+# {field, widget, lookup}), (b) primo heading markdown nel testo del chunk.
+DOC_TITLE_BOOST_WEIGHT = 0.60   # boost massimo (titolo interamente coperto dalla query)
+
+# Stopword minime IT/EN: evitano che articoli/preposizioni nel titolo gonfino la
+# copertura (es. "come creare UNA dashboard" -> conta solo {creare, dashboard}).
+_DOC_TITLE_STOPWORDS = frozenset({
+    "il", "lo", "la", "i", "gli", "le", "un", "uno", "una", "di", "a", "da", "in",
+    "con", "su", "per", "tra", "fra", "e", "o", "ed", "od", "del", "della", "dello",
+    "dei", "degli", "delle", "al", "allo", "alla", "ai", "agli", "alle", "come",
+    "cosa", "che", "chi", "dove", "quando", "the", "an", "of", "to", "on", "for",
+    "and", "or", "with", "how", "what", "is", "are", "do", "does",
+})
+
+_DOC_TITLE_HEADING_RE = re.compile(r"^\s{0,3}#{1,3}\s+(.+?)\s*$", re.MULTILINE)
+
+# Prefissi locale nelle docs (en-US/, fr-FR/, ...): non fanno parte del titolo.
+_DOC_LOCALE_PREFIXES = ("en-us/", "fr-fr/", "es-es/", "de-de/", "it-it/")
+
+
+def _doc_title_tokens(rpath_norm: str, text: str) -> set:
+    """Token significativi del titolo di una pagina docs/pages:
+    slug del filename + primo heading markdown presente nel chunk."""
+    tokens: set = set()
+    fname = rpath_norm.rsplit("/", 1)[-1]
+    if fname.endswith(".md"):
+        fname = fname[:-3]
+    for part in re.split(r"[-_]", fname):
+        part = part.strip().lower()
+        if part and part not in _DOC_TITLE_STOPWORDS:
+            tokens.add(part)
+    m = _DOC_TITLE_HEADING_RE.search(text or "")
+    if m:
+        for t in tokenize(m.group(1)):
+            if t not in _DOC_TITLE_STOPWORDS:
+                tokens.add(t)
+    return tokens
+
+
+def compute_doc_title_boost(rpath: str, text: str, q_tokens_expanded: set,
+                            weight: float = DOC_TITLE_BOOST_WEIGHT) -> float:
+    """Moltiplicatore extra (>= 1.0) per pagine `docs/pages/*.md` il cui TITOLO
+    e' coperto dai token (espansi IT->EN) della query. Ritorna 1.0 per chunk non
+    documentali o senza match. La copertura e' il recall sui token-titolo: un
+    match completo del titolo (es. query "datasource" su `datasource.md`) da' il
+    boost pieno, un match parziale un boost proporzionale.
+    """
+    if not rpath or not q_tokens_expanded:
+        return 1.0
+    norm = rpath.replace("\\", "/").lower()
+    if "/docs/pages/" not in norm or not norm.endswith(".md"):
+        return 1.0
+    title_tokens = _doc_title_tokens(norm, text)
+    if not title_tokens:
+        return 1.0
+    matched = title_tokens & q_tokens_expanded
+    if not matched:
+        return 1.0
+    coverage = len(matched) / len(title_tokens)
+    return 1.0 + weight * coverage
 
 
 def rerank_light_weighted(

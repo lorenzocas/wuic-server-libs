@@ -165,21 +165,82 @@
     font-size: 0.95rem;
     line-height: 1.75;
 
-    :deep(h3) {
+    // NB: shadow-piercing via `::ng-deep` (NON `:deep()`): il contenuto markdown
+    // e' iniettato con [innerHTML] e non ha l'attributo di scoping del componente.
+    // In questo build Angular `:deep()` NON viene trasformato (resta letterale ->
+    // selettore invalido -> regola IGNORATA dal browser), mentre `::ng-deep`
+    // funziona (vedi `::ng-deep img` della gallery screenshot). Tutto lo styling
+    // markdown sotto DEVE usare `::ng-deep`.
+    ::ng-deep h3 {
       font-size: 1.1rem;
       font-weight: 700;
       color: #0f172a;
       margin: 24px 0 12px;
     }
 
-    :deep(p) { margin-bottom: 12px; }
+    ::ng-deep p { margin-bottom: 12px; }
 
-    :deep(ul), :deep(ol) {
+    // Liste markdown: card-style con bullet "sfera", stesso visual contract di
+    // WuicTest `framework-docs.component.scss` (`.section-html ul>li`), riportato
+    // qui con la palette chiara del sito pubblico per coerenza cross-renderer
+    // (gli stessi #e2e8f0 / #f8fafc / #eef2ff / #6366f1 gia' usati per le tabelle).
+    ::ng-deep ul {
+      list-style: none;
+      margin: 8px 0 16px;
+      padding: 0;
+    }
+
+    ::ng-deep ul > li {
+      position: relative;
+      margin: 8px 0;
+      padding: 8px 12px 8px 34px;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      background: #f8fafc;
+      line-height: 1.6;
+    }
+
+    ::ng-deep ul > li::before {
+      content: "";
+      position: absolute;
+      left: 12px;
+      top: 0.78em;
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 35% 35%, #ffffff 0 24%, #6366f1 25% 100%);
+      box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.32);
+    }
+
+    ::ng-deep ul > li:nth-child(even) {
+      background: #eef2ff;
+      border-color: #c7d2fe;
+    }
+
+    // Liste annidate: niente doppia card, tornano a bullet compatti
+    ::ng-deep ul ul {
+      margin: 6px 0 2px;
+    }
+    ::ng-deep ul ul > li {
+      border: none;
+      background: transparent;
+      padding: 2px 0 2px 18px;
+      margin: 2px 0;
+    }
+    ::ng-deep ul ul > li::before {
+      width: 6px;
+      height: 6px;
+      top: 0.62em;
+      left: 4px;
+    }
+
+    // Liste numerate restano standard (come nel renderer framework)
+    ::ng-deep ol {
       margin: 8px 0 16px 20px;
       li { margin-bottom: 4px; }
     }
 
-    :deep(code) {
+    ::ng-deep code {
       background: #f1f5f9;
       padding: 2px 6px;
       border-radius: 4px;
@@ -191,7 +252,7 @@
     // pill accentato, padding generoso, zebra striping, hover row. Stesso
     // visual contract usato in WuicTest framework-docs.component.scss per
     // mantenere coerenza tra i due renderer della stessa docs.
-    :deep(table) {
+    ::ng-deep table {
       width: 100%;
       border-collapse: collapse;
       margin: 16px 0 24px;
@@ -202,11 +263,11 @@
       box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
     }
 
-    :deep(thead) {
+    ::ng-deep thead {
       background: #eef2ff;
     }
 
-    :deep(thead th) {
+    ::ng-deep thead th {
       text-align: left;
       color: #1e293b;
       font-weight: 700;
@@ -219,7 +280,7 @@
       white-space: nowrap;
     }
 
-    :deep(tbody td) {
+    ::ng-deep tbody td {
       padding: 11px 16px;
       border: 1px solid #e2e8f0;
       vertical-align: top;
@@ -227,38 +288,38 @@
       color: #334155;
     }
 
-    :deep(tbody tr:nth-child(odd) td) {
+    ::ng-deep tbody tr:nth-child(odd) td {
       background: #f8fafc;
     }
-    :deep(tbody tr:nth-child(even) td) {
+    ::ng-deep tbody tr:nth-child(even) td {
       background: #ffffff;
     }
-    :deep(tbody tr:hover td) {
+    ::ng-deep tbody tr:hover td {
       background: #eef2ff;
     }
 
-    :deep(table code) {
+    ::ng-deep table code {
       font-size: 0.85em;
       padding: 1px 5px;
     }
 
     // Bold / italic dal nuovo inline markdown support del generator
-    :deep(strong) { font-weight: 600; color: #0f172a; }
-    :deep(em)     { font-style: italic; }
+    ::ng-deep strong { font-weight: 600; color: #0f172a; }
+    ::ng-deep em     { font-style: italic; }
 
     // Link demo "WuicTest-only" generato da `[label](demo:<slug>)` nel
     // markdown: punterebbe a http://localhost:4200/#/examples/<slug> e non ha
     // senso mostrarlo a un visitatore esterno della docs pubblicata.
     // Lo nascondiamo completamente — su WuicTest e' invece stilizzato come
     // pillola "▶ Apri demo" (vedi framework-docs.component.scss).
-    :deep(a.wuic-demo-link) { display: none !important; }
+    ::ng-deep a.wuic-demo-link { display: none !important; }
 
-    :deep(a) {
+    ::ng-deep a {
       color: #6366f1;
       text-decoration: underline;
     }
 
-    :deep(blockquote) {
+    ::ng-deep blockquote {
       border-left: 3px solid #6366f1;
       padding: 8px 16px;
       margin: 16px 0;
@@ -273,7 +334,7 @@
     // Senza scrollbar custom Chrome/Edge mostrano una thin overlay scrollbar
     // quasi invisibile su sfondo chiaro `#f8fafc` → utente non capisce di
     // poter scrollare. Forziamo scrollbar visibile su entrambi gli scroller.
-    :deep(pre) {
+    ::ng-deep pre {
       overflow-x: auto;
       background: #f1f5f9;
       padding: 12px 16px;
@@ -306,7 +367,7 @@
     // (es. col "Cosa | Verifica | Note" con sqlcmd inline). Il `display: block`
     // sovrascrive `display: table` cosi' `overflow-x` ha effetto (sui <table>
     // veri overflow sul container non scatta).
-    :deep(table) {
+    ::ng-deep table {
       display: block;
       overflow-x: auto;
       max-width: 100%;

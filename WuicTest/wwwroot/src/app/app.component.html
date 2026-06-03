@@ -76,7 +76,29 @@
     }
 </div>
 
-<p-toast position="bottom-right" [baseZIndex]="3000"></p-toast>
+<!-- Template custom: il `summary`/`detail` puo' contenere markup generato dal
+     framework (es. `Eliminato <span style='color:red'>Cities</span> con ID 1`).
+     Lo rendiamo via [innerHTML] passando per `toastHtml()` (sanitizer whitelist
+     in app.component.ts) invece dell'escape di default di p-toast. -->
+<p-toast position="bottom-right" [baseZIndex]="3000">
+  <ng-template let-message pTemplate="message">
+    <i class="p-toast-message-icon pi" aria-hidden="true"
+       [ngClass]="{
+         'pi-check': message.severity === 'success',
+         'pi-info-circle': message.severity === 'info' || !message.severity,
+         'pi-exclamation-triangle': message.severity === 'warn',
+         'pi-times-circle': message.severity === 'error'
+       }"></i>
+    <div class="p-toast-message-text">
+      @if (message.summary) {
+        <div class="p-toast-summary" [innerHTML]="toastHtml(message.summary)"></div>
+      }
+      @if (message.detail) {
+        <div class="p-toast-detail" [innerHTML]="toastHtml(message.detail)"></div>
+      }
+    </div>
+  </ng-template>
+</p-toast>
 
 <!-- Skill crash-reporting Commit 9b (Opzione B): dialog estratto in lib.
      Si auto-sottoscrive a GlobalHandler.messageNotification — niente

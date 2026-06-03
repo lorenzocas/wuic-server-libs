@@ -1,6 +1,6 @@
 import { AfterContentInit, ChangeDetectorRef, Component, forwardRef, Injector, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, NavigationEnd, Router, RouterOutlet } from '@angular/router';
-import { Meta, Title } from '@angular/platform-browser';
+import { Meta, Title, DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { filter } from 'rxjs/operators';
 import { utility } from './classes/utility';
 import { CommonModule, NgClass, NgComponentOutlet, NgFor, NgIf, NgStyle, DatePipe, DecimalPipe, AsyncPipe, CurrencyPipe, PercentPipe, JsonPipe, SlicePipe } from '@angular/common';
@@ -98,7 +98,8 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     private router: Router,
     private metaTagService: Meta,
     private titleService: Title,
-    private activatedRoute: ActivatedRoute
+    private activatedRoute: ActivatedRoute,
+    private sanitizer: DomSanitizer
   ) {
     WtoolboxService.messageNotificationService = messageService;
     WtoolboxService.confirmationService = confirmationService;
@@ -117,6 +118,111 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     // Custom functions
     WtoolboxService.myFunctions['utility'] = new utility();
     void this.configureWidgetRuntimeMetadata();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Toast HTML rendering (sanitizzato)
+  //
+  // I `detail`/`summary` delle notifiche toast possono contenere markup generato
+  // dal framework (es. `Eliminato <span style='color:red'>Cities</span> con ID 1`).
+  // PrimeNG `p-toast` di default ESCAPA il testo -> il markup compare letterale.
+  // Per renderizzarlo usiamo un template custom (`pTemplate="message"` in
+  // app.component.html) che bind-a `[innerHTML]="toastHtml(...)"`.
+  //
+  // SICUREZZA: NON usiamo `bypassSecurityTrustHtml` sul valore grezzo (sarebbe un
+  // XSS se un detail includesse input utente riflesso, es. messaggi d'errore
+  // server). Passiamo prima per `sanitizeToastHtml()` che applica una whitelist
+  // ristretta di tag e di proprieta' di stile inline sicure (color, ecc.),
+  // strippando script/handler/`javascript:`/CSS pericoloso. Solo dopo questa
+  // pulizia marchiamo il risultato come trusted.
+  // ---------------------------------------------------------------------------
+  private static readonly TOAST_ALLOWED_TAGS = new Set(
+    ['SPAN', 'B', 'STRONG', 'I', 'EM', 'U', 'SMALL', 'BR', 'CODE', 'A']
+  );
+  private static readonly TOAST_ALLOWED_STYLE_PROPS = new Set(
+    ['color', 'background-color', 'font-weight', 'font-style', 'text-decoration']
+  );
+
+  // Cache memoizzata input->SafeHtml. CRITICO per le performance: nel template
+  // `[innerHTML]="toastHtml(...)"` e' un method-call -> Angular lo rivaluta ad
+  // OGNI ciclo di ChangeDetection. Senza cache ogni chiamata creava un nuovo
+  // oggetto SafeHtml (referenza diversa => Angular ri-applica innerHTML) + un
+  // nuovo DOMParser (parsing/scrub ricorsivo). Amplificato dai CD frequenti
+  // dell'animazione di apertura del toast -> la pagina si freezava. Ritornando
+  // la STESSA referenza per lo stesso input, il binding e' stabile e il parsing
+  // avviene una sola volta per messaggio.
+  private readonly toastHtmlCache = new Map<string, SafeHtml>();
+
+  toastHtml(value: string | undefined | null): SafeHtml {
+    const key = value || '';
+    let cached = this.toastHtmlCache.get(key);
+    if (!cached) {
+      // Bound della cache: evita crescita illimitata su sessioni lunghe con
+      // tanti messaggi distinti.
+      if (this.toastHtmlCache.size > 200) this.toastHtmlCache.clear();
+      cached = this.sanitizer.bypassSecurityTrustHtml(this.sanitizeToastHtml(key));
+      this.toastHtmlCache.set(key, cached);
+    }
+    return cached;
+  }
+
+  private sanitizeToastHtml(input: string): string {
+    if (!input || typeof document === 'undefined') return input || '';
+    // Niente markup -> ritorna com'e' (verra' reso testo, e.g. messaggi semplici).
+    if (input.indexOf('<') === -1) return input;
+    const doc = new DOMParser().parseFromString(`<div>${input}</div>`, 'text/html');
+    const root = doc.body.firstElementChild as HTMLElement | null;
+    if (!root) return input;
+    this.scrubToastNode(root);
+    return root.innerHTML;
+  }
+
+  private scrubToastNode(node: Element): void {
+    for (const child of Array.from(node.children)) {
+      if (!AppComponent.TOAST_ALLOWED_TAGS.has(child.tagName)) {
+        // Tag non in whitelist: lo sostituisco col suo testo (niente markup).
+        child.replaceWith(child.ownerDocument.createTextNode(child.textContent || ''));
+        continue;
+      }
+      for (const attr of Array.from(child.attributes)) {
+        const name = attr.name.toLowerCase();
+        if (name === 'style') {
+          const safe = this.sanitizeStyleAttr(attr.value);
+          if (safe) child.setAttribute('style', safe);
+          else child.removeAttribute('style');
+        } else if (name === 'href' && child.tagName === 'A') {
+          const href = (attr.value || '').trim();
+          // Solo http(s)/relative/anchor: blocca `javascript:` ecc.
+          if (/^(https?:\/\/|\/|#)/i.test(href)) {
+            child.setAttribute('rel', 'noopener noreferrer');
+            child.setAttribute('target', '_blank');
+          } else {
+            child.removeAttribute('href');
+          }
+        } else {
+          // Tutto il resto (on*, class, id, src, data-*, ...) via.
+          child.removeAttribute(attr.name);
+        }
+      }
+      this.scrubToastNode(child);
+    }
+  }
+
+  private sanitizeStyleAttr(style: string): string {
+    return (style || '')
+      .split(';')
+      .map(s => s.trim())
+      .filter(Boolean)
+      .filter(decl => {
+        const idx = decl.indexOf(':');
+        if (idx < 0) return false;
+        const prop = decl.slice(0, idx).trim().toLowerCase();
+        const val = decl.slice(idx + 1).trim().toLowerCase();
+        if (!AppComponent.TOAST_ALLOWED_STYLE_PROPS.has(prop)) return false;
+        if (/url\(|expression|javascript:|@import/.test(val)) return false;
+        return true;
+      })
+      .join('; ');
   }
 
   /**

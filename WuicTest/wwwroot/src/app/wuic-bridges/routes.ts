@@ -109,7 +109,7 @@ export const routes: Routes = [
   },
   {
     path: 'rag-chatbot',
-    loadComponent: () => import('wuic-framework-lib-src/component/rag-chatbot/rag-chatbot.component').then((m) => m.WuicRagChatbotComponent),
+    loadComponent: () => import('../component/rag-chatbot-page/rag-chatbot-page.component').then((m) => m.RagChatbotPageComponent),
     canMatch: [menuRouteAccessCanMatchGuard, roleRouteCanMatchGuard],
     canActivate: [menuRouteAccessCanActivateGuard, roleRouteCanActivateGuard],
     data: { breadcrumbs: 'rag-chatbot', description: 'RAG Chatbot WUIC: assistente AI con retrieval-augmented generation su documentazione framework e metadata del progetto.' }

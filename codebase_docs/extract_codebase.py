@@ -16,12 +16,28 @@ EXCLUDE_DIRS = {"bin", "obj", "node_modules", "wwwroot_js", ".angular", ".git"}
 EXCLUDE_FILE_NAME_PATTERNS = (
     "package-lock.json",
     "screenshots.manifest.json",
+    # --- Segreti delle app (step 3): mai indicizzare connection string, chiavi,
+    # license payload. La gran parte sono .json/.config/.env/.pem -> gia' fuori da
+    # FILE_EXTENSIONS, ma li elenchiamo esplicitamente come difesa (intent chiaro
+    # + robustezza se in futuro si allarga FILE_EXTENSIONS). Match sul nome file.
+    "appsettings.json",
+    "appsettings.development.json",
+    "appsettings.production.json",
+    "appsettings.test.json",
+    "appsettings.staging.json",
+    "secrets.json",
+    "launchsettings.json",
     # External deps type declarations (NON API WUIC): monaco-editor e' il typing
     # di Monaco, vitest-compat e' shim di test runner, monaco-shim e' wrapper
     # interno per Monaco. Nessuno di questi e' superficie pubblica del framework.
     "monaco-editor.d.ts",
     "monaco-shim.d.ts",
     "vitest-compat.d.ts",
+    # Bundle single-file dell'API della lib, copiato IDENTICO in ogni app
+    # (<app>/wwwroot/assets/declarations/). 691 chunk x N app = puro rumore
+    # duplicato; l'API e' gia' coperta dal sorgente .ts della lib. Escludere il
+    # file per NOME, in qualunque path si trovi (richiesta utente 2026-06-01).
+    "wuic-framework-lib.d.ts",
 )
 EXCLUDE_FILE_NAME_SUFFIXES = (
     ".generated.cs",
@@ -50,6 +66,18 @@ EXCLUDE_PATH_FRAGMENTS = (
     "/.angular/",
     "/artifacts/",   # build output (release zip staging, lib-dist, ecc.) - rumore puro
     "/_deprecated/", # archivio dismesso (es. scripts/docs/_deprecated/) - difensivo per futuri rebuild
+    "/secrets/",     # step 3: chiavi/credenziali (es. license private key, app secrets) - MAI indicizzare
+    # Bundle .d.ts single-file in <app>/wwwroot/assets/declarations/: dump
+    # duplicato dell'API gia' coperta dal sorgente .ts della lib. Producono chunk
+    # rumorosi (stesso symbol N volte dallo stesso file). Escludere (richiesta utente).
+    "/assets/declarations/",
+    # Le app (WuicTest + free app) hanno `wwwroot/lib-src` = SYMLINK al sorgente del
+    # framework (wuic-framework-lib/src/lib). rglob lo segue -> il sorgente framework
+    # verrebbe re-indicizzato sotto il path dell'app e (mis)classificato `public` =
+    # LEAK + duplicato di cio' che e' gia' indicizzato sotto KonvergenceCore.
+    # Escluderlo: il vero framework lib NON contiene "/lib-src/" nel path.
+    "/lib-src/",
+    "/e2e-artifacts/",  # artefatti di test e2e (selector-compat, dump) - rumore
     # NB: /assets/ NON e' escluso. /assets/declarations/*.d.ts contiene l'API
     # pubblica del framework bundled in single-file per IDE autocompletion,
     # utile per query di end-dev consumatori. I file non-.d.ts sotto /assets/
@@ -79,7 +107,14 @@ INCLUDE_DIRS = [
     # Tier-2 di priorita' nel re-ranking: esempi pratici copy-paste-friendly per
     # dev consumatori del framework.
     "WuicTest",
+    # Free app reali: esempi end-to-end di applicazioni costruite sul framework
+    # (controller custom, dashboard, archetypes, workflow, scheduling). Servono al
+    # chatbot per dare snippet contestuali a scenari di app vera ("come faccio X
+    # in un'app reale"). Classificate 'public' in tutti i profili (sono esempi
+    # aperti, NON sorgente proprietario del framework) — vedi release_redaction.py.
     "CrmApp",
+    "FatturazioneElettronica",
+    "FlottaMezzi",
 ]
 DB_FOCUS_TABLES = {
     "_metadati__tabelle",
@@ -193,6 +228,29 @@ def find_typescript_symbols(lines: List[str]) -> List[tuple]:
     return symbols
 
 
+def _doc_block_start(lines: List[str], decl_line: int) -> int:
+    """Dato il numero di riga (1-based) della DICHIARAZIONE di un simbolo, risale
+    sul blocco contiguo di doc-comment/attributi che lo precede e ritorna la riga
+    di inizio reale. Cosi' il chunk include il `/// <summary>` (C#) / JSDoc (TS) e
+    gli attributi (`[HttpPost]`), che sono documentazione del contratto API.
+    Si ferma alla prima riga di CODICE (es. la `}` del membro precedente)."""
+    new_start = decl_line
+    j = decl_line - 2  # indice 0-based della riga sopra la dichiarazione
+    while j >= 0:
+        s = lines[j].strip()
+        is_comment_or_attr = (
+            s.startswith("///") or s.startswith("//") or s.startswith("*")
+            or s.startswith("/*") or s.endswith("*/") or s.startswith("[")
+            or s.startswith("@")
+        )
+        if is_comment_or_attr:
+            new_start = j + 1  # 1-based
+            j -= 1
+        else:
+            break
+    return new_start
+
+
 def symbol_ranges(lines: List[str], language: str) -> List[tuple]:
     if language == "csharp":
         symbols = find_csharp_symbols(lines)
@@ -204,9 +262,12 @@ def symbol_ranges(lines: List[str], language: str) -> List[tuple]:
     if not symbols:
         return []
 
+    # Estende l'inizio di ogni simbolo a ritroso per includere il doc-comment.
+    extended = [(t, n, _doc_block_start(lines, s)) for (t, n, s) in symbols]
+
     ranges = []
-    for i, (sym_type, sym_name, start_line) in enumerate(symbols):
-        end_line = symbols[i + 1][2] - 1 if i + 1 < len(symbols) else len(lines)
+    for i, (sym_type, sym_name, start_line) in enumerate(extended):
+        end_line = extended[i + 1][2] - 1 if i + 1 < len(extended) else len(lines)
         if end_line < start_line:
             end_line = start_line
         ranges.append((sym_type, sym_name, start_line, end_line))

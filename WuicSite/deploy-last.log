@@ -1,0 +1,169 @@
+
+--- [15:29:06] 1/3 Build Angular
+    [15:29:06] prebuild: regenerating sitemap.xml + blog-manifest.json
+[sitemap] wrote C:\src\Wuic\WuicSite\public\sitemap.xml (23 URLs, lastmod range 2026-04-26 .. 2026-05-19)
+[blog-manifest] wrote C:\src\Wuic\WuicSite\public\blog-manifest.json (10 posts)
+    [15:29:06] exec: C:\src\Wuic\WuicSite\node_modules\.bin\ng.cmd build --configuration=production
+[33m>[39m Building...
+[32m√[39m Building...
+[1mInitial chunk files[22m[2m | [22m[1mNames[22m          [2m | [22m [1mRaw size[22m[2m | [22m[1mEstimated transfer size[22m
+[32mchunk-TTNYSLJ2.js[39m  [2m | [22m[2m-[22m              [2m | [22m[36m245.62 kB[39m[2m | [22m               [36m70.45 kB[39m
+[32mmain-2CWQJQF4.js[39m   [2m | [22m[2mmain[22m           [2m | [22m[36m138.00 kB[39m[2m | [22m               [36m19.13 kB[39m
+[32mchunk-SZWAJK3P.js[39m  [2m | [22m[2m-[22m              [2m | [22m [36m78.42 kB[39m[2m | [22m               [36m19.45 kB[39m
+[32mchunk-AKZVWF6E.js[39m  [2m | [22m[2m-[22m              [2m | [22m [36m62.36 kB[39m[2m | [22m               [36m17.20 kB[39m
+[32mchunk-6L3UHPZP.js[39m  [2m | [22m[2m-[22m              [2m | [22m [36m55.98 kB[39m[2m | [22m               [36m10.28 kB[39m
+[32mchunk-SX4MRVKD.js[39m  [2m | [22m[2m-[22m              [2m | [22m [36m39.61 kB[39m[2m | [22m               [36m11.43 kB[39m
+[32mstyles-JPN7PN4H.css[39m[2m | [22m[2mstyles[22m         [2m | [22m [36m15.62 kB[39m[2m | [22m                [36m3.15 kB[39m
+[32mchunk-BQE2LF5T.js[39m  [2m | [22m[2m-[22m              [2m | [22m  [36m1.33 kB[39m[2m | [22m              [36m542 bytes[39m
+[32mchunk-C6Q5SG76.js[39m  [2m | [22m[2m-[22m              [2m | [22m  [36m1.07 kB[39m[2m | [22m              [36m468 bytes[39m
+
+[1m [22m                  [2m | [22m[1mInitial total[22m  [2m | [22m[1m[93m638.02 kB[39m[22m[2m | [22m              [1m152.12 kB[22m
+
+[1mLazy chunk files[22m   [2m | [22m[1mNames[22m          [2m | [22m [1mRaw size[22m[2m | [22m[1mEstimated transfer size[22m
+[32mchunk-QUXSFIXK.js[39m  [2m | [22m[2mblog-post[22m      [2m | [22m  [36m1.13 MB[39m[2m | [22m              [36m258.15 kB[39m
+[32mchunk-QXGQNQFO.js[39m  [2m | [22m[2m-[22m              [2m | [22m[36m326.91 kB[39m[2m | [22m               [36m55.78 kB[39m
+[32mchunk-HLSTAT34.js[39m  [2m | [22m[2m-[22m              [2m | [22m[36m122.08 kB[39m[2m | [22m               [36m25.14 kB[39m
+[32mchunk-LX75JE44.js[39m  [2m | [22m[2mbrowser[22m        [2m | [22m [36m68.16 kB[39m[2m | [22m               [36m17.94 kB[39m
+[32mchunk-CSJSZEYB.js[39m  [2m | [22m[2m-[22m              [2m | [22m [36m34.27 kB[39m[2m | [22m                [36m8.58 kB[39m
+[32mchunk-U5XKJR3K.js[39m  [2m | [22m[2m-[22m              [2m | [22m [36m31.42 kB[39m[2m | [22m                [36m8.09 kB[39m
+[32mchunk-D2KPZ6NO.js[39m  [2m | [22m[2m-[22m              [2m | [22m [36m28.20 kB[39m[2m | [22m                [36m6.53 kB[39m
+[32mchunk-P2GTX3C5.js[39m  [2m | [22m[2mpricing[22m        [2m | [22m [36m24.11 kB[39m[2m | [22m                [36m5.45 kB[39m
+[32mchunk-CELHCYLR.js[39m  [2m | [22m[2mdocs[22m           [2m | [22m [36m22.20 kB[39m[2m | [22m                [36m5.47 kB[39m
+[32mchunk-ECWKPNLG.js[39m  [2m | [22m[2mpurchase-dialog[22m[2m | [22m [36m19.85 kB[39m[2m | [22m                [36m4.97 kB[39m
+[32mchunk-KOJUY65S.js[39m  [2m | [22m[2mcomparison[22m     [2m | [22m [36m19.75 kB[39m[2m | [22m                [36m4.88 kB[39m
+[32mchunk-NEGYPVXJ.js[39m  [2m | [22m[2mdownloads[22m      [2m | [22m [36m18.73 kB[39m[2m | [22m                [36m4.48 kB[39m
+[32mchunk-6T5MW7CI.js[39m  [2m | [22m[2m-[22m              [2m | [22m [36m17.03 kB[39m[2m | [22m                [36m3.73 kB[39m
+[32mchunk-TI5QSVLR.js[39m  [2m | [22m[2m-[22m              [2m | [22m [36m16.74 kB[39m[2m | [22m                [36m3.39 kB[39m
+[32mchunk-OLSFMKJN.js[39m  [2m | [22m[2m-[22m              [2m | [22m [36m14.40 kB[39m[2m | [22m                [36m3.61 kB[39m
+[2m...and 21 more lazy chunks files. Use "--verbose" to show all the files.[22m
+
+[35mPrerendered 25 static routes.[39m
+Application bundle generation complete. [12.282 seconds] - 2026-06-02T13:29:20.203Z
+
+▲ [WARNING] NG8113: RouterLink is not used within the template of Cookies [plugin angular-compiler]
+
+    src/app/pages/cookies/cookies.ts:9:12:
+      9 │   imports: [RouterLink, TranslatePipe],
+        ╵             ~~~~~~~~~~
+
+
+▲ [WARNING] NG8107: NG8107: The left side of this optional chain operation does not include 'null' or 'undefined' in its type, therefore the '?.' operator can be replaced with the '.' operator. Find more at https://v21.angular.dev/extended-diagnostics/NG8107 [plugin angular-compiler]
+
+    src/app/pages/docs/docs.html:105:30:
+      105 │             @if (page.images?.length) {
+          ╵                               ~~~~~~
+
+  Warning occurs in the template of component Docs.
+
+    src/app/pages/docs/docs.ts:25:15:
+      25 │   templateUrl: './docs.html',
+         ╵                ~~~~~~~~~~~~~
+
+
+▲ [WARNING] NG8113: RouterLink is not used within the template of Docs [plugin angular-compiler]
+
+    src/app/pages/docs/docs.ts:24:103:
+      24 │ ...ttonModule, SelectModule, ImageModule, RouterLink, TranslatePipe],
+         ╵                                           ~~~~~~~~~~
+
+
+▲ [WARNING] NG8113: RouterLink is not used within the template of Legal [plugin angular-compiler]
+
+    src/app/pages/legal/legal.ts:13:12:
+      13 │   imports: [RouterLink, TranslatePipe],
+         ╵             ~~~~~~~~~~
+
+
+▲ [WARNING] NG8113: RouterLink is not used within the template of PurchaseDialog [plugin angular-compiler]
+
+    src/app/pages/pricing/purchase-dialog.ts:17:98:
+      17 │ ...extModule, MessageModule, DecimalPipe, RouterLink, TranslatePipe],
+         ╵                                           ~~~~~~~~~~
+
+
+▲ [WARNING] NG8113: RouterLink is not used within the template of Privacy [plugin angular-compiler]
+
+    src/app/pages/privacy/privacy.ts:8:12:
+      8 │   imports: [RouterLink, TranslatePipe],
+        ╵             ~~~~~~~~~~
+
+
+▲ [WARNING] NG8113: RouterLink is not used within the template of Terms [plugin angular-compiler]
+
+    src/app/pages/terms/terms.ts:8:12:
+      8 │   imports: [RouterLink, TranslatePipe],
+        ╵             ~~~~~~~~~~
+
+
+▲ [WARNING] bundle initial exceeded maximum budget. Budget 500.00 kB was not met by 138.02 kB with a total of 638.02 kB.
+
+
+▲ [WARNING] src/app/pages/docs/docs.scss exceeded maximum budget. Budget 8.00 kB was not met by 539 bytes with a total of 8.54 kB.
+
+
+Output location: C:\src\Wuic\WuicSite\dist\WuicSite
+
+    [15:29:20] ng build ok
+
+--- [15:29:20] 2/3 Upload sito promozionale -> wuic-framework.com
+  scp C:\src\Wuic\WuicSite\dist\WuicSite\browser/* -> Administrator@wuic-framework.com:C:\inetpub\wwwroot\WuicSite
+  [maint] Activating maintenance mode
+    production web.config aggiornato dal repo
+    maintenance web.config active
+    maintenance web.config active
+  [ok] Maintenance mode attivo -> visitatori vedono maintenance.html
+    [15:29:28] rimosso da bundle prima dell'upload (server-managed): downloads/releases.json
+  Modalita' SCP
+  [ok] Sito caricato
+  [api] Build + deploy WuicSiteApi (.NET 10)
+    [15:31:03] dotnet publish -c Release -o C:\src\Wuic\WuicSite\dist\api-publish
+  Individuazione dei progetti da ripristinare...
+  Tutti i progetti sono aggiornati per il ripristino.
+  WuicSiteApi -> C:\src\Wuic\WuicSite\api\bin\Release\net10.0\WuicSiteApi.dll
+  WuicSiteApi -> C:\src\Wuic\WuicSite\dist\api-publish\
+    [api] app_offline.htm scritto, attendo 2s shutdown worker
+    [api] app_offline.htm scritto, attendo 2s shutdown worker
+    [15:31:38] [api] modalita' SCP -> Administrator@wuic-framework.com:C:\inetpub\wwwroot\WuicSite\api
+    [api] app_offline.htm rimosso, worker in restart
+    [api] app_offline.htm rimosso, worker in restart
+  [ok] API deployata
+  [maint] Deactivating maintenance mode
+    attempt 1/3: restoring production web.config
+    production web.config confirmed at attempt 1
+    attempt 1/3: restoring production web.config
+    production web.config confirmed at attempt 1
+  [ok] Maintenance mode disattivato (verificato via content check)
+  Health check https://wuic-framework.com/
+  [ok] Health check HTTP 200 (https://wuic-framework.com/)
+  Health check https://wuic-framework.com/api/health
+  [ok] API health HTTP 200 (https://wuic-framework.com/api/health)
+
+--- [15:31:47] 3/3 Upload pacchetti ZIP [SKIP]
+
+--- [15:31:47] 3b/5 Upload free-app ZIP (CrmApp / FE / FlottaMezzi)
+  [skip] cartella sorgente non trovata: C:\src\Wuic\WuicSite\..\KonvergenceCore\artifacts\release-freapp
+
+--- [15:31:47] 4/4 Upload tarball Linux (runtime + src, hidden assets)
+  runtime tarball: wuic-framework-v1.2.1-linux-x64.tar.gz (740.2 MB, version 1.2.1)
+  src tarball:     wuic-framework-v1.2.1-linux-x64-src.tar.gz (110.6 MB, version 1.2.1)
+    [15:31:47] modalita' SCP
+    [15:31:48] scp -> C:\inetpub\wwwroot\WuicSite\releases\v1.2.1/wuic-framework-v1.2.1-linux-x64.tar.gz
+    [15:32:20] scp -> C:\inetpub\wwwroot\WuicSite\releases\latest/wuic-framework-linux-x64.tar.gz
+    [15:32:48] scp -> C:\inetpub\wwwroot\WuicSite\releases\v1.2.1/wuic-framework-v1.2.1-linux-x64-src.tar.gz
+    [15:32:54] scp -> C:\inetpub\wwwroot\WuicSite\releases\latest/wuic-framework-linux-x64-src.tar.gz
+  [ok] Tarball pubblicati come asset NASCOSTI su wuic-framework.com
+         /releases/v1.2.1/wuic-framework-v1.2.1-linux-x64.tar.gz
+         /releases/latest/wuic-framework-linux-x64.tar.gz
+         /releases/v1.2.1/wuic-framework-v1.2.1-linux-x64-src.tar.gz
+         /releases/latest/wuic-framework-linux-x64-src.tar.gz
+       Consumati da: https://wuic-framework.com/install.sh
+
+--- [15:33:01] 5/5 Upload install.sh (linux one-liner)
+    [15:33:01] sorgente: C:\src\Wuic\WuicSite\..\KonvergenceCore\scripts\install.sh (19.6 KB)
+    [15:33:01] mirror locale: public/install.sh
+    [15:33:02] install.sh -> C:\inetpub\wwwroot\WuicSite\install.sh
+  [ok] install.sh pubblicato su https://wuic-framework.com/install.sh
+
+============================================
+  Deploy completato su wuic-framework.com
+============================================
