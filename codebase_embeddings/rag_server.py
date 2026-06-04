@@ -192,6 +192,46 @@ def _unwrap_callback_body(callback_js: str) -> str:
     return body
 
 
+def _strip_xml_tag_residue(value: str) -> str:
+    """Sanitizza i campi string del tool_input rimuovendo residui di markup
+    XML che Claude (raramente) emette dentro un value scalare.
+
+    Sintomo reale osservato: rationale = "Aggiunge una grid ... per
+    visualizzarli in tabella.</anionale> </invoke>"
+      - `</anionale>` = `</rationale>` storpiato (manca 'r')
+      - `</invoke>`  = chiusura tag tool_use Anthropic-style
+
+    Questi tag fanno parte del MARKUP del tool_use (che e' parsato dal SDK
+    e mai esposto alla logica utente), ma il modello a volte li "leaka"
+    DENTRO il valore stringa. Probabile causa: training data dove tool
+    descriptions / examples mostravano l'XML inline.
+
+    Strategy: rimuovere TUTTI i tag XML-like al di fuori di marker di
+    codice. Conservativo: per i campi che potrebbero LEGITTIMAMENTE
+    contenere HTML/markup (es. `template_html`, `callback_js`,
+    `condition_js`) NON applichiamo questa sanitizzazione - il chiamante
+    deve passare solo i campi natural-language (rationale, label,
+    description).
+    """
+    if not isinstance(value, str) or not value:
+        return value
+    import re
+    # Rimuovi tag XML-like (es. </rationale>, </anionale>, </invoke>,
+    # <thinking>, <answer>, ecc.) sia opening che closing, sia
+    # self-closing. Pattern conservativo: matcha solo tag con nome che
+    # sembra un identifier (non interferisce con < e > usati in confronti
+    # o operatori che potrebbero comparire in testo tecnico, perche'
+    # quelli non hanno la forma `<word...>`).
+    cleaned = re.sub(r"</?[A-Za-z_][A-Za-z0-9_:.-]*(\s+[^>]*)?/?>", "", value)
+    return cleaned.strip()
+
+
+# Campi natural-language che vanno sanitizzati prima di serializzare
+# `proposed_action_json`. NON includere `callback_js`, `condition_js`,
+# `template_html` (markup/code legittimo).
+_SANITIZE_TEXT_FIELDS = ("rationale", "label", "description")
+
+
 def _load_state() -> None:
     """Carica indice + cache + LoRA. Idempotente: chiamabile da boot e da /admin/reload."""
     LOG.info("loading index from %s", INDEX_DIR.resolve())
@@ -723,9 +763,22 @@ def chat_endpoint(req: ChatIn) -> ChatOut:
             system += (
                 "\n\nCONTESTO PAGINA UTENTE (route corrente + metadata colonne):\n"
                 f"{rc}\n"
-                "Quando generi snippet di callback usa i NOMI REALI delle colonne sopra "
-                "(es. `record.<nome>.value` / `record.<nome>.next(...)`). Non inventare "
-                "nomi placeholder se nelle colonne sopra esiste un match."
+                "REGOLE per gli snippet di callback:\n"
+                "1. Usa SEMPRE i NOMI REALI delle colonne sopra (es. `record.<nome>.value` "
+                "/ `record.<nome>.next(...)`). Non inventare nomi placeholder se nelle "
+                "colonne sopra esiste un match.\n"
+                "2. Per i tool `propose_*` (toolbar_action, row_action, table_style, "
+                "column_style, display_formula, form_title_formula, default_value_callback, "
+                "custom_validation, selection_changed, lifecycle_callback): se l'utente NON "
+                "menziona esplicitamente una route diversa, il parametro `route` DEVE essere "
+                "quello sopra (la pagina corrente). Non chiedere conferma, non chiedere "
+                "all'utente quale route usare se e' gia' implicito dal contesto.\n"
+                "3. Per i tool che richiedono `column_name` (display_formula, "
+                "default_value_callback, custom_validation, selection_changed, column_style): "
+                "se l'utente descrive la colonna semanticamente (es. 'la colonna popolazione', "
+                "'il campo nome citta'), scegli il `mc_nome_colonna` REALE corrispondente "
+                "dalle colonne sopra. Se non c'e' un match chiaro, allora (e solo allora) "
+                "chiedi all'utente di specificare quale colonna."
             )
 
     # Inject context_summary (riassunto turn vecchi) + memory_facts (fatti pinnati
@@ -808,9 +861,645 @@ def chat_endpoint(req: ChatIn) -> ChatOut:
                     "rationale": {
                         "type": "string",
                         "description": "1-2 frasi in italiano che spiegano cosa fa l'azione (mostrata all'utente come summary)."
+                    },
+                    "requires_multi_selection": {
+                        "type": "boolean",
+                        "description": (
+                            "TRUE quando l'azione opera sulla SELEZIONE corrente di righe — "
+                            "cioe' il callback_js legge `datasource.getSelectedRows()` o equivalente, "
+                            "tipicamente per bulk delete / bulk archive / bulk export / bulk update. "
+                            "FALSE per azioni che non leggono la selezione (es. apri dialog di import, "
+                            "naviga a un'altra route, genera report di tutta la tabella). "
+                            "Quando TRUE il backend abilita automaticamente `md_multiple_selection` "
+                            "sulla route se non gia' attivo (le checkbox di selezione riga compaiono "
+                            "in UI). Omettere significa FALSE."
+                        )
                     }
                 },
                 "required": ["route", "label", "callback_js", "rationale"]
+            }
+        },
+        # ---------------- Row action ----------------
+        {
+            "name": "propose_row_action",
+            "description": (
+                "Propone una row-level action (un button nel menu dropdown di riga) sulla "
+                "route corrente. Da chiamare quando l'utente chiede 'aggiungi un'azione su "
+                "ogni riga' o equivalenti (es. 'tasto Genera PDF per ogni record'). Il "
+                "framework la persiste come colonna nuova in `_metadati__colonne` di tipo "
+                "button (`mc_voa_class=6`). La callback riceve la signature "
+                "`(datasource, record, event, field, wtoolbox)` - NB la differenza con "
+                "toolbar action: qui c'e' `record` (la riga corrente) al posto di `metaInfo`. "
+                "NON chiamarla se l'azione lavora sulla SELEZIONE multipla (usa propose_toolbar_action)."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "route": {"type": "string", "description": "Route name dove aggiungere la row action."},
+                    "label": {"type": "string", "description": "Etichetta del button (es. 'Genera PDF')."},
+                    "icon": {"type": "string", "description": "Classe PrimeIcons (default 'pi pi-bolt')."},
+                    "callback_js": {
+                        "type": "string",
+                        "description": (
+                            "SOLO BODY del callback (NO function declaration). Scope: "
+                            "`datasource`, `record`, `event`, `field`, `wtoolbox`. "
+                            "`record` e' un oggetto `{colName: {value: ..., display: ...}}` "
+                            "della riga; usa `record.id?.value` per l'id. Esempio:\n"
+                            "  const id = record.id?.value ?? record.id;\n"
+                            "  const resp = await fetch(`/api/cities/pdf/${id}`, {credentials:'include'});\n"
+                            "  wtoolbox.messageNotificationService.add({severity: resp.ok?'success':'error', summary: resp.ok?'PDF generato':'Errore'});"
+                        )
+                    },
+                    "column_name": {
+                        "type": "string",
+                        "description": "Opzionale. Nome interno della colonna metadata (snake_case). Se omesso, derivato dal label."
+                    },
+                    "confirm_message": {
+                        "type": "string",
+                        "description": "Opzionale. Se valorizzato, prima di eseguire il callback il framework mostra confirm dialog con questo messaggio."
+                    },
+                    "rationale": {"type": "string", "description": "1-2 frasi in italiano che spiegano cosa fa l'azione."}
+                },
+                "required": ["route", "label", "callback_js", "rationale"]
+            }
+        },
+        # ---------------- Table style ----------------
+        {
+            "name": "propose_table_style",
+            "description": (
+                "Propone una regola di stile condizionale sulle righe della list-grid. "
+                "Da chiamare quando l'utente chiede 'colora di rosso le righe con X', "
+                "'evidenzia i record scaduti', 'metti grassetto se Y' o simili. Il "
+                "framework la persiste in `_metadati__u_i__stili__tabelle`: "
+                "`must_attribute_name` = classe CSS da applicare alla `<tr>` quando la "
+                "condizione e' vera, `must_attribute_value` = callback JS che ritorna "
+                "true/false leggendo i campi della riga. Le classi CSS predefinite "
+                "(`row-danger`, `row-warning`, `row-info`, `row-success`) sono gia' "
+                "stilizzate dal framework. Per classi custom va aggiunto CSS lato app."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "route": {"type": "string", "description": "Route name della list-grid."},
+                    "css_class": {
+                        "type": "string",
+                        "description": "Classe CSS applicata alla riga quando condition_js ritorna true. Preferire `row-danger`/`row-warning`/`row-info`/`row-success` se possibile."
+                    },
+                    "condition_js": {
+                        "type": "string",
+                        "description": (
+                            "Callback JS che ritorna `true`/`false`. Scope: la variabile `record` "
+                            "(stesso shape della row_action). Esempio - 'evidenzia righe con popolazione < 1000':\n"
+                            "  return Number(record.population?.value ?? 0) < 1000;\n"
+                            "Body-only, sara' wrappato dal framework."
+                        )
+                    },
+                    "rationale": {"type": "string", "description": "1-2 frasi in italiano che spiegano cosa fa la regola."}
+                },
+                "required": ["route", "css_class", "condition_js", "rationale"]
+            }
+        },
+        # ---------------- Display formula (column) ----------------
+        # NB: il framework NON supporta JS body-only sul render delle celle.
+        # Il pattern reale e' un TEMPLATE ANGULAR MARKUP (HTML + interpolation
+        # + pipe) scritto nel campo `_metadati__colonne.mc_ui_grid_column_data_template`,
+        # processato da `list-grid.component.ts:buildGridColumnTemplateSwitchCases`.
+        # I campi `mccomputedclientformula` / `mc_display_string_in_view` erano
+        # storicamente documentati ma sono dead/wrong (verificato 2026-06-03).
+        {
+            "name": "propose_display_formula",
+            "description": (
+                "Propone un TEMPLATE ANGULAR MARKUP che produce il valore MOSTRATO in "
+                "cella per una colonna esistente (NON il valore in DB - solo presentazione). "
+                "Tipici casi: 'concatena nome + cognome', 'mostra popolazione in formato "
+                "12.5k', 'formatta data come dd/MM/yyyy', 'badge testuale per uno stato', "
+                "'icona condizionale'. Campo SQL: `_metadati__colonne.mc_ui_grid_column_data_template`. "
+                "NB: il framework NON supporta JS body-only sulla cella, va usata la "
+                "sintassi Angular template (markup HTML + interpolation `{{}}` + pipe "
+                "standard come number/date/currency + ternario inline)."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "route": {"type": "string", "description": "Route name della tabella."},
+                    "column_name": {"type": "string", "description": "Nome SQL reale della colonna (`_metadati__colonne.mc_nome_colonna`)."},
+                    "template_html": {
+                        "type": "string",
+                        "description": (
+                            "Template Angular markup. DEVE contenere `<` o `{{`. Scope: "
+                            "`rowData` (oggetto riga con accesso diretto ai campi - es. "
+                            "`rowData.first_name`, NO BehaviorSubject). Sintassi supportata:\n"
+                            " 1. Interpolation: `{{ rowData.col }}` o `{{ rowData.a + ' ' + rowData.b }}`\n"
+                            " 2. Pipe standard Angular: `number:'1.1-1'`, `date:'dd/MM/yyyy'`, `currency:'EUR'`, `percent:'1.0-2'`, `uppercase`, `lowercase`, `slice:0:10`\n"
+                            " 3. Ternario inline: `{{ rowData.x > 100 ? 'alto' : 'basso' }}`\n"
+                            " 4. `*ngIf` block: `<ng-container *ngIf=\"rowData.x > 0\">{{ rowData.x }}</ng-container>`\n"
+                            " 5. Tag HTML: `<span class='badge'>`, `<i class='pi pi-check'>`, ecc.\n"
+                            "ESEMPI CANONICI:\n"
+                            "  // popolazione formato k/M\n"
+                            "  <span>{{ rowData.population >= 1000000 ? (rowData.population / 1000000 | number:'1.1-1') + 'M' : rowData.population >= 1000 ? (rowData.population / 1000 | number:'1.1-1') + 'k' : rowData.population }}</span>\n"
+                            "  // concatena nome cognome\n"
+                            "  <span>{{ rowData.first_name }} {{ rowData.last_name }}</span>\n"
+                            "  // data formattata\n"
+                            "  <span>{{ rowData.created_at | date:'dd/MM/yyyy' }}</span>\n"
+                            "  // badge stato\n"
+                            "  <span class='badge'>{{ rowData.stato === 0 ? 'Bozza' : rowData.stato === 1 ? 'Confermato' : 'Annullato' }}</span>\n"
+                            "  // valuta\n"
+                            "  <span>{{ rowData.totale | currency:'EUR':'symbol':'1.2-2' }}</span>\n"
+                            "NON usare `record.X.value` ne' `BehaviorSubject` - quello scope vale per i tool callback (toolbar/row/lifecycle), NON per il display template."
+                        )
+                    },
+                    "rationale": {"type": "string", "description": "1-2 frasi italiano."}
+                },
+                "required": ["route", "column_name", "template_html", "rationale"]
+            }
+        },
+        # ---------------- Form title formula (table-level) ----------------
+        {
+            "name": "propose_form_title_formula",
+            "description": (
+                "Propone una formula JS che produce il TITOLO del form di edit (header del "
+                "popup/pagina di modifica record). Sezione 1 docs callback. Da chiamare "
+                "quando l'utente chiede 'mostra il nome della citta' nel titolo invece di "
+                "''Modifica''' o 'voglio vedere id + descrizione nell'header'. "
+                "Campo SQL: `_metadati__tabelle.mddisplayformula`."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "route": {"type": "string", "description": "Route name della tabella."},
+                    "formula_js": {
+                        "type": "string",
+                        "description": (
+                            "Body-only JS che ritorna `string`. Scope: `metaInfo`, `record`, "
+                            "`datasource`, `wtoolbox`. Esempi:\n"
+                            "  return `Modifica ${record.nome?.value ?? '(nuovo)'}`;\n"
+                            "  return record.id?.value ? `Citta' #${record.id.value} - ${record.nome.value}` : 'Nuova citta';"
+                        )
+                    },
+                    "rationale": {"type": "string", "description": "1-2 frasi italiano."}
+                },
+                "required": ["route", "formula_js", "rationale"]
+            }
+        },
+        # ---------------- Default value callback (column) ----------------
+        {
+            "name": "propose_default_value_callback",
+            "description": (
+                "Propone un callback JS che produce il VALORE DI DEFAULT di una colonna in "
+                "inserimento (record nuovo). Sezione 3 docs callback. Da chiamare quando "
+                "l'utente chiede 'precompila la data con oggi', 'metti come default "
+                "l'utente corrente', 'valore iniziale uguale al campo X'. Campo SQL: "
+                "`_metadati__colonne.mcdefaultvaluecallback`."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "route": {"type": "string"},
+                    "column_name": {"type": "string", "description": "Nome SQL della colonna che riceve il default."},
+                    "callback_js": {
+                        "type": "string",
+                        "description": (
+                            "Body-only JS che ritorna il valore. Scope: `metaInfo`, `record`, "
+                            "`datasource`, `wtoolbox`. ESEMPI CANONICI:\n"
+                            "  return new Date().toISOString().slice(0, 10);  // data odierna ISO\n"
+                            "  return wtoolbox.userInfoService.getuserInfo().user_id;  // utente corrente\n"
+                            "  return record.altro_campo?.value ?? 0;\n"
+                            "NB: per l'utente corrente usa SEMPRE UserInfoService, MAI cookie/localStorage."
+                        )
+                    },
+                    "rationale": {"type": "string"}
+                },
+                "required": ["route", "column_name", "callback_js", "rationale"]
+            }
+        },
+        # ---------------- Custom validation (column) ----------------
+        {
+            "name": "propose_custom_validation",
+            "description": (
+                "Propone una validazione custom che blocca il salvataggio se la condizione "
+                "non e' rispettata. Sezione 4 docs callback. Da chiamare quando l'utente "
+                "chiede 'campo obbligatorio se Y e' valorizzato', 'non puo' essere negativo', "
+                "'lunghezza minima 5', regole cross-field. Campo SQL: "
+                "`_metadati__colonne.mc_validation_custom_callback`."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "route": {"type": "string"},
+                    "column_name": {"type": "string", "description": "Colonna sotto validazione."},
+                    "callback_js": {
+                        "type": "string",
+                        "description": (
+                            "Body-only JS. Scope: `valore` (valore corrente del campo), "
+                            "`record` (riga), `validateResult` (callback per comunicare l'esito). "
+                            "Chiama `validateResult(true)` o `validateResult(false, 'messaggio')`.\n"
+                            "Esempi:\n"
+                            "  if (!valore && record['colonna_numero']()) {\n"
+                            "    validateResult(false, 'Campo obbligatorio');\n"
+                            "  } else { validateResult(true); }\n"
+                            "  if (Number(valore) < 0) { validateResult(false, 'Non puo essere negativo'); }\n"
+                            "  else { validateResult(true); }"
+                        )
+                    },
+                    "rationale": {"type": "string"}
+                },
+                "required": ["route", "column_name", "callback_js", "rationale"]
+            }
+        },
+        # ---------------- Selection changed (lookup/select column) ----------------
+        {
+            "name": "propose_selection_changed",
+            "description": (
+                "Propone un callback che scatta al CAMBIO DI SELEZIONE di un lookup/select, "
+                "per ricalcolare/precompilare altri campi del record. Sezione 5 docs callback. "
+                "Da chiamare quando l'utente dice 'quando seleziona il cliente, riempi P.IVA "
+                "e listino', 'al cambio del prodotto aggiorna prezzo unitario'. Campo SQL: "
+                "`_metadati__colonne.mcslctionchangedcustomfunction`."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "route": {"type": "string"},
+                    "column_name": {"type": "string", "description": "Colonna lookup/select che scatena l'evento."},
+                    "callback_js": {
+                        "type": "string",
+                        "description": (
+                            "Body-only JS. Scope: `record`, `value`, `datasource`, `wtoolbox`. "
+                            "L'oggetto lookup risolto e' in `record.<col>__lookup_obj.value`. "
+                            "Esempio (al cambio cliente, copia P.IVA e listino):\n"
+                            "  const cliente = record.cliente__lookup_obj?.value;\n"
+                            "  if (cliente) {\n"
+                            "    record.partita_iva.next(cliente.partita_iva ?? '');\n"
+                            "    record.listino_id.next(cliente.listino_id ?? null);\n"
+                            "  }"
+                        )
+                    },
+                    "rationale": {"type": "string"}
+                },
+                "required": ["route", "column_name", "callback_js", "rationale"]
+            }
+        },
+        # ---------------- Column style (cella condizionale) ----------------
+        {
+            "name": "propose_column_style",
+            "description": (
+                "Variant di `propose_table_style` ma per la SINGOLA CELLA di una colonna, "
+                "non per l'intera riga. Sezione 8 docs callback. Da chiamare quando l'utente "
+                "chiede 'colora di rosso SOLO la cella popolazione quando < 1000' (non tutta "
+                "la riga). Campo SQL: `_metadati__u_i__stili__colonne` con "
+                "`musc_attribute_name` (classe CSS) + `musc_attribute_value` (condizione JS)."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "route": {"type": "string"},
+                    "column_name": {"type": "string", "description": "Colonna a cui applicare lo stile cella."},
+                    "css_class": {"type": "string", "description": "Classe CSS (preferire `cell-danger`/`cell-warning`/`cell-info`/`cell-success` se disponibili)."},
+                    "condition_js": {
+                        "type": "string",
+                        "description": (
+                            "Body-only JS che ritorna `boolean`. Scope: `record`. Esempio:\n"
+                            "  return Number(record.population?.value ?? 0) < 1000;"
+                        )
+                    },
+                    "rationale": {"type": "string"}
+                },
+                "required": ["route", "column_name", "css_class", "condition_js", "rationale"]
+            }
+        },
+        # ---------------- Lifecycle callback (table-level) ----------------
+        {
+            "name": "propose_lifecycle_callback",
+            "description": (
+                "Propone un callback che scatta su uno dei LIFECYCLE EVENTS del record: "
+                "`before_save` (prima del salvataggio - normalizza/uppercase/timestamp), "
+                "`after_save` (post-salvataggio - logging/refresh), `after_load` (post-load - "
+                "calcola campi derivati). Sezione 9 docs callback. Da chiamare quando l'utente "
+                "chiede 'maiuscolo automatico al save', 'calcola totale dopo il caricamento', "
+                "'normalizza prima di salvare'. Campi SQL: `_metadati__tabelle.mdbeforesave` / "
+                "`mdaftersave` / `mdafterload`."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "route": {"type": "string"},
+                    "event": {
+                        "type": "string",
+                        "enum": ["before_save", "after_save", "after_load"],
+                        "description": "Lifecycle event a cui agganciare il callback."
+                    },
+                    "callback_js": {
+                        "type": "string",
+                        "description": (
+                            "Body-only JS. Scope: `record`, `datasource`, `wtoolbox`. "
+                            "Il record e' reattivo: `record.<col>.value` per leggere, "
+                            "`record.<col>.next(v)` per scrivere. Esempi:\n"
+                            "  // before_save: uppercase su codice\n"
+                            "  record.codice.next((record.codice.value || '').toUpperCase());\n"
+                            "  // after_load: calcola totale derivato\n"
+                            "  const tot = Number(record.imponibile.value ?? 0) + Number(record.iva.value ?? 0);\n"
+                            "  record.totale.next(tot);"
+                        )
+                    },
+                    "rationale": {"type": "string"}
+                },
+                "required": ["route", "event", "callback_js", "rationale"]
+            }
+        },
+        # ---------------- Simple metadata update (generic) ----------------
+        # Tool generico per modifiche "scalari" di un singolo campo metadata
+        # (label header, flag boolean, page size, ecc.). Copre ~29 campi semplici
+        # via mappa friendly-label -> SQL field server-side (whitelist). NON
+        # adatto per callback JS / template Angular (per quelli usa i tool dedicati).
+        {
+            "name": "propose_simple_metadata_update",
+            "description": (
+                "Aggiorna un SINGOLO campo metadata semplice (string/int/bool) su una colonna "
+                "o sulla tabella corrente. Esempi tipici: 'cambia il titolo della colonna X', "
+                "'nascondi la colonna Y in lista', 'rendi obbligatorio il campo Z', "
+                "'imposta pagesize della tabella a 50', 'disabilita il sort sulla colonna W'. "
+                "Da chiamare quando l'utente chiede tweak rapidi alla metadata che NON richiedono "
+                "JS body / template Angular. La modifica e' atomica su un solo field; per modifiche "
+                "multiple, emetti tool_use multipli (il backend processa solo il primo per turn — "
+                "informa l'utente che gli altri vanno fatti uno alla volta)."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "route": {"type": "string", "description": "Route name della tabella."},
+                    "target": {
+                        "type": "string",
+                        "enum": ["column", "table"],
+                        "description": "Su cosa agisce: 'column' = singola colonna (richiede column_name), 'table' = la tabella stessa."
+                    },
+                    "column_name": {
+                        "type": "string",
+                        "description": "Nome SQL reale della colonna (mc_nome_colonna). OBBLIGATORIO se target='column'."
+                    },
+                    "field_label": {
+                        "type": "string",
+                        "description": (
+                            "Identificatore semantico del campo da modificare (whitelist). "
+                            "Per target='column': "
+                            "header_label (string - titolo header lista), "
+                            "header_label_edit (string - titolo label form edit), "
+                            "hide_in_list (bool), hide_in_edit (bool), hide_in_export (bool), "
+                            "is_required (bool - validation), max_length (int), "
+                            "disable_sorting (bool), width_px (int), order (int - mc_ordine), "
+                            "tooltip (string), default_value (string - valore default come stringa, NON callback). "
+                            "Per target='table': "
+                            "display_string (string - titolo pagina), long_description (string), "
+                            "pagesize (int), editable (bool), insertable (bool), deletable (bool), "
+                            "pageable (bool), sortable (bool), scrollable (bool), groupable (bool), "
+                            "edit_popup (bool - edit in dialog vs inline), inline_edit (bool), "
+                            "multiple_selection (bool - checkbox selezione riga), "
+                            "default_filter (string - filtro SQL/JSON default), "
+                            "header_rows_edit (bool), props_bag (string JSON - bag opzioni avanzate)."
+                        )
+                    },
+                    "value": {
+                        "description": (
+                            "Valore da scrivere. Tipo conforme al field_label scelto: "
+                            "string per *_label/description/tooltip/default_*/string_*/filter/props_bag, "
+                            "int per pagesize/max_length/width_px/order, "
+                            "bool (true/false) per hide_*/is_required/disable_*/editable/insertable/deletable/"
+                            "pageable/sortable/scrollable/groupable/*_popup/inline_edit/multiple_selection/header_rows_edit. "
+                            "Per clear di un valore string usa null o stringa vuota."
+                        )
+                    },
+                    "rationale": {"type": "string", "description": "1-2 frasi italiano che spiegano la modifica."}
+                },
+                "required": ["route", "target", "field_label", "value", "rationale"]
+            }
+        },
+        # ---------------- Designer inject (client-only) ----------------
+        # Tool dedicato all'iniezione di componenti nello state Angular del
+        # dashboard designer. NON tocca DB metadata. Il client (rag-chatbot
+        # component) intercetta il kind='designer_inject' e delega l'apply
+        # a un handler registrato dal designer.component via
+        # ChatbotHostRegistryService (vedi C1 nel plan). Catalogo tool +
+        # constraint disponibili come ground truth indicizzata dal RAG:
+        # docs/pages/_internal/designer-tool-catalog.md.
+        {
+            "name": "propose_designer_inject",
+            "description": (
+                "USA QUESTO TOOL quando l'utente sta sulla pagina /designer "
+                "(editor visuale della dashboard) e chiede operazioni sul layout "
+                "via lingua naturale.\n\n"
+                "Supporta 3 azioni discriminate da `action_type`:\n\n"
+                "1. **action_type='inject'**: aggiunge nuovi componenti al canvas. "
+                "Esempi: 'crea layout tabellare 2x2', 'aggiungi DATASOURCE su cities "
+                "con DATAREPEATER', 'splitter verticale 3 aree', 'metti un KPI "
+                "Fatturato', 'dashboard con 4 KPI', 'form nome/email/data', "
+                "'master-detail cities a sinistra'. Compila `layout[]`.\n\n"
+                "2. **action_type='set_property'**: modifica UN valore di proprieta' "
+                "(inputs) di un componente gia' presente nel canvas. Esempi: "
+                "'cambia background del riquadro in alto a destra in rosso', "
+                "'metti width=300px alla colonna 2', 'rendi la table 3x3 invece "
+                "di 2x2 (rows=3, cols=3)', 'imposta caption KPI a Vendite', "
+                "'datasource route=orders'. Compila `target_unique_name` + "
+                "`prop_name` + `value`. Il `target_unique_name` lo trovi nel "
+                "DESIGNER STATE CORRENTE (iniettato nel system prompt quando "
+                "sei sul designer): tree con righe tipo `TABLE__123 (rows=2, "
+                "cols=2)\\n  TR__124\\n    TD__125 (top-left)\\n    TD__126 "
+                "(top-right)\\n  TR__127\\n    TD__128 (bottom-left)\\n    "
+                "TD__129 (bottom-right)`. Per 'riquadro in alto a destra' "
+                "scegli TD__126.\n\n"
+                "3. **action_type='remove'**: rimuove un componente (e tutti i "
+                "suoi figli) dal canvas. Esempi: 'cancella il SPLITTER', "
+                "'rimuovi la riga 2 della tabella', 'elimina il KPI Fatturato'. "
+                "Compila `target_unique_name`.\n\n"
+                "IMPORTANTE: NON usare per modifiche metadata permanenti (per "
+                "quelle usa propose_simple_metadata_update e gli altri propose_*). "
+                "Questo tool agisce solo sullo state client del designer (visibile "
+                "fino al click 'Salva dashboard').\n\n"
+                "Consulta SEMPRE il catalogo tool prima di proporre 'inject': usa "
+                "ESCLUSIVAMENTE i tool_name documentati (TABLE, DIV, SPAN, LABEL, "
+                "Hx, ANCHOR, IMG, IFRAME, UL, BUTTON, INPUT, TEXTAREA, CHECKBOX, "
+                "SEPARATOR, HR, KPI, DATE, SELECT, MULTISELECT, DATASOURCE, "
+                "DATAREPEATER, FILTERBAR, PAGER, TABVIEW, TABPANEL, SPLITTER, "
+                "ACCORDION). Mai inventare nomi nuovi. Mai proporre come top-level "
+                "tool con hide=true (TR, TD, SPLITTER-AREA, ACCORDION-AREA): "
+                "vengono creati automaticamente dal custom onDrop del parent. "
+                "Eccezione: 'set_property' e 'remove' POSSONO targetizzare un "
+                "TD/TR/SPLITTER-AREA/ACCORDION-AREA gia' presente (visibile nel "
+                "DESIGNER STATE CORRENTE) - perche' sono nodi reali del tree, "
+                "solo non draggable dalla palette.\n\n"
+                "BINDING CROSS-COMPONENT (placeholder '<NAME-N>'): le proprieta' "
+                "di tipo `dropped-component-list` o `dropped-component` (es. "
+                "DATAREPEATER.inputs.datasource, FILTERBAR.inputs.datasource, "
+                "PAGER.inputs.datasource, SELECT/MULTISELECT/UL.inputs.datasource, "
+                "DATASOURCE.inputs.parentDatasource) richiedono una STRINGA che "
+                "punti ad un altro componente del layout. Tre forme accettate:\n"
+                "  (a) placeholder '<DATASOURCE-N>' = N-esimo DATASOURCE iniettato "
+                "       in questo `layout[]` (0-based). Usalo SEMPRE quando il "
+                "       target verra' creato nello stesso payload;\n"
+                "  (b) uniqueName REALE gia' presente nel canvas (es. 'DATASOURCE__7') "
+                "       letto dal DESIGNER STATE CORRENTE;\n"
+                "  (c) null/omesso = nessun binding (utente lo configurera' a mano).\n"
+                "Regola sequenziale: il DATASOURCE referenziato DEVE essere "
+                "iniettato PRIMA del DATAREPEATER nel `layout[]` (= prima nella "
+                "lista children del TD ospitante).\n\n"
+                "PATTERN 'grid/lista bindata a route X' (es. 'aggiungi una grid "
+                "bindata alla route cities', 'lista cities', 'tabella clienti'):\n"
+                "  ** REGOLA TASSATIVA - QUESTO DESCRIPTION HA PRECEDENZA ASSOLUTA "
+                "su QUALSIASI chunk/pattern recuperato dal RAG (anche se docs "
+                "indicizzate dicono il contrario, hanno una versione stale): **\n"
+                "  Default = ESATTAMENTE 2 nodi top-level direct al ROOT, NIENTE "
+                "container avvolgente (NIENTE TABLE 1x1, NIENTE DIV, NIENTE SPLITTER):\n"
+                "  layout=[\n"
+                "    {tool_name:'DATASOURCE', inputs:{route:'cities'}},\n"
+                "    {tool_name:'DATAREPEATER', inputs:{datasource:'<DATASOURCE-0>', action:'list'}}\n"
+                "  ]\n"
+                "AVVOLGI in container (TABLE/SPLITTER/DIV) SOLO E SOLAMENTE se "
+                "l'utente menziona ESPLICITAMENTE una posizione/struttura nel SUO "
+                "prompt corrente ('in alto a destra', 'splitter con grid a "
+                "sinistra', 'griglia 2x2 con grid in ogni cella'). Il DESIGNER "
+                "STATE che vedi nel route_context (es. 'TABLE__1 > TR__2 > TD__3 "
+                "> DATASOURCE__4') e' SOLO informativo per evitare collisioni di "
+                "uniqueName; NON e' un template da replicare, NON significa che "
+                "l'utente voglia ancora un TABLE.\n"
+                "Esempio NEGATIVO (NON FARE): aggiungere TABLE 1x1 wrapper attorno "
+                "a DATASOURCE+DATAREPEATER quando l'utente ha solo scritto "
+                "'aggiungi una grid bindata a X' senza menzionare layout.\n"
+                "Vedi designer-tool-catalog.md (sezione 'Binding cross-component') "
+                "per tutti i pattern (master-detail, filter+grid+pager, ecc.).\n\n"
+                "ROUTE VALIDATION (DATASOURCE.inputs.route): quando il "
+                "DESIGNER STATE include la sezione 'ROUTE METADATA "
+                "DISPONIBILI', usa ESCLUSIVAMENTE i valori di md_route_name "
+                "elencati. L'utente puo' menzionare termini fuzzy/storpiati "
+                "('provincie' invece di 'stateprovinces', 'fornitori' invece "
+                "di 'suppliers', 'fattura' invece di 'invoices'): in tal "
+                "caso scegli il match semantico piu' probabile dalla "
+                "whitelist REALE, NON inventare nomi.\n\n"
+                "** REGOLE CRITICHE ANTI-HALLUCINATION **\n"
+                "1. SE WHITELIST E' '<caricamento in corso>': NON INVENTARE "
+                "nomi di route alternative (vietato dire 'forse intendi: "
+                "provinces, states, regions'). Rispondi SOLO testuale: 'La "
+                "lista delle route sta caricando, riprova tra 1 secondo.' "
+                "L'utente puo' aspettare. Inventare nomi che il LLM non puo' "
+                "verificare confonde l'utente e propaga errori.\n"
+                "2. SINGLE-MATCH CONFIDENTE -> INIETTA DIRETTAMENTE, NIENTE "
+                "FOLLOWUP, NIENTE 'PROCEDO?': se nella whitelist c'e' UN "
+                "SOLO candidato chiaramente migliore (es. utente dice "
+                "'provincie', whitelist contiene 'stateprovinces' come "
+                "unico match semantico) -> **DEVI** emettere "
+                "`propose_designer_inject` (tool_use) IMMEDIATAMENTE nella "
+                "stessa risposta. **VIETATO TASSATIVAMENTE**:\n"
+                "  - chiedere 'Procedo?' / 'Confermi?' / 'Vuoi che lo faccia?';\n"
+                "  - rispondere solo testuale 'Ti propongo X' senza emettere tool_use;\n"
+                "  - aspettare la conferma 'si' dell'utente per emettere il tool.\n"
+                "Dichiara la mappatura ESPLICITAMENTE nel `rationale` "
+                "del tool_use stesso. Esempio rationale: 'Match semantico: "
+                "\"provincie\" (input utente) -> \"stateprovinces\" (route "
+                "reale nella whitelist). Inietto DATASOURCE+DATAREPEATER "
+                "bindati a stateprovinces.'\n"
+                "Razionale del divieto: il chip 'Inietta nel designer' E' "
+                "esso stesso la conferma utente (l'utente clicca Applica solo "
+                "se vuole). Chiedere 'Procedo?' aggiunge un round-trip "
+                "inutile che raddoppia il tempo di interazione. **Esempio "
+                "NEGATIVO concreto (NON FARE QUESTO)**: utente dice 'aggiungi "
+                "grid bindata a provincie', whitelist contiene SOLO "
+                "'stateprovinces' come match -> NON rispondere 'Scusa, la "
+                "route corretta e' stateprovinces. Ti propongo di aggiungere "
+                "una grid bindata a stateprovinces. Procedo?'. Invece -> "
+                "emetti SUBITO propose_designer_inject(layout=[DATASOURCE+"
+                "DATAREPEATER], rationale='Match semantico provincie -> "
+                "stateprovinces (unico candidato in whitelist). Inietto.').\n"
+                "3. MULTI-MATCH AMBIGUO -> FOLLOWUP: se nella whitelist ci "
+                "sono 2+ candidati semanticamente equivalenti (es. utente "
+                "dice 'fatture' e whitelist contiene sia 'invoices' sia "
+                "'invoices_archive' sia 'sales_invoices'): rispondi "
+                "MESSAGGIO TESTUALE (zero tool_use) elencando i 2-3 "
+                "candidati e chiedendo all'utente di scegliere.\n"
+                "4. ZERO MATCH RAGIONEVOLE NELLA WHITELIST REALE: NON "
+                "inventare. Rispondi MESSAGGIO TESTUALE (zero tool_use) "
+                "dichiarando che la route non esiste + 2-3 nomi REALI dalla "
+                "whitelist piu' vicini come suggerimenti. Esempio: 'Route "
+                "\"foobar\" non trovata. Le route piu' simili sono: cities, "
+                "customers. Quale intendi?'\n"
+                "5. SE L'UTENTE RISPONDE CON UN NOME ESATTO della whitelist "
+                "(es. 'cities', 'stateprovinces'): usa QUEL nome senza altre "
+                "trasformazioni."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "action_type": {
+                        "type": "string",
+                        "enum": ["inject", "set_property", "remove"],
+                        "description": "Tipo di operazione richiesta sul canvas designer."
+                    },
+                    "layout": {
+                        "type": "array",
+                        "description": (
+                            "Solo per action_type='inject'. Albero di tool da iniettare, "
+                            "ordine sequenziale. Ogni nodo rappresenta un componente da "
+                            "aggiungere al canvas designer. I figli (children) sono iniettati "
+                            "DENTRO il parent. Per i tool con custom onDrop "
+                            "(TABLE/SPLITTER/ACCORDION) i nodi figli auto-generati "
+                            "(TR/TD/SPLITTER-AREA/ACCORDION-AREA) NON vanno inclusi qui: "
+                            "vengono creati automaticamente."
+                        ),
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "tool_name": {
+                                    "type": "string",
+                                    "description": "Nome esatto del tool dal catalogo (case-sensitive). Es: 'TABLE', 'DIV', 'DATASOURCE', 'KPI'. NON inventare."
+                                },
+                                "inputs": {
+                                    "type": "object",
+                                    "description": "Override dei valori di default per le proprieta' del tool. Es: {rows:3,cols:4} per TABLE, {route:'cities'} per DATASOURCE, {caption:'Vendite'} per KPI."
+                                },
+                                "parent_unique_name": {
+                                    "type": "string",
+                                    "description": "OPZIONALE: uniqueName del parent gia' presente nello state (es. 'TD__126'). Se omesso, va al ROOT. Placeholder semantici tipo '<TD-0>' sono accettati se il LLM non conosce il valore reale."
+                                },
+                                "children": {
+                                    "type": "array",
+                                    "description": "Nodi figli (ricorsivo). NB: NON aggiungere TR/TD per TABLE, SPLITTER-AREA per SPLITTER, ACCORDION-AREA per ACCORDION (auto-create). DEVI aggiungere TABPANEL per TABVIEW (non auto).",
+                                    "items": {"type": "object"}
+                                }
+                            },
+                            "required": ["tool_name"]
+                        }
+                    },
+                    "target_unique_name": {
+                        "type": "string",
+                        "description": (
+                            "Solo per action_type='set_property' o 'remove'. uniqueName del "
+                            "componente target presente nel canvas (formato 'TOOLNAME__N', "
+                            "es. 'TABLE__123', 'TD__126', 'KPI__301'). Trovato leggendo il "
+                            "DESIGNER STATE CORRENTE iniettato nel system prompt."
+                        )
+                    },
+                    "prop_name": {
+                        "type": "string",
+                        "description": (
+                            "Solo per action_type='set_property'. Nome della proprieta' "
+                            "in `inputs` del tool target. Es: 'backgroundColor', 'color', "
+                            "'fontSize', 'width', 'height', 'rows', 'cols', 'innerText', "
+                            "'caption', 'route', 'src', 'href', 'checked', 'disabled'. "
+                            "Solo nomi documentati nel catalogo per il tool_name target."
+                        )
+                    },
+                    "value": {
+                        "description": (
+                            "Solo per action_type='set_property'. Nuovo valore. Tipo "
+                            "conforme alla proprieta': string per *Color/innerText/caption/"
+                            "route/src/href/width/height, number per rows/cols/areas/items/"
+                            "pageSize, bool per checked/disabled/autoload/readonly. Per "
+                            "colori usa formato CSS: '#ff0000', 'rgb(255,0,0)', "
+                            "'rgba(255,0,0,0.5)', 'red'."
+                        )
+                    },
+                    "rationale": {
+                        "type": "string",
+                        "description": "1-2 frasi italiano che spiegano l'operazione proposta (mostrate all'utente prima dell'apply)."
+                    }
+                },
+                "required": ["action_type", "rationale"]
             }
         },
         # ---------------- Memory tools ----------------
@@ -969,16 +1658,46 @@ def chat_endpoint(req: ChatIn) -> ChatOut:
             if not isinstance(tool_input, dict):
                 continue
 
-            if tool_name == "propose_toolbar_action" and proposed_action_json is None:
+            # Mapping tool_name -> kind. Solo UNA proposed_action_json per turn
+            # (first wins) anche se l'LLM emette piu' tool_use d'azione.
+            # Schema docs: docs/pages/callback-cookbook.md (sezioni 1-9).
+            _ACTION_TOOL_TO_KIND = {
+                "propose_toolbar_action":         "toolbar_action",
+                "propose_row_action":             "row_action",
+                "propose_table_style":            "table_style",
+                "propose_column_style":           "column_style",
+                "propose_display_formula":        "display_formula",
+                "propose_form_title_formula":     "form_title_formula",
+                "propose_default_value_callback": "default_value_callback",
+                "propose_custom_validation":      "custom_validation",
+                "propose_selection_changed":      "selection_changed",
+                "propose_lifecycle_callback":     "lifecycle_callback",
+                "propose_simple_metadata_update": "simple_metadata_update",
+                "propose_designer_inject":        "designer_inject",
+            }
+            if tool_name in _ACTION_TOOL_TO_KIND and proposed_action_json is None:
+                action_kind = _ACTION_TOOL_TO_KIND[tool_name]
                 # Post-processing difensivo: il framework salva i callback come
                 # BODY-ONLY; se l'LLM produce comunque una function wrapper, lo
-                # unwrappa qui prima di salvare. (Vedi `_unwrap_callback_body`.)
-                cbk = tool_input.get("callback_js")
-                if isinstance(cbk, str) and cbk.strip():
-                    tool_input["callback_js"] = _unwrap_callback_body(cbk)
+                # unwrappa qui prima di salvare. Vale per i campi che contengono
+                # JS body: callback_js (toolbar/row/default/validation/selection/
+                # lifecycle), condition_js (table_style/column_style).
+                # NB: `template_html` (display_formula) NON va unwrappato — e'
+                # markup Angular, non body JS.
+                for js_field in ("callback_js", "condition_js"):
+                    cbk = tool_input.get(js_field)
+                    if isinstance(cbk, str) and cbk.strip():
+                        tool_input[js_field] = _unwrap_callback_body(cbk)
+                # Sanitize residui XML su campi natural-language (rationale,
+                # label, description): Claude a volte leaka frammenti tipo
+                # `</rationale>` / `</invoke>` dentro il valore stringa.
+                for nl_field in _SANITIZE_TEXT_FIELDS:
+                    raw_nl = tool_input.get(nl_field)
+                    if isinstance(raw_nl, str) and raw_nl:
+                        tool_input[nl_field] = _strip_xml_tag_residue(raw_nl)
                 try:
-                    proposed_action_json = json.dumps({"kind": "toolbar_action", **tool_input}, ensure_ascii=False)
-                    LOG.info("LLM tool_use: propose_toolbar_action")
+                    proposed_action_json = json.dumps({"kind": action_kind, **tool_input}, ensure_ascii=False)
+                    LOG.info("LLM tool_use: %s -> kind=%s", tool_name, action_kind)
                 except Exception as exc:  # noqa: BLE001
                     LOG.warning("tool_use serialization failed: %s", exc)
 
