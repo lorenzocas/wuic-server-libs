@@ -1045,8 +1045,10 @@ def chat_endpoint(req: ChatIn) -> ChatOut:
         {
             "name": "propose_default_value_callback",
             "description": (
-                "Propone un callback JS che produce il VALORE DI DEFAULT di una colonna in "
-                "inserimento (record nuovo). Sezione 3 docs callback. Da chiamare quando "
+                "Propone un callback JS che imposta il VALORE DI DEFAULT di una colonna in "
+                "inserimento (record nuovo) SCRIVENDOLO nel record "
+                "(`record[field.mc_nome_colonna]=...`; il return e' ignorato dal framework). "
+                "Sezione 3 docs callback. Da chiamare quando "
                 "l'utente chiede 'precompila la data con oggi', 'metti come default "
                 "l'utente corrente', 'valore iniziale uguale al campo X'. Campo SQL: "
                 "`_metadati__colonne.mcdefaultvaluecallback`."
@@ -1059,12 +1061,18 @@ def chat_endpoint(req: ChatIn) -> ChatOut:
                     "callback_js": {
                         "type": "string",
                         "description": (
-                            "Body-only JS che ritorna il valore. Scope: `metaInfo`, `record`, "
-                            "`datasource`, `wtoolbox`. ESEMPI CANONICI:\n"
-                            "  return new Date().toISOString().slice(0, 10);  // data odierna ISO\n"
-                            "  return wtoolbox.userInfoService.getuserInfo().user_id;  // utente corrente\n"
-                            "  return record.altro_campo?.value ?? 0;\n"
-                            "NB: per l'utente corrente usa SEMPRE UserInfoService, MAI cookie/localStorage."
+                            "Body-only JS che imposta il valore di default. Scope (param reali con cui il "
+                            "framework compila il callback): `record` (il NUOVO record in costruzione, plain "
+                            "object), `field` (MetadatiColonna della colonna target), `metaInfo`, `wtoolbox`. "
+                            "IMPORTANTE: il framework IGNORA il valore di `return` "
+                            "(DataSourceComponent.addNewRecord scarta il ritorno). Il callback DEVE SCRIVERE "
+                            "il valore dentro il record: `record[field.mc_nome_colonna] = <valore>;`. "
+                            "ESEMPI CANONICI:\n"
+                            "  record[field.mc_nome_colonna] = new Date().toISOString().slice(0, 10);  // data odierna ISO\n"
+                            "  record[field.mc_nome_colonna] = wtoolbox.userInfoService.getuserInfo().user_id;  // utente corrente\n"
+                            "  record[field.mc_nome_colonna] = 'Lat: 0.0 - Long: 0.0';  // valore fisso\n"
+                            "  record[field.mc_nome_colonna] = record['altro_campo'] ?? 0;  // derivato da altro campo\n"
+                            "NB: per l'utente corrente usa SEMPRE UserInfoService, MAI cookie/localStorage. NON usare `return`."
                         )
                     },
                     "rationale": {"type": "string"}
@@ -1090,15 +1098,18 @@ def chat_endpoint(req: ChatIn) -> ChatOut:
                     "callback_js": {
                         "type": "string",
                         "description": (
-                            "Body-only JS. Scope: `valore` (valore corrente del campo), "
-                            "`record` (riga), `validateResult` (callback per comunicare l'esito). "
-                            "Chiama `validateResult(true)` o `validateResult(false, 'messaggio')`.\n"
+                            "Body-only JS (puo' essere async). Scope (param reali con cui il framework "
+                            "compila il callback via new AsyncFunction('record, field, vr, wtoolbox', ...)): "
+                            "`record` (la riga, valori wrappati in BehaviorSubject -> leggi con "
+                            "`record[field.mc_nome_colonna].value` o `record['altraColonna'].value`), "
+                            "`field` (MetadatiColonna della colonna validata), "
+                            "`vr` (ValidationRule: setta `vr.message='...'` per il messaggio d'errore), `wtoolbox`. "
+                            "DEVE RITORNARE un boolean: `return true` se valido, `return false` per BLOCCARE il "
+                            "salvataggio. NON esistono `valore` ne `validateResult` nello scope: NON usarli.\n"
                             "Esempi:\n"
-                            "  if (!valore && record['colonna_numero']()) {\n"
-                            "    validateResult(false, 'Campo obbligatorio');\n"
-                            "  } else { validateResult(true); }\n"
-                            "  if (Number(valore) < 0) { validateResult(false, 'Non puo essere negativo'); }\n"
-                            "  else { validateResult(true); }"
+                            "  if (Number(record[field.mc_nome_colonna].value) < 0) { vr.message = 'Non puo essere negativo'; return false; } return true;\n"
+                            "  const a = record['CampoA'].value, b = record['CampoB'].value; if (a && !b) { vr.message = 'CampoB obbligatorio'; return false; } return true;\n"
+                            "  return String(record[field.mc_nome_colonna].value || '').length >= 5;  // lunghezza minima 5"
                         )
                     },
                     "rationale": {"type": "string"}
@@ -1420,7 +1431,38 @@ def chat_endpoint(req: ChatIn) -> ChatOut:
                 "customers. Quale intendi?'\n"
                 "5. SE L'UTENTE RISPONDE CON UN NOME ESATTO della whitelist "
                 "(es. 'cities', 'stateprovinces'): usa QUEL nome senza altre "
-                "trasformazioni."
+                "trasformazioni.\n\n"
+                "** COLUMN VALIDATION (nomi colonna referenziati nello "
+                "sql_snippet) **\n"
+                "Lo snippet SQL spesso referenzia nomi colonna (es. "
+                "'[price] * [quantity]' usa 'price' e 'quantity'). Il "
+                "route_context include una sezione `Colonne:` con la lista "
+                "delle colonne metadata reali della route target, con il "
+                "loro `mc_nome_colonna` E (quando diverso) il "
+                "`mc_real_column_name` (nome SQL fisico). REGOLE:\n"
+                "1. Ogni colonna referenziata nello snippet DEVE esistere "
+                "nella sezione `Colonne:`. Verifica PRIMA di proporre il "
+                "tool.\n"
+                "2. Usa SEMPRE `mc_real_column_name` nello snippet (e' quel "
+                "che il framework concatena nella query). Se `mc_real_column_name` "
+                "non e' mostrato accanto al nome, significa che e' uguale "
+                "a `mc_nome_colonna`.\n"
+                "3. SINGLE-MATCH CONFIDENTE: utente dice 'price', nelle "
+                "colonne reali c'e' SOLO 'unit_price' come match semantico "
+                "-> usa 'unit_price' nello snippet e dichiara la mappatura "
+                "nel rationale. NIENTE followup.\n"
+                "4. MULTI-MATCH AMBIGUO: utente dice 'prezzo', nelle "
+                "colonne reali ci sono 'price', 'unit_price', 'list_price' "
+                "-> NON proporre il tool. Rispondi testuale: 'Trovate "
+                "piu' colonne candidate: `price`, `unit_price`, `list_price`. "
+                "Quale intendi?'.\n"
+                "5. ZERO MATCH: utente referenzia 'foobar' che NON esiste "
+                "nelle colonne -> NON proporre. Rispondi testuale con "
+                "2-3 colonne REALI piu' simili dal context.\n"
+                "6. MIX (alcuni match singoli, altri ambigui): risolvi i "
+                "match certi, segnala solo gli ambigui in followup. Esempio: "
+                "'quantity' e' unico match per `quantity`, ma 'prezzo' "
+                "matcha 3 colonne -> chiedi solo per 'prezzo'."
             ),
             "input_schema": {
                 "type": "object",
@@ -1527,6 +1569,337 @@ def chat_endpoint(req: ChatIn) -> ChatOut:
                     }
                 },
                 "required": ["fact"]
+            }
+        },
+        # ---------------- Metadata column create (workflow step 1) ----------------
+        {
+            "name": "propose_metadata_column_create",
+            "description": (
+                "USA QUESTO TOOL quando l'utente chiede di AGGIUNGERE una "
+                "COLONNA METADATA NUOVA a una route esistente. NON per "
+                "modificare una colonna esistente (per quella usa "
+                "propose_simple_metadata_update o propose_sql_metadata_field).\n\n"
+                "Casi d'uso e workflow (semantica `mc_is_computed` "
+                "vs `mc_is_db_computed`):\n\n"
+                "**CASO 1 — Mappare colonna FISICA gia' esistente sul DB**\n"
+                "Prompt esempio: 'aggiungi al metadata la colonna SQL "
+                "`email` di `customers`' (la colonna `email` esiste GIA' "
+                "nella tabella SQL, manca solo il metadato che la mostra "
+                "nella grid). Setta:\n"
+                "  - `is_computed=false`\n"
+                "  - `real_column_name=<nome_SQL>` (uguale a column_name "
+                "se i nomi coincidono)\n"
+                "  - `ui_column_type=string|number|date|...`\n"
+                "  - `computed_formula=OMESSO`\n"
+                "Il backend fa solo INSERT in `_metadati__colonne`. "
+                "`mc_is_computed=false`, `mc_is_db_computed=false`. Nessun "
+                "ALTER TABLE.\n\n"
+                "**CASO 2 — Creare colonna CALCOLATA a livello metadato "
+                "(NO modifica SQL schema)**\n"
+                "Prompt esempio: 'crea colonna calcolata `totale` che fa "
+                "`Quantity * UnitPrice`' / 'aggiungi colonna totale che "
+                "moltiplica quantita per prezzo' / 'colonna fullname = "
+                "first_name concatenato con last_name'. La formula vive "
+                "SOLO nei metadati: il framework la appende come "
+                "`<formula> AS [<nome>]` nella SELECT autogenerata. La "
+                "tabella SQL sottostante NON viene modificata. Setta:\n"
+                "  - `is_computed=true`\n"
+                "  - `real_column_name=null` (NON e' una colonna fisica)\n"
+                "  - `ui_column_type=number|decimal|string|...`\n"
+                "  - **`computed_formula`** — VEDI SOTTO REGOLA CRITICA.\n\n"
+                "** REGOLA CRITICA COMPUTED_FORMULA (NON OMETTERE) **\n"
+                "Se l'utente ha espresso UN'OPERAZIONE su colonne (NON "
+                "importa se in SQL letterale o in lingua naturale italiana/"
+                "inglese), DEVI tradurla in SQL dialetto-target e passarla "
+                "in `computed_formula`. Esempi che DEVONO produrre "
+                "`computed_formula` valorizzato:\n"
+                "** CRITICO: USA SEMPRE FULL QUALIFIER `[schema].[table].[col]` "
+                "(mssql) o equivalente per provider. Senza qualifier il "
+                "framework concatena la formula in una SELECT che JOINa "
+                "multiple tabelle -> SQL 209 'colonna ambigua' al primo "
+                "load grid. Il context route include la sezione "
+                "'SQL identity: schema=<X>, table=<Y>' che ti da' i pezzi. **\n"
+                "Esempi (su `Sales.OrderLines`):\n"
+                "  - 'moltiplica Quantity per UnitPrice' -> "
+                "`[Sales].[OrderLines].[Quantity] * [Sales].[OrderLines].[UnitPrice]` (mssql)\n"
+                "  - 'fa quantita x prezzo' -> "
+                "`[Sales].[OrderLines].[Quantity] * [Sales].[OrderLines].[UnitPrice]`\n"
+                "  - 'somma price e tax' su `dbo.Orders` -> "
+                "`[dbo].[Orders].[price] + [dbo].[Orders].[tax]`\n"
+                "  - 'quantity diviso 10' su `Sales.OrderLines` -> "
+                "`[Sales].[OrderLines].[Quantity] / 10`\n"
+                "  - 'concatena first_name e last_name' su `dbo.Customers` -> mssql: "
+                "`[dbo].[Customers].[first_name] + ' ' + [dbo].[Customers].[last_name]`\n"
+                "  - 'totale meno sconto' su `dbo.Invoices` -> "
+                "`[dbo].[Invoices].[totale] - [dbo].[Invoices].[sconto]`\n"
+                "  - 'CASE WHEN status = ok THEN 1 ELSE 0 END' -> letterale, "
+                "qualifier su `status`\n"
+                "MAI generare formule senza schema/table prefix. Se nel "
+                "context vedi 'SQL identity: schema=Sales, table=OrderLines' "
+                "OGNI colonna referenziata DEVE essere "
+                "`[Sales].[OrderLines].[<col>]`.\n"
+                "OMETTI `computed_formula` SOLO se l'utente ha chiesto la "
+                "creazione SENZA specificare alcuna logica (es. "
+                "'aggiungi una colonna calcolata `xyz`' senza dire COSA "
+                "calcola). In quel caso il backend crea la riga vuota e "
+                "l'utente dovra' rilanciare il prompt con la formula -> "
+                "STEP 2 separato (`propose_sql_metadata_field`).\n\n"
+                "Il fatto che l'utente parli in lingua naturale "
+                "('moltiplica', 'somma', 'meno') NON significa 'formula "
+                "non fornita': il LLM ha il compito di tradurre NL -> SQL. "
+                "Se vedi un'operazione chiara, riempi `computed_formula`. "
+                "Sbagliare a omettere produce una colonna stub che rompe "
+                "la grid al prossimo refresh (SQL error 207 'colonna non "
+                "valida').\n"
+                "Il backend setta `mc_is_computed=true`. Quando "
+                "`computed_formula` valorizzato applica anche UPDATE "
+                "`mccomputedformula` atomicamente (D3 super-admin gate).\n\n"
+                "**CASO 3 — Creare colonna FISICA NUOVA (ALTER TABLE "
+                "richiesto)**\n"
+                "Prompt esempio: 'aggiungi colonna `phone_number` di "
+                "tipo text a `customers` (max 50 caratteri)' (la tabella "
+                "SQL `customers` NON ha la colonna, va creata via ALTER "
+                "TABLE). Setta:\n"
+                "  - `is_computed=false`\n"
+                "  - `real_column_name=<nome>` (= column_name di solito)\n"
+                "  - `ui_column_type=string|number|text|decimal|date|...`\n"
+                "  - **`create_physical_column=true`** (FLAG ESSENZIALE)\n"
+                "  - `nullable=true|false` (default true)\n"
+                "  - `max_length`/`precision`/`scale`/`default_value` se "
+                "rilevanti per il tipo (es. text=200 char -> max_length=200; "
+                "decimal(10,2) -> precision=10 scale=2)\n"
+                "Il backend esegue ALTER TABLE (cross-DBMS via "
+                "`scaffolding.AddColumn`) + INSERT metadati in transaction "
+                "atomica. Richiede privilegi admin (verifica al backend).\n"
+                "Esempi di mapping `ui_column_type` -> SQL type:\n"
+                "  - 'string' + max_length=N -> VARCHAR(N) (mssql/mysql/pg) "
+                "o VARCHAR2(N) (oracle)\n"
+                "  - 'text' + max_length=N -> NVARCHAR(N) o TEXT\n"
+                "  - 'number' -> INT\n"
+                "  - 'decimal' + precision/scale -> DECIMAL(p,s)\n"
+                "  - 'date' -> DATE; 'datetime' -> DATETIME (mssql) o "
+                "TIMESTAMP (pg/oracle)\n"
+                "  - 'boolean' -> BIT (mssql/mysql) o BOOLEAN (pg) o "
+                "NUMBER(1) (oracle) — il framework lo gestisce automaticamente.\n\n"
+                "**DISAMBIGUAZIONE per il LLM** (se l'utente e' ambiguo):\n"
+                "- 'aggiungi colonna calcolata' -> CASO 2 (mc_is_computed=true, "
+                "formula livello metadato)\n"
+                "- 'aggiungi colonna' senza qualificatore + l'utente parla "
+                "di un dato che probabilmente NON e' gia' nel DB -> chiedi "
+                "se vuole CASO 3 (creare anche al livello SQL) oppure "
+                "CASO 2 (calcolata)\n"
+                "- 'mappa colonna SQL X' / 'aggiungi al metadata la colonna "
+                "X' -> CASO 1 (presupposto: la colonna SQL esiste gia')\n"
+                "- L'utente cita esplicitamente una formula (`*`, `+`, "
+                "`CASE WHEN`, `CAST`, ecc.) -> sempre CASO 2.\n\n"
+                "Workflow completo documentato in "
+                "`docs/pages/_internal/sql-metadata-fields-workflow.md`.\n\n"
+                "**REGOLE**:\n"
+                "- Per colonne calcolate, `is_computed=true` setta "
+                "automaticamente `mc_hide_in_edit=true` (la colonna non "
+                "compare nel form di edit perche' calcolata).\n"
+                "- `mc_ordine` viene calcolato automaticamente come "
+                "MAX(mc_ordine)+10 sulla route - non passarlo.\n"
+                "- `column_name` deve essere un identifier valido "
+                "(`^[A-Za-z_][A-Za-z0-9_]*$`), no spazi, no caratteri "
+                "speciali.\n"
+                "- Non richiede super-admin: e' simple_metadata_update "
+                "extension, non SQL fragment. Il LLM puo' proporlo a tutti "
+                "gli admin (verifica IS_SUPER_ADMIN solo per il STEP B).\n\n"
+                "** COLUMN VALIDATION (per is_computed=false) **\n"
+                "Per colonne fisiche (is_computed=false), `real_column_name` "
+                "DEVE matchare una colonna SQL realmente esistente nella "
+                "tabella business sottostante. Il route_context include la "
+                "sezione `Colonne:` con i `mc_real_column_name` reali delle "
+                "colonne metadata gia' mappate alla route. Logica:\n"
+                "1. Se l'utente dice 'aggiungi colonna `email`' e tra le "
+                "colonne reali esiste gia' una colonna metadata mappata a "
+                "`email` -> ERRORE (duplicate), il backend rifiutera'.\n"
+                "2. Se l'utente dice 'aggiungi colonna `phone_number`' e "
+                "la tabella sottostante NON ha quella colonna SQL, il "
+                "framework non sara' in grado di SELECT-la a runtime -> "
+                "valori NULL. Il LLM dovrebbe avvertire l'utente nel "
+                "rationale: 'NB: assicurati che la tabella SQL `<table>` "
+                "abbia gia' la colonna `phone_number`, altrimenti i valori "
+                "saranno NULL'.\n"
+                "Per is_computed=true non c'e' validation colonna (la "
+                "computed non legge da SQL fisica)."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "route": {
+                        "type": "string",
+                        "description": "md_route_name della tabella metadata target. Deve esistere nella whitelist ROUTE METADATA DISPONIBILI."
+                    },
+                    "column_name": {
+                        "type": "string",
+                        "description": "mc_nome_colonna - identifier logico (es. 'total2', 'notes', 'full_name'). Match regex ^[A-Za-z_][A-Za-z0-9_]*$"
+                    },
+                    "display_string": {
+                        "type": "string",
+                        "description": "mc_display_string_in_view - label visibile nella grid/form (es. 'Total 2', 'Notes')"
+                    },
+                    "ui_column_type": {
+                        "type": "string",
+                        "enum": ["string", "number", "decimal", "date", "datetime", "boolean", "text", "lookupByID"],
+                        "description": "mc_ui_column_type. Per colonne calcolate numeriche usa 'number' o 'decimal'."
+                    },
+                    "is_computed": {
+                        "type": "boolean",
+                        "description": "true se la colonna e' CALCOLATA (no fisica nel DB). Imposta automaticamente mc_real_column_name=null e mc_hide_in_edit=true. false se fisica (real_column_name DEVE essere fornito)."
+                    },
+                    "real_column_name": {
+                        "type": "string",
+                        "description": "mc_real_column_name - nome SQL fisico nella tabella sottostante. REQUIRED se is_computed=false, OMESSO se is_computed=true."
+                    },
+                    "computed_formula": {
+                        "type": "string",
+                        "description": "OPZIONALE. Snippet SQL inline (es. '[Quantity] * [UnitPrice]' per mssql) nel dialetto CURRENT_DBMS. Usato SOLO quando is_computed=true E l'utente ha specificato la formula nel prompt. Backend applica INSERT + UPDATE mccomputedformula atomicamente. Il D3 gate super-admin scatta SOLO se questo campo e' valorizzato. Omettere se l'utente non ha precisato la formula (la formula puo' essere applicata dopo via propose_sql_metadata_field)."
+                    },
+                    "create_physical_column": {
+                        "type": "boolean",
+                        "description": "OPZIONALE (default false). Se true, il backend esegue ALTER TABLE per creare anche la colonna SQL fisica nella tabella business (CASO 3). Richiede is_computed=false. Cross-DBMS via scaffolding.AddColumn (mssql/mysql/oracle/postgres). Auth: admin richiesto."
+                    },
+                    "nullable": {
+                        "type": "boolean",
+                        "description": "OPZIONALE (default true). Vincolo NOT NULL della colonna SQL. Usato solo con create_physical_column=true."
+                    },
+                    "max_length": {
+                        "type": "integer",
+                        "description": "OPZIONALE. Lunghezza max per tipi string/text (es. VARCHAR(N)). Usato solo con create_physical_column=true e ui_column_type stringa."
+                    },
+                    "precision": {
+                        "type": "integer",
+                        "description": "OPZIONALE. Precision totale per tipi decimal (es. DECIMAL(precision,scale)). Usato solo con create_physical_column=true."
+                    },
+                    "scale": {
+                        "type": "integer",
+                        "description": "OPZIONALE. Scale (cifre decimali) per tipi decimal. Usato solo con create_physical_column=true."
+                    },
+                    "default_value": {
+                        "type": "string",
+                        "description": "OPZIONALE. Valore DEFAULT per la colonna SQL (es. '0', \"''\", 'GETDATE()'). Usato solo con create_physical_column=true."
+                    },
+                    "rationale": {
+                        "type": "string",
+                        "description": "1-2 frasi italiano che spiegano cosa fa la colonna e perche'."
+                    }
+                },
+                "required": ["route", "column_name", "display_string", "ui_column_type", "is_computed", "rationale"]
+            }
+        },
+        # ---------------- SQL snippet fields (D3 super-admin) ----------------
+        {
+            "name": "propose_sql_metadata_field",
+            "description": (
+                "USA QUESTO TOOL quando l'utente chiede di modificare un "
+                "campo metadata che contiene uno SNIPPET SQL (custom JOIN, "
+                "SELECT clause, formula colonna calcolata, espressione "
+                "display lookup). Questi campi vivono in `_metadati__tabelle` "
+                "o `_metadati__colonne` e vengono concatenati a runtime nel "
+                "SQL emesso dal framework.\n\n"
+                "** GATE OBBLIGATORI **\n"
+                "1. SUPER-ADMIN ONLY (D3 RBAC): se nel route_context vedi "
+                "`IS_SUPER_ADMIN=false` -> NON proporre questo tool. "
+                "Rispondi SOLO testuale: 'Questo tipo di modifica richiede "
+                "privilegi super-admin (modifica diretta di SQL nei "
+                "metadata). Autenticati con un account super-admin o "
+                "contatta l'amministratore.'\n"
+                "2. DBMS-AWARE: nel route_context vedi "
+                "`CURRENT_DBMS=mssql|mysql|postgres|oracle`. Genera SQL "
+                "nel DIALETTO corretto:\n"
+                "  - identifier quoting: mssql=[..], mysql=`..`, "
+                "pg/oracle=\"..\";\n"
+                "  - top-N: mssql=`TOP N`, mysql/pg=`LIMIT N`, "
+                "oracle=`FETCH FIRST N ROWS ONLY`;\n"
+                "  - concat: mssql=`+`, mysql=`CONCAT()`, pg=`||`, "
+                "oracle=`||`;\n"
+                "  - data odierna: mssql=`GETDATE()`, mysql=`NOW()`, "
+                "pg=`CURRENT_TIMESTAMP`, oracle=`SYSDATE`.\n"
+                "3. RATIONALE OBBLIGATORIA: 2-3 frasi che spiegano cosa fa "
+                "lo snippet + un esempio output atteso (es. 'mostra "
+                "Customer LASTNAME, NAME come singola colonna').\n\n"
+                "Campi gestibili (field_name):\n"
+                "  - `md_join_override` (target_table=_metadati__tabelle): "
+                "FROM/JOIN clause override per la route corrente. Es: "
+                "'aggiungi join a payments su invoice_id'.\n"
+                "  - `mc_custom_select_clause` "
+                "(target_table=_metadati__colonne): subquery scalare che "
+                "rimpiazza la colonna in SELECT. Es: '(SELECT TOP 1 [name] "
+                "FROM [customers] WHERE id = orders.customer_id)'.\n"
+                "  - `mc_custom_join` (target_table=_metadati__colonne): "
+                "LEFT JOIN aggiuntiva richiesta dalla colonna. Es: 'LEFT "
+                "JOIN [customers] c ON c.id = orders.customer_id'.\n"
+                "  - `mc_computed_formula` (target_table=_metadati__colonne): "
+                "espressione SQL inline (CAST/concat/aritmetica) per "
+                "colonna calcolata. Es: '[price] * [quantity]'.\n"
+                "  - `mc_ui_lookup_computed_dataTextField` "
+                "(target_table=_metadati__colonne): espressione per il "
+                "display di un lookup (CAST/LOWER/concat). Es: "
+                "'UPPER([code]) + \\' - \\' + [name]'.\n\n"
+                "VINCOLI VALORI:\n"
+                "- target_row_key.route: deve essere una route REALE della "
+                "whitelist ROUTE METADATA DISPONIBILI; fuzzy match come "
+                "per propose_designer_inject.\n"
+                "- target_row_key.column_name: REQUIRED quando "
+                "target_table=_metadati__colonne; OMESSO quando "
+                "target_table=_metadati__tabelle (md_join_override e' "
+                "table-level, non column-level).\n"
+                "- sql_snippet: SOLO il fragment (nessun SELECT/FROM "
+                "wrapper se field e' computed/select-clause; SI'  full "
+                "JOIN clause se field e' custom_join/join_override).\n"
+                "- NON eseguire query - solo proporre. Il backend applica "
+                "previa conferma esplicita dell'utente sul chip."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "target_table": {
+                        "type": "string",
+                        "enum": ["_metadati__tabelle", "_metadati__colonne"],
+                        "description": "Tabella metadata target. _tabelle per md_join_override (table-level), _colonne per tutti gli altri (column-level)."
+                    },
+                    "target_row_key": {
+                        "type": "object",
+                        "properties": {
+                            "route": {
+                                "type": "string",
+                                "description": "md_route_name della tabella business target (es. 'orders', 'cities'). Deve esistere nella whitelist ROUTE METADATA DISPONIBILI."
+                            },
+                            "column_name": {
+                                "type": "string",
+                                "description": "mc_nome_colonna - REQUIRED se target_table=_metadati__colonne, omesso se _metadati__tabelle."
+                            }
+                        },
+                        "required": ["route"]
+                    },
+                    "field_name": {
+                        "type": "string",
+                        "enum": [
+                            "md_join_override",
+                            "mc_custom_select_clause",
+                            "mc_custom_join",
+                            "mc_computed_formula",
+                            "mc_ui_lookup_computed_dataTextField"
+                        ],
+                        "description": "Campo SQL-fragment da scrivere."
+                    },
+                    "sql_snippet": {
+                        "type": "string",
+                        "description": "Snippet SQL nel dialetto del CURRENT_DBMS attivo. Stringa vuota = clear del campo."
+                    },
+                    "dbms_target": {
+                        "type": "string",
+                        "enum": ["mssql", "mysql", "postgres", "oracle"],
+                        "description": "Dialetto DBMS per cui lo snippet e' stato scritto. DEVE matchare CURRENT_DBMS nel route_context."
+                    },
+                    "rationale": {
+                        "type": "string",
+                        "description": "2-3 frasi italiano: cosa fa lo snippet + esempio output atteso. Mostrato all'utente nel chip preview prima del click Apply."
+                    }
+                },
+                "required": ["target_table", "target_row_key", "field_name", "sql_snippet", "dbms_target", "rationale"]
             }
         },
         {
@@ -1674,6 +2047,8 @@ def chat_endpoint(req: ChatIn) -> ChatOut:
                 "propose_lifecycle_callback":     "lifecycle_callback",
                 "propose_simple_metadata_update": "simple_metadata_update",
                 "propose_designer_inject":        "designer_inject",
+                "propose_sql_metadata_field":     "sql_metadata_field",
+                "propose_metadata_column_create": "metadata_column_create",
             }
             if tool_name in _ACTION_TOOL_TO_KIND and proposed_action_json is None:
                 action_kind = _ACTION_TOOL_TO_KIND[tool_name]

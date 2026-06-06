@@ -9,7 +9,7 @@
 
 Minor release focused on the **RAG chatbot** integration on the framework side: persistent conversation history, automatic context management, hot-reload configuration from `appsettings.json` and cross-DBMS schema auto-applied at first start. Alongside the main feature, a few metadata scaffolder and chat repository robustness fixes that surfaced in fresh DB provisioning scenarios.
 
-The chatbot is the first WUIC component with server-side state (`_rag_chat_sessions` + `_rag_chat_messages`) that spans all four supported providers without manual schema configuration. The first `Ask` detects the provider, applies the incremental SQL patches in order and starts up.
+The chatbot is the first WUIC component with server-side state (`_rag_chat_sessions` + `_rag_chat_messages`) that spans all four supported providers without manual schema configuration. The first `Ask` detects the provider, applies the incremental SQL patches in order and starts up. With this release the serving stack can also run **natively on .NET** (in-process ONNX engine), making the customer deployment independent of Python.
 
 ---
 
@@ -43,7 +43,57 @@ The chat history schema (5 incremental patches) is applied idempotently at the f
 
 ---
 
+## 🛠️ Actions the chatbot can apply to your project
+
+Beyond answering in natural language, the chatbot can **propose concrete changes** to your project as action chips with an "Apply" button. Each chip shows what it will do (target route, generated code, rationale) and the user decides whether to apply it. Nothing is executed without an explicit click.
+
+Supported action types:
+
+- **Toolbar and row actions** — adds custom buttons to a `<wuic-list-grid>` toolbar or to single-row actions, with generated JavaScript callbacks. Examples: "add an action that exports selected rows to CSV", "put an Approve button on each row".
+- **Conditional row and column styles** — applies CSS classes to a row or to a single cell based on a JS condition. Examples: "highlight rows with overdue deadline in red", "set green background on the `status` cell when it equals 'OK'".
+- **Column display formula** — replaces a column's list representation with a custom HTML/Angular template (badge, icon, link, colored percentage). Example: "show `priority` as a green/yellow/red colored badge".
+- **Form title formula** — dynamically computes the edit-form title of a record from its content. Example: "title should be `Customer {company_name}`".
+- **Default value and custom validation** — generates callbacks for default values on form open (field pre-fill) or for complex validation (cross-field, custom regex). Examples: "default `created_at` = today", "validate that `email` ends with @company.it".
+- **Selection-changed and lifecycle callbacks** — hooks on form events (record selection change, before-save, after-save, after-delete) for custom side-effects: refresh linked datasources, notifications, application-level audit log.
+- **Metadata changes** — applies direct edits to table/column metadata (caption, ordering, hide in list/edit, basic validations) without going through the manual metadata editor.
+- **SQL snippets in metadata (super-admin)** — writes raw SQL fragments to metadata fields concatenated at runtime in auto-generated queries: custom JOIN on the route, custom SELECT clause on a column, computed column formula, lookup display expression. Examples: "compute `total` on `orders` as `price` × `quantity`", "add join to `payments` on `invoice_id`". The chatbot knows the active provider dialect (mssql/mysql/postgres/oracle) and generates SQL with the correct quoting/syntax. Gated D3 operation: requires super-admin privileges server-side, with automatic audit log on `_error__logs` for every apply.
+
+### 🎨 New action: dashboard layout from natural language
+
+When the user is on the **Designer** page of a dashboard, the chatbot exposes a new family of actions that operate directly on the designer canvas (not on persisted metadata).
+
+Supported prompt patterns:
+
+- "add a grid bound to route `cities`" → injects `DATASOURCE` + `DATAREPEATER` configured and bound;
+- "create a 2×2 table layout" → injects a 2×2 `<table>` with cells ready to receive other components;
+- "put a vertical splitter with 3 areas" → injects a configured `SPLITTER`;
+- "change the top-right pane background to red" → modifies the `backgroundColor` property of the identified component;
+- "add a column to the table" / "remove row 2" → modifies `cols`/`rows` of the selected `TABLE` component;
+- "remove the Revenue KPI" → deletes a component from the canvas by name.
+
+The chatbot knows the full catalog of 31 designer tools (HTML, DATA, CONTAINER groups) and their editable properties. When the user mentions a metadata route with an approximate name ("provincies" instead of "stateprovinces"), the chatbot fuzzy-matches the available routes in your project and shows the resolved real name in the action rationale.
+
+Changes stay on the designer canvas until the user clicks "Save dashboard" — no automatic DB writes, the visual outcome is always reviewed before commit. The designer's undo/redo also covers chatbot-injected actions.
+
+---
+
+## ⚙️ Native .NET RAG engine (Python-free deployment)
+
+The RAG chatbot serving stack can now run **entirely on .NET**, with no separate Python server or virtual environment on the target machine. The retrieval models (embeddings + reranker) are loaded in-process via ONNX Runtime, with GPU (CUDA) acceleration auto-detected and transparent CPU fallback.
+
+- Activation via `appsettings.json`: `rag-use-dotnet-engine=true` selects the .NET engine; the default `false` keeps the previous behavior.
+- `rag-engine-device` (`auto` / `cpu` / `cuda`) selects the inference device; `rag-engine-profile` controls the redaction level of the sources cited in answers.
+- On first startup the required artifacts (ONNX models + index) are downloaded on demand, so the base package stays lightweight.
+
+Practical result: the customer deployment is **.NET only** — no Python install nor extra native dependencies beyond the .NET runtime. The conversational model call and the retrieval and actions pipeline are identical across both engines.
+
+---
+
 ## 🐛 Notable bug fixes
+
+- **Callback documentation aligned with the runtime**: the callback cookbook described signatures that did not match the actual behavior in two cases. The default value callback writes the value into the record (`record[field.mc_nome_colonna] = ...`) and the `return` is ignored; custom validation receives `(record, field, vr, wtoolbox)` and reports the outcome with a boolean `return` (`false` blocks the save) plus `vr.message` for the displayed text. The previous examples, based on `validateResult(...)` and on a `return` for the default value, produced callbacks that did not apply. Documentation corrected in all five languages.
+
+- **Reliability of chatbot-proposed actions**: for action requests the chatbot now deterministically emits the matching action chip, and automatically retries on a transient rate-limit of the conversational model instead of silently degrading to a text-only answer.
 
 - **Metadata scaffolder — `date` vs `datetime` distinction consolidated**: follow-up of the fix introduced in 1.2.1 on generated temporal types. The source-type parser now also covers atypical DDL variants (MySQL `DATETIME(0)` without precision, PostgreSQL bare `timestamp` without time-zone qualifier, Oracle `TIMESTAMP(n)` with explicit precision) — they all continue to map correctly to UI type `datetime` while preserving the time component at save.
 
@@ -76,3 +126,4 @@ The chat history schema (5 incremental patches) is applied idempotently at the f
 2. **No DBA step required** on existing installs: at the first chatbot `Ask`, the chat history schema (`_rag_chat_sessions` + `_rag_chat_messages` with all columns) is applied idempotently on the provider configured in `MetaDataSQLConnection`. Auto-migration covers fresh and partially migrated installs.
 3. If the install runs on **MySQL / PostgreSQL / Oracle**, verify the connection string points to the correct provider and the user has `ALTER TABLE` privileges on the metadata schema (needed only once, at the first start).
 4. To **monitor context window usage**, the cue % circle in the chatbot header is the immediate visual driver. Above 80% it is worth running a manual compact (`/compact` or click the cue) to reduce latency on subsequent turns.
+5. To run the RAG chatbot **without Python** on the target machine, set `rag-use-dotnet-engine=true` in `appsettings.json` (optionally `rag-engine-device` and `rag-engine-profile`). On first startup the inference artifacts are downloaded automatically.

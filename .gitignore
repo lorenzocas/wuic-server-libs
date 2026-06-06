@@ -47,3 +47,9 @@ _dataset_backup/tutorial-mssql/tutorial-data.mssql.bak
 _dataset_backup/tutorial-mssql/tutorial-data.mssql.sql
 _dataset_backup/tutorial-mssql/tutorial-metadata.mssql.sql
 _dataset_backup/tutorial-mssql/tutorial-metadata.mssql.bak
+
+# WuicRagEngine publish output — runtime binaries (ONNX Runtime CUDA, ~650MB)
+# Sono artefatti `dotnet publish`, si rigenerano a comando. Non vanno in git
+# (GitHub HTTP push timeout-a su .so/.dll > 100 MB). Bloccato 2026-06-06 dopo
+# che cb03091 li aveva inavvertitamente committati.
+WuicRagEngine/publish/

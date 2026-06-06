@@ -1,7 +1,43 @@
 {
-  "generatedAt": "2026-06-02T13:29:06.884Z",
-  "count": 10,
+  "generatedAt": "2026-06-04T18:06:46.160Z",
+  "count": 11,
   "posts": [
+    {
+      "slug": "rag-chatbot-tool-use-framework-integration",
+      "title": "The chatbot's toolbox: the actions an LLM can apply to your app",
+      "date": "2026-06-04",
+      "author": "Lorenzo Castrico",
+      "description": "Our in-product chatbot doesn't just answer questions — it proposes concrete changes to a running app through a typed toolbox, the same function-calling idea behind MCP. Toolbar buttons, validations, computed columns, conditional styles, even SQL fragments. Every proposal is a chip with an Apply button. This post walks the catalogue, one tool at a time, with the prompt that triggers each.",
+      "tags": [
+        "rag",
+        "llm",
+        "tool-use",
+        "mcp",
+        "claude",
+        "framework"
+      ],
+      "readingMinutes": 7,
+      "sourcePath": "assets/blog/rag-chatbot-tool-use-framework-integration.md"
+    },
+    {
+      "slug": "rag-chatbot-with-claude-and-bge-m3",
+      "title": "The architecture of an in-product RAG chatbot: from your prompt to the answer",
+      "date": "2026-06-04",
+      "author": "Lorenzo Castrico",
+      "description": "A closed-source codebase chatbot that cites real source files: hybrid BM25 + bge-m3 retrieval, a LoRA-fine-tuned cross-encoder, Claude for synthesis — and a serving stack that moved off Python onto native .NET/ONNX. This post follows a single prompt end-to-end, from the moment you hit send to the cited answer, and explains the architectural choices behind each step.",
+      "tags": [
+        "rag",
+        "claude",
+        "bge-m3",
+        "onnx",
+        "dotnet",
+        "architecture",
+        "ai",
+        "llm"
+      ],
+      "readingMinutes": 9,
+      "sourcePath": "assets/blog/rag-chatbot-with-claude-and-bge-m3.md"
+    },
     {
       "slug": "crmapp-free-crm-on-wuic",
       "title": "CrmApp: a free CRM you can install in 10 minutes (and own forever)",
@@ -122,23 +158,6 @@
       ],
       "readingMinutes": 8,
       "sourcePath": "assets/blog/native-linux-deployment-four-dbms.md"
-    },
-    {
-      "slug": "rag-chatbot-with-claude-and-bge-m3",
-      "title": "Building an in-product RAG chatbot with Claude + BAAI/bge-m3",
-      "date": "2026-05-01",
-      "author": "Lorenzo Castrico",
-      "description": "How we built a closed-source codebase chatbot that cites real source files, using a hybrid BM25 + bge-m3 retrieval, a LoRA-fine-tuned cross-encoder, and Claude for synthesis. The boring engineering numbers, not the hype.",
-      "tags": [
-        "rag",
-        "claude",
-        "bge-m3",
-        "ai",
-        "angular",
-        "llm"
-      ],
-      "readingMinutes": 7,
-      "sourcePath": "assets/blog/rag-chatbot-with-claude-and-bge-m3.md"
     },
     {
       "slug": "sql-table-to-crud-form-in-30-seconds",

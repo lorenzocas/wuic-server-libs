@@ -70,6 +70,22 @@
   la `releaseKey` corrente, emette warning ma non fallisce. Skippato se
   `-SkipZip`. Default: `release-notes/` accanto a questo script.
 
+.PARAMETER SkipRagArtifacts
+  Se specificato, salta lo step 6 (upload artefatti dell'engine RAG .NET).
+  Di default lo step E' attivo ma IDEMPOTENTE: salta i file il cui hash SHA256
+  sul server coincide con quello locale (carica solo mancanti/cambiati), quindi
+  i re-deploy che non toccano i modelli sono istantanei. La size e' un pre-check
+  veloce: l'hash locale viene calcolato solo quando la size remota combacia. Il primo deploy carica ~4.5GB
+  (modelli ONNX bge-m3 + reranker-merged-LoRA + index + tokenizer + rag_tools.json)
+  sotto <SitePath>\rag-models\ + un web.config con i MIME per .onnx/.onnx_data/
+  .npy/.jsonl/.model/.bpe. Sono gli artefatti che il satellite WuicRagEngine
+  scarica on-demand da https://<Server>/rag-models/ al primo avvio della chat
+  quando AppSetting rag-use-dotnet-engine=true.
+
+.PARAMETER RagArtifactsSourceDir
+  Cartella locale degli artefatti RAG. Default: ../codebase_embeddings
+  (contiene onnx_export/ + index/ + _translate_cache_v3.json).
+
 .PARAMETER LocalOnly
   Modalita' DRY-RUN per dev preview: NON tocca il server remoto, NON fa
   SCP/SSH/UNC/iisreset/maintenance swap. Esegue SOLO la logica di
@@ -101,6 +117,8 @@ param(
     [switch]$SkipApi,
     [switch]$SkipLinuxTarball,
     [switch]$SkipFreeAppZips,
+    [switch]$SkipRagArtifacts,
+    [string]$RagArtifactsSourceDir = '',
     [string]$LinuxTarballSourceDir = '',
     [string]$ReleaseNotesDir = '',
     [string]$InstallScriptPath = '',
@@ -122,6 +140,11 @@ if (-not $ZipSourceDir) {
 }
 if (-not $LinuxTarballSourceDir) {
     $LinuxTarballSourceDir = Join-Path $scriptDir '..\KonvergenceCore\artifacts\release\linux'
+}
+if (-not $RagArtifactsSourceDir) {
+    # Artefatti dell'engine RAG .NET (modelli ONNX + indice + tokenizer + tools).
+    # Vivono in C:\src\Wuic\codebase_embeddings (onnx_export/ + index/).
+    $RagArtifactsSourceDir = Join-Path $scriptDir '..\codebase_embeddings'
 }
 if (-not $ReleaseNotesDir) {
     $ReleaseNotesDir = Join-Path $scriptDir 'release-notes'
@@ -1769,6 +1792,138 @@ if (Test-Path $InstallScriptPath) {
     }
 } else {
     Write-Host "  [warn] install.sh non trovato: $InstallScriptPath — skip" -ForegroundColor Yellow
+}
+
+# ── step 6: upload RAG engine artifacts (on-demand download dalla chat) ──
+#
+# L'engine RAG .NET (satellite WuicRagEngine, caricato da KonvergenceCore quando
+# AppSetting rag-use-dotnet-engine=true) scarica on-demand al primo avvio i modelli
+# ONNX + indice + tokenizer + tool-definition da:
+#     https://<Server>/rag-models/<file>
+# (configurabile via AppSetting rag-engine-models-url).
+#
+# Questo stage pubblica quegli artefatti sotto <SitePath>\rag-models\ nel layout FLAT
+# che RagEngineLoader.s_artifactFiles si aspetta, e scrive un web.config che mappa le
+# estensioni non-standard (.onnx/.onnx_data/.npy/.jsonl/.model/.bpe) a octet-stream
+# cosi' IIS le serve invece di rispondere 404.3.
+#
+# IDEMPOTENTE: confronta la size remota con quella locale e carica SOLO i file
+# mancanti o cambiati -> il primo deploy carica ~4.5GB, i successivi sono istantanei.
+# Salta con -SkipRagArtifacts o -LocalOnly.
+
+if ($SkipRagArtifacts -or $LocalOnly) {
+    Write-Step "6/6 Upload RAG artifacts [SKIP]"
+} else {
+    Write-Step "6/6 Upload RAG artifacts (engine .NET on-demand) -> $Server"
+
+    # Mappa file locale (relativo a $RagArtifactsSourceDir) -> path remoto flat.
+    $ragArtifacts = @(
+        @{ local = 'onnx_export\bge_m3.onnx';                       remote = 'bge_m3.onnx' }
+        @{ local = 'onnx_export\bge_m3.onnx_data';                  remote = 'bge_m3.onnx_data' }
+        @{ local = 'onnx_export\reranker_merged.onnx';              remote = 'reranker_merged.onnx' }
+        @{ local = 'onnx_export\reranker_merged.onnx_data';         remote = 'reranker_merged.onnx_data' }
+        @{ local = 'onnx_export\rag_tools.json';                    remote = 'rag_tools.json' }
+        @{ local = 'onnx_export\tokenizer\sentencepiece.bpe.model'; remote = 'tokenizer/sentencepiece.bpe.model' }
+        @{ local = 'onnx_export\tokenizer\bge_m3\tokenizer.json';   remote = 'tokenizer/bge_m3/tokenizer.json' }
+        @{ local = 'index\vectors.npy';                            remote = 'index/vectors.npy' }
+        @{ local = 'index\metadata.jsonl';                         remote = 'index/metadata.jsonl' }
+        @{ local = '_translate_cache_v3.json';                     remote = '_translate_cache_v3.json'; optional = $true }
+    )
+
+    $remoteRag = Join-Path $SitePath 'rag-models'
+    $remoteUserHostRag = "${User}@${Server}"
+
+    # web.config: MIME per le estensioni non-standard servite come download.
+    $ragWebConfigXml = @'
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <system.webServer>
+    <staticContent>
+      <remove fileExtension=".onnx" /><mimeMap fileExtension=".onnx" mimeType="application/octet-stream" />
+      <remove fileExtension=".onnx_data" /><mimeMap fileExtension=".onnx_data" mimeType="application/octet-stream" />
+      <remove fileExtension=".npy" /><mimeMap fileExtension=".npy" mimeType="application/octet-stream" />
+      <remove fileExtension=".jsonl" /><mimeMap fileExtension=".jsonl" mimeType="application/octet-stream" />
+      <remove fileExtension=".model" /><mimeMap fileExtension=".model" mimeType="application/octet-stream" />
+      <remove fileExtension=".bpe" /><mimeMap fileExtension=".bpe" mimeType="application/octet-stream" />
+    </staticContent>
+  </system.webServer>
+</configuration>
+'@
+
+    # Setup remoto (un solo roundtrip): crea le dir, scrive web.config, emette le
+    # size dei file gia' presenti come righe "SIZE <relpath> <bytes>".
+    $ragRemoteList = ($ragArtifacts | ForEach-Object { "'" + $_.remote + "'" }) -join ','
+    $ragSetupScript = @"
+`$ErrorActionPreference = 'Stop'
+`$rag = '$remoteRag'
+New-Item -ItemType Directory -Force -Path `$rag, (Join-Path `$rag 'tokenizer'), (Join-Path `$rag 'tokenizer\bge_m3'), (Join-Path `$rag 'index') | Out-Null
+`$wc = @'
+$ragWebConfigXml
+'@
+Set-Content -Path (Join-Path `$rag 'web.config') -Value `$wc -Encoding UTF8
+foreach (`$f in @($ragRemoteList)) {
+    `$p = Join-Path `$rag (`$f -replace '/','\')
+    if (Test-Path `$p) {
+        `$h = (Get-FileHash -Algorithm SHA256 -LiteralPath `$p).Hash
+        Write-Output ('META ' + `$f + ' ' + (Get-Item `$p).Length + ' ' + `$h)
+    }
+}
+"@
+    # Direct ssh (NON Invoke-RemotePwsh: qui ci serve catturare lo stdout con le size).
+    $ragSetupBytes = [System.Text.Encoding]::Unicode.GetBytes($ragSetupScript)
+    $ragSetupEncoded = [Convert]::ToBase64String($ragSetupBytes)
+    $ragRemoteOut = & ssh $remoteUserHostRag "powershell -NoProfile -NonInteractive -EncodedCommand $ragSetupEncoded" 2>&1
+    # Mappa relpath -> @{ size; hash(SHA256) } dei file gia' presenti sul server.
+    $remoteMeta = @{}
+    foreach ($line in $ragRemoteOut) {
+        if ("$line" -match '^META\s+(\S+)\s+(\d+)\s+([0-9A-Fa-f]+)$') {
+            $remoteMeta[$Matches[1]] = @{ size = [long]$Matches[2]; hash = $Matches[3].ToUpperInvariant() }
+        }
+    }
+    Write-Sub "remoto: $($remoteMeta.Count) artefatti gia' presenti (skip su hash SHA256 identico)"
+
+    $uncSiteRoot = "\\${Server}\$($SitePath -replace ':', '$')"
+    $ragUseUnc = [bool](Test-Path $uncSiteRoot -ErrorAction SilentlyContinue)
+    Write-Sub ("modalita' trasferimento: " + ($(if ($ragUseUnc) { 'UNC' } else { 'SCP' })))
+
+    $uploaded = 0; $skipped = 0; $missing = 0
+    foreach ($a in $ragArtifacts) {
+        $localPath = Join-Path $RagArtifactsSourceDir $a.local
+        if (-not (Test-Path $localPath)) {
+            if ($a.optional) { Write-Sub "skip opzionale assente: $($a.remote)" }
+            else { Write-Host "  [warn] artefatto mancante in locale: $localPath" -ForegroundColor Yellow; $missing++ }
+            continue
+        }
+        $localSize = (Get-Item $localPath).Length
+        # Skip su HASH identico. Calcolo l'hash locale (costoso su file da GB) solo
+        # quando la size remota combacia: se differisce e' gia' cambiato di sicuro.
+        $rm = $remoteMeta[$a.remote]
+        if ($rm -and $rm.size -eq $localSize) {
+            $localHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $localPath).Hash.ToUpperInvariant()
+            if ($rm.hash -eq $localHash) {
+                Write-Sub "skip (hash-match $([math]::Round($localSize / 1MB, 1)) MB): $($a.remote)"
+                $skipped++; continue
+            }
+            Write-Sub "hash DIVERSO (stessa size) -> ri-upload: $($a.remote)"
+        }
+        Write-Sub "upload $([math]::Round($localSize / 1MB, 1)) MB -> $($a.remote)"
+        $remoteTarget = Join-Path $remoteRag ($a.remote -replace '/', '\')
+        if ($ragUseUnc) {
+            $uncTarget = Join-Path $uncSiteRoot ('rag-models\' + ($a.remote -replace '/', '\'))
+            $uncParent = Split-Path -Parent $uncTarget
+            if (-not (Test-Path $uncParent)) { New-Item -ItemType Directory -Force -Path $uncParent | Out-Null }
+            Copy-Item -LiteralPath $localPath -Destination $uncTarget -Force
+        } else {
+            $scpTarget = ConvertTo-ScpRemotePath $remoteTarget
+            scp $localPath "${remoteUserHostRag}:${scpTarget}"
+            if ($LASTEXITCODE -ne 0) { throw "scp artefatto $($a.remote) fallita (exit $LASTEXITCODE)" }
+        }
+        $uploaded++
+    }
+    Write-Host "  [ok] RAG artifacts: $uploaded caricati, $skipped gia' presenti, $missing mancanti -> https://${Server}/rag-models/" -ForegroundColor Green
+    if ($missing -gt 0) {
+        Write-Host "  [warn] $missing artefatti mancanti in locale: l'engine .NET non sara' scaricabile finche' non li generi (rag-rebuild-pipeline + export_for_dotnet)." -ForegroundColor Yellow
+    }
 }
 
 # ── done ─────────────────────────────────────────────────────────────

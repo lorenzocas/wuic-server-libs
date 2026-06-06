@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>WuicRagEngine</AssemblyName>
+    <RootNamespace>WuicRagEngine</RootNamespace>
+    <!-- Satellite caricato via Assembly.LoadFrom da KonvergenceCore solo a flag=true.
+         Genera il .deps.json per risolvere i native ONNX a runtime. -->
+    <GenerateDependencyFile>true</GenerateDependencyFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- .Gpu: include sia il provider CUDA (GPU) sia il fallback CPU. Su macchine
+         senza CUDA/cuDNN l'append del provider CUDA fallisce e l'engine ricade su CPU
+         (vedi OnnxSession.Build). Richiede CUDA 12.x + cuDNN 9.x sul deploy per la GPU. -->
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.Gpu" Version="1.26.0" />
+    <PackageReference Include="Microsoft.ML.Tokenizers" Version="2.0.0" />
+  </ItemGroup>
+
+</Project>

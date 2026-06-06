@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { WuicRagChatbotComponent } from 'wuic-framework-lib-src/component/rag-chatbot/rag-chatbot.component';
+import { WuicRagChatbotComponent } from 'wuic-framework-lib';
 
 /**
  * Pagina full-page del RAG chatbot per WuicTest (dev/test app).
