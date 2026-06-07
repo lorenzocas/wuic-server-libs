@@ -4094,6 +4094,11 @@ FROM {fromTable}
 
         private static void AppendSort(_Metadati_Colonne fld, string orderSafetableName, ref string sort, string sortDir)
         {
+            // FIX 2026-06-07: null-guard mirror di mssql/mysql/oracle. Vedi nota
+            // identica in oracle/metaQueryOracleSql.cs:AppendSort.
+            if (fld == null)
+                return;
+
             _Metadati_Colonne_Lookup look = fld as _Metadati_Colonne_Lookup;
 
             dynamic serverProps = null;

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-04T18:06:46.160Z",
+  "generatedAt": "2026-06-07T22:48:50.725Z",
   "count": 11,
   "posts": [
     {
@@ -16,7 +16,7 @@
         "claude",
         "framework"
       ],
-      "readingMinutes": 7,
+      "readingMinutes": 9,
       "sourcePath": "assets/blog/rag-chatbot-tool-use-framework-integration.md"
     },
     {
@@ -35,7 +35,7 @@
         "ai",
         "llm"
       ],
-      "readingMinutes": 9,
+      "readingMinutes": 11,
       "sourcePath": "assets/blog/rag-chatbot-with-claude-and-bge-m3.md"
     },
     {

@@ -4187,7 +4187,18 @@ END;");
                         fk_name = col.mc_ui_lookup_dataValueField
                     };
                     joins.Add(currentAP, joinn);
-                    List<_Metadati_Colonne_Lookup> loos = relatedTable._Metadati_Colonnes.OfType<_Metadati_Colonne_Lookup>().ToList();
+                    // FIX 2026-06-07: Oracle metadata loader puo' lasciare `_Metadati_Colonnes`
+                    // null su una _Metadati_Tabelle caricata via lookup (es. lookup target
+                    // `metadati  tabelle` da `_record_field_translations.md_id`). MSSQL/MySQL
+                    // popolano sempre la navigation, Oracle solo per la route corrente, non
+                    // per quelle raggiunte via lookup. Senza guard: ArgumentNullException
+                    // `Parameter 'source'` su `.OfType<>()` (LINQ extension) → HTTP 400
+                    // errors.input.required al FE.
+                    // Skip cascade lookup-of-lookup quando colonne non caricate: il SELECT
+                    // base + JOIN diretti restano corretti, perdiamo solo i pre-JOIN
+                    // delle lookup di secondo livello (rari, raramente necessari nel FE).
+                    var relatedTableCols = relatedTable._Metadati_Colonnes ?? new List<_Metadati_Colonne>();
+                    List<_Metadati_Colonne_Lookup> loos = relatedTableCols.OfType<_Metadati_Colonne_Lookup>().ToList();
 
                     loos.ForEach(x =>
                     {
@@ -4730,6 +4741,15 @@ END;");
 
         private static void AppendSort(_Metadati_Colonne fld, string orderSafetableName, ref string sort, string sortDir)
         {
+            // FIX 2026-06-07: null-guard mirror di mssql (_Metadati_methods.cs:7474) e
+            // mysql (metaQueryMySql.cs:5552). BuildDynamicOrderBy passa il risultato di
+            // lst.FirstOrDefault(...) che puo' essere null se SortInfo.field non matcha
+            // nessuna colonna della route (es. FE list-grid sorta per 'id' su una route
+            // con PK composta md_id/id_record/field_name/language come _record_field_translations).
+            // Senza guard: NRE su fld.mc_props_bag -> 500 server-side -> 400 al FE.
+            if (fld == null)
+                return;
+
             _Metadati_Colonne_Lookup look = fld as _Metadati_Colonne_Lookup;
 
             dynamic serverProps = null;

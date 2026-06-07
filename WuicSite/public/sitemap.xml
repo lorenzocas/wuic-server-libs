@@ -32,7 +32,7 @@
   </url>
   <url>
     <loc>https://wuic-framework.com/docs</loc>
-    <lastmod>2026-04-26</lastmod>
+    <lastmod>2026-06-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -79,6 +79,18 @@
     <priority>0.3</priority>
   </url>
   <url>
+    <loc>https://wuic-framework.com/blog/rag-chatbot-tool-use-framework-integration</loc>
+    <lastmod>2026-06-04</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/blog/rag-chatbot-with-claude-and-bge-m3</loc>
+    <lastmod>2026-06-04</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://wuic-framework.com/blog/crmapp-free-crm-on-wuic</loc>
     <lastmod>2026-05-15</lastmod>
     <changefreq>monthly</changefreq>
@@ -117,12 +129,6 @@
   <url>
     <loc>https://wuic-framework.com/blog/native-linux-deployment-four-dbms</loc>
     <lastmod>2026-05-04</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://wuic-framework.com/blog/rag-chatbot-with-claude-and-bge-m3</loc>
-    <lastmod>2026-05-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>

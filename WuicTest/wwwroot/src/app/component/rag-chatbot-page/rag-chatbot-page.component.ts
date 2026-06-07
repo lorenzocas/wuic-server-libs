@@ -1,5 +1,10 @@
 import { Component } from '@angular/core';
-import { WuicRagChatbotComponent } from 'wuic-framework-lib';
+// IMPORT da `wuic-framework-lib-dev` (NON da `'wuic-framework-lib'` diretto):
+// in dev WuicTest carica il sorgente live via lib-src; importare dal package
+// FESM in node_modules duplica le definizioni dei componenti (WuicRagChatbot
+// + DataSourceComponent + LazyListGridComponent + ...) -> NG0912 collision.
+// Regola skill app-creation (rif. AGENTS.md #24).
+import { WuicRagChatbotComponent } from 'wuic-framework-lib-dev';
 
 /**
  * Pagina full-page del RAG chatbot per WuicTest (dev/test app).

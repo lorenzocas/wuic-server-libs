@@ -958,6 +958,22 @@ namespace WuicCore.Controllers
                 return result;
             }
 
+            // MSSQL branch: EF reports Schema = null when the entity has no
+            // explicit schema configured (the common case — EF then resolves to
+            // the default `dbo` at SQL generation time). The shared `schema`
+            // variable is intentionally left null here so the MySQL/Oracle/PG
+            // branches above keep working (the 2026-04-30 fix removed the global
+            // `dbo` fallback because Pomelo MySQL maps tables under Schema=null).
+            // But the sys.* catalog lookup below filters `WHERE s.name = @schema`,
+            // so a null @schema both (a) crashes with SqlException 8178
+            // ("@schema not supplied" — ADO.NET treats a C# null Value as unbound)
+            // and (b) would match zero rows even if bound as DBNull, leaving the
+            // identity column undetected and breaking the subsequent INSERT.
+            // Default to `dbo` LOCALLY here (symmetric with the pg→public and
+            // mysql→<db> fallbacks above), without re-contaminating the cross-DBMS
+            // `schema` variable.
+            string mssqlSchema = string.IsNullOrWhiteSpace(schema) ? "dbo" : schema;
+
             var conn = (SqlConnection)_context.Database.GetDbConnection();
             if (conn.State != System.Data.ConnectionState.Open)
                 await conn.OpenAsync();
@@ -974,7 +990,7 @@ namespace WuicCore.Controllers
 
             var pSchema = cmd.CreateParameter();
             pSchema.ParameterName = "@schema";
-            pSchema.Value = schema;
+            pSchema.Value = mssqlSchema;
             cmd.Parameters.Add(pSchema);
 
             var pTable = cmd.CreateParameter();

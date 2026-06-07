@@ -916,6 +916,45 @@ body.wuic-designer-edit-mode *:hover>.ng-resizable-handle {
     color: var(--p-text-color, #111827) !important;
 }
 
+/* row-info: era promessa dal tool description del chatbot RAG ma mai aggiunta
+   al CSS — l'utente vedeva la classe applicata sulla <tr> senza colore. */
+.p-datatable .p-datatable-tbody>tr.row-info {
+    --p-datatable-row-background: #bfdbfe;
+    --p-datatable-row-color: var(--p-text-color, #111827);
+}
+
+.p-datatable .p-datatable-tbody>tr.row-info>td,
+.p-datatable .p-datatable-tbody>tr>td.row-info {
+    background-color: #bfdbfe !important;
+    color: var(--p-text-color, #111827) !important;
+}
+
+/* cell-*: stile condizionale sulla singola CELLA (propose_column_style del
+   chatbot). Stesso pattern delle row-* ma con specificity sul td invece che
+   sulla tr. Promesse dal tool description ma mai esistite — caso reale
+   2026-06-07: LLM emette `css_class:'style:background-color:blue;color:white'`
+   come fallback perche' `cell-info` non avrebbe funzionato. Add: ora funziona
+   davvero. */
+.p-datatable .p-datatable-tbody>tr>td.cell-danger {
+    background-color: #fecaca !important;
+    color: var(--p-text-color, #111827) !important;
+}
+
+.p-datatable .p-datatable-tbody>tr>td.cell-warning {
+    background-color: #fed7aa !important;
+    color: var(--p-text-color, #111827) !important;
+}
+
+.p-datatable .p-datatable-tbody>tr>td.cell-info {
+    background-color: #bfdbfe !important;
+    color: var(--p-text-color, #111827) !important;
+}
+
+.p-datatable .p-datatable-tbody>tr>td.cell-success {
+    background-color: #bbf7d0 !important;
+    color: var(--p-text-color, #111827) !important;
+}
+
 
 .wuic-progress-dialog .p-progressbar .p-progressbar-value,
 .wuic-progress-dialog .p-progressbar-value {

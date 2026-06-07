@@ -32,7 +32,10 @@ Bot:  toolbar action  ▸ Apply
                 const csv = toCsv(rows); download('orders.csv', csv);
 ```
 
-> ▶ **Media** — screenshot: the new toolbar button on the orders grid + the CSV download.
+<details class="rag-demo">
+  <summary><img class="rag-demo-poster" src="/assets/wuic-framework-docs/screenshots/rag-table-action.thumb.jpg" alt="Demo propose_toolbar_action — bulk archive on cities (poster)" /><span class="rag-demo-label"><i class="pi pi-play-circle"></i> <strong>Play demo</strong> — propose_toolbar_action: bulk archive button</span></summary>
+  <img class="rag-demo-anim" src="/assets/wuic-framework-docs/screenshots/rag-table-action.gif" alt="Demo propose_toolbar_action — bulk archive on cities" loading="lazy" />
+</details>
 
 ### `propose_row_action`
 
@@ -47,7 +50,10 @@ Bot:  row action  ▸ Apply
                 await datasource.fetchData();
 ```
 
-> ▶ **Media** — clip: opening a row's action menu and clicking the proposed Approve button.
+<details class="rag-demo">
+  <summary><img class="rag-demo-poster" src="/assets/wuic-framework-docs/screenshots/rag-row-action.thumb.jpg" alt="Demo propose_row_action — per-row PDF generation (poster)" /><span class="rag-demo-label"><i class="pi pi-play-circle"></i> <strong>Play demo</strong> — propose_row_action: per-row "Generate PDF" button</span></summary>
+  <img class="rag-demo-anim" src="/assets/wuic-framework-docs/screenshots/rag-row-action.gif" alt="Demo propose_row_action — per-row PDF generation" loading="lazy" />
+</details>
 
 ## Conditional styling
 
@@ -63,7 +69,10 @@ Bot:  table style  ▸ Apply
       condition: new Date(record.due_date) < new Date()
 ```
 
-> ▶ **Media** — screenshot: a grid with overdue rows rendered in red.
+<details class="rag-demo">
+  <summary><img class="rag-demo-poster" src="/assets/wuic-framework-docs/screenshots/rag-row-style.thumb.jpg" alt="Demo propose_table_style — conditional row coloring (poster)" /><span class="rag-demo-label"><i class="pi pi-play-circle"></i> <strong>Play demo</strong> — propose_table_style: conditional row coloring</span></summary>
+  <img class="rag-demo-anim" src="/assets/wuic-framework-docs/screenshots/rag-row-style.gif" alt="Demo propose_table_style — conditional row coloring" loading="lazy" />
+</details>
 
 ### `propose_column_style`
 
@@ -78,7 +87,10 @@ Bot:  column style  ▸ Apply
       condition: record.status === 'OK'
 ```
 
-> ▶ **Media** — screenshot: the status column with a green cell.
+<details class="rag-demo">
+  <summary><img class="rag-demo-poster" src="/assets/wuic-framework-docs/screenshots/rag-cell-style.thumb.jpg" alt="Demo propose_column_style — single-cell conditional coloring (poster)" /><span class="rag-demo-label"><i class="pi pi-play-circle"></i> <strong>Play demo</strong> — propose_column_style: single-cell conditional coloring</span></summary>
+  <img class="rag-demo-anim" src="/assets/wuic-framework-docs/screenshots/rag-cell-style.gif" alt="Demo propose_column_style — single-cell conditional coloring" loading="lazy" />
+</details>
 
 ## Cell rendering and form titles
 
@@ -234,7 +246,10 @@ Bot:  designer inject  ▸ Apply
 
 It knows the full catalogue of canvas tools and their editable properties, and it fuzzy-matches sloppy route names (*"provincie"* → `stateprovinces`) before committing to an argument.
 
-> ▶ **Media** — clip: typing the prompt on the designer and watching the grid appear on the canvas, then undo.
+<details class="rag-demo">
+  <summary><img class="rag-demo-poster" src="/assets/wuic-framework-docs/screenshots/rag-designer.thumb.jpg" alt="Demo propose_designer_inject — master-detail injection in designer canvas (poster)" /><span class="rag-demo-label"><i class="pi pi-play-circle"></i> <strong>Play demo</strong> — propose_designer_inject: master-detail injection on designer canvas</span></summary>
+  <img class="rag-demo-anim" src="/assets/wuic-framework-docs/screenshots/rag-designer.gif" alt="Demo propose_designer_inject — master-detail injection in designer canvas" loading="lazy" />
+</details>
 
 ## Before it acts: asking for the schema
 

@@ -31,7 +31,14 @@ import Lara from '@primeuix/themes/lara';
 import Nora from '@primeuix/themes/nora';
 import Material from '@primeuix/themes/material';
 import { updatePrimaryPalette, usePreset } from '@primeuix/styled';
-import { DataRepeaterComponent, DataSourceComponent } from './wuic-bridges/public';
+// IMPORT da `wuic-framework-lib-dev` (alias TS, vedi tsconfig.json `paths`)
+// e NON dai path relativi `./wuic-bridges/public` (vietato dalla regola 24 di
+// AGENTS.md + skill app-creation). Motivo: altri componenti dell'app importano
+// le stesse classi via `wuic-framework-lib-dev`; con `preserveSymlinks:true`
+// Angular tratta i due specifier come moduli distinti -> duplicazione
+// component IDs -> NG0912. Il path alias e il path relativo risolvono allo
+// STESSO file ma TS li mappa a record diversi nel module map.
+import { DataRepeaterComponent, DataSourceComponent, WuicRagChatbotFabComponent, LazyFirstRunWizardComponent, WuicErrorDialogComponent, WuicAziendaSwitcherComponent } from 'wuic-framework-lib-dev';
 
 import {
   WtoolboxService, MetadataProviderService, GlobalHandler,
@@ -39,7 +46,6 @@ import {
   PRIMARY_PALETTES, ThemeOption, LicenseFeatureService
 } from './wuic-bridges/core';
 import { ImageWrapperComponent } from './wuic-bridges/ui';
-import { WuicRagChatbotFabComponent, LazyFirstRunWizardComponent, WuicErrorDialogComponent, WuicAziendaSwitcherComponent } from './wuic-bridges/public';
 import { CustomListComponent } from './component/custom-list/custom-list.component';
 
 @Component({
