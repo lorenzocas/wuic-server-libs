@@ -1,0 +1,98 @@
+.legal-page {
+  max-width: 900px;
+  padding-top: 2rem;
+  padding-bottom: 4rem;
+}
+.legal-page .legal-header {
+  margin-bottom: 2.5rem;
+  text-align: center;
+}
+.legal-page .legal-header h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+.legal-page .legal-header .legal-subtitle {
+  color: var(--text-color-secondary, #6c757d);
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+.legal-page .legal-header .legal-update {
+  font-size: 0.85rem;
+  color: var(--text-color-secondary, #6c757d);
+  margin-top: 0.75rem;
+  font-style: italic;
+}
+.legal-page .legal-section {
+  margin-bottom: 2rem;
+}
+.legal-page .legal-section h2 {
+  font-size: 1.3rem;
+  margin-bottom: 0.75rem;
+  border-left: 3px solid var(--primary-color, #2563eb);
+  padding-left: 0.75rem;
+}
+.legal-page .legal-section h3 {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+  margin-top: 1rem;
+  color: var(--primary-color, #2563eb);
+}
+.legal-page .legal-section p, .legal-page .legal-section li {
+  line-height: 1.65;
+  color: var(--text-color, #1f2937);
+}
+.legal-page .legal-section p a {
+  color: var(--primary-color, #2563eb);
+  text-decoration: underline;
+}
+.legal-page .legal-section code {
+  font-family: "Consolas", "Monaco", monospace;
+  font-size: 0.92em;
+  padding: 0.1em 0.35em;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 3px;
+}
+.legal-page .legal-section .legal-note {
+  font-size: 0.92rem;
+  color: var(--text-color-secondary, #6c757d);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  padding-top: 0.75rem;
+  margin-top: 1rem;
+}
+.legal-page .legal-section .cookie-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.75rem;
+  font-size: 0.92rem;
+}
+.legal-page .legal-section .cookie-table th, .legal-page .legal-section .cookie-table td {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+.legal-page .legal-section .cookie-table th {
+  background: rgba(37, 99, 235, 0.06);
+  font-weight: 600;
+}
+.legal-page .legal-section .cookie-table code {
+  white-space: nowrap;
+}
+.legal-page .legal-section .manage-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--primary-color, #2563eb);
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  margin-top: 0.5rem;
+  transition: background 0.15s ease;
+}
+.legal-page .legal-section .manage-btn:hover {
+  background: #1d4ed8;
+}/*# sourceMappingURL=cookies.css.map */

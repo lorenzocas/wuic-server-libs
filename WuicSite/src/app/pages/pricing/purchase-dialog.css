@@ -1,0 +1,241 @@
+@charset "UTF-8";
+.purchase-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.purchase-product-summary {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px 20px;
+}
+
+.purchase-product-desc {
+  margin: 0 0 12px;
+  color: #475569;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.purchase-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.purchase-price-amount {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.purchase-price-tax {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.purchase-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.purchase-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.purchase-field input {
+  width: 100%;
+}
+
+.purchase-field-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #334155;
+}
+.purchase-field-label .req {
+  color: #ef4444;
+}
+
+.purchase-field-hint {
+  font-size: 0.78rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+.purchase-field-hint code {
+  background: #f1f5f9;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.purchase-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  background: #f1f5f9;
+  border-radius: 8px;
+  color: #475569;
+  font-size: 0.9rem;
+}
+.purchase-loading .pi-spinner {
+  font-size: 1.1rem;
+}
+
+.paypal-container {
+  min-height: 45px;
+}
+.paypal-container.hidden {
+  display: none;
+}
+
+::ng-deep .purchase-msg {
+  display: block;
+  width: 100%;
+}
+::ng-deep .purchase-msg .p-message-wrapper {
+  width: 100%;
+}
+
+.purchase-footer-note {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #64748b;
+  text-align: center;
+  line-height: 1.4;
+}
+
+/* Success state */
+.purchase-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 0;
+  text-align: center;
+}
+
+.success-check {
+  width: 64px;
+  height: 64px;
+  background: #d1fae5;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.success-check i {
+  font-size: 2.2rem;
+  color: #10b981;
+}
+
+.purchase-success h3 {
+  margin: 0;
+  font-size: 1.35rem;
+  color: #0f172a;
+}
+
+.purchase-success p {
+  margin: 0;
+  color: #334155;
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+.success-details {
+  width: 100%;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 0.85rem;
+  color: #475569;
+  text-align: left;
+}
+.success-details div {
+  margin: 4px 0;
+}
+.success-details div code {
+  background: #e2e8f0;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+.success-next-steps {
+  width: 100%;
+  text-align: left;
+}
+.success-next-steps h4 {
+  margin: 0 0 8px;
+  color: #0f172a;
+  font-size: 1rem;
+}
+.success-next-steps ol {
+  margin: 0;
+  padding-left: 22px;
+  color: #334155;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+.success-next-steps ol li {
+  margin-bottom: 6px;
+}
+.success-next-steps ol code {
+  background: #f1f5f9;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 0.88em;
+}
+
+.success-cta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+/* ────────────────────────────────────────────────────────────────
+   Optional invoicing section
+   Collapsible block under the main fields. By default the user only
+   sees a lightweight toggle button so B2C purchases stay simple.
+   ──────────────────────────────────────────────────────────────── */
+.purchase-invoicing {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px dashed rgba(0, 0, 0, 0.1);
+}
+
+.invoicing-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--primary-color, #2563eb);
+  padding: 6px 0;
+  transition: color 0.15s ease;
+}
+.invoicing-toggle:hover {
+  color: #1d4ed8;
+}
+.invoicing-toggle i {
+  font-size: 0.75rem;
+  transition: transform 0.15s ease;
+}
+
+.invoicing-intro {
+  margin: 4px 0 12px;
+  font-size: 0.85rem;
+  color: var(--text-color-secondary, #6b7280);
+  line-height: 1.5;
+}/*# sourceMappingURL=purchase-dialog.css.map */

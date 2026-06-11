@@ -1,0 +1,263 @@
+.version-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+.version-banner span {
+  font-weight: 600;
+  color: #475569;
+}
+.version-banner .release-date {
+  font-weight: 400;
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+.older-versions-link {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+  margin-bottom: 24px;
+}
+.older-versions-link a {
+  text-decoration: none;
+}
+
+.pkg-name {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.pkg-size {
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.info-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin-top: 48px;
+}
+
+.info-card {
+  padding: 4px;
+}
+.info-card h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: #0f172a;
+}
+.info-card h3 i {
+  color: #6366f1;
+}
+.info-card p {
+  color: #64748b;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+.info-card code {
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.freeapps-block {
+  margin-top: 48px;
+  padding: 28px 32px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+.freeapps-block h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 0;
+  margin-bottom: 8px;
+  font-size: 1.4rem;
+  color: #0f172a;
+}
+.freeapps-block h2 i {
+  color: #16a34a;
+}
+.freeapps-block .freeapps-subtitle {
+  margin: 0 0 16px 0;
+  color: #475569;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+.freeapps-block .freeapps-license-note {
+  display: block;
+  margin-bottom: 24px;
+}
+.freeapps-block .freeapps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+}
+.freeapps-block .freeapp-card {
+  padding: 4px;
+}
+.freeapps-block .freeapp-card h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0 0 4px 0;
+  color: #0f172a;
+}
+.freeapps-block .freeapp-card .freeapp-tagline {
+  font-size: 0.85rem;
+  color: #6366f1;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.freeapps-block .freeapp-card .freeapp-features {
+  color: #475569;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin: 0 0 16px 0;
+}
+.freeapps-block .freeapp-card .freeapp-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.freeapps-block .freeapp-card .freeapp-actions a {
+  text-decoration: none;
+}
+
+.linux-install-block {
+  margin-top: 48px;
+  padding: 28px 32px;
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-left: 4px solid #6366f1;
+  border-radius: 8px;
+  color: #e2e8f0;
+}
+.linux-install-block h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: #f1f5f9;
+}
+.linux-install-block h2 i {
+  color: #818cf8;
+}
+.linux-install-block .linux-install-subtitle {
+  color: #cbd5e1;
+  font-size: 0.92rem;
+  margin: 0 0 18px;
+  line-height: 1.6;
+}
+.linux-install-block .linux-install-copy-hint {
+  color: #94a3b8;
+  font-size: 0.85rem;
+  margin: 0 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+.linux-install-block .linux-install-cmd {
+  background: #020617;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 14px 18px;
+  margin: 0 0 18px;
+  overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: #a5b4fc;
+}
+.linux-install-block .linux-install-cmd code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  white-space: pre;
+}
+.linux-install-block .linux-install-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 20px;
+}
+.linux-install-block .linux-install-actions a {
+  text-decoration: none;
+}
+.linux-install-block .linux-install-actions .linux-install-tarball-note {
+  color: #94a3b8;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  flex: 1 1 280px;
+}
+
+.requirements-block {
+  margin-top: 48px;
+  padding: 28px 32px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #6366f1;
+  border-radius: 8px;
+}
+.requirements-block h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: #0f172a;
+}
+.requirements-block h2 i {
+  color: #6366f1;
+}
+.requirements-block .requirements-subtitle {
+  color: #64748b;
+  font-size: 0.9rem;
+  margin: 0 0 16px;
+}
+.requirements-block .requirements-list {
+  margin: 0;
+  padding-left: 20px;
+  color: #334155;
+  font-size: 0.92rem;
+  line-height: 1.7;
+}
+.requirements-block .requirements-list li {
+  margin-bottom: 8px;
+}
+.requirements-block .requirements-list li:last-child {
+  margin-bottom: 0;
+}
+.requirements-block .requirements-list strong {
+  color: #0f172a;
+}
+.requirements-block .requirements-list code {
+  background: #e2e8f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: #1e293b;
+}
+.requirements-block .requirements-list em {
+  font-style: normal;
+  background: #fef3c7;
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: #713f12;
+  font-size: 0.88rem;
+}/*# sourceMappingURL=downloads.css.map */
