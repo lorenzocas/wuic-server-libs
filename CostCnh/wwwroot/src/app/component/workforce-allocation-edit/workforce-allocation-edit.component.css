@@ -1,0 +1,171 @@
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.wa-host {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: var(--surface-ground, #f8f9fa);
+}
+
+.wa-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  background: var(--surface-card, #fff);
+  border-bottom: 1px solid var(--surface-border, #dee2e6);
+  font-size: 14px;
+}
+
+.wa-title {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.wa-title i {
+  color: var(--primary-color, #0d6efd);
+}
+.wa-title .wa-scope {
+  font-weight: 400;
+  color: var(--text-color-secondary, #6c757d);
+  margin-left: 6px;
+}
+
+.wa-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.wa-year-select {
+  width: 100px;
+}
+
+.wa-grid-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+:host ::ng-deep .wa-table {
+  width: 100%;
+  height: 100%;
+}
+:host ::ng-deep .wa-table .p-datatable-wrapper {
+  height: 100%;
+}
+:host ::ng-deep .wa-table .wa-header-month-row th {
+  text-align: center;
+  background: var(--surface-100, #e9ecef);
+  font-weight: 600;
+  padding: 6px 4px;
+  font-size: 12px;
+  border-right: 1px solid var(--surface-border, #dee2e6);
+}
+:host ::ng-deep .wa-table .wa-header-month-row th small {
+  display: block;
+  font-size: 10px;
+  opacity: 0.65;
+  font-weight: 400;
+}
+:host ::ng-deep .wa-table .wa-header-measure-row th {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--surface-50, #f8f9fa);
+  padding: 4px 2px;
+  border-right: 1px solid var(--surface-border, #dee2e6);
+  border-top: 1px solid var(--surface-border, #dee2e6);
+}
+:host ::ng-deep .wa-table .wa-measure-fte {
+  color: var(--blue-700, #084298);
+}
+:host ::ng-deep .wa-table .wa-measure-hours {
+  color: var(--green-700, #146c43);
+}
+:host ::ng-deep .wa-table .wa-measure-cost {
+  color: var(--orange-700, #b85d00);
+}
+:host ::ng-deep .wa-table .wa-row-label {
+  padding: 4px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+  min-width: 380px;
+  white-space: nowrap;
+}
+:host ::ng-deep .wa-table .wa-row-label .wa-resource strong {
+  font-weight: 600;
+}
+:host ::ng-deep .wa-table .wa-row-label .wa-meta {
+  font-size: 11px;
+  color: var(--text-color-secondary, #6c757d);
+  display: flex;
+  gap: 8px;
+}
+:host ::ng-deep .wa-table .wa-row-label .wa-meta .wa-cc, :host ::ng-deep .wa-table .wa-row-label .wa-meta .wa-role {
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--surface-100, #e9ecef);
+}
+:host ::ng-deep .wa-table .wa-cell {
+  text-align: right;
+  padding: 2px 4px;
+  min-width: 64px;
+  max-width: 90px;
+  border-right: 1px solid var(--surface-200, #e9ecef);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+:host ::ng-deep .wa-table .wa-cell:hover {
+  background: var(--blue-50, #eef5ff);
+}
+:host ::ng-deep .wa-table .wa-cell-input {
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  text-align: right;
+  font: inherit;
+  padding: 2px 4px;
+  border-radius: 2px;
+}
+:host ::ng-deep .wa-table .wa-cell-input:focus {
+  outline: none;
+  border-color: var(--primary-color, #0d6efd);
+  background: var(--blue-50, #eef5ff);
+}
+:host ::ng-deep .wa-table .wa-cell-input--derived {
+  color: var(--orange-700, #b85d00);
+  font-style: italic;
+}
+:host ::ng-deep .wa-table .wa-cell--derived {
+  position: relative;
+  background: var(--orange-50, #fff7e6);
+}
+:host ::ng-deep .wa-table .wa-derived-icon {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 10px;
+  color: var(--orange-600, #d97706);
+  opacity: 0.7;
+}
+:host ::ng-deep .wa-table .wa-empty {
+  text-align: center;
+  padding: 32px;
+  color: var(--text-color-secondary, #6c757d);
+}
+:host ::ng-deep .wa-table .wa-empty code {
+  background: var(--surface-100, #e9ecef);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: "Consolas", monospace;
+}/*# sourceMappingURL=workforce-allocation-edit.component.css.map */

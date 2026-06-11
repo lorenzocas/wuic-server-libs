@@ -1,0 +1,109 @@
+:host {
+  display: block;
+  padding: 16px;
+}
+
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.page h1 {
+  margin: 0 0 16px;
+  color: #1565c0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 22px;
+}
+.page .form-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 6px;
+  margin-bottom: 24px;
+}
+.page .form-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: #555;
+}
+.page .kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.page .kpi-grid .kpi {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-left: 4px solid #1565c0;
+  border-radius: 4px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.page .kpi-grid .kpi span {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #777;
+}
+.page .kpi-grid .kpi strong {
+  font-size: 18px;
+  color: #222;
+}
+.page .kpi-grid .kpi.pos {
+  border-left-color: #2e7d32;
+}
+.page .kpi-grid .kpi.neg {
+  border-left-color: #c62828;
+}
+.page .kpi-grid .kpi.total {
+  border-left-color: #1565c0;
+  background: #e3f2fd;
+}
+.page .kpi-grid .kpi.total strong {
+  font-size: 22px;
+  color: #1565c0;
+}
+.page .kpi-grid .kpi.total.versare {
+  background: #ffebee;
+  border-left-color: #c62828;
+}
+.page .kpi-grid .kpi.total.versare strong {
+  color: #c62828;
+}
+.page .badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #ffe0b2;
+  color: #e65100;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.page .badge.attiva {
+  background: #c8e6c9;
+  color: #2e7d32;
+}
+.page .num {
+  text-align: right;
+  white-space: nowrap;
+}
+.page .muted {
+  color: #777;
+}
+.page .small {
+  font-size: 12px;
+}
+.page .center {
+  text-align: center;
+  padding: 24px;
+}/*# sourceMappingURL=comunicazioni-finanziarie.component.css.map */

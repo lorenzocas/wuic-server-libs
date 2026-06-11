@@ -1,0 +1,173 @@
+:host {
+  display: block;
+  background: #f5f5f5;
+  min-height: 100vh;
+  padding: 16px;
+}
+
+.print-toolbar {
+  margin-bottom: 16px;
+  display: flex;
+  gap: 8px;
+}
+
+.loading-state, .error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 64px 16px;
+  text-align: center;
+}
+.loading-state i, .error-state i {
+  font-size: 32px;
+  color: #d32f2f;
+}
+
+.fattura-sheet {
+  background: white;
+  max-width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 18mm 16mm;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  font-family: "Segoe UI", Arial, sans-serif;
+  font-size: 11pt;
+  color: #222;
+}
+.fattura-sheet .fattura-head {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 2px solid #1565c0;
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+.fattura-sheet .fattura-head .emittente h2 {
+  margin: 0 0 4px;
+  color: #1565c0;
+}
+.fattura-sheet .fattura-head .doc-id {
+  text-align: right;
+}
+.fattura-sheet .fattura-head .doc-id h1 {
+  margin: 0;
+  font-size: 24pt;
+  color: #1565c0;
+}
+.fattura-sheet .fattura-head .doc-id .num {
+  font-size: 14pt;
+  font-weight: bold;
+}
+.fattura-sheet .fattura-head .doc-id .badge.sdi {
+  display: inline-block;
+  background: #e3f2fd;
+  color: #1565c0;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 9pt;
+  margin-top: 4px;
+}
+.fattura-sheet .cliente {
+  margin-bottom: 16px;
+}
+.fattura-sheet .cliente .label {
+  text-transform: uppercase;
+  font-size: 8pt;
+  color: #777;
+  letter-spacing: 1px;
+}
+.fattura-sheet .cliente .value {
+  font-size: 12pt;
+}
+.fattura-sheet table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 16px;
+}
+.fattura-sheet table th, .fattura-sheet table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #e0e0e0;
+  text-align: left;
+}
+.fattura-sheet table th {
+  background: #f5f5f5;
+  font-size: 9pt;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.fattura-sheet table td.num, .fattura-sheet table th.num {
+  width: 32px;
+}
+.fattura-sheet table td.qty, .fattura-sheet table th.qty {
+  text-align: right;
+  width: 80px;
+}
+.fattura-sheet table td.price, .fattura-sheet table th.price {
+  text-align: right;
+  width: 110px;
+}
+.fattura-sheet table td.vat, .fattura-sheet table th.vat {
+  text-align: right;
+  width: 70px;
+}
+.fattura-sheet table td.total, .fattura-sheet table th.total {
+  text-align: right;
+  width: 120px;
+}
+.fattura-sheet .riepilogo {
+  margin-left: auto;
+  width: 50%;
+}
+.fattura-sheet .riepilogo th {
+  background: #fafafa;
+}
+.fattura-sheet .totali {
+  margin-top: 12px;
+  margin-left: auto;
+  width: 40%;
+}
+.fattura-sheet .totali > div {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+.fattura-sheet .totali > div.grand {
+  border-top: 2px solid #1565c0;
+  padding-top: 8px;
+  margin-top: 8px;
+  font-size: 14pt;
+  color: #1565c0;
+}
+.fattura-sheet .note {
+  margin-top: 24px;
+  padding-top: 12px;
+  border-top: 1px solid #e0e0e0;
+}
+.fattura-sheet .note .label {
+  font-size: 8pt;
+  color: #777;
+  text-transform: uppercase;
+}
+.fattura-sheet .muted {
+  color: #777;
+}
+.fattura-sheet .center {
+  text-align: center;
+}
+
+@media print {
+  :host {
+    background: white;
+    padding: 0;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .fattura-sheet {
+    box-shadow: none;
+    margin: 0;
+    padding: 12mm 14mm;
+    max-width: none;
+    min-height: auto;
+  }
+}/*# sourceMappingURL=fattura-print.component.css.map */
