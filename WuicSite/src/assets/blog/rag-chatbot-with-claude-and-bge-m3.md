@@ -127,7 +127,15 @@ A short list of approaches we dropped, so the next person can save the time:
 
 ## What's the chatbot actually for?
 
-The most interesting use we didn't predict: **onboarding new developers**. New hires ask the bot *"how is the wizard architecture wired?"*; it cites the file, they open it, they learn. Time-to-first-PR compresses from weeks to days. Second: **support triage** — *"where is the input validation for `crm_account.email`?"* gives a starting line in 30 seconds, not 30 minutes.
+Answering questions is half of it. The half we use more is the chatbot *doing* things on the app you're looking at — proposing a button on a grid, a row colour rule, a computed column, a metadata patch — through a typed catalogue of tools the model can call. Every proposal is a chip with an **Apply** button, the generated code, and the target route, all visible before anything runs.
+
+The headline example: the **dashboard designer**. With the designer open, ask:
+
+> *"add a grid bound to provincie"*
+
+The model fuzzy-matches "provincie" to the real `stateprovinces` route, generates the DATASOURCE + DATAREPEATER components configured for it, and drops them on the canvas as a single proposal. Nothing persists until you click "Save dashboard"; designer undo/redo covers the model's edits exactly like a human's. The bot just saved you the drag, the binding panel, and the route lookup.
+
+The full toolbox — toolbar actions, row actions, conditional styling, custom validations, lifecycle callbacks, metadata patches, even raw SQL fragments in the active dialect — is the subject of the [follow-up post](/blog/rag-chatbot-tool-use-framework-integration).
 
 ## Try it
 

@@ -319,6 +319,19 @@ if (-not $SkipBuild) {
     Write-Step "1/3 Build Angular"
     Push-Location $scriptDir
     try {
+        # Force Node 24 (nvm-windows). Angular CLI >= 18 requires Node v20.19+
+        # or v22.12+; an ambient Node 16/18 from `nvm use 16` etc. on the dev
+        # machine makes `ng build` exit 3 immediately. Prepend the v24 path so
+        # both the `node` calls below and the @angular/cli shim pick it up.
+        $node24Dir = 'C:\Users\lollo\AppData\Roaming\nvm\v24.14.0'
+        if (Test-Path (Join-Path $node24Dir 'node.exe')) {
+            $env:PATH = "$node24Dir;$env:PATH"
+            $nodeVer = (& (Join-Path $node24Dir 'node.exe') --version 2>$null)
+            Write-Sub "Node PATH override: $node24Dir ($nodeVer)"
+        } else {
+            Write-Sub "[WARN] Node 24 path not found at $node24Dir - using ambient Node"
+        }
+
         # Invoke the local ng binary directly. `npx ng build` was used here in the
         # past but hangs indefinitely in non-interactive pwsh sessions (observed
         # 2026-04-22: 11 min wall time, 0.2s CPU, zero child processes).

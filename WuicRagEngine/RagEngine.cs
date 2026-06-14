@@ -359,7 +359,11 @@ public sealed class RagEngine : IDisposable
             // tool_choice:any l'azione e' GARANTITA. Per le domande/Q&A restiamo su auto (l'LLM
             // puo' e DEVE poter rispondere a testo). Filtriamo ai propose_* per evitare che il
             // forcing scelga un tool non-azione (remember_fact/forget_fact/suggest_followups).
-            bool actionIntent = !string.IsNullOrWhiteSpace(routeContext) && LooksLikeActionRequest(query);
+            // Richiesta di ESEMPIO/SPIEGAZIONE ("dammi un esempio", "come funziona", "senza
+            // applicare"): NON e' un'azione, e per evitare l'over-trigger (il modello che
+            // propone un tool quando l'utente voleva solo un esempio) NON passeremo i tool.
+            bool exampleIntent = LooksLikeExampleRequest(query);
+            bool actionIntent = !string.IsNullOrWhiteSpace(routeContext) && LooksLikeActionRequest(query) && !exampleIntent;
             // Elementi tool da inviare: se actionIntent filtra ai soli propose_*.
             var toolSource = new List<JsonElement>();
             foreach (var t in toolsDoc.RootElement.EnumerateArray())
@@ -374,6 +378,8 @@ public sealed class RagEngine : IDisposable
             }
             if (actionIntent && toolSource.Count == 0)
                 foreach (var t in toolsDoc.RootElement.EnumerateArray()) toolSource.Add(t.Clone());
+            // Esempio/spiegazione: nessun tool -> il modello risponde a TESTO, niente azione (true-negative robusto).
+            if (exampleIntent) toolSource.Clear();
 
             Dictionary<string, object> body;
             if (oaiProvider)
@@ -395,12 +401,15 @@ public sealed class RagEngine : IDisposable
                 body = new Dictionary<string, object>
                 {
                     ["model"] = model,
-                    ["max_tokens"] = 2048,
+                    ["max_tokens"] = 4096,
                     ["temperature"] = TemperatureCfg(),
                     ["messages"] = oaiMessages,
-                    ["tools"] = oaiTools,
                 };
-                if (actionIntent) body["tool_choice"] = "required";
+                if (oaiTools.Count > 0)
+                {
+                    body["tools"] = oaiTools;
+                    if (actionIntent) body["tool_choice"] = "required";
+                }
             }
             else
             {
@@ -408,14 +417,18 @@ public sealed class RagEngine : IDisposable
                 body = new Dictionary<string, object>
                 {
                     ["model"] = model,
-                    ["max_tokens"] = 2048,
+                    ["max_tokens"] = 4096,
                     // temperature=0: piu' focus, meno allucinazioni nelle risposte Q&A RAG.
                     ["temperature"] = TemperatureCfg(),
                     ["system"] = system.ToString(),
                     ["messages"] = messages,
-                    ["tools"] = toolSource,
                 };
-                if (actionIntent) body["tool_choice"] = new Dictionary<string, object> { ["type"] = "any" };
+                if (toolSource.Count > 0)
+                {
+                    // prompt caching: ultimo tool marcato cache_control:ephemeral (vedi BuildCachedTools)
+                    body["tools"] = BuildCachedTools(toolSource);
+                    if (actionIntent) body["tool_choice"] = new Dictionary<string, object> { ["type"] = "any" };
+                }
             }
             string bodyJson = JsonSerializer.Serialize(body);
             string? dumpPath = Environment.GetEnvironmentVariable("WUIC_RAG_DEBUG_BODY");
@@ -722,7 +735,13 @@ public sealed class RagEngine : IDisposable
     }
 
     /// <summary>Trasforma una risposta OpenAI chat-completions nella shape Anthropic
-    /// (content[].text / content[].tool_use{name,input} + usage) attesa dal parser.</summary>
+    /// (content[].text / content[].tool_use{name,input} + usage) attesa dal parser.
+    /// FALLBACK: alcuni server OpenAI-compatible (notabilmente Ollama, e in generale
+    /// sotto `tool_choice:"required"`) NON popolano `message.tool_calls` e restituiscono
+    /// la tool-call come JSON grezzo dentro `message.content` (es. `{"name":"propose_...",
+    /// "arguments":{...}}`). In quel caso sintetizziamo il blocco tool_use dal content,
+    /// cosi' il parser di ChatJson (e il loop agentico request_metadata_detail) restano
+    /// identici e l'azione viene proposta lo stesso. Vedi smoke-test Ollama 2026-06-13.</summary>
     private static string NormalizeOpenAiToAnthropic(string openaiResp)
     {
         try
@@ -736,14 +755,13 @@ public sealed class RagEngine : IDisposable
                 if (u.TryGetProperty("prompt_tokens", out var pt) && pt.ValueKind == JsonValueKind.Number) tin = pt.GetInt32();
                 if (u.TryGetProperty("completion_tokens", out var ct) && ct.ValueKind == JsonValueKind.Number) tout = ct.GetInt32();
             }
+            string textContent = "";
+            var toolBlocks = new List<object>();
             if (root.TryGetProperty("choices", out var ch) && ch.ValueKind == JsonValueKind.Array && ch.GetArrayLength() > 0
                 && ch[0].TryGetProperty("message", out var msg))
             {
                 if (msg.TryGetProperty("content", out var c) && c.ValueKind == JsonValueKind.String)
-                {
-                    string txt = c.GetString() ?? "";
-                    if (txt.Length > 0) content.Add(new { type = "text", text = txt });
-                }
+                    textContent = c.GetString() ?? "";
                 if (msg.TryGetProperty("tool_calls", out var tc) && tc.ValueKind == JsonValueKind.Array)
                 {
                     foreach (var call in tc.EnumerateArray())
@@ -754,13 +772,260 @@ public sealed class RagEngine : IDisposable
                         object input;
                         try { using var ad = JsonDocument.Parse(string.IsNullOrWhiteSpace(args) ? "{}" : args); input = ad.RootElement.Clone(); }
                         catch { input = new Dictionary<string, object>(); }
-                        content.Add(new { type = "tool_use", name, input });
+                        toolBlocks.Add(new { type = "tool_use", name, input });
                     }
                 }
             }
+            // Fallback content->tool_use quando il provider non ha popolato tool_calls.
+            if (toolBlocks.Count == 0 && !string.IsNullOrWhiteSpace(textContent))
+            {
+                var synth = TryExtractToolUseFromContent(textContent);
+                if (synth != null) { toolBlocks.Add(synth); textContent = ""; }
+            }
+            if (!string.IsNullOrWhiteSpace(textContent)) content.Add(new { type = "text", text = textContent });
+            content.AddRange(toolBlocks);
             return JsonSerializer.Serialize(new { content, usage = new { input_tokens = tin, output_tokens = tout } });
         }
         catch { return openaiResp; }
+    }
+
+    /// <summary>Cerca nel testo (content del messaggio) il PRIMO oggetto JSON bilanciato
+    /// che rappresenti una tool-call di un tool WUIC noto (`{"name":"propose_*"|utility,
+    /// "arguments"|"parameters":{...}}`) e lo converte nel blocco Anthropic
+    /// `{type:"tool_use", name, input}`. Ritorna null se nessun candidato valido.
+    /// Scansione brace-aware (string/escape) per gestire callback_js/condition_js con
+    /// graffe e virgolette annidate, e un eventuale prefisso spurio del modello.</summary>
+    private static object? TryExtractToolUseFromContent(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return null;
+        int start = text.IndexOf('{');
+        while (start >= 0)
+        {
+            int depth = 0; bool inStr = false, esc = false;
+            for (int i = start; i < text.Length; i++)
+            {
+                char chx = text[i];
+                if (inStr)
+                {
+                    if (esc) esc = false;
+                    else if (chx == '\\') esc = true;
+                    else if (chx == '"') inStr = false;
+                }
+                else if (chx == '"') inStr = true;
+                else if (chx == '{') depth++;
+                else if (chx == '}')
+                {
+                    depth--;
+                    if (depth == 0)
+                    {
+                        var tu = TryBuildToolUse(text.Substring(start, i - start + 1));
+                        if (tu != null) return tu;
+                        break; // candidato non valido -> prova dal prossimo '{'
+                    }
+                }
+            }
+            start = text.IndexOf('{', start + 1);
+        }
+        // Nessun envelope {name,arguments}: prova il formato Ollama "<nome_tool> {args}".
+        return ScanNamedBlock(text);
+    }
+
+    /// <summary>Riconosce il pattern (frequente con Ollama sotto tool_choice required) in cui
+    /// il modello scrive il nome del tool seguito direttamente dagli ARGS, es.
+    /// `propose_table_style [sig] {"route":...}` oppure `propose_designer_inject{action_type:'inject', layout=[...]}`.
+    /// Trova il token nome-tool noto, salta un eventuale `[...]` di firma, cattura il blocco
+    /// `{...}` bilanciato e lo normalizza (JS-literal -> JSON) per ottenere gli input.</summary>
+    private static object? ScanNamedBlock(string text)
+    {
+        var rx = new System.Text.RegularExpressions.Regex(
+            @"(propose_[A-Za-z_]+|request_metadata_detail|remember_fact|forget_fact|suggest_followups)");
+        foreach (System.Text.RegularExpressions.Match m in rx.Matches(text))
+        {
+            string name = m.Value;
+            int j = m.Index + m.Length;
+            while (j < text.Length && char.IsWhiteSpace(text[j])) j++;
+            if (j < text.Length && text[j] == '[') // salta firma opzionale [campo campo ...]
+            {
+                int d = 0;
+                for (; j < text.Length; j++) { if (text[j] == '[') d++; else if (text[j] == ']') { d--; if (d == 0) { j++; break; } } }
+                while (j < text.Length && char.IsWhiteSpace(text[j])) j++;
+            }
+            if (j >= text.Length || text[j] != '{') continue;
+            string block = ExtractBalancedBraces(text, j);
+            if (block == null) continue;
+            string json = NormalizeJsObjectToJson(block);
+            if (json == null) continue;
+            try { using var d = JsonDocument.Parse(json); return new { type = "tool_use", name, input = d.RootElement.Clone() }; }
+            catch { /* prova il prossimo match */ }
+        }
+        return null;
+    }
+
+    /// <summary>Estrae la sottostringa `{...}` bilanciata che parte all'indice start, rispettando
+    /// stringhe con apici `'` `"` e backtick e gli escape. null se non bilanciata.</summary>
+    private static string ExtractBalancedBraces(string s, int start)
+    {
+        int depth = 0; char q = '\0'; bool esc = false;
+        for (int i = start; i < s.Length; i++)
+        {
+            char c = s[i];
+            if (q != '\0')
+            {
+                if (esc) esc = false;
+                else if (c == '\\') esc = true;
+                else if (c == q) q = '\0';
+            }
+            else if (c == '\'' || c == '"' || c == '`') q = c;
+            else if (c == '{') depth++;
+            else if (c == '}') { depth--; if (depth == 0) return s.Substring(start, i - start + 1); }
+        }
+        return null;
+    }
+
+    /// <summary>Normalizza un object-literal JS (apici singoli/backtick, chiavi non quotate,
+    /// separatore `:` o `=`, virgole finali) in JSON valido. Recursive-descent quote-aware:
+    /// i body JS (callback_js/condition_js) dentro le stringhe restano intatti. null se non parsabile.</summary>
+    private static string NormalizeJsObjectToJson(string s)
+    {
+        try { int i = 0; var sb = new System.Text.StringBuilder(); if (!NormVal(s, ref i, sb)) return null; return sb.ToString(); }
+        catch { return null; }
+    }
+
+    private static void NormWs(string s, ref int i) { while (i < s.Length && char.IsWhiteSpace(s[i])) i++; }
+
+    private static bool NormVal(string s, ref int i, System.Text.StringBuilder sb)
+    {
+        NormWs(s, ref i);
+        if (i >= s.Length) return false;
+        char c = s[i];
+        if (c == '{') return NormObj(s, ref i, sb);
+        if (c == '[') return NormArr(s, ref i, sb);
+        if (c == '\'' || c == '"' || c == '`') { NormStr(s, ref i, sb); return true; }
+        // bareword / numero / literal: leggi fino a delimitatore
+        int st = i;
+        while (i < s.Length && ",}]".IndexOf(s[i]) < 0) i++;
+        string tok = s.Substring(st, i - st).Trim();
+        if (tok.Length == 0) return false;
+        if (tok == "true" || tok == "false" || tok == "null") { sb.Append(tok); return true; }
+        if (System.Text.RegularExpressions.Regex.IsMatch(tok, @"^-?\d+(\.\d+)?([eE][+-]?\d+)?$")) { sb.Append(tok); return true; }
+        AppendJsonString(sb, tok); // qualsiasi altra cosa -> stringa
+        return true;
+    }
+
+    private static bool NormObj(string s, ref int i, System.Text.StringBuilder sb)
+    {
+        sb.Append('{'); i++; // '{'
+        bool first = true;
+        while (true)
+        {
+            NormWs(s, ref i);
+            if (i >= s.Length) return false;
+            if (s[i] == '}') { i++; sb.Append('}'); return true; }
+            if (!first) sb.Append(',');
+            first = false;
+            // chiave
+            string key;
+            if (s[i] == '\'' || s[i] == '"' || s[i] == '`') { var kb = new System.Text.StringBuilder(); NormStr(s, ref i, kb); sb.Append(kb); }
+            else { int ks = i; while (i < s.Length && s[i] != ':' && s[i] != '=' && !char.IsWhiteSpace(s[i])) i++; key = s.Substring(ks, i - ks); AppendJsonString(sb, key); }
+            NormWs(s, ref i);
+            if (i >= s.Length || (s[i] != ':' && s[i] != '=')) return false;
+            i++; // ':' o '='
+            sb.Append(':');
+            if (!NormVal(s, ref i, sb)) return false;
+            NormWs(s, ref i);
+            if (i < s.Length && s[i] == ',') { i++; continue; }
+        }
+    }
+
+    private static bool NormArr(string s, ref int i, System.Text.StringBuilder sb)
+    {
+        sb.Append('['); i++; // '['
+        bool first = true;
+        while (true)
+        {
+            NormWs(s, ref i);
+            if (i >= s.Length) return false;
+            if (s[i] == ']') { i++; sb.Append(']'); return true; }
+            if (!first) sb.Append(',');
+            first = false;
+            if (!NormVal(s, ref i, sb)) return false;
+            NormWs(s, ref i);
+            if (i < s.Length && s[i] == ',') { i++; continue; }
+        }
+    }
+
+    private static void NormStr(string s, ref int i, System.Text.StringBuilder sb)
+    {
+        char q = s[i]; i++;
+        var raw = new System.Text.StringBuilder();
+        while (i < s.Length)
+        {
+            char c = s[i];
+            if (c == '\\' && i + 1 < s.Length) { raw.Append(c); raw.Append(s[i + 1]); i += 2; continue; }
+            if (c == q) { i++; break; }
+            raw.Append(c); i++;
+        }
+        AppendJsonString(sb, raw.ToString(), unescapeInput: true);
+    }
+
+    private static void AppendJsonString(System.Text.StringBuilder sb, string val, bool unescapeInput = false)
+    {
+        sb.Append('"');
+        for (int k = 0; k < val.Length; k++)
+        {
+            char c = val[k];
+            if (unescapeInput && c == '\\' && k + 1 < val.Length)
+            {
+                char n = val[k + 1];
+                // mantieni gli escape JSON validi; converti \' -> ' (non valido in JSON)
+                if (n == '\'') { sb.Append('\''); k++; continue; }
+                if ("\"\\/bfnrtu".IndexOf(n) >= 0) { sb.Append('\\').Append(n); k++; continue; }
+                sb.Append('\\').Append('\\'); continue; // backslash letterale
+            }
+            switch (c)
+            {
+                case '"': sb.Append("\\\""); break;
+                case '\\': sb.Append("\\\\"); break;
+                case '\n': sb.Append("\\n"); break;
+                case '\r': sb.Append("\\r"); break;
+                case '\t': sb.Append("\\t"); break;
+                default: if (c < 0x20) sb.Append("\\u").Append(((int)c).ToString("x4")); else sb.Append(c); break;
+            }
+        }
+        sb.Append('"');
+    }
+
+    /// <summary>Costruisce un blocco tool_use da una stringa JSON candidata, validando che
+    /// `name` sia un tool WUIC noto (propose_* o utility). Accetta sia `arguments` sia
+    /// `parameters` come contenitore degli input (alcuni modelli usano l'uno o l'altro).</summary>
+    private static object? TryBuildToolUse(string json)
+    {
+        try
+        {
+            using var d = JsonDocument.Parse(json);
+            var r = d.RootElement;
+            if (r.ValueKind != JsonValueKind.Object) return null;
+            if (!r.TryGetProperty("name", out var nmEl) || nmEl.ValueKind != JsonValueKind.String) return null;
+            string name = nmEl.GetString() ?? "";
+            bool known = name.StartsWith("propose_", StringComparison.Ordinal)
+                || name == "request_metadata_detail" || name == "remember_fact"
+                || name == "forget_fact" || name == "suggest_followups";
+            if (!known) return null;
+            object input;
+            if (r.TryGetProperty("arguments", out var argEl) || r.TryGetProperty("parameters", out argEl))
+            {
+                if (argEl.ValueKind == JsonValueKind.Object) input = argEl.Clone();
+                else if (argEl.ValueKind == JsonValueKind.String)
+                {
+                    try { using var ad = JsonDocument.Parse(argEl.GetString() ?? "{}"); input = ad.RootElement.Clone(); }
+                    catch { input = new Dictionary<string, object>(); }
+                }
+                else input = new Dictionary<string, object>();
+            }
+            else return null;
+            return new { type = "tool_use", name, input };
+        }
+        catch { return null; }
     }
 
     /// <summary>Cerca nella risposta (shape-Anthropic) un tool_use `request_metadata_detail`.
@@ -926,6 +1191,36 @@ public sealed class RagEngine : IDisposable
         return false;
     }
 
+    /// <summary>
+    /// Anthropic prompt caching: marca l'ULTIMO tool del blocco con
+    /// <c>cache_control: {type:"ephemeral"}</c>, cosi' l'intero array <c>tools</c>
+    /// (~17-18K token statici da <c>rag_tools.json</c>, che rende PRIMA di <c>system</c>)
+    /// viene messo in cache. E' l'unica regione cacheabile in modo affidabile: il
+    /// <c>system</c> contiene i chunk RAG VOLATILI per-query, quindi tutto cio' che lo
+    /// segue non e' un prefisso stabile tra turni. Una cache read costa ~0.1x del prezzo
+    /// input -> forte risparmio su conversazioni multi-turn (entro il TTL di 5 min).
+    /// Solo path Anthropic (l'openai/openrouter usa un'altra wire-format).
+    /// Kill-switch: env <c>WUIC_RAG_DISABLE_PROMPT_CACHE=1</c>.
+    /// </summary>
+    private static object BuildCachedTools(List<JsonElement> toolSource)
+    {
+        if (toolSource == null || toolSource.Count == 0) return (object?)toolSource ?? new List<object>();
+        if (string.Equals(Environment.GetEnvironmentVariable("WUIC_RAG_DISABLE_PROMPT_CACHE"), "1", StringComparison.Ordinal))
+            return toolSource;
+
+        var result = new List<object>(toolSource.Count);
+        for (int i = 0; i < toolSource.Count - 1; i++) result.Add(toolSource[i]);
+
+        // Ultimo tool: copia i campi + aggiunge cache_control. I JsonElement value
+        // serializzano col loro raw value; cache_control come dict annidato.
+        var lastWithCache = new Dictionary<string, object>();
+        foreach (var prop in toolSource[^1].EnumerateObject())
+            lastWithCache[prop.Name] = prop.Value;
+        lastWithCache["cache_control"] = new Dictionary<string, string> { ["type"] = "ephemeral" };
+        result.Add(lastWithCache);
+        return result;
+    }
+
     /// <summary>Lista dei campi `required` (solo stringhe) dell'input_schema del tool indicato.</summary>
     private static List<string> RequiredStringFieldsForTool(List<JsonElement> toolSource, string toolName)
     {
@@ -1058,6 +1353,26 @@ public sealed class RagEngine : IDisposable
         if (s.EndsWith("?")) return false;                       // domanda esplicita -> Q&A
         foreach (var qw in s_questionStarts) if (s.StartsWith(qw)) return false;
         foreach (var v in s_actionVerbs) if (s.Contains(v)) return true;
+        return false;
+    }
+
+    // Frasi che segnalano una richiesta di ESEMPIO/SPIEGAZIONE (non un'azione da applicare).
+    // Specifiche per evitare falsi positivi su "per esempio" mid-frase.
+    private static readonly string[] s_exampleIndicators =
+    {
+        "esempio di", "un esempio", "mi dai un esempio", "dammi un esempio", "fammi un esempio",
+        "mostrami un esempio", "fai un esempio", "come funziona", "come si fa", "spiegami",
+        "spiega come", "spiega il", "spiega la", "senza applicar", "senza salvar",
+        "example of", "an example", "give me an example", "show me an example", "how does", "how do i",
+    };
+
+    /// <summary>True se la query e' una richiesta di esempio/spiegazione (Q&A), non un'azione.
+    /// In tal caso ChatJson NON passa i tool al modello -> nessuna proposta d'azione (true-negative).</summary>
+    private static bool LooksLikeExampleRequest(string query)
+    {
+        string s = (query ?? "").Trim().ToLowerInvariant();
+        if (s.Length == 0) return false;
+        foreach (var v in s_exampleIndicators) if (s.Contains(v)) return true;
         return false;
     }
 

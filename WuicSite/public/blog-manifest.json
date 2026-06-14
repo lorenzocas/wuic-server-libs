@@ -1,7 +1,28 @@
 {
-  "generatedAt": "2026-06-07T22:48:50.725Z",
-  "count": 11,
+  "generatedAt": "2026-06-14T08:30:52.046Z",
+  "count": 12,
   "posts": [
+    {
+      "slug": "local-llm-ollama-mcp-agentic-vscode",
+      "title": "Running the WUIC assistant on a local LLM: Ollama, an MCP server, and a free agentic VS Code",
+      "date": "2026-06-14",
+      "author": "Lorenzo Castrico",
+      "description": "We moved the generative half of our RAG chatbot off a paid cloud API and onto a local model served by Ollama on a GPU box — and exposed the same WUIC knowledge to Cline and Continue in VS Code through a tiny MCP server. This is the architecture, the one hard problem (tool-calling), the measured results, and an honest accounting of what a local LLM costs you in quality and latency to save you in money and privacy.",
+      "tags": [
+        "llm",
+        "ollama",
+        "mcp",
+        "cline",
+        "continue",
+        "local-llm",
+        "rag",
+        "cost",
+        "architecture",
+        "ai"
+      ],
+      "readingMinutes": 8,
+      "sourcePath": "assets/blog/local-llm-ollama-mcp-agentic-vscode.md"
+    },
     {
       "slug": "rag-chatbot-tool-use-framework-integration",
       "title": "The chatbot's toolbox: the actions an LLM can apply to your app",

@@ -41,6 +41,8 @@ A confident hallucination in a developer tool is worse than no answer. So when w
 
 This post is the engineering story — hybrid retrieval (BM25 + bge-m3 embeddings), a LoRA-fine-tuned cross-encoder, Italian query translation, and why we picked Claude over OpenAI for synthesis. Including the eval numbers and the bits that didn't work.
 
+And a teaser of what the chatbot does with that retrieval. Open the dashboard designer, ask "add a grid bound to provincie": the model fuzzy-matches the route to stateprovinces, generates the DATASOURCE + DATAREPEATER, drops them on the canvas as a single proposal you Apply with one click. Full tool catalogue in the follow-up post.
+
 👉 https://wuic-framework.com/blog/rag-chatbot-with-claude-and-bge-m3
 
 #angular #ai #rag #llm #claude
@@ -158,6 +160,23 @@ The post explains the geolocation pipeline (we don't ship the GPS tracker hardwa
 👉 https://wuic-framework.com/blog/flottamezzi-free-fleet-management
 
 #fleetmanagement #iot #geolocation #opensource #wuic
+
+---
+
+## Day 11 — 2026-06-10 (RAG chatbot tool-use)
+
+🛠️ Our in-product chatbot proposes app changes, you click to apply.
+
+A chatbot that only answers questions is a search box with manners. We wanted ours to do more — describe a change in plain language, get a proposal chip with an Apply button, the generated code, the target route, and the model's rationale, all visible before anything runs.
+
+If you know MCP, the mental model is the same: a typed catalogue of tools the model can call. Ours sits over a metadata-driven framework, so the tools fill in the blanks of operations the framework already knows how to do — toolbar buttons, row actions, conditional row/cell styles, validations, lifecycle callbacks, metadata patches, even SQL fragments in the active dialect (MSSQL/MySQL/Postgres/Oracle).
+
+One rule sits above everything: nothing applies without a click. The model proposes, you dispose.
+
+Full catalogue + the schema-fetching tool that keeps prompts lean:
+👉 https://wuic-framework.com/blog/rag-chatbot-tool-use-framework-integration
+
+#ai #llm #mcp #angular #framework
 
 ---
 

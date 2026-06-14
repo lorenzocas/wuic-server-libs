@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Release Notes v1.3.0_1.3.0 - WUIC Framework</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; color: #1e293b; background: #ffffff; line-height: 1.6; overflow-wrap: anywhere; word-wrap: break-word; }
+a { color: #6366f1; text-decoration: none; }
+a:hover { color: #4f46e5; text-decoration: underline; }
+
+/* Site-style header (mini-navbar) */
+.rn-header { background: rgba(255, 255, 255, 0.95); border-bottom: 1px solid #e2e8f0; backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 10; }
+.rn-header-inner { max-width: 1200px; margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.rn-brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: #0f172a; font-size: 1.15rem; }
+.rn-brand-bolt { display: inline-block; width: 24px; height: 24px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M13 2L3 14h7l-1 8 10-12h-7l1-8z'/></svg>") center/contain no-repeat; mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M13 2L3 14h7l-1 8 10-12h-7l1-8z'/></svg>") center/contain no-repeat; }
+.rn-back { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border: 1px solid #c7d2fe; border-radius: 6px; color: #4f46e5; background: #eef2ff; font-size: 0.9rem; transition: background 0.15s, border-color 0.15s; }
+.rn-back:hover { background: #e0e7ff; border-color: #a5b4fc; text-decoration: none; }
+
+/* Article container: same width as Site .container */
+.rn-article { max-width: 880px; margin: 0 auto; padding: 48px 24px 80px; }
+
+/* Headings: site palette */
+h1, h2, h3, h4 { color: #0f172a; line-height: 1.25; font-weight: 700; }
+h1 { font-size: 2rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; margin-bottom: 1.25rem; }
+h2 { font-size: 1.4rem; margin-top: 2.25rem; margin-bottom: 0.75rem; }
+h3 { font-size: 1.125rem; margin-top: 1.5rem; margin-bottom: 0.5rem; color: #334155; }
+
+p { margin: 0.75rem 0; color: #334155; }
+strong { color: #0f172a; font-weight: 600; }
+
+ul, ol { padding-left: 1.4rem; margin: 0.75rem 0; }
+li { margin: 0.25rem 0; color: #334155; }
+
+hr { border: 0; border-top: 1px solid #e2e8f0; margin: 2.5rem 0; }
+
+/* Inline code: tinta indigo che richiama il brand */
+code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.9em; }
+code { background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; padding: 0.1em 0.4em; border-radius: 4px; word-break: break-word; }
+pre { background: #f8fafc; border: 1px solid #e2e8f0; padding: 1rem 1.25rem; border-radius: 8px; overflow-x: auto; max-width: 100%; margin: 1rem 0; }
+pre code { background: transparent; color: #1e293b; border: 0; padding: 0; word-break: normal; }
+
+/* Tables: scrollabili, header indigo-tint */
+.table-wrap { overflow-x: auto; max-width: 100%; margin: 1.25rem 0; border: 1px solid #e2e8f0; border-radius: 8px; }
+table { border-collapse: collapse; width: max-content; min-width: 100%; background: #ffffff; }
+th, td { border-bottom: 1px solid #e2e8f0; padding: 0.65rem 0.95rem; text-align: left; vertical-align: top; font-size: 0.95rem; }
+th { background: #f8fafc; color: #0f172a; font-weight: 600; border-bottom-color: #cbd5e1; }
+tr:last-child td { border-bottom: 0; }
+td { color: #334155; }
+
+/* Blockquote: brand accent */
+blockquote { border-left: 3px solid #6366f1; margin: 1.25rem 0; padding: 0.6rem 1.1rem; color: #475569; background: #eef2ff; border-radius: 0 6px 6px 0; }
+blockquote p { color: #475569; }
+
+img { max-width: 100%; height: auto; border-radius: 6px; }
+</style>
+<script>
+// Wrap tables post-render in scroll container (markdown converter emits raw <table>).
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('table').forEach(t => {
+    if (t.parentElement && t.parentElement.classList.contains('table-wrap')) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+});
+</script>
+</head>
+<body>
+<header class="rn-header">
+  <div class="rn-header-inner">
+    <a href="/" class="rn-brand"><span class="rn-brand-bolt"></span><span>WUIC</span></a>
+    <a href="/downloads" class="rn-back">&larr; Back to downloads</a>
+  </div>
+</header>
+<article class="rn-article">
+<h1 id="release-notes-wuic-framework-v1.3.0">Release Notes — WUIC Framework v1.3.0</h1>
+<p><strong>Date</strong>: 3 June 2026
+<strong>Previous published version</strong>: 1.2.1 (31 May 2026)
+<strong>Backend</strong>: .NET 10 + IIS / Linux nginx
+<strong>Frontend</strong>: Angular 21</p>
+<hr />
+<p>Minor release focused on the <strong>RAG chatbot</strong> integration on the framework side: persistent conversation history, automatic context management, hot-reload configuration from <code>appsettings.json</code> and cross-DBMS schema auto-applied at first start. Alongside the main feature, a few metadata scaffolder and chat repository robustness fixes that surfaced in fresh DB provisioning scenarios.</p>
+<p>The chatbot is the first WUIC component with server-side state (<code>_rag_chat_sessions</code> + <code>_rag_chat_messages</code>) that spans all four supported providers without manual schema configuration. The first <code>Ask</code> detects the provider, applies the incremental SQL patches in order and starts up. With this release the serving stack can also run <strong>natively on .NET</strong> (in-process ONNX engine), making the customer deployment independent of Python.</p>
+<hr />
+<h2 id="rag-chatbot-end-to-end-context-management">🤖 RAG Chatbot — end-to-end context management</h2>
+<p>The <code>&lt;wuic-rag-chatbot&gt;</code> component now persists multiple sessions per user, with full conversation history, automatic context summarization and <code>appsettings.json</code> configuration. The feature is opt-in: without <code>anthropic-api-key</code> configured the chatbot stays inactive.</p>
+<p><strong>Sessions</strong></p>
+<ul>
+<li>Conversation history persisted per user. The session survives browser reloads and route changes.</li>
+<li>Sessions popup ordered by <code>updated_at</code> descending, with title derived from the first prompt (truncated at 100 chars + full tooltip).</li>
+<li>Inline rename with immediate persistence.</li>
+</ul>
+<p><strong>Automatic context management</strong></p>
+<ul>
+<li><strong>Visual cue % in the chatbot header</strong>: a colored circle showing the model's context window usage (green &lt;60% / yellow 60-80% / orange 80-90% / red &gt;90%). The value comes from the tokens actually consumed by the Anthropic API and is persisted per turn, so it survives reload.</li>
+<li><strong>Auto-compact pre-Ask</strong>: when the conversation exceeds the configurable threshold (default 30 turns) and at least 10 turns are not yet summarized, the backend triggers a best-effort compact in the background before the next Ask. The refreshed summary is injected into the system prompt for future turns.</li>
+<li><strong>On-demand compact</strong>: the user can force a compact via the slash command <code>/compact</code> or by clicking the cue circle.</li>
+<li><strong>Memory facts</strong>: the model itself can &quot;pin&quot; high-priority facts via tool use (<code>remember_fact</code>/<code>forget_fact</code>). Facts stay in the system prompt even after a compact (max 20, FIFO eviction).</li>
+<li><strong>Follow-up questions</strong>: the model suggests up to 3 follow-up questions, rendered as clickable chips under the response. Click = pre-fills the input box (does not auto-send).</li>
+</ul>
+<p><strong><code>appsettings.json</code> configuration</strong></p>
+<ul>
+<li><code>anthropic-api-key</code> — Anthropic API key, <strong>hot-reload</strong>. Not hard-coded, never commit to repo.</li>
+<li><code>anthropic-default-chat-model</code> — <code>claude-haiku-4-5-20251001</code> (200k, default) / <code>claude-sonnet-4-5-20250929</code> / <code>claude-opus-4-5</code>. Drives the context window and the visual cue.</li>
+<li><code>anthropic-auto-compact-threshold</code> — integer &gt;=0, default <code>30</code>. Set to <code>0</code> to disable auto-compact (manual <code>/compact</code> remains available).</li>
+</ul>
+<p><strong>Cross-DBMS auto-migration</strong></p>
+<p>The chat history schema (5 incremental patches) is applied idempotently at the first <code>Ask</code>, on the configured provider (MSSQL / MySQL / PostgreSQL / Oracle). No DBA step required on existing installs.</p>
+<hr />
+<h2 id="actions-the-chatbot-can-apply-to-your-project">🛠️ Actions the chatbot can apply to your project</h2>
+<p>Beyond answering in natural language, the chatbot can <strong>propose concrete changes</strong> to your project as action chips with an &quot;Apply&quot; button. Each chip shows what it will do (target route, generated code, rationale) and the user decides whether to apply it. Nothing is executed without an explicit click.</p>
+<p>Supported action types:</p>
+<ul>
+<li><strong>Toolbar and row actions</strong> — adds custom buttons to a <code>&lt;wuic-list-grid&gt;</code> toolbar or to single-row actions, with generated JavaScript callbacks. Examples: &quot;add an action that exports selected rows to CSV&quot;, &quot;put an Approve button on each row&quot;.</li>
+<li><strong>Conditional row and column styles</strong> — applies CSS classes to a row or to a single cell based on a JS condition. Examples: &quot;highlight rows with overdue deadline in red&quot;, &quot;set green background on the <code>status</code> cell when it equals 'OK'&quot;.</li>
+<li><strong>Column display formula</strong> — replaces a column's list representation with a custom HTML/Angular template (badge, icon, link, colored percentage). Example: &quot;show <code>priority</code> as a green/yellow/red colored badge&quot;.</li>
+<li><strong>Form title formula</strong> — dynamically computes the edit-form title of a record from its content. Example: &quot;title should be <code>Customer {company_name}</code>&quot;.</li>
+<li><strong>Default value and custom validation</strong> — generates callbacks for default values on form open (field pre-fill) or for complex validation (cross-field, custom regex). Examples: &quot;default <code>created_at</code> = today&quot;, &quot;validate that <code>email</code> ends with @company.it&quot;.</li>
+<li><strong>Selection-changed and lifecycle callbacks</strong> — hooks on form events (record selection change, before-save, after-save, after-delete) for custom side-effects: refresh linked datasources, notifications, application-level audit log.</li>
+<li><strong>Metadata changes</strong> — applies direct edits to table/column metadata (caption, ordering, hide in list/edit, basic validations) without going through the manual metadata editor.</li>
+<li><strong>SQL snippets in metadata (super-admin)</strong> — writes raw SQL fragments to metadata fields concatenated at runtime in auto-generated queries: custom JOIN on the route, custom SELECT clause on a column, computed column formula, lookup display expression. Examples: &quot;compute <code>total</code> on <code>orders</code> as <code>price</code> × <code>quantity</code>&quot;, &quot;add join to <code>payments</code> on <code>invoice_id</code>&quot;. The chatbot knows the active provider dialect (mssql/mysql/postgres/oracle) and generates SQL with the correct quoting/syntax. Gated D3 operation: requires super-admin privileges server-side, with automatic audit log on <code>_error__logs</code> for every apply.</li>
+</ul>
+<h3 id="new-action-dashboard-layout-from-natural-language">🎨 New action: dashboard layout from natural language</h3>
+<p>When the user is on the <strong>Designer</strong> page of a dashboard, the chatbot exposes a new family of actions that operate directly on the designer canvas (not on persisted metadata).</p>
+<p>Supported prompt patterns:</p>
+<ul>
+<li>&quot;add a grid bound to route <code>cities</code>&quot; → injects <code>DATASOURCE</code> + <code>DATAREPEATER</code> configured and bound;</li>
+<li>&quot;create a 2×2 table layout&quot; → injects a 2×2 <code>&lt;table&gt;</code> with cells ready to receive other components;</li>
+<li>&quot;put a vertical splitter with 3 areas&quot; → injects a configured <code>SPLITTER</code>;</li>
+<li>&quot;change the top-right pane background to red&quot; → modifies the <code>backgroundColor</code> property of the identified component;</li>
+<li>&quot;add a column to the table&quot; / &quot;remove row 2&quot; → modifies <code>cols</code>/<code>rows</code> of the selected <code>TABLE</code> component;</li>
+<li>&quot;remove the Revenue KPI&quot; → deletes a component from the canvas by name.</li>
+</ul>
+<p>The chatbot knows the full catalog of 31 designer tools (HTML, DATA, CONTAINER groups) and their editable properties. When the user mentions a metadata route with an approximate name (&quot;provincies&quot; instead of &quot;stateprovinces&quot;), the chatbot fuzzy-matches the available routes in your project and shows the resolved real name in the action rationale.</p>
+<p>Changes stay on the designer canvas until the user clicks &quot;Save dashboard&quot; — no automatic DB writes, the visual outcome is always reviewed before commit. The designer's undo/redo also covers chatbot-injected actions.</p>
+<hr />
+<h2 id="native.net-rag-engine-python-free-deployment">⚙️ Native .NET RAG engine (Python-free deployment)</h2>
+<p>The RAG chatbot serving stack can now run <strong>entirely on .NET</strong>, with no separate Python server or virtual environment on the target machine. The retrieval models (embeddings + reranker) are loaded in-process via ONNX Runtime, with GPU (CUDA) acceleration auto-detected and transparent CPU fallback.</p>
+<ul>
+<li>Activation via <code>appsettings.json</code>: <code>rag-use-dotnet-engine=true</code> selects the .NET engine; the default <code>false</code> keeps the previous behavior.</li>
+<li><code>rag-engine-device</code> (<code>auto</code> / <code>cpu</code> / <code>cuda</code>) selects the inference device; <code>rag-engine-profile</code> controls the redaction level of the sources cited in answers.</li>
+<li>On first startup the required artifacts (ONNX models + index) are downloaded on demand, so the base package stays lightweight.</li>
+</ul>
+<p>Practical result: the customer deployment is <strong>.NET only</strong> — no Python install nor extra native dependencies beyond the .NET runtime. The conversational model call and the retrieval and actions pipeline are identical across both engines.</p>
+<hr />
+<h2 id="notable-bug-fixes">🐛 Notable bug fixes</h2>
+<ul>
+<li><p><strong>Callback documentation aligned with the runtime</strong>: the callback cookbook described signatures that did not match the actual behavior in two cases. The default value callback writes the value into the record (<code>record[field.mc_nome_colonna] = ...</code>) and the <code>return</code> is ignored; custom validation receives <code>(record, field, vr, wtoolbox)</code> and reports the outcome with a boolean <code>return</code> (<code>false</code> blocks the save) plus <code>vr.message</code> for the displayed text. The previous examples, based on <code>validateResult(...)</code> and on a <code>return</code> for the default value, produced callbacks that did not apply. Documentation corrected in all five languages.</p>
+</li>
+<li><p><strong>Reliability of chatbot-proposed actions</strong>: for action requests the chatbot now deterministically emits the matching action chip, and automatically retries on a transient rate-limit of the conversational model instead of silently degrading to a text-only answer.</p>
+</li>
+<li><p><strong>Metadata scaffolder — <code>date</code> vs <code>datetime</code> distinction consolidated</strong>: follow-up of the fix introduced in 1.2.1 on generated temporal types. The source-type parser now also covers atypical DDL variants (MySQL <code>DATETIME(0)</code> without precision, PostgreSQL bare <code>timestamp</code> without time-zone qualifier, Oracle <code>TIMESTAMP(n)</code> with explicit precision) — they all continue to map correctly to UI type <code>datetime</code> while preserving the time component at save.</p>
+</li>
+<li><p><strong>Metadata field suggest — <code>mc_suggest_value_callback</code> now normalizes the return value</strong>: the DB-configured callback could return a promise or a sync value, but the runtime parser only accepted the sync case. Result: suggest silently failed inside async callbacks. The normalization now awaits <code>Promise.resolve(callback(...))</code> uniformly.</p>
+</li>
+<li><p><strong>Chat repository — cross-driver <code>Guid</code></strong>: the MySQL.Data driver materializes a <code>CHAR(36)</code> column as <code>Guid</code> when the <code>OldGuids</code> flag is <code>false</code> (default starting from connector version 6.6), causing <code>InvalidCastException</code> on <code>GetString</code>. Same risk on Oracle with <code>RAW(16)</code> storage. The correlation id read now has a fallback cascade (<code>GetGuid</code> → <code>GetString</code> → <code>GetValue</code> with runtime-type switch) — robust on all four providers regardless of driver configuration.</p>
+</li>
+<li><p><strong>Chat repository — MySQL connection not open</strong>: the MySQL gateway returned a <code>new MySqlConnection(cs)</code> without calling <code>Open()</code>, asymmetrically with the PostgreSQL and Oracle gateways. The first <code>ExecuteNonQueryAsync</code> of the schema auto-apply failed with &quot;Connection must be valid and open&quot;. Added a symmetric <code>OpenConnectionToConnectionString</code>, aligned with the other providers.</p>
+</li>
+</ul>
+<hr />
+<h2 id="updated-packages">📦 Updated packages</h2>
+<table>
+<thead>
+<tr>
+<th>Package</th>
+<th>From</th>
+<th>To</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WuicCore</td>
+<td>1.2.1</td>
+<td>1.3.0</td>
+</tr>
+<tr>
+<td>Wuic.Webcore</td>
+<td>1.2.1</td>
+<td>1.3.0</td>
+</tr>
+<tr>
+<td>WuicOData</td>
+<td>1.2.1</td>
+<td>1.3.0</td>
+</tr>
+<tr>
+<td>RuntimeEfCore</td>
+<td>1.2.1</td>
+<td>1.3.0</td>
+</tr>
+<tr>
+<td>Wuic.MySqlProvider</td>
+<td>1.2.1</td>
+<td>1.3.0</td>
+</tr>
+<tr>
+<td>Wuic.PostgresProvider</td>
+<td>1.2.1</td>
+<td>1.3.0</td>
+</tr>
+<tr>
+<td>Wuic.OracleProvider</td>
+<td>1.2.1</td>
+<td>1.3.0</td>
+</tr>
+<tr>
+<td>wuic-framework-lib (NPM)</td>
+<td>1.2.1</td>
+<td>1.3.0</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="recommended-operational-updates">🔧 Recommended operational updates</h2>
+<ol>
+<li>To <strong>enable the RAG chatbot</strong>, add the <code>anthropic-api-key</code> key (and optionally <code>anthropic-default-chat-model</code> and <code>anthropic-auto-compact-threshold</code>) to <code>appsettings.json</code>. The backend reads the keys in hot-reload — no restart needed.</li>
+<li><strong>No DBA step required</strong> on existing installs: at the first chatbot <code>Ask</code>, the chat history schema (<code>_rag_chat_sessions</code> + <code>_rag_chat_messages</code> with all columns) is applied idempotently on the provider configured in <code>MetaDataSQLConnection</code>. Auto-migration covers fresh and partially migrated installs.</li>
+<li>If the install runs on <strong>MySQL / PostgreSQL / Oracle</strong>, verify the connection string points to the correct provider and the user has <code>ALTER TABLE</code> privileges on the metadata schema (needed only once, at the first start).</li>
+<li>To <strong>monitor context window usage</strong>, the cue % circle in the chatbot header is the immediate visual driver. Above 80% it is worth running a manual compact (<code>/compact</code> or click the cue) to reduce latency on subsequent turns.</li>
+<li>To run the RAG chatbot <strong>without Python</strong> on the target machine, set <code>rag-use-dotnet-engine=true</code> in <code>appsettings.json</code> (optionally <code>rag-engine-device</code> and <code>rag-engine-profile</code>). On first startup the inference artifacts are downloaded automatically.</li>
+</ol>
+
+</article>
+</body>
+</html>
