@@ -25,22 +25,35 @@ using WuicCore.Services.Notifications;
 /// </summary>
 public sealed class mysqlNotificationRepository : INotificationRepository
 {
-        private readonly string _metaConnectionString;
+        private readonly IConfiguration _configuration;
 
         public mysqlNotificationRepository(IConfiguration configuration = null)
         {
-            // Prefer DI-injected IConfiguration → ConfigHelper centralized helper
-            // (which itself prefers AspNetCore IConfiguration over legacy ConfigurationManager).
-            // This makes the repository test-friendly: WAF can override
-            // ConnectionStrings via AddInMemoryCollection without touching disk config.
-            _metaConnectionString = ConfigHelper.ResolveConnectionString("MetaDataSQLConnection") ?? string.Empty;
+            _configuration = configuration;
+        }
 
-            if (string.IsNullOrWhiteSpace(_metaConnectionString) && configuration != null)
+        // Letta FRESH ad ogni accesso, NON cache-ata al costruttore: durante il
+        // first-run la MetaDataSQLConnection e' il placeholder `__SET_CONNECTION_STRING__`,
+        // riscritta da configure_wuic e ricaricata da IConfiguration (reloadOnChange).
+        // Cache-arla terrebbe il placeholder finche' il backend non si riavvia -> il
+        // watcher notifiche non si connetterebbe mai senza restart. Il placeholder e'
+        // trattato come "non pronto" (vuoto) cosi' il polling loop ritenta e si aggancia
+        // appena la connection e' reale. Vedi NotificationRepository (impl MSSQL).
+        private string MetaConnectionString
+        {
+            get
             {
-                _metaConnectionString =
-                    configuration.GetConnectionString("MetaDataSQLConnection")
-                    ?? configuration["ConnectionStrings:MetaDataSQLConnection"]
-                    ?? string.Empty;
+                string cs = ConfigHelper.ResolveConnectionString("MetaDataSQLConnection");
+                if (string.IsNullOrWhiteSpace(cs) && _configuration != null)
+                {
+                    cs = _configuration.GetConnectionString("MetaDataSQLConnection")
+                         ?? _configuration["ConnectionStrings:MetaDataSQLConnection"];
+                }
+                if (string.IsNullOrWhiteSpace(cs) || cs.Contains("__SET_CONNECTION_STRING__"))
+                {
+                    return string.Empty;
+                }
+                return cs;
             }
         }
 
@@ -50,7 +63,7 @@ public sealed class mysqlNotificationRepository : INotificationRepository
 
         private async Task<MySqlConnection> CreateOpenConnectionAsync(CancellationToken ct)
         {
-            var cn = new MySqlConnection(_metaConnectionString);
+            var cn = new MySqlConnection(MetaConnectionString);
             await cn.OpenAsync(ct);
             return cn;
         }
@@ -77,7 +90,7 @@ public sealed class mysqlNotificationRepository : INotificationRepository
         public async Task<NotificationSnapshot> GetUnreadAsync(int userId, int take = 10, CancellationToken cancellationToken = default)
         {
             var snapshot = new NotificationSnapshot { UserId = userId };
-            if (string.IsNullOrWhiteSpace(_metaConnectionString) || userId <= 0) return snapshot;
+            if (string.IsNullOrWhiteSpace(MetaConnectionString) || userId <= 0) return snapshot;
 
             await using var cn = await CreateOpenConnectionAsync(cancellationToken);
 
@@ -122,7 +135,7 @@ public sealed class mysqlNotificationRepository : INotificationRepository
 
         public async Task<int?> MarkReadAsync(int notificationId, CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(_metaConnectionString) || notificationId <= 0) return null;
+            if (string.IsNullOrWhiteSpace(MetaConnectionString) || notificationId <= 0) return null;
             await using var cn = await CreateOpenConnectionAsync(cancellationToken);
 
             int? userId;
@@ -145,7 +158,7 @@ public sealed class mysqlNotificationRepository : INotificationRepository
 
         public async Task<NotificationSnapshot> MarkAllReadAsync(int userId, CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(_metaConnectionString) || userId <= 0)
+            if (string.IsNullOrWhiteSpace(MetaConnectionString) || userId <= 0)
                 return new NotificationSnapshot { UserId = userId };
 
             await using var cn = await CreateOpenConnectionAsync(cancellationToken);
@@ -160,7 +173,7 @@ public sealed class mysqlNotificationRepository : INotificationRepository
 
         public async Task<NotificationSnapshot> ClearReadAsync(int userId, CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(_metaConnectionString) || userId <= 0)
+            if (string.IsNullOrWhiteSpace(MetaConnectionString) || userId <= 0)
                 return new NotificationSnapshot { UserId = userId };
 
             await using var cn = await CreateOpenConnectionAsync(cancellationToken);
@@ -175,7 +188,7 @@ public sealed class mysqlNotificationRepository : INotificationRepository
 
         public async Task<int?> DeleteReadAsync(int notificationId, CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(_metaConnectionString) || notificationId <= 0) return null;
+            if (string.IsNullOrWhiteSpace(MetaConnectionString) || notificationId <= 0) return null;
             await using var cn = await CreateOpenConnectionAsync(cancellationToken);
 
             int? userId; bool isRead;
@@ -201,7 +214,7 @@ public sealed class mysqlNotificationRepository : INotificationRepository
 
         public async Task<NotificationSnapshot> DismissProgressAsync(int userId, string progressGuid, CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(_metaConnectionString) || userId <= 0)
+            if (string.IsNullOrWhiteSpace(MetaConnectionString) || userId <= 0)
                 return new NotificationSnapshot { UserId = userId };
             string guid = (progressGuid ?? string.Empty).Trim();
             if (string.IsNullOrWhiteSpace(guid))
@@ -229,7 +242,7 @@ public sealed class mysqlNotificationRepository : INotificationRepository
         public async Task<List<int>> GetUsersWithUnreadAsync(CancellationToken cancellationToken = default)
         {
             var users = new List<int>();
-            if (string.IsNullOrWhiteSpace(_metaConnectionString)) return users;
+            if (string.IsNullOrWhiteSpace(MetaConnectionString)) return users;
 
             await using var cn = await CreateOpenConnectionAsync(cancellationToken);
             await using var cmd = BuildCommand(cn,
@@ -245,7 +258,7 @@ public sealed class mysqlNotificationRepository : INotificationRepository
         public async Task<int> EnqueueAsync(EnqueueNotificationRequest request, CancellationToken cancellationToken = default)
         {
             if (request == null || request.userId <= 0) return 0;
-            if (string.IsNullOrWhiteSpace(_metaConnectionString))
+            if (string.IsNullOrWhiteSpace(MetaConnectionString))
                 throw new InvalidOperationException("MetaDataSQLConnection is empty.");
 
             await using var cn = await CreateOpenConnectionAsync(cancellationToken);
@@ -266,5 +279,5 @@ public sealed class mysqlNotificationRepository : INotificationRepository
             return scalar == null || scalar == DBNull.Value ? 0 : Convert.ToInt32(scalar);
         }
 
-    public string GetConnectionString() => _metaConnectionString;
+    public string GetConnectionString() => MetaConnectionString;
 }

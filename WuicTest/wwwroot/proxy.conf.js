@@ -100,4 +100,15 @@ module.exports = {
     changeOrigin: true,
     logLevel: 'warn',
   },
+  // WebSocket notifiche realtime (NotificationRealtimeService -> /ws/notifications).
+  // `ws: true` e' OBBLIGATORIO: senza, il dev-server NON inoltra l'upgrade WebSocket
+  // al backend :5000 -> handshake timeout (close code 1006) -> niente push live, le
+  // notifiche (e il refresh del messaggio chatbot) arrivano solo al reload manuale.
+  '/ws': {
+    target: 'http://localhost:5000',
+    secure: false,
+    changeOrigin: true,
+    ws: true,
+    logLevel: 'warn',
+  },
 };

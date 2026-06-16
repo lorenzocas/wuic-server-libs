@@ -318,7 +318,8 @@ public sealed class RagEngine : IDisposable
                 .Append("1. Usa SEMPRE i NOMI REALI delle colonne (da contesto o da `request_metadata_detail`), es. `record.<nome>.value` / `record.<nome>.next(...)`. Mai placeholder inventati.\n")
                 .Append("2. Per i tool `propose_*`: se l'utente NON menziona esplicitamente una route diversa, il parametro `route` DEVE essere la route della pagina corrente.\n")
                 .Append("3. Per i tool che richiedono `column_name`: scegli il `mc_nome_colonna` REALE corrispondente (dal contesto o da `request_metadata_detail{detail:'columns'}`).\n")
-                .Append("4. Per snippet SQL (computed_formula / sql_metadata_field): usa il full qualifier e, per i lookup, l'alias di join, entrambi ottenuti da `request_metadata_detail`. Non dedurli a mano.");
+                .Append("4. Per snippet SQL (computed_formula / sql_metadata_field): usa il full qualifier e, per i lookup, l'alias di join, entrambi ottenuti da `request_metadata_detail`. Non dedurli a mano.\n")
+                .Append("5. ANTI-ECHO MULTI-TURNO (OBBLIGATORIO): genera la proposta basandoti ESCLUSIVAMENTE sull'ULTIMA richiesta dell'utente. La conversazione puo' contenere proposte precedenti su intenti DIVERSI: NON ricopiare MAI classe CSS, callback/condizione, colori, operatori di confronto o descrizione da un turno precedente. Esempio: se prima hai proposto 'rosso se > 12' (row-danger, `> 12`) e ora l'utente chiede 'verde se <= 12', DEVI produrre row-success con condizione `<= 12` e descrizione coerente col verde — NON riproporre la versione rossa. Ricalcola OGNI parametro dall'intento corrente.");
         }
         if (!string.IsNullOrWhiteSpace(contextSummary))
             system.Append("\n\nSUMMARY SESSIONE (turn precedenti riassunti):\n").Append(contextSummary.Trim()).Append('\n')
@@ -326,6 +327,10 @@ public sealed class RagEngine : IDisposable
         if (!string.IsNullOrWhiteSpace(memoryFacts))
             system.Append("\n\nMEMORY FACTS (decisioni/preferenze pinnate via remember_fact):\n").Append(memoryFacts.Trim()).Append('\n')
                 .Append("Rispetta SEMPRE questi fatti. Usa `forget_fact(id)` se l'utente li contraddice esplicitamente o se sono diventati obsoleti.");
+
+        // ---- intent detection (per il tool_choice forcing piu' sotto). ----
+        bool exampleIntent = LooksLikeExampleRequest(query);
+        bool actionIntent = !string.IsNullOrWhiteSpace(routeContext) && LooksLikeActionRequest(query) && !exampleIntent;
 
         // ---- messages ----
         var messages = new List<object>();
@@ -362,8 +367,8 @@ public sealed class RagEngine : IDisposable
             // Richiesta di ESEMPIO/SPIEGAZIONE ("dammi un esempio", "come funziona", "senza
             // applicare"): NON e' un'azione, e per evitare l'over-trigger (il modello che
             // propone un tool quando l'utente voleva solo un esempio) NON passeremo i tool.
-            bool exampleIntent = LooksLikeExampleRequest(query);
-            bool actionIntent = !string.IsNullOrWhiteSpace(routeContext) && LooksLikeActionRequest(query) && !exampleIntent;
+            // (exampleIntent / actionIntent gia' calcolati in alto, prima del messages-building, per
+            //  alimentare l'anti-echo FIX B; qui li riusiamo per il tool_choice forcing.)
             // Elementi tool da inviare: se actionIntent filtra ai soli propose_*.
             var toolSource = new List<JsonElement>();
             foreach (var t in toolsDoc.RootElement.EnumerateArray())
