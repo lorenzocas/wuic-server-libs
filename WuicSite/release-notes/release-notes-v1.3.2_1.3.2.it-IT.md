@@ -38,6 +38,8 @@ Le applicazioni generate con il framework includono ora una **raccolta di file m
 
 ## 🐛 Bug fix degni di nota
 
+- **First-run installer — modalità non-tutorial su tutti i provider DB**: l'installazione con scaffolding di un database esistente (senza i dati di esempio del tutorial) è stata corretta e uniformata su tutti i provider supportati — SQL Server, MySQL, PostgreSQL e Oracle. Risolti i fallimenti dovuti a differenze di dialetto SQL, selezione del database/schema di destinazione e gestione delle connessioni che emergevano fuori dalla modalità tutorial.
+
 - **First-run installer — percorso a script SQL (non-BAK)**: nel provisioning del metadata DB tramite script SQL incrementale (alternativa al restore da `.bak`), il parser dei batch separati da `GO` non gestiva correttamente alcuni separatori, facendo fallire la creazione dello schema su installazioni fresche. Lo splitter è stato corretto e l'install via script completa regolarmente.
 
 - **Pacchetto sorgente — motore RAG .NET non trovato a runtime**: nel pacchetto sorgente (`-src-`) il motore `WuicRagEngine.dll` veniva posizionato nella root del pacchetto, mentre l'eseguibile, avviato da `bin/`, lo cercava accanto a sé — il chatbot RAG non partiva ("WuicRagEngine.dll non trovato"). Il loader ora cerca la cartella `rag-engine/` in più posizioni (output di build, content-root, working directory) e trova il motore in entrambi i layout di deploy.

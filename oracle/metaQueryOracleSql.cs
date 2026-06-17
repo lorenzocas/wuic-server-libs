@@ -745,6 +745,22 @@ FROM {fromTable}
         /// PL/SQL block o statement singolo.
         /// </summary>
         public static void ExecuteOracleScript(System.Data.Common.DbConnection connection, string script)
+            => ExecuteOracleScript(connection, script, null);
+
+        // Invalida tutti i connection pool Oracle: chiamato prima dello scaffold
+        // post-firstRun per scartare connessioni stantie dal drop/recreate dei DB.
+        public static void ClearAllPools()
+        {
+            Oracle.ManagedDataAccess.Client.OracleConnection.ClearAllPools();
+        }
+
+        /// <summary>
+        /// Overload con progress callback per la progress bar del first-run.
+        /// Inoltra il numero cumulativo di char eseguiti (somma delle lunghezze
+        /// degli statement gia' applicati) cosi' KonvergenceCore calcola
+        /// percent = executedChars / scriptLength. La callback e' best-effort.
+        /// </summary>
+        public static void ExecuteOracleScript(System.Data.Common.DbConnection connection, string script, System.Action<long> onProgress)
         {
             if (connection == null) throw new ArgumentNullException(nameof(connection));
             if (string.IsNullOrWhiteSpace(script)) return;
@@ -760,6 +776,7 @@ FROM {fromTable}
             if (isPlSqlBlock)
             {
                 connection.Execute(script);
+                try { onProgress?.Invoke(script.Length); } catch { }
                 return;
             }
 
@@ -848,14 +865,36 @@ FROM {fromTable}
                 1489, 1
             };
             int total = 0, ok = 0, skipped = 0, failed = 0;
+            long executedChars = 0;
             string firstFailMsg = null, firstFailStmt = null;
+
+            void ReportProgress(string stmt)
+            {
+                executedChars += stmt.Length;
+                try { onProgress?.Invoke(executedChars); } catch { /* best-effort */ }
+            }
+
+            // RAW ExecuteNonQuery: NON usare connection.Execute (Dapper custom del progetto)
+            // per gli statement dello script. Per gli INSERT singoli il Dapper custom appende
+            // una id-retrieval (es. SELECT LASTVAL su PG / equivalente) per ritornare l'id
+            // generato; ma i dump first-run inseriscono id ESPLICITI (niente sequence.nextval)
+            // -> errore "value not yet defined" -> statement fallito. Eseguiamo lo statement
+            // grezzo via DbCommand (parity col fix PostgreSQL).
+            void ExecRawOracle(string sqlText)
+            {
+                using (var cmd = connection.CreateCommand())
+                {
+                    cmd.CommandText = sqlText;
+                    cmd.ExecuteNonQuery();
+                }
+            }
 
             void ExecOne(string stmt)
             {
                 total++;
                 try
                 {
-                    connection.Execute(stmt);
+                    ExecRawOracle(stmt);
                     ok++;
                 }
                 catch (System.Exception ex)
@@ -864,6 +903,7 @@ FROM {fromTable}
                     if (oraCode > 0 && idempotentCodes.Contains(oraCode))
                     {
                         skipped++;
+                        ReportProgress(stmt);
                         return;
                     }
                     failed++;
@@ -873,6 +913,7 @@ FROM {fromTable}
                         firstFailStmt = stmt.Length > 400 ? stmt.Substring(0, 400) + "..." : stmt;
                     }
                 }
+                ReportProgress(stmt);
             }
 
             // Pass 1: DDL

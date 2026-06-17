@@ -38,6 +38,8 @@ Mit dem Framework generierte Anwendungen enthalten nun eine **Sammlung von Markd
 
 ## 🐛 Nennenswerte Bugfixes
 
+- **First-Run-Installer — Nicht-Tutorial-Modus auf allen DB-Providern**: Die Installation mit Scaffolding einer bestehenden Datenbank (ohne die Tutorial-Beispieldaten) wurde korrigiert und über alle unterstützten Provider hinweg vereinheitlicht — SQL Server, MySQL, PostgreSQL und Oracle. Behoben wurden Fehler durch SQL-Dialekt-Unterschiede, die Auswahl der Ziel-Datenbank/des Ziel-Schemas und die Verbindungsverwaltung, die außerhalb des Tutorial-Modus auftraten.
+
 - **First-Run-Installer — SQL-Skript-Pfad (non-BAK)**: Beim Provisioning der Metadaten-DB über das inkrementelle SQL-Skript (Alternative zum Restore aus einer `.bak`) verarbeitete der Parser für `GO`-getrennte Batches einige Trenner falsch, sodass die Schema-Erstellung bei frischen Installationen fehlschlug. Der Splitter wurde korrigiert, und skriptbasierte Installationen laufen nun sauber durch.
 
 - **Quellpaket — .NET-RAG-Engine zur Laufzeit nicht gefunden**: Im Quellpaket (`-src-`) wurde die Engine `WuicRagEngine.dll` im Paket-Root abgelegt, während die aus `bin/` gestartete Anwendung sie neben sich suchte — der RAG-Chatbot startete nicht („WuicRagEngine.dll nicht gefunden"). Der Loader durchsucht den Ordner `rag-engine/` nun an mehreren Stellen (Build-Output, Content-Root, Arbeitsverzeichnis) und findet die Engine in beiden Deploy-Layouts.

@@ -836,6 +836,65 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                     connection.Close();
             }
         }
+
+        /// <summary>
+        /// Overload con progress callback per la progress bar del first-run
+        /// (<c>FirstRunProgressTracker</c> lato KonvergenceCore). Aggancia l'evento
+        /// <c>MySqlScript.StatementExecuted</c> e inoltra <c>e.Position</c> (offset
+        /// char nello script) cosi' il frontend calcola percent = position/scriptLength.
+        /// Stessa esecuzione del 2-arg (MySqlScript, DELIMITER-aware) — la callback
+        /// e' puramente osservativa, non altera la semantica.
+        /// </summary>
+        public static int ExecuteMySqlScriptWithCount(DbConnection connection, string script, Action<long> onProgress)
+        {
+            if (connection == null)
+                throw new ArgumentNullException(nameof(connection));
+
+            if (string.IsNullOrWhiteSpace(script))
+                return 0;
+
+            bool shouldClose = connection.State != ConnectionState.Open;
+            if (shouldClose)
+                connection.Open();
+
+            try
+            {
+                var mysqlConn = connection as MySqlConnection;
+                if (mysqlConn != null)
+                {
+                    var msScript = new MySqlScript(mysqlConn, script);
+                    if (onProgress != null)
+                    {
+                        msScript.StatementExecuted += (s, e) =>
+                        {
+                            try { onProgress(e.Position); } catch { /* progress best-effort */ }
+                        };
+                    }
+                    return msScript.Execute();
+                }
+
+                using (var cmd = connection.CreateCommand())
+                {
+                    cmd.CommandText = script;
+                    cmd.ExecuteNonQuery();
+                }
+                try { onProgress?.Invoke(script.Length); } catch { }
+                return 1;
+            }
+            finally
+            {
+                if (shouldClose)
+                    connection.Close();
+            }
+        }
+
+        // Invalida tutti i connection pool MySQL: chiamato prima dello scaffold
+        // post-firstRun per scartare connessioni terminate dal drop/recreate dei DB.
+        public static void ClearAllPools()
+        {
+            MySqlConnection.ClearAllPools();
+        }
+
         public static void FlushCache(string route)
         {
             if (string.IsNullOrWhiteSpace(route))
@@ -1238,7 +1297,10 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                     SysInfo infos = context.GetSysInfos();
                     using (MySqlConnection connection = string.IsNullOrEmpty(infos.user_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.user_db_name))
                     {
-                        connection.Execute(string.Format("UPDATE {0} SET {1}='', LastLogoutDate=getdate(), IsLoggedIn = 0 WHERE {2} = {3}", infos.user_table_name, "token", infos.user_id_column_name, user.user_id));
+                        // MySQL-native (port da MSSQL): NOW() invece di getdate() (funzione
+                        // SQL Server inesistente in MySQL -> "FUNCTION <db>.getdate does not exist").
+                        // Specchio di oracle (SYSDATE) / postgres (NOW()) gia' portati.
+                        connection.Execute(string.Format("UPDATE {0} SET {1}='', LastLogoutDate=NOW(), IsLoggedIn = 0 WHERE {2} = {3}", infos.user_table_name, "token", infos.user_id_column_name, user.user_id));
 
                         Global.loggedUser.TryRemove(user.username, out user);
 

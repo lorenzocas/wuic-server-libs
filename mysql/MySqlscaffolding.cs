@@ -356,6 +356,21 @@ WHERE t.mddbname = @db OR (@db = '' AND IFNULL(t.mddbname, '') = '');";
 
                 str.AppendLine(string.Format("Scaffolding {0} tables<br />", tables.Count));
 
+                // First-run progress (fase scaffolding, parity con metaModelRaw.scaffoldDB
+                // MSSQL): conta gli oggetti scaffoldati (tabelle + viste + stored) e aggiorna
+                // FirstRunProgressTracker corrente/totale. Attivo solo durante il first-run.
+                bool reportProg = ngUicServicesCore.Controllers.FirstRunProgressTracker.IsActive;
+                long totalObj = 0, processedObj = 0;
+                if (reportProg)
+                {
+                    totalObj =
+                        tables.Count(t => t != "test" && t != "information_schema") +
+                        views.Count(v => !v.Equals("information_schema", StringComparison.OrdinalIgnoreCase)) +
+                        storeds.Count;
+                    ngUicServicesCore.Controllers.FirstRunProgressTracker.Start(
+                        Guid.NewGuid().ToString(), "scaffold-existing-db", totalObj, "Scaffolding " + db);
+                }
+
                 bool createM = createMenu;
 
                 foreach (string tb in tables.OrderBy(x => x))
@@ -371,6 +386,12 @@ WHERE t.mddbname = @db OR (@db = '' AND IFNULL(t.mddbname, '') = '');";
                     {
                         mmd.scaffoldOfColumnMySql(connection, connName, mmd, tb, db, col, str, ref createMenu, columns.Count);
                     }
+
+                    if (reportProg)
+                    {
+                        processedObj++;
+                        ngUicServicesCore.Controllers.FirstRunProgressTracker.Update(processedObj, "table " + tb);
+                    }
                 }
 
                 foreach (string vw in views.OrderBy(x => x))
@@ -383,14 +404,29 @@ WHERE t.mddbname = @db OR (@db = '' AND IFNULL(t.mddbname, '') = '');";
                     {
                         mmd.scaffoldOfColumnMySql(connection, connName, mmd, vw, db, col, str, ref createMenu, columns.Count);
                     }
+
+                    if (reportProg)
+                    {
+                        processedObj++;
+                        ngUicServicesCore.Controllers.FirstRunProgressTracker.Update(processedObj, "view " + vw);
+                    }
                 }
 
                 foreach (string sp in storeds.OrderBy(x => x))
                 {
                     mmd.scaffoldOfStoredMySql(connection, connName, sp, mmd, str, db);
+
+                    if (reportProg)
+                    {
+                        processedObj++;
+                        ngUicServicesCore.Controllers.FirstRunProgressTracker.Update(processedObj, "stored " + sp);
+                    }
                 }
 
                 RawHelpers.setMetadataVersion();
+
+                if (reportProg)
+                    ngUicServicesCore.Controllers.FirstRunProgressTracker.Complete("Scaffold of " + db + " done");
             }
 
             return new Dictionary<string, string>()

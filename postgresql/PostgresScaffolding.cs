@@ -58,7 +58,15 @@ namespace metaModelRaw
         {
             var ret = new List<string>();
             using (DbConnection con = PostGresProviderGateway.CreateOpenConnection(connection))
-            using (DbCommand cmd = DbProviderUtil.CreateTextCommand(con, "select routine_name from information_schema.routines where routine_schema=@schema order by routine_name"))
+            // Solo function/procedure UTENTE: esclude le funzioni di EXTENSION (postgis &
+            // co. -> centinaia di routine in `public`, NON storeds applicativi) via pg_depend
+            // deptype='e', e gli aggregate/window (prokind a/w). Senza questo filtro il count
+            // first-run esplodeva (es. 564 funzioni postgis su WideWorldImporters).
+            using (DbCommand cmd = DbProviderUtil.CreateTextCommand(con,
+                "select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace " +
+                "where n.nspname = @schema and p.prokind in ('f','p') " +
+                "and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e') " +
+                "order by p.proname"))
             {
                 // CreateOpenConnection ha gia' fatto Open(); evitiamo doppio Open (errore Npgsql).
                 DbProviderUtil.AddWithValue(cmd, "schema", schema);
@@ -499,6 +507,19 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
 
                 str.AppendLine(string.Format("Scaffolding {0} tables<br />", tables.Count));
 
+                // First-run progress (fase scaffolding, parity con metaModelRaw.scaffoldDB MSSQL).
+                bool reportProg = ngUicServicesCore.Controllers.FirstRunProgressTracker.IsActive;
+                long totalObj = 0, processedObj = 0;
+                if (reportProg)
+                {
+                    // Storeds esclusi dal first-run (vedi loop sotto): solo tabelle + viste.
+                    totalObj =
+                        tables.Count(t => t != "test" && t != "information_schema") +
+                        views.Count;
+                    ngUicServicesCore.Controllers.FirstRunProgressTracker.Start(
+                        Guid.NewGuid().ToString(), "scaffold-existing-db", totalObj, "Scaffolding " + db);
+                }
+
                 bool createM = createMenu;
 
                 foreach (string tb in tables.OrderBy(x => x))
@@ -514,6 +535,12 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
                     {
                         scaffoldOfColumnPostgres(connection, connName, mmd, tb, db, col, str, ref createMenu, columns.Count);
                     }
+
+                    if (reportProg)
+                    {
+                        processedObj++;
+                        ngUicServicesCore.Controllers.FirstRunProgressTracker.Update(processedObj, "table " + tb);
+                    }
                 }
 
                 foreach (string vw in views.OrderBy(x => x))
@@ -523,14 +550,27 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
                     {
                         scaffoldOfColumnPostgres(connection, connName, mmd, vw, db, col, str, ref createMenu, columns.Count);
                     }
+
+                    if (reportProg)
+                    {
+                        processedObj++;
+                        ngUicServicesCore.Controllers.FirstRunProgressTracker.Update(processedObj, "view " + vw);
+                    }
                 }
 
-                foreach (string sp in storeds.OrderBy(x => x))
-                {
-                    mmd.scaffoldOfStoredMySql(connection, connName, sp, mmd, str, effectiveSchema);
-                }
+                // Storeds ESCLUSI dal first-run (richiesta 2026-06-17): scaffoldDB e' il
+                // path bulk del first-run e NON deve scaffoldare gli storeds. In piu',
+                // mmd.scaffoldOfStoredMySql introspetta i parametri via getStoredParamsMySql
+                // (mysql-specific) -> apriva una connessione MySQL -> SocketException su PG.
+                // Lo scaffold di un singolo stored PG (path designer scaffoldStored) deve
+                // usare un metodo dbms-specific sul satellite PG (scaffoldOfStoredPostgres) -
+                // TODO separato. Qui, per il first-run, gli storeds restano fuori.
+                _ = storeds; // soppress unused (computato sopra, non scaffoldato nel first-run)
 
                 RawHelpers.setMetadataVersion();
+
+                if (reportProg)
+                    ngUicServicesCore.Controllers.FirstRunProgressTracker.Complete("Scaffold of " + db + " done");
             }
 
             return new Dictionary<string, string>()

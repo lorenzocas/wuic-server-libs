@@ -740,10 +740,123 @@ FROM {fromTable}
         /// in una singola roundtrip) — quindi qui basta una sola Execute.
         /// </summary>
         public static void ExecutePostgresScript(System.Data.Common.DbConnection connection, string script)
+            => ExecutePostgresScript(connection, script, null);
+
+        // Invalida tutti i connection pool Npgsql: chiamato prima dello scaffold
+        // post-firstRun per scartare connessioni terminate dal drop/recreate dei DB
+        // (altrimenti il riuso prende 57P01 "terminating connection due to admin command").
+        public static void ClearAllPools()
+        {
+            NpgsqlConnection.ClearAllPools();
+        }
+
+        /// <summary>
+        /// Overload con progress callback per la progress bar del first-run.
+        /// SENZA callback: comportamento legacy identico (one-shot
+        /// <c>connection.Execute(script)</c>). CON callback: splitta lo script in
+        /// statement (literal/dollar-quote/comment-aware, tarato su output
+        /// pg_dump --inserts) ed esegue per-statement, riportando l'offset char
+        /// cumulativo cosi' KonvergenceCore calcola percent = pos/scriptLength.
+        /// Lo split-loop e' gated dalla callback → nessun caller esistente cambia.
+        /// </summary>
+        public static void ExecutePostgresScript(System.Data.Common.DbConnection connection, string script, System.Action<long> onProgress)
         {
             if (connection == null) throw new ArgumentNullException(nameof(connection));
             if (string.IsNullOrWhiteSpace(script)) return;
-            connection.Execute(script);
+            if (onProgress == null)
+            {
+                connection.Execute(script); // legacy one-shot (invariato)
+                return;
+            }
+
+            // CRITICO: tutto in UNA transazione, identico all'one-shot. I dump pg_dump
+            // ordinano i dati alfabeticamente (_metadati__colonne PRIMA di _metadati__tabelle)
+            // e aggiungono le FK con ALTER ... ADD CONSTRAINT in coda: durante il load la FK
+            // non esiste, e l'ADD CONSTRAINT finale valida l'intero dataset al commit. Eseguire
+            // gli statement in autocommit separati rompe questa atomicita' -> l'ADD CONSTRAINT
+            // valida dati non ancora tutti committati nella stessa unit -> 23503 FK violation.
+            // Niente BEGIN/COMMIT espliciti nei dump first-run (verificato), quindi una sola
+            // transazione esplicita e' sicura e replica esattamente la semantica one-shot.
+            int n = script.Length;
+            using (var tx = connection.BeginTransaction())
+            {
+                // RAW ExecuteNonQuery: NON usare connection.Execute (Dapper custom del
+                // progetto) qui — per gli INSERT singoli appende `SELECT LASTVAL()` per
+                // recuperare l'id generato, ma i dump pg_dump inseriscono id ESPLICITI
+                // (niente nextval) -> "lastval is not yet defined in this session" ->
+                // aborto transazione -> 25P02 a cascata. L'one-shot originale passava
+                // l'intero script come un comando (no append). Eseguiamo lo statement grezzo.
+                void ExecRaw(string sqlText)
+                {
+                    using (var cmd = connection.CreateCommand())
+                    {
+                        cmd.Transaction = tx;
+                        cmd.CommandText = sqlText;
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+
+                int i = 0, stmtStart = 0;
+                bool inLine = false, inBlock = false, inSquote = false;
+                string dollarTag = null;
+                while (i < n)
+                {
+                    char c = script[i];
+                    if (inLine) { if (c == '\n') inLine = false; i++; continue; }
+                    if (inBlock) { if (c == '*' && i + 1 < n && script[i + 1] == '/') { inBlock = false; i += 2; continue; } i++; continue; }
+                    if (inSquote)
+                    {
+                        if (c == '\'')
+                        {
+                            if (i + 1 < n && script[i + 1] == '\'') { i += 2; continue; } // '' escape
+                            inSquote = false; i++; continue;
+                        }
+                        i++; continue;
+                    }
+                    if (dollarTag != null)
+                    {
+                        if (c == '$' && i + dollarTag.Length <= n && string.CompareOrdinal(script, i, dollarTag, 0, dollarTag.Length) == 0)
+                        { i += dollarTag.Length; dollarTag = null; continue; }
+                        i++; continue;
+                    }
+                    if (c == '-' && i + 1 < n && script[i + 1] == '-') { inLine = true; i += 2; continue; }
+                    if (c == '/' && i + 1 < n && script[i + 1] == '*') { inBlock = true; i += 2; continue; }
+                    if (c == '\'') { inSquote = true; i++; continue; }
+                    if (c == '$')
+                    {
+                        string tag = ReadDollarTag(script, i);
+                        if (tag != null) { dollarTag = tag; i += tag.Length; continue; }
+                        i++; continue;
+                    }
+                    if (c == ';')
+                    {
+                        string stmt = script.Substring(stmtStart, i - stmtStart + 1).Trim();
+                        if (stmt.Length > 0 && stmt != ";") ExecRaw(stmt);
+                        i++; stmtStart = i;
+                        try { onProgress(i); } catch { /* best-effort */ }
+                        continue;
+                    }
+                    i++;
+                }
+                if (stmtStart < n)
+                {
+                    string tail = script.Substring(stmtStart).Trim();
+                    if (tail.Length > 0 && tail != ";") ExecRaw(tail);
+                }
+                tx.Commit();
+            }
+            try { onProgress(n); } catch { }
+        }
+
+        // Dollar-quote opener: ritorna "$tag$" (delimitatori inclusi) se a `i` c'e' un
+        // opener valido ($$ o $name$), altrimenti null. Stesso letterale chiude il blocco.
+        private static string ReadDollarTag(string s, int i)
+        {
+            if (i >= s.Length || s[i] != '$') return null;
+            int j = i + 1;
+            while (j < s.Length && (char.IsLetterOrDigit(s[j]) || s[j] == '_')) j++;
+            if (j < s.Length && s[j] == '$') return s.Substring(i, j - i + 1);
+            return null;
         }
 
         #endregion

@@ -38,6 +38,8 @@ Applications generated with the framework now include a **set of markdown contex
 
 ## 🐛 Notable bug fixes
 
+- **First-run installer — non-tutorial mode on every DB provider**: installing with scaffolding of an existing database (without the tutorial sample data) has been fixed and unified across all supported providers — SQL Server, MySQL, PostgreSQL and Oracle. Resolved the failures caused by SQL dialect differences, target database/schema selection and connection handling that surfaced outside tutorial mode.
+
 - **First-run installer — SQL script path (non-BAK)**: when provisioning the metadata DB via the incremental SQL script (the alternative to restoring from a `.bak`), the parser for `GO`-separated batches mishandled some separators, causing schema creation to fail on fresh installations. The splitter has been fixed and script-based installs now complete cleanly.
 
 - **Source package — .NET RAG engine not found at runtime**: in the source package (`-src-`) the `WuicRagEngine.dll` engine was placed at the package root, while the executable, started from `bin/`, looked for it next to itself — the RAG chatbot would not start ("WuicRagEngine.dll not found"). The loader now searches the `rag-engine/` folder in several locations (build output, content root, working directory) and finds the engine in both deploy layouts.

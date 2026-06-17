@@ -1838,10 +1838,30 @@ if ($SkipRagArtifacts -or $LocalOnly) {
         @{ local = 'onnx_export\rag_tools.json';                    remote = 'rag_tools.json' }
         @{ local = 'onnx_export\tokenizer\sentencepiece.bpe.model'; remote = 'tokenizer/sentencepiece.bpe.model' }
         @{ local = 'onnx_export\tokenizer\bge_m3\tokenizer.json';   remote = 'tokenizer/bge_m3/tokenizer.json' }
-        @{ local = 'index\vectors.npy';                            remote = 'index/vectors.npy' }
-        @{ local = 'index\metadata.jsonl';                         remote = 'index/metadata.jsonl' }
+        # ANTI-LEAK: il sito pubblico serve gli END-DEVELOPER (clienti), che NON devono poter
+        # recuperare il sorgente proprietario del framework. Pubblichiamo quindi l'indice REDATTO
+        # (index_release/: body framework -> sola firma, vedi build_release_chunks.py) come index/
+        # remoto. I framework-dev INTERNI usano l'indice completo locale (codebase_embeddings/index/),
+        # NON questo download. Rebuild release:
+        #   python build_release_chunks.py
+        #   python generate_embeddings.py build --input-jsonl code_chunks.release.jsonl --output-dir index_release
+        @{ local = 'index_release\vectors.npy';                    remote = 'index/vectors.npy' }
+        @{ local = 'index_release\metadata.jsonl';                 remote = 'index/metadata.jsonl' }
         @{ local = '_translate_cache_v3.json';                     remote = '_translate_cache_v3.json'; optional = $true }
     )
+
+    # Guard anti-leak: l'indice release DEVE esistere ed essere effettivamente redatto
+    # (body framework strippati). Senza questo, un index_release/ mancante o stale farebbe
+    # pubblicare nulla / un indice sbagliato. Verifica presenza + spot-check che almeno un
+    # chunk framework abbia il body troncato col marker "{ … }".
+    $relMeta = Join-Path $RagArtifactsSourceDir 'index_release\metadata.jsonl'
+    if (-not (Test-Path $relMeta)) {
+        throw "Upload RAG: index_release\metadata.jsonl non trovato in $RagArtifactsSourceDir. Buildalo (build_release_chunks.py + generate_embeddings.py build --output-dir index_release) prima del deploy: il sito pubblico NON deve mai servire l'indice interno."
+    }
+    if (-not (Select-String -Path $relMeta -Pattern '\{ … \}' -SimpleMatch -Quiet)) {
+        throw "Upload RAG: index_release\metadata.jsonl non sembra REDATTO (nessun marker '{ … }' di body troncato). Rischio leak: rigenera l'indice release prima del deploy."
+    }
+    Write-Sub "anti-leak OK: pubblico l'indice REDATTO index_release/ (body framework solo-firma)"
 
     $remoteRag = Join-Path $SitePath 'rag-models'
     $remoteUserHostRag = "${User}@${Server}"

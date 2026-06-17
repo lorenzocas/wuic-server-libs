@@ -120,9 +120,10 @@ public sealed class RagEngine : IDisposable
     /// <summary>Retrieval puro -> JSON contratto server /api/rag/query.</summary>
     public string QueryJson(string query, int topK, string profile)
     {
-        var srcs = BuildSources(query, topK, EffectiveProfile(profile));
+        string eff = EffectiveProfile(profile);
+        var srcs = BuildSources(query, topK, eff);
         int rank = 1;
-        var dto = new QueryOutDto { Results = srcs.Select(s => ToDto(s.hit, rank++, s.snippet)).ToList() };
+        var dto = new QueryOutDto { Results = srcs.Select(s => ToDto(s.hit, rank++, s.snippet, eff)).ToList() };
         return JsonSerializer.Serialize(dto);
     }
 
@@ -137,14 +138,24 @@ public sealed class RagEngine : IDisposable
         translate_cache_size = _translate.Count,
     });
 
-    private static RagSourceDto ToDto(RagHit h, int rank, string snippet) => new()
+    private static RagSourceDto ToDto(RagHit h, int rank, string snippet, string effProfile)
     {
-        Rank = rank, ChunkId = h.ChunkId, RelPath = h.RelPath,
-        SymbolName = h.SymbolName, SymbolType = h.SymbolType,
-        StartLine = h.StartLine, EndLine = h.EndLine,
-        ScoreVector = h.ScoreVector, ScoreBm25 = h.ScoreBm25,
-        Snippet = snippet.Length > 500 ? snippet.Substring(0, 500) : snippet,
-    };
+        bool release = effProfile == "release";
+        // In release il path del sorgente framework -> nome pacchetto pubblico (vedi
+        // ReleaseRedaction.RedactPath); per quei chunk azzeriamo anche start/end line
+        // (un numero di riga verso un path redatto e' un residuo di localizzazione).
+        bool pathRedacted = release && ReleaseRedaction.PathIsRedacted(h.RelPath, h.SymbolType, h.SymbolName);
+        return new()
+        {
+            Rank = rank, ChunkId = h.ChunkId,
+            RelPath = release ? ReleaseRedaction.RedactPath(h.RelPath, h.SymbolType, h.SymbolName) : h.RelPath,
+            SymbolName = h.SymbolName, SymbolType = h.SymbolType,
+            StartLine = pathRedacted ? 0 : h.StartLine,
+            EndLine = pathRedacted ? 0 : h.EndLine,
+            ScoreVector = h.ScoreVector, ScoreBm25 = h.ScoreBm25,
+            Snippet = snippet.Length > 500 ? snippet.Substring(0, 500) : snippet,
+        };
+    }
 
     // ---- CHAT (retrieval + Claude) — drop-in di /api/rag/chat del rag_server.py ----
     private static readonly System.Net.Http.HttpClient s_http = new() { Timeout = TimeSpan.FromSeconds(120) };
@@ -278,9 +289,10 @@ public sealed class RagEngine : IDisposable
         bool oaiProvider = IsOpenAiCompat(provider);
         int contextWindowMax = ContextWindow(model);
         // Over-fetch -> dedup doc-locale -> drop AI-internal -> (release) redact -> slice topK.
-        var srcs = BuildSources(query, topK, EffectiveProfile(profile));
+        string eff = EffectiveProfile(profile);
+        var srcs = BuildSources(query, topK, eff);
         int rk = 1;
-        var sources = srcs.Select(s => ToDto(s.hit, rk++, s.snippet)).ToList();
+        var sources = srcs.Select(s => ToDto(s.hit, rk++, s.snippet, eff)).ToList();
 
         if (string.IsNullOrWhiteSpace(apiKey))
             return JsonSerializer.Serialize(new ChatOutDto
@@ -300,7 +312,10 @@ public sealed class RagEngine : IDisposable
         foreach (var s in srcs)
         {
             var h = s.hit;
-            string header = string.IsNullOrEmpty(h.SymbolName) ? $"[{h.RelPath}]" : $"[{h.RelPath}::{h.SymbolName}]";
+            // In release il path nel CONTESTO passato all'LLM va redatto (sennò l'LLM
+            // cita il path interno del sorgente framework nelle [parentesi quadre]).
+            string hdrPath = eff == "release" ? ReleaseRedaction.RedactPath(h.RelPath, h.SymbolType, h.SymbolName) : h.RelPath;
+            string header = string.IsNullOrEmpty(h.SymbolName) ? $"[{hdrPath}]" : $"[{hdrPath}::{h.SymbolName}]";
             string snip = s.snippet.Length > 500 ? s.snippet.Substring(0, 500) : s.snippet;
             ctx.Append(header).Append('\n').Append(snip).Append("\n\n");
         }

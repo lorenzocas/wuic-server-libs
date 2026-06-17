@@ -327,6 +327,7 @@ def build_index(
     hf_token: str = "",
     hf_token_env: str = "RAG_HF_TOKEN",
     resume_build: bool = False,
+    no_bm25: bool = False,
 ):
     docs = load_chunks(input_jsonl)
     if not docs:
@@ -432,13 +433,20 @@ def build_index(
                 f"speed {docs_per_sec:.1f} docs/s, eta {eta_sec}s)"
             )
 
-    bm25 = build_bm25(docs)
+    # BM25 opzionale. Il motore .NET (WuicRagEngine/Bm25.cs) ricostruisce il BM25 IN-PROCESS
+    # dai testi di metadata.jsonl: per gli indici destinati al solo engine .NET (es. index_release)
+    # bm25.pkl e' inutile. build_bm25() su indici grandi accumula tutti i token in RAM (~11GB su
+    # 7830 chunk) -> con --no-bm25 lo si salta del tutto, evitando l'OOM. Tienilo ON solo per il
+    # server Python legacy (rag_server.py) che carica bm25.pkl.
+    if not no_bm25:
+        bm25 = build_bm25(docs)
 
     with (output_dir / "metadata.jsonl").open("w", encoding="utf-8") as f:
         for d in docs:
             f.write(json.dumps(d, ensure_ascii=False) + "\n")
-    with (output_dir / "bm25.pkl").open("wb") as f:
-        pickle.dump(bm25, f)
+    if not no_bm25:
+        with (output_dir / "bm25.pkl").open("wb") as f:
+            pickle.dump(bm25, f)
     with (output_dir / "index_config.json").open("w", encoding="utf-8") as f:
         json.dump(
             {
@@ -1141,6 +1149,7 @@ def cmd_build(args):
         hf_token=args.hf_token,
         hf_token_env=args.hf_token_env,
         resume_build=args.resume_build,
+        no_bm25=args.no_bm25,
     )
 
 
@@ -1265,6 +1274,11 @@ def main():
     p_build.add_argument("--model", default=os.getenv("RAG_EMBED_MODEL", DEFAULT_MODEL))
     p_build.add_argument("--batch-size", type=int, default=int(os.getenv("RAG_BATCH_SIZE", "64")))
     p_build.add_argument("--resume-build", action="store_true")
+    p_build.add_argument("--no-bm25", action="store_true",
+                         help="Salta build_bm25 + bm25.pkl (evita ~11GB RAM su indici grandi). "
+                              "Il motore .NET ricostruisce il BM25 in-process dai testi di "
+                              "metadata.jsonl; usa --no-bm25 per gli indici destinati al solo "
+                              "engine .NET (es. index_release).")
     p_build.add_argument("--hf-token", default="")
     p_build.add_argument("--hf-token-env", default="RAG_HF_TOKEN")
     p_build.set_defaults(func=cmd_build)

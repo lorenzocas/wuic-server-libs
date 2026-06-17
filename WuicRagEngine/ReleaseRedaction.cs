@@ -156,4 +156,46 @@ public static class ReleaseRedaction
         }
         return text;
     }
+
+    /// <summary>Path da ESPORRE in release. Per il sorgente framework (`signature`) il path
+    /// interno del sorgente proprietario NON deve trapelare: lo sostituiamo col nome del
+    /// PACCHETTO pubblico (npm/NuGet) che l'end developer referenzia comunque. Il riferimento
+    /// utile resta (firma del metodo/classe + symbol_name), ma non il percorso del file.
+    /// Per i chunk `public` (docs/pages, *.d.ts, app-esempio) il path e' un riferimento
+    /// legittimo e viene mantenuto. `deny` non arriva mai qui (RedactText lo droppa prima).</summary>
+    public static string RedactPath(string? relPath, string? symbolType, string? symbolName)
+    {
+        string norm = (relPath ?? "").Replace('\\', '/');
+        string lower = norm.ToLowerInvariant();
+
+        // Docs pubbliche: il CONTENUTO e' anche pubblicato online -> emetti l'URL NAVIGABILE del
+        // docs-site (https://wuic-framework.com/docs/<slug>), cliccabile dall'end-dev. NON il path
+        // del file interno (KonvergenceCore/wwwroot/my-workspace/.../docs/pages/...): quel file non
+        // esiste nel pacchetto e leakerebbe il layout del repo. Slug = filename senza .md; il locale
+        // e' una directory e NON cambia lo slug (en-US/datasource.md e datasource.md -> 'datasource').
+        if ((lower.Contains("/docs/pages/") || lower.StartsWith("docs/pages/")) && lower.EndsWith(".md"))
+        {
+            string fname = norm.Substring(norm.LastIndexOf('/') + 1);
+            string slug = fname.Substring(0, fname.Length - 3).ToLowerInvariant();
+            return "https://wuic-framework.com/docs/" + slug;
+        }
+
+        // *.d.ts pubblici del framework: esponi il PACCHETTO, non il path interno.
+        if (lower.EndsWith(".d.ts") && lower.Contains("/wuic-framework-lib/"))
+            return "wuic-framework-lib";
+
+        string cls = Classify(relPath, symbolType, symbolName);
+        if (cls != "signature") return relPath ?? "";   // app-esempio (WuicTest/...): path utente, tenuto
+        if (lower.Contains("/wuic-framework-lib/src/lib/") && lower.EndsWith(".ts"))
+            return "wuic-framework-lib";   // pacchetto npm pubblico
+        if (lower.EndsWith(".cs"))
+            return "WuicCore";             // pacchetto NuGet pubblico
+        return "WUIC (framework)";
+    }
+
+    /// <summary>True se per questo chunk, in release, il path viene redatto (sorgente framework
+    /// signature). I chiamanti la usano per azzerare anche start/end line (un numero di riga
+    /// verso un path redatto e' insensato e resta un residuo di localizzazione del sorgente).</summary>
+    public static bool PathIsRedacted(string? relPath, string? symbolType, string? symbolName)
+        => Classify(relPath, symbolType, symbolName) == "signature";
 }

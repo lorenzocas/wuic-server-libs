@@ -516,35 +516,97 @@ WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
 
                 str.AppendLine(string.Format("Scaffolding {0} tables<br />", tables.Count));
 
+                // First-run progress (fase scaffolding, parity con metaModelRaw.scaffoldDB MSSQL).
+                bool reportProg = ngUicServicesCore.Controllers.FirstRunProgressTracker.IsActive;
+                long totalObj = 0, processedObj = 0;
+                if (reportProg)
+                {
+                    totalObj = tables.Count + views.Count + storeds.Count;
+                    ngUicServicesCore.Controllers.FirstRunProgressTracker.Start(
+                        Guid.NewGuid().ToString(), "scaffold-existing-db", totalObj, "Scaffolding " + db);
+                }
+
                 bool createM = createMenu;
 
                 foreach (string tb in tables.OrderBy(x => x))
                 {
-                    createMenu = createM;
-
-                    List<columnDefinition> columns = GetOracleColumns(connection, owner, tb, str);
-
-                    foreach (columnDefinition col in columns)
+                    // Resilienza per-tabella: una singola tabella anomala (route gia'
+                    // esistente -> ORA-00001 sull'unique IX__METADATI__TABELLE_UNIQUE_ROUTE,
+                    // struttura corrotta, duplicati per-case in uno schema dati "sporco")
+                    // NON deve abortire l'INTERO scaffold. Senza questo try/catch un
+                    // ORA-00001 su 1 tabella faceva perdere lo scaffold delle altre ~70.
+                    // Lo skip finisce nel report ritornato (niente masking silenzioso) e
+                    // il progress avanza comunque (Update fuori dal try).
+                    try
                     {
-                        scaffoldOfColumnOracle(connection, connName, mmd, tb, db, col, str, ref createMenu, columns.Count);
+                        createMenu = createM;
+
+                        List<columnDefinition> columns = GetOracleColumns(connection, owner, tb, str);
+
+                        foreach (columnDefinition col in columns)
+                        {
+                            scaffoldOfColumnOracle(connection, connName, mmd, tb, db, col, str, ref createMenu, columns.Count);
+                        }
+                    }
+                    catch (Exception tableEx)
+                    {
+                        str.AppendLine(string.Format("SKIPPED table {0}: {1}<br />", tb,
+                            (tableEx.Message ?? tableEx.GetType().Name).Replace("<", "&lt;").Replace(">", "&gt;")));
+                    }
+
+                    if (reportProg)
+                    {
+                        processedObj++;
+                        ngUicServicesCore.Controllers.FirstRunProgressTracker.Update(processedObj, "table " + tb);
                     }
                 }
 
                 foreach (string vw in views.OrderBy(x => x))
                 {
-                    List<columnDefinition> columns = GetOracleColumns(connection, owner, vw, str);
-                    foreach (columnDefinition col in columns)
+                    try
                     {
-                        scaffoldOfColumnOracle(connection, connName, mmd, vw, db, col, str, ref createMenu, columns.Count);
+                        List<columnDefinition> columns = GetOracleColumns(connection, owner, vw, str);
+                        foreach (columnDefinition col in columns)
+                        {
+                            scaffoldOfColumnOracle(connection, connName, mmd, vw, db, col, str, ref createMenu, columns.Count);
+                        }
+                    }
+                    catch (Exception viewEx)
+                    {
+                        str.AppendLine(string.Format("SKIPPED view {0}: {1}<br />", vw,
+                            (viewEx.Message ?? viewEx.GetType().Name).Replace("<", "&lt;").Replace(">", "&gt;")));
+                    }
+
+                    if (reportProg)
+                    {
+                        processedObj++;
+                        ngUicServicesCore.Controllers.FirstRunProgressTracker.Update(processedObj, "view " + vw);
                     }
                 }
 
                 foreach (string sp in storeds.OrderBy(x => x))
                 {
-                    mmd.scaffoldOfStoredMySql(connection, connName, sp, mmd, str, owner);
+                    try
+                    {
+                        mmd.scaffoldOfStoredMySql(connection, connName, sp, mmd, str, owner);
+                    }
+                    catch (Exception spEx)
+                    {
+                        str.AppendLine(string.Format("SKIPPED stored {0}: {1}<br />", sp,
+                            (spEx.Message ?? spEx.GetType().Name).Replace("<", "&lt;").Replace(">", "&gt;")));
+                    }
+
+                    if (reportProg)
+                    {
+                        processedObj++;
+                        ngUicServicesCore.Controllers.FirstRunProgressTracker.Update(processedObj, "stored " + sp);
+                    }
                 }
 
                 RawHelpers.setMetadataVersion();
+
+                if (reportProg)
+                    ngUicServicesCore.Controllers.FirstRunProgressTracker.Complete("Scaffold of " + db + " done");
             }
 
             return new Dictionary<string, string>()
