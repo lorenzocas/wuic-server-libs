@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Release Notes v1.3.2_1.3.2 - WUIC Framework</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; color: #1e293b; background: #ffffff; line-height: 1.6; overflow-wrap: anywhere; word-wrap: break-word; }
+a { color: #6366f1; text-decoration: none; }
+a:hover { color: #4f46e5; text-decoration: underline; }
+
+/* Site-style header (mini-navbar) */
+.rn-header { background: rgba(255, 255, 255, 0.95); border-bottom: 1px solid #e2e8f0; backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 10; }
+.rn-header-inner { max-width: 1200px; margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.rn-brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: #0f172a; font-size: 1.15rem; }
+.rn-brand-bolt { display: inline-block; width: 24px; height: 24px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M13 2L3 14h7l-1 8 10-12h-7l1-8z'/></svg>") center/contain no-repeat; mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M13 2L3 14h7l-1 8 10-12h-7l1-8z'/></svg>") center/contain no-repeat; }
+.rn-back { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border: 1px solid #c7d2fe; border-radius: 6px; color: #4f46e5; background: #eef2ff; font-size: 0.9rem; transition: background 0.15s, border-color 0.15s; }
+.rn-back:hover { background: #e0e7ff; border-color: #a5b4fc; text-decoration: none; }
+
+/* Article container: same width as Site .container */
+.rn-article { max-width: 880px; margin: 0 auto; padding: 48px 24px 80px; }
+
+/* Headings: site palette */
+h1, h2, h3, h4 { color: #0f172a; line-height: 1.25; font-weight: 700; }
+h1 { font-size: 2rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; margin-bottom: 1.25rem; }
+h2 { font-size: 1.4rem; margin-top: 2.25rem; margin-bottom: 0.75rem; }
+h3 { font-size: 1.125rem; margin-top: 1.5rem; margin-bottom: 0.5rem; color: #334155; }
+
+p { margin: 0.75rem 0; color: #334155; }
+strong { color: #0f172a; font-weight: 600; }
+
+ul, ol { padding-left: 1.4rem; margin: 0.75rem 0; }
+li { margin: 0.25rem 0; color: #334155; }
+
+hr { border: 0; border-top: 1px solid #e2e8f0; margin: 2.5rem 0; }
+
+/* Inline code: tinta indigo che richiama il brand */
+code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.9em; }
+code { background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; padding: 0.1em 0.4em; border-radius: 4px; word-break: break-word; }
+pre { background: #f8fafc; border: 1px solid #e2e8f0; padding: 1rem 1.25rem; border-radius: 8px; overflow-x: auto; max-width: 100%; margin: 1rem 0; }
+pre code { background: transparent; color: #1e293b; border: 0; padding: 0; word-break: normal; }
+
+/* Tables: scrollabili, header indigo-tint */
+.table-wrap { overflow-x: auto; max-width: 100%; margin: 1.25rem 0; border: 1px solid #e2e8f0; border-radius: 8px; }
+table { border-collapse: collapse; width: max-content; min-width: 100%; background: #ffffff; }
+th, td { border-bottom: 1px solid #e2e8f0; padding: 0.65rem 0.95rem; text-align: left; vertical-align: top; font-size: 0.95rem; }
+th { background: #f8fafc; color: #0f172a; font-weight: 600; border-bottom-color: #cbd5e1; }
+tr:last-child td { border-bottom: 0; }
+td { color: #334155; }
+
+/* Blockquote: brand accent */
+blockquote { border-left: 3px solid #6366f1; margin: 1.25rem 0; padding: 0.6rem 1.1rem; color: #475569; background: #eef2ff; border-radius: 0 6px 6px 0; }
+blockquote p { color: #475569; }
+
+img { max-width: 100%; height: auto; border-radius: 6px; }
+</style>
+<script>
+// Wrap tables post-render in scroll container (markdown converter emits raw <table>).
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('table').forEach(t => {
+    if (t.parentElement && t.parentElement.classList.contains('table-wrap')) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+});
+</script>
+</head>
+<body>
+<header class="rn-header">
+  <div class="rn-header-inner">
+    <a href="/" class="rn-brand"><span class="rn-brand-bolt"></span><span>WUIC</span></a>
+    <a href="/downloads" class="rn-back">&larr; Retour aux t&eacute;l&eacute;chargements</a>
+  </div>
+</header>
+<article class="rn-article">
+<h1 id="notes-de-version-wuic-framework-v1.3.2">Notes de version — WUIC Framework v1.3.2</h1>
+<p><strong>Date</strong> : 18 juin 2026
+<strong>Version publiée précédente</strong> : 1.3.0 (11 juin 2026)
+<strong>Backend</strong> : .NET 10 + IIS / Linux nginx
+<strong>Frontend</strong> : Angular 21</p>
+<hr />
+<p>Une version de consolidation autour du <strong>chatbot RAG</strong> introduit en 1.3.0 : le modèle conversationnel n'est plus lié à Anthropic — tout endpoint compatible OpenAI, y compris les runtimes locaux comme Ollama avec des modèles ouverts (Qwen), est désormais configurable et tourne sans clé API. À côté de cela, une série de correctifs sur l'installateur de first-run, le paquet sources et le scaffolding des métadonnées qui se manifestaient sur les installations neuves, ainsi qu'un workspace prêt pour les assistants IA de développement.</p>
+<hr />
+<h2 id="chatbot-rag-fournisseur-llm-flexible-y-compris-local-et-gratuit">🤖 Chatbot RAG — fournisseur LLM flexible (y compris local et gratuit)</h2>
+<p>Le modèle conversationnel du chatbot est désormais indépendant du fournisseur. Outre Anthropic, les endpoints <strong>compatibles OpenAI</strong> sont pris en charge, ce qui inclut les runtimes locaux (p. ex. Ollama) : on peut exécuter des modèles ouverts et gratuits comme <strong>Qwen</strong> sur sa propre machine, <strong>sans clé API et sans coût par token</strong>.</p>
+<ul>
+<li><code>rag-llm-provider</code> — <code>anthropic</code> (par défaut) / <code>openai</code> / <code>openrouter</code>. Sélectionne le dialecte wire du fournisseur.</li>
+<li><code>rag-llm-base-url</code> — override de l'endpoint ; en l'indiquant vers l'URL d'un serveur local (p. ex. <code>http://localhost:11434/v1</code> pour Ollama), le chatbot dialogue avec le modèle en local.</li>
+<li><code>rag-llm-default-chat-model</code> — id du modèle pour le fournisseur choisi (p. ex. un modèle Qwen sur Ollama).</li>
+<li><code>llm-api-key</code> — clé du fournisseur actif ; pour les runtimes locaux qui ne la valident pas, une valeur de remplacement (p. ex. <code>ollama</code>) suffit. L'historique <code>anthropic-api-key</code> reste valide quand <code>rag-llm-provider=anthropic</code> (aucune migration).</li>
+</ul>
+<p>Toutes les clés sont en <strong>hot-reload</strong> depuis <code>appsettings.json</code> : changer de fournisseur ou de modèle ne nécessite aucun redémarrage.</p>
+<p><strong>Retrieval plus précis</strong> — le re-ranking des résultats a été affiné : le chatbot cite des sources plus pertinentes sur les requêtes en langage naturel.</p>
+<p><strong>Notifications de setup</strong> — au premier usage, le moteur .NET télécharge les modèles ONNX à la demande. L'administrateur reçoit désormais dans la cloche les notifications de <strong>démarrage / prêt / erreur</strong> du téléchargement, sur les quatre fournisseurs de BD, même lorsque l'initialisation est déclenchée par une requête sans utilisateur connecté.</p>
+<p><strong>Accélération GPU automatique</strong> — sur une machine avec GPU NVIDIA, le moteur utilise le GPU sans installer CUDA : au premier lancement, en plus des modèles ONNX, il télécharge à la demande le runtime CUDA 12 + cuDNN 9 nécessaire (~1,8 Go, une seule fois, uniquement si un GPU est présent) et le configure lui-même. Sans GPU → CPU, aucun téléchargement supplémentaire. Override manuel avec <code>rag-engine-cuda-path</code>.</p>
+<hr />
+<h2 id="workspace-pret-pour-les-assistants-ia-de-developpement">🧩 Workspace prêt pour les assistants IA de développement</h2>
+<p>Les applications générées avec le framework incluent désormais une <strong>collection de fichiers markdown de contexte</strong> (description du projet, conventions, règles opérationnelles) à la racine du workspace. Ces fichiers rendent les assistants IA agentiques — <strong>Continue</strong>, <strong>Cline</strong>, Cursor et similaires — immédiatement conscients de la structure et des conventions WUIC, sans installer d'extension propriétaire. Tout client qui lit le contexte du workspace se comporte comme un assistant « WUIC-native ».</p>
+<hr />
+<h2 id="correctifs-notables">🐛 Correctifs notables</h2>
+<ul>
+<li><p><strong>Installateur de first-run — mode non-tutoriel sur tous les fournisseurs de BD</strong> : l'installation avec scaffolding d'une base de données existante (sans les données d'exemple du tutoriel) a été corrigée et unifiée sur tous les fournisseurs pris en charge — SQL Server, MySQL, PostgreSQL et Oracle. Résolus les échecs dus aux différences de dialecte SQL, à la sélection de la base/du schéma cible et à la gestion des connexions qui apparaissaient hors du mode tutoriel.</p>
+</li>
+<li><p><strong>Installateur de first-run — chemin par script SQL (non-BAK)</strong> : lors du provisioning de la BD de métadonnées via le script SQL incrémental (alternative au restore depuis un <code>.bak</code>), le parser des lots séparés par <code>GO</code> traitait mal certains séparateurs, faisant échouer la création du schéma sur les installations neuves. Le splitter a été corrigé et les installations par script se terminent correctement.</p>
+</li>
+<li><p><strong>Paquet sources — moteur RAG .NET introuvable au runtime</strong> : dans le paquet sources (<code>-src-</code>), le moteur <code>WuicRagEngine.dll</code> était placé à la racine du paquet, tandis que l'exécutable, lancé depuis <code>bin/</code>, le cherchait à côté de lui — le chatbot RAG ne démarrait pas (« WuicRagEngine.dll introuvable »). Le loader recherche désormais le dossier <code>rag-engine/</code> à plusieurs emplacements (sortie de build, content-root, répertoire courant) et trouve le moteur dans les deux layouts de déploiement.</p>
+</li>
+<li><p><strong>First-run — persistance de la clé API du chatbot</strong> : la clé LLM saisie dans l'assistant de première installation est désormais écrite dans le <code>appsettings.json</code> canonique réellement lu par le runtime. Auparavant, dans certains layouts, elle pouvait atterrir dans une copie que le processus ne lit jamais, laissant le chatbot sans clé juste après l'installation.</p>
+</li>
+<li><p><strong>Scaffolding des métadonnées — diagnostic et robustesse</strong> : le scaffolding des métadonnées de certaines tables pouvait échouer avec un message générique (« Unable to scaffold metadata table ») qui masquait la cause réelle. L'erreur SQL effective remonte désormais jusqu'à l'appelant, et le cas qui la provoquait est résolu.</p>
+</li>
+<li><p><strong>Paquet sources — notifications temps réel en dev</strong> : dans le paquet <code>-src-</code>, le proxy du dev-server (<code>ng serve</code>) ne transférait pas les connexions WebSocket au backend ; le canal de notifications (<code>/ws</code>) tombait en timeout et les mises à jour n'apparaissaient qu'après un rechargement manuel de la page. Le proxy transfère désormais aussi les WebSockets : les notifications arrivent en temps réel.</p>
+</li>
+</ul>
+<hr />
+<h2 id="paquets-mis-a-jour">📦 Paquets mis à jour</h2>
+<table>
+<thead>
+<tr>
+<th>Paquet</th>
+<th>De</th>
+<th>À</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WuicCore</td>
+<td>1.3.0</td>
+<td>1.3.2</td>
+</tr>
+<tr>
+<td>Wuic.Webcore</td>
+<td>1.3.0</td>
+<td>1.3.2</td>
+</tr>
+<tr>
+<td>WuicOData</td>
+<td>1.3.0</td>
+<td>1.3.2</td>
+</tr>
+<tr>
+<td>RuntimeEfCore</td>
+<td>1.3.0</td>
+<td>1.3.2</td>
+</tr>
+<tr>
+<td>Wuic.MySqlProvider</td>
+<td>1.3.0</td>
+<td>1.3.2</td>
+</tr>
+<tr>
+<td>Wuic.PostgresProvider</td>
+<td>1.3.0</td>
+<td>1.3.2</td>
+</tr>
+<tr>
+<td>Wuic.OracleProvider</td>
+<td>1.3.0</td>
+<td>1.3.2</td>
+</tr>
+<tr>
+<td>wuic-framework-lib (NPM)</td>
+<td>1.3.0</td>
+<td>1.3.2</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="actions-operationnelles-recommandees-pour-la-mise-a-jour">🔧 Actions opérationnelles recommandées pour la mise à jour</h2>
+<ol>
+<li>Pour faire tourner le chatbot avec un <strong>modèle local et gratuit</strong> (p. ex. Qwen via Ollama) : définir <code>rag-llm-provider=openai</code>, <code>rag-llm-base-url</code> sur l'endpoint local (p. ex. <code>http://localhost:11434/v1</code>) et <code>rag-llm-default-chat-model</code> sur l'id du modèle ; renseigner <code>llm-api-key</code> avec une valeur de remplacement (p. ex. <code>ollama</code>) si le runtime ne la valide pas. Aucun redémarrage : les clés sont en hot-reload.</li>
+<li>Pour rester sur Anthropic, aucune action n'est nécessaire : <code>anthropic-api-key</code> continue de fonctionner avec <code>rag-llm-provider=anthropic</code> (par défaut).</li>
+<li>Le paquet <strong>sources (<code>-src-</code>) est plus léger</strong> : il n'inclut plus les DLL de framework redondantes à la racine, recréées par <code>dotnet build</code> à partir des paquets NuGet. Télécharger le nouveau <code>-src-</code> ne demande aucune action.</li>
+<li>Au <strong>premier usage du chatbot</strong> avec le moteur .NET, l'administrateur verra dans la cloche la progression du téléchargement des modèles ONNX. Attendre la notification « prêt » avant le premier <code>Ask</code>.</li>
+<li>Les <strong>nouvelles apps</strong> générées incluent automatiquement les fichiers de contexte pour assistants IA à la racine du workspace ; pour les apps existantes, ils peuvent être régénérés.</li>
+</ol>
+
+</article>
+</body>
+</html>

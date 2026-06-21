@@ -1,6 +1,6 @@
 # Release Notes — WUIC Framework v1.3.2
 
-**Date**: 14 June 2026
+**Date**: 18 June 2026
 **Previous published version**: 1.3.0 (11 June 2026)
 **Backend**: .NET 10 + IIS / Linux nginx
 **Frontend**: Angular 21

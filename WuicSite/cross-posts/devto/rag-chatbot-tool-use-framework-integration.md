@@ -31,10 +31,7 @@ Bot:  toolbar action  ▸ Apply
                 const csv = toCsv(rows); download('orders.csv', csv);
 ```
 
-<details class="rag-demo">
-  <summary><img class="rag-demo-poster" src="/assets/wuic-framework-docs/screenshots/rag-table-action.thumb.jpg" alt="Demo propose_toolbar_action — bulk archive on cities (poster)" /><span class="rag-demo-label"><i class="pi pi-play-circle"></i> <strong>Play demo</strong> — propose_toolbar_action: bulk archive button</span></summary>
-  <img class="rag-demo-anim" src="/assets/wuic-framework-docs/screenshots/rag-table-action.gif" alt="Demo propose_toolbar_action — bulk archive on cities" loading="lazy" />
-</details>
+![Demo propose_toolbar_action — bulk archive on cities](https://wuic-framework.com/assets/wuic-framework-docs/screenshots/rag-table-action.gif)
 
 ### `propose_row_action`
 
@@ -49,10 +46,7 @@ Bot:  row action  ▸ Apply
                 await datasource.fetchData();
 ```
 
-<details class="rag-demo">
-  <summary><img class="rag-demo-poster" src="/assets/wuic-framework-docs/screenshots/rag-row-action.thumb.jpg" alt="Demo propose_row_action — per-row PDF generation (poster)" /><span class="rag-demo-label"><i class="pi pi-play-circle"></i> <strong>Play demo</strong> — propose_row_action: per-row "Generate PDF" button</span></summary>
-  <img class="rag-demo-anim" src="/assets/wuic-framework-docs/screenshots/rag-row-action.gif" alt="Demo propose_row_action — per-row PDF generation" loading="lazy" />
-</details>
+![Demo propose_row_action — per-row PDF generation](https://wuic-framework.com/assets/wuic-framework-docs/screenshots/rag-row-action.gif)
 
 ## Conditional styling
 
@@ -68,10 +62,7 @@ Bot:  table style  ▸ Apply
       condition: new Date(record.due_date) < new Date()
 ```
 
-<details class="rag-demo">
-  <summary><img class="rag-demo-poster" src="/assets/wuic-framework-docs/screenshots/rag-row-style.thumb.jpg" alt="Demo propose_table_style — conditional row coloring (poster)" /><span class="rag-demo-label"><i class="pi pi-play-circle"></i> <strong>Play demo</strong> — propose_table_style: conditional row coloring</span></summary>
-  <img class="rag-demo-anim" src="/assets/wuic-framework-docs/screenshots/rag-row-style.gif" alt="Demo propose_table_style — conditional row coloring" loading="lazy" />
-</details>
+![Demo propose_table_style — conditional row coloring](https://wuic-framework.com/assets/wuic-framework-docs/screenshots/rag-row-style.gif)
 
 ### `propose_column_style`
 
@@ -86,10 +77,7 @@ Bot:  column style  ▸ Apply
       condition: record.status === 'OK'
 ```
 
-<details class="rag-demo">
-  <summary><img class="rag-demo-poster" src="/assets/wuic-framework-docs/screenshots/rag-cell-style.thumb.jpg" alt="Demo propose_column_style — single-cell conditional coloring (poster)" /><span class="rag-demo-label"><i class="pi pi-play-circle"></i> <strong>Play demo</strong> — propose_column_style: single-cell conditional coloring</span></summary>
-  <img class="rag-demo-anim" src="/assets/wuic-framework-docs/screenshots/rag-cell-style.gif" alt="Demo propose_column_style — single-cell conditional coloring" loading="lazy" />
-</details>
+![Demo propose_column_style — single-cell conditional coloring](https://wuic-framework.com/assets/wuic-framework-docs/screenshots/rag-cell-style.gif)
 
 ## Cell rendering and form titles
 
@@ -245,10 +233,7 @@ Bot:  designer inject  ▸ Apply
 
 It knows the full catalogue of canvas tools and their editable properties, and it fuzzy-matches sloppy route names (*"provincie"* → `stateprovinces`) before committing to an argument.
 
-<details class="rag-demo">
-  <summary><img class="rag-demo-poster" src="/assets/wuic-framework-docs/screenshots/rag-designer.thumb.jpg" alt="Demo propose_designer_inject — master-detail injection in designer canvas (poster)" /><span class="rag-demo-label"><i class="pi pi-play-circle"></i> <strong>Play demo</strong> — propose_designer_inject: master-detail injection on designer canvas</span></summary>
-  <img class="rag-demo-anim" src="/assets/wuic-framework-docs/screenshots/rag-designer.gif" alt="Demo propose_designer_inject — master-detail injection in designer canvas" loading="lazy" />
-</details>
+![Demo propose_designer_inject — master-detail injection in designer canvas](https://wuic-framework.com/assets/wuic-framework-docs/screenshots/rag-designer.gif)
 
 ## Before it acts: asking for the schema
 

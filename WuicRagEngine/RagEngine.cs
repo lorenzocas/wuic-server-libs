@@ -328,13 +328,19 @@ public sealed class RagEngine : IDisposable
                 .Append("RETRIEVAL DINAMICO DEI METADATA (OBBLIGATORIO quando servono nomi reali): il CONTESTO PAGINA qui sopra puo' contenere SOLO la route/pagina corrente (es. `cities/list`), SENZA l'elenco colonne. NON inventare MAI nomi di colonna, identita' SQL (schema/tabella) o dettagli di un lookup (alias di join, colonne correlate). Se ti servono e non sono nel contesto, chiama PRIMA il tool `request_metadata_detail`:\n")
                 .Append("  - `request_metadata_detail{detail:'columns', route:'<route>'}` per ottenere l'elenco colonne reali + l'identita' SQL (schema/tabella + full qualifier) della route;\n")
                 .Append("  - `request_metadata_detail{detail:'lookup_columns', route:'<route>', column:'<col>'}` per l'alias di join reale e le colonne della tabella correlata di una colonna lookupByID.\n")
+                .Append("  - `request_metadata_detail{detail:'lookup_value', route:'<route>', column:'<col>', value:'<valore_visualizzato>'}` per RISOLVERE un valore VISUALIZZATO di una colonna lookupByID (es. 'Virginia') nel suo ID reale: interroga la tabella di lookup (NON le righe in grid) e ritorna `matched_ids`. Usalo prima di scrivere un condition_js che filtra per il valore di un lookup.\n")
                 .Append("Attendi il tool_result, POI emetti il `propose_*` usando i valori ottenuti. Puoi chiamarlo piu' volte (es. prima `columns`, poi `lookup_columns`).\n")
                 .Append("REGOLE:\n")
                 .Append("1. Usa SEMPRE i NOMI REALI delle colonne (da contesto o da `request_metadata_detail`), es. `record.<nome>.value` / `record.<nome>.next(...)`. Mai placeholder inventati.\n")
                 .Append("2. Per i tool `propose_*`: se l'utente NON menziona esplicitamente una route diversa, il parametro `route` DEVE essere la route della pagina corrente.\n")
                 .Append("3. Per i tool che richiedono `column_name`: scegli il `mc_nome_colonna` REALE corrispondente (dal contesto o da `request_metadata_detail{detail:'columns'}`).\n")
                 .Append("4. Per snippet SQL (computed_formula / sql_metadata_field): usa il full qualifier e, per i lookup, l'alias di join, entrambi ottenuti da `request_metadata_detail`. Non dedurli a mano.\n")
-                .Append("5. ANTI-ECHO MULTI-TURNO (OBBLIGATORIO): genera la proposta basandoti ESCLUSIVAMENTE sull'ULTIMA richiesta dell'utente. La conversazione puo' contenere proposte precedenti su intenti DIVERSI: NON ricopiare MAI classe CSS, callback/condizione, colori, operatori di confronto o descrizione da un turno precedente. Esempio: se prima hai proposto 'rosso se > 12' (row-danger, `> 12`) e ora l'utente chiede 'verde se <= 12', DEVI produrre row-success con condizione `<= 12` e descrizione coerente col verde — NON riproporre la versione rossa. Ricalcola OGNI parametro dall'intento corrente.");
+                .Append("5. ANTI-ECHO MULTI-TURNO (OBBLIGATORIO): genera la proposta basandoti ESCLUSIVAMENTE sull'ULTIMA richiesta dell'utente. La conversazione puo' contenere proposte precedenti su intenti DIVERSI: NON ricopiare MAI classe CSS, callback/condizione, colori, operatori di confronto o descrizione da un turno precedente. Esempio: se prima hai proposto 'rosso se > 12' (row-danger, `> 12`) e ora l'utente chiede 'verde se <= 12', DEVI produrre row-success con condizione `<= 12` e descrizione coerente col verde — NON riproporre la versione rossa. Ricalcola OGNI parametro dall'intento corrente.\n")
+                .Append("6. COLONNA/CAMPO INESISTENTE o NON SPECIFICATA → CLARIFICATION UTILE (OBBLIGATORIO): se la richiesta d'azione cita una colonna/campo che NON riconosci tra quelli reali, OPPURE non specifica su quale colonna agire, chiama PRIMA `request_metadata_detail{detail:'columns', route:'<route>'}` per le colonne REALI. Poi e' VIETATO rispondere 'Non ho trovato informazioni sufficienti nel codebase' (frase riservata SOLO alle domande Q&A, MAI alle azioni). Devi produrre UN SOLO messaggio di chiarimento per l'utente finale. REGOLE FERREE sul messaggio: rispondi SOLO con quel testo finale, MAI con prefissi o etichette (NON scrivere MAI parole come 'Esempio', 'Esempio di risposta corretta', 'Risposta:', 'Formato:'); max 2 frasi, italiano naturale; termina con una domanda. Sostituisci i segnaposto <...> coi valori reali:\n")
+                .Append("   - se l'utente ha citato una colonna che non esiste, usa la forma: La colonna \"<NOME_CITATO>\" non esiste su questa pagina. Colonne disponibili: <2-4 COLONNE_REALI_PERTINENTI>. Quale vuoi usare?\n")
+                .Append("   - se l'utente NON ha indicato la colonna, usa la forma: Su quale colonna vuoi applicare l'azione? Colonne disponibili: <2-4 COLONNE_REALI_PERTINENTI>.\n")
+                .Append("   Al turno successivo, con la colonna scelta dall'utente, emetti il `propose_*` corretto.\n")
+                .Append("7. COLONNE LOOKUP (lookupByID) NEI CALLBACK JS (OBBLIGATORIO): in un `condition_js` (stile riga/colonna, validazione, selezione) il `record` contiene l'ID della colonna lookup in `record.<column>` (es. `record.StateProvinceID`), NON la stringa visualizzata nella cella. Quindi per una richiesta tipo 'colora se <colonna_lookup> = <valore_visualizzato>' (es. provincia = Virginia): (a) chiama `request_metadata_detail{detail:'lookup_value', route:'<route>', column:'<colonna_lookup>', value:'<valore>'}` per ottenere l'ID reale (`matched_ids`); (b) genera il `condition_js` confrontando l'ID, es: `return Number(record.<column>?.value ?? record.<column>) === <id>;`. E' VIETATO confrontare la stringa visualizzata, ed e' VIETATO usare l'alias di join SQL (es. `record.<column>_<entity>.<x>`) che NON esiste nel record JS. Se `matched_ids` e' vuoto, fai una clarification (valore inesistente, elenca alcuni valori validi); se ha piu' ID, chiedi quale o usa `[id1,id2].includes(Number(record.<column>?.value ?? record.<column>))`.");
         }
         if (!string.IsNullOrWhiteSpace(contextSummary))
             system.Append("\n\nSUMMARY SESSIONE (turn precedenti riassunti):\n").Append(contextSummary.Trim()).Append('\n')
@@ -343,9 +349,18 @@ public sealed class RagEngine : IDisposable
             system.Append("\n\nMEMORY FACTS (decisioni/preferenze pinnate via remember_fact):\n").Append(memoryFacts.Trim()).Append('\n')
                 .Append("Rispetta SEMPRE questi fatti. Usa `forget_fact(id)` se l'utente li contraddice esplicitamente o se sono diventati obsoleti.");
 
+        // ---- AGENT-SDK (subscription MAX via `claude` CLI) ----
+        // Sentinel: apiKey=="agent-sdk" -> NON chiamiamo l'HTTP /v1/messages (API a consumo) ma
+        // spawniamo il `claude` CLI (Agent runtime ufficiale, dentro lo scope ToS della subscription).
+        // I tool propose_*/request_metadata_detail arrivano a Claude via un MCP server bridge stdio
+        // (mcp-wuic-tools.mjs, embeddato). Il loop agentico (request_metadata_detail -> proxy backend)
+        // lo fa il CLI nativamente. Vedi memory project_rag_agent_sdk_subscription.
         // ---- intent detection (per il tool_choice forcing piu' sotto). ----
         bool exampleIntent = LooksLikeExampleRequest(query);
         bool actionIntent = !string.IsNullOrWhiteSpace(routeContext) && LooksLikeActionRequest(query) && !exampleIntent;
+
+        if (string.Equals(apiKey.Trim(), "agent-sdk", StringComparison.OrdinalIgnoreCase))
+            return ChatViaAgentSdk(system.ToString(), query, historyJson, sources, model, contextWindowMax, actionIntent, exampleIntent);
 
         // ---- messages ----
         var messages = new List<object>();
@@ -663,6 +678,446 @@ public sealed class RagEngine : IDisposable
         }
     }
 
+    // ============================================================================
+    // AGENT-SDK: chat via `claude` CLI (subscription MAX) invece di /v1/messages a consumo.
+    // ============================================================================
+
+    /// <summary>
+    /// Esegue la chat RAG facendo girare il `claude` CLI (Agent runtime ufficiale) anziche'
+    /// la HTTP API a consumo. I tool propose_*/request_metadata_detail sono esposti via un MCP
+    /// server bridge stdio (mcp-wuic-tools.mjs, embeddato e estratto in una temp dir). Il CLI
+    /// chiama nativamente i tool: il propose_* viene CATTURATO su file dal bridge (terminale),
+    /// request_metadata_detail PROXY-a il backend (loop agentico nativo). Al termine leggiamo la
+    /// cattura -> proposed_action e il testo finale dal `--output-format json`.
+    ///
+    /// Trade-off: ~spawn CLI per call (1-3s+). Pensato per i TEST (credito subscription, zero API
+    /// key), non per la prod interattiva (vedi qwen locale come alternativa zero-costo).
+    /// </summary>
+    private string ChatViaAgentSdk(string system, string query, string? historyJson,
+        List<RagSourceDto> sources, string model, int contextWindowMax,
+        bool actionIntent = false, bool exampleIntent = false)
+    {
+        string? work = null;
+        try
+        {
+            string? cli = ResolveClaudeCli();
+            if (cli == null)
+                return JsonSerializer.Serialize(new ChatOutDto
+                {
+                    Mode = "retrieval-only", Sources = sources, Model = "agent-sdk",
+                    Warning = "agent-sdk: `claude` CLI non trovato (imposta WUIC_RAG_CLAUDE_CLI o installa @anthropic-ai/claude-code).",
+                    ContextWindowMax = contextWindowMax,
+                });
+
+            work = Path.Combine(Path.GetTempPath(), "wuic-agent-sdk-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(work);
+            string mcpScript = Path.Combine(work, "mcp-wuic-tools.mjs");
+            string toolsFile = Path.Combine(work, "rag_tools.json");
+            string captureFile = Path.Combine(work, "capture.jsonl");
+            string mcpConfig = Path.Combine(work, "mcp-config.json");
+
+            ExtractEmbeddedMcpScript(mcpScript);
+            File.WriteAllText(toolsFile, string.IsNullOrWhiteSpace(_toolsJson) ? "[]" : _toolsJson);
+            File.WriteAllText(captureFile, string.Empty);
+
+            // mcp-config: path con FORWARD SLASH obbligatori (i backslash danno "MCP config is not a
+            // valid JSON" perche' sono escape invalidi nel JSON). Vedi spike 2026-06-20.
+            string nodeExe = ResolveNodeExe();
+            string backend = Environment.GetEnvironmentVariable("WUIC_RAG_BACKEND_URL");
+            if (string.IsNullOrWhiteSpace(backend)) backend = "http://localhost:5000";
+            var cfg = new Dictionary<string, object>
+            {
+                ["mcpServers"] = new Dictionary<string, object>
+                {
+                    ["wuic"] = new Dictionary<string, object>
+                    {
+                        ["command"] = nodeExe.Replace('\\', '/'),
+                        ["args"] = new[] { mcpScript.Replace('\\', '/') },
+                        ["env"] = new Dictionary<string, string>
+                        {
+                            ["WUIC_RAG_TOOLS_PATH"] = toolsFile.Replace('\\', '/'),
+                            ["WUIC_RAG_CAPTURE_PATH"] = captureFile.Replace('\\', '/'),
+                            ["WUIC_BACKEND"] = backend.TrimEnd('/'),
+                        },
+                    },
+                },
+            };
+            File.WriteAllText(mcpConfig, JsonSerializer.Serialize(cfg));
+
+            // allowedTools (arrivano come mcp__wuic__<name>). TOOL-FORCING SURROGATO: la CLI NON
+            // espone `tool_choice:any`, quindi su una richiesta d'azione Claude a volte risponde a
+            // TESTO invece di emettere il propose_* (osservato: ~45% miss `got:null` sulle variations).
+            // Mitigazione: sotto actionIntent restringiamo allowedTools ai SOLI propose_* +
+            // request_metadata_detail (niente remember/forget/suggest_followups che distraggono) e
+            // aggiungiamo un nudge imperativo al prompt. Sotto exampleIntent niente propose_* (vogliamo
+            // testo). Per Q&A normale lasciamo tutto.
+            var allowed = new List<string>();
+            try
+            {
+                using var td = JsonDocument.Parse(string.IsNullOrWhiteSpace(_toolsJson) ? "[]" : _toolsJson);
+                foreach (var t in td.RootElement.EnumerateArray())
+                {
+                    string s = t.TryGetProperty("name", out var nm) ? nm.GetString() ?? "" : "";
+                    if (s.Length == 0) continue;
+                    if (exampleIntent && s.StartsWith("propose_", StringComparison.Ordinal)) continue; // esempio -> testo
+                    if (actionIntent && !s.StartsWith("propose_", StringComparison.Ordinal)) continue; // azione -> solo propose_*
+                    allowed.Add("mcp__wuic__" + s);
+                }
+            }
+            catch { }
+            if (!exampleIntent) allowed.Add("mcp__wuic__request_metadata_detail"); // retrieval agentico sempre utile (tranne esempi)
+            if (allowed.Count == 0) allowed.Add("mcp__wuic__request_metadata_detail"); // mai vuoto
+
+            // System prompt via --append-system-prompt (cap di sicurezza sul command-line Windows
+            // ~32K: tronchiamo a 28K tenendo la testa con istruzioni + contesto piu' rilevante).
+            string sysArg = system.Length > 28000 ? system.Substring(0, 28000) : system;
+            string promptText = BuildAgentPrompt(historyJson, query);
+            if (actionIntent)
+                // Nudge imperativo finale: surrogato del tool_choice:any mancante nella CLI.
+                promptText += "\n\nISTRUZIONE VINCOLANTE: questa e' una RICHIESTA D'AZIONE sulla pagina corrente. "
+                    + "DEVI chiamare il tool `mcp__wuic__propose_*` piu' appropriato (eventualmente dopo "
+                    + "`mcp__wuic__request_metadata_detail` per i nomi reali). E' VIETATO rispondere solo a "
+                    + "testo o spiegare a parole: se non emetti il tool, la richiesta NON viene soddisfatta. "
+                    + "Se manca un dettaglio (colonna/route), chiama prima request_metadata_detail, poi emetti il propose_*.";
+
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = cli,
+                RedirectStandardInput = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                WorkingDirectory = work, // isola dal CLAUDE.md del repo (no noise, no slowdown)
+                StandardOutputEncoding = System.Text.Encoding.UTF8,
+            };
+            psi.ArgumentList.Add("-p");
+            psi.ArgumentList.Add("--mcp-config"); psi.ArgumentList.Add(mcpConfig.Replace('\\', '/'));
+            psi.ArgumentList.Add("--allowedTools"); psi.ArgumentList.Add(string.Join(",", allowed));
+            psi.ArgumentList.Add("--permission-mode"); psi.ArgumentList.Add("bypassPermissions");
+            psi.ArgumentList.Add("--append-system-prompt"); psi.ArgumentList.Add(sysArg);
+            psi.ArgumentList.Add("--output-format"); psi.ArgumentList.Add("json");
+            // Modello CONFIG-DRIVEN: env WUIC_RAG_AGENT_MODEL > model risolto dalla config
+            // (rag-llm-default-chat-model / anthropic-default-chat-model, se id Claude) > default
+            // subscription della CLI. Cosi' la config e' autoritativa e si sa "cosa usa".
+            string modelArg = ResolveAgentModel(model);
+            if (!string.IsNullOrWhiteSpace(modelArg)) { psi.ArgumentList.Add("--model"); psi.ArgumentList.Add(modelArg); }
+            // ZERO API key nel child: se ANTHROPIC_API_KEY fosse ereditata, il CLI userebbe l'API a
+            // consumo invece della subscription. La rimuoviamo esplicitamente.
+            psi.Environment.Remove("ANTHROPIC_API_KEY");
+            psi.Environment.Remove("ANTHROPIC_AUTH_TOKEN");
+
+            int timeoutMs = AgentTimeoutMs();
+            string stdout, stderr;
+            using (var proc = new System.Diagnostics.Process { StartInfo = psi })
+            {
+                proc.Start();
+                try { proc.StandardInput.Write(promptText); proc.StandardInput.Close(); } catch { }
+                var outTask = proc.StandardOutput.ReadToEndAsync();
+                var errTask = proc.StandardError.ReadToEndAsync();
+                if (!proc.WaitForExit(timeoutMs))
+                {
+                    try { proc.Kill(true); } catch { }
+                    return JsonSerializer.Serialize(new ChatOutDto
+                    {
+                        Mode = "retrieval-only", Sources = sources, Model = "agent-sdk",
+                        Warning = $"agent-sdk: CLI call exception (timeout {timeoutMs}ms); degraded to retrieval-only",
+                        ContextWindowMax = contextWindowMax,
+                    });
+                }
+                stdout = outTask.GetAwaiter().GetResult();
+                stderr = errTask.GetAwaiter().GetResult();
+            }
+
+            // Testo finale dal --output-format json: { type:"result", result:"<text>", ... }.
+            string answer = ExtractCliResultText(stdout);
+            // Modello REALE usato (da modelUsage del CLI) -> riportato in `model` per togliere
+            // ogni ambiguita' su "cosa ha usato". Fallback: il --model richiesto, poi "agent-sdk".
+            string usedModel = ExtractCliPrimaryModel(stdout) ?? (string.IsNullOrWhiteSpace(modelArg) ? "agent-sdk" : modelArg);
+
+            // AUTH-CONFLICT DETECTION: il `claude -p` headless usa il token della subscription, che
+            // puo' NON essere valido in modalita' non-interattiva o entrare in CONFLITTO con una
+            // sessione Claude Code interattiva concorrente sulla stessa subscription -> 401. In quel
+            // caso la CLI ritorna il testo d'errore come `result` (e `is_error:true`): NON va presentato
+            // come risposta della chat. Degradiamo a retrieval-only con warning esplicito cosi' il
+            // chiamante (RagController.ClassifyLlmFailure) lo tratta come fallimento LLM, non come Q&A.
+            if (CliIsAuthError(stdout, answer))
+                return JsonSerializer.Serialize(new ChatOutDto
+                {
+                    Mode = "retrieval-only", Sources = sources, Model = usedModel,
+                    Warning = "agent-sdk: LLM call failed (HTTP 401) auth della subscription non valida/in conflitto "
+                        + "(headless claude -p in parallelo a una sessione interattiva); degraded to retrieval-only",
+                    ContextWindowMax = contextWindowMax,
+                });
+
+            // Cattura: prima azione propose_* + memory/followups.
+            string? proposedActionJson = null;
+            var memoryChanges = new List<object>();
+            List<string>? followups = null;
+            foreach (var (name, inputEl) in ReadCapturedToolCalls(captureFile))
+            {
+                if (proposedActionJson == null && s_actionToolToKind.TryGetValue(name, out var kind)
+                    && inputEl.ValueKind == JsonValueKind.Object)
+                {
+                    proposedActionJson = BuildProposedAction(kind, inputEl);
+                }
+                else if (name == "remember_fact" && inputEl.ValueKind == JsonValueKind.Object
+                         && inputEl.TryGetProperty("fact", out var f) && (f.GetString() ?? "").Trim() is string fact && fact.Length > 0)
+                {
+                    memoryChanges.Add(new { op = "add", fact = fact.Length > 200 ? fact.Substring(0, 200) : fact });
+                }
+                else if (name == "forget_fact" && inputEl.ValueKind == JsonValueKind.Object
+                         && inputEl.TryGetProperty("id", out var idEl) && idEl.ValueKind == JsonValueKind.Number
+                         && idEl.TryGetInt32(out var fid) && fid > 0)
+                {
+                    memoryChanges.Add(new { op = "remove", id = fid });
+                }
+                else if (name == "suggest_followups" && followups == null && inputEl.ValueKind == JsonValueKind.Object
+                         && inputEl.TryGetProperty("questions", out var qs) && qs.ValueKind == JsonValueKind.Array)
+                {
+                    var cleaned = new List<string>();
+                    foreach (var q in qs.EnumerateArray())
+                    {
+                        string s = (q.GetString() ?? "").Trim();
+                        if (s.Length > 0) cleaned.Add(s.Length > 80 ? s.Substring(0, 80) : s);
+                        if (cleaned.Count >= 3) break;
+                    }
+                    if (cleaned.Count > 0) followups = cleaned;
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(answer) && proposedActionJson == null)
+                return JsonSerializer.Serialize(new ChatOutDto
+                {
+                    Mode = "retrieval-only", Sources = sources, Model = usedModel,
+                    Warning = "agent-sdk: CLI non ha prodotto output (stderr: " + (stderr ?? "").Trim().Replace("\n", " ").Substring(0, Math.Min(180, (stderr ?? "").Trim().Length)) + ")",
+                    ContextWindowMax = contextWindowMax,
+                });
+
+            return JsonSerializer.Serialize(new ChatOutDto
+            {
+                Mode = "rag-llm", Answer = answer, Sources = sources, Model = usedModel,
+                ProposedActionJson = proposedActionJson,
+                ProposedMemoryChanges = memoryChanges.Count > 0 ? memoryChanges : null,
+                FollowupQuestions = followups,
+                ContextWindowMax = contextWindowMax,
+            });
+        }
+        catch (Exception ex)
+        {
+            return JsonSerializer.Serialize(new ChatOutDto
+            {
+                Mode = "retrieval-only", Sources = sources, Model = "agent-sdk",
+                Warning = $"agent-sdk: CLI call exception ({ex.GetType().Name}: {ex.Message}); degraded to retrieval-only",
+                ContextWindowMax = contextWindowMax,
+            });
+        }
+        finally
+        {
+            if (work != null) { try { Directory.Delete(work, true); } catch { } }
+        }
+    }
+
+    /// <summary>Rende la history + la richiesta corrente in un prompt testuale per il CLI
+    /// (single-shot `-p`). La cronologia diventa contesto leggibile; l'ultima riga e' la
+    /// richiesta su cui agire.</summary>
+    private static string BuildAgentPrompt(string? historyJson, string query)
+    {
+        var sb = new System.Text.StringBuilder();
+        if (!string.IsNullOrWhiteSpace(historyJson))
+        {
+            try
+            {
+                using var hd = JsonDocument.Parse(historyJson);
+                var turns = new List<(string role, string content)>();
+                foreach (var t in hd.RootElement.EnumerateArray())
+                {
+                    string role = t.TryGetProperty("role", out var r) ? r.GetString() ?? "user" : "user";
+                    string content = t.TryGetProperty("content", out var c) ? c.GetString() ?? "" : "";
+                    if (!string.IsNullOrEmpty(content)) turns.Add((role, content));
+                }
+                if (turns.Count > 0)
+                {
+                    sb.Append("CRONOLOGIA CONVERSAZIONE (contesto, NON e' la richiesta corrente):\n");
+                    foreach (var (role, content) in turns)
+                        sb.Append(role == "assistant" ? "ASSISTENTE: " : "UTENTE: ")
+                          .Append(content.Length > 1500 ? content.Substring(0, 1500) : content).Append('\n');
+                    sb.Append('\n');
+                }
+            }
+            catch { }
+        }
+        sb.Append("RICHIESTA CORRENTE DELL'UTENTE (agisci SOLO su questa):\n").Append(query);
+        return sb.ToString();
+    }
+
+    /// <summary>Estrae il testo della risposta dal JSON del CLI (`--output-format json`):
+    /// campo `result` (success) o `error`. Fallback: stdout raw troncato.</summary>
+    private static string ExtractCliResultText(string stdout)
+    {
+        if (string.IsNullOrWhiteSpace(stdout)) return "";
+        try
+        {
+            using var doc = JsonDocument.Parse(stdout.Trim());
+            var root = doc.RootElement;
+            if (root.ValueKind == JsonValueKind.Object)
+            {
+                if (root.TryGetProperty("result", out var res) && res.ValueKind == JsonValueKind.String)
+                    return res.GetString() ?? "";
+                if (root.TryGetProperty("error", out var err) && err.ValueKind == JsonValueKind.String)
+                    return err.GetString() ?? "";
+            }
+        }
+        catch { /* non-JSON (stream-json o errore CLI): ripiega su raw */ }
+        return stdout.Trim().Length > 4000 ? stdout.Trim().Substring(0, 4000) : stdout.Trim();
+    }
+
+    /// <summary>True se l'output del CLI indica un fallimento di AUTENTICAZIONE (401 / token
+    /// subscription non valido o in conflitto con una sessione interattiva concorrente). Controlla
+    /// sia il flag `is_error` del JSON sia pattern testuali noti nel `result`/raw.</summary>
+    private static bool CliIsAuthError(string stdout, string answer)
+    {
+        bool isErrorFlag = false;
+        try
+        {
+            using var doc = JsonDocument.Parse((stdout ?? "").Trim());
+            if (doc.RootElement.ValueKind == JsonValueKind.Object
+                && doc.RootElement.TryGetProperty("is_error", out var ie) && ie.ValueKind == JsonValueKind.True)
+                isErrorFlag = true;
+        }
+        catch { }
+        string probe = ((answer ?? "") + " " + (stdout ?? "")).ToLowerInvariant();
+        bool authText = probe.Contains("401")
+            || probe.Contains("invalid authentication")
+            || probe.Contains("failed to authenticate")
+            || probe.Contains("authentication_error")
+            || probe.Contains("oauth")
+            || (probe.Contains("authenticate") && probe.Contains("credential"));
+        // is_error da solo non basta (puo' essere un errore non-auth); ma is_error + pattern auth, o
+        // anche solo il pattern 401/authenticate, indicano il caso che vogliamo intercettare.
+        return authText || (isErrorFlag && probe.Contains("auth"));
+    }
+
+    /// <summary>Legge le tool-call catturate dal bridge MCP (one JSON per line): {name, arguments}.
+    /// Ritorna (name, argumentsElement) in ordine di cattura.</summary>
+    private static IEnumerable<(string name, JsonElement input)> ReadCapturedToolCalls(string captureFile)
+    {
+        string[] lines;
+        try { lines = File.Exists(captureFile) ? File.ReadAllLines(captureFile) : Array.Empty<string>(); }
+        catch { yield break; }
+        foreach (var line in lines)
+        {
+            if (string.IsNullOrWhiteSpace(line)) continue;
+            JsonDocument doc = null;
+            string name = null; JsonElement input = default;
+            try
+            {
+                doc = JsonDocument.Parse(line);
+                if (doc.RootElement.TryGetProperty("name", out var nm)) name = nm.GetString();
+                if (doc.RootElement.TryGetProperty("arguments", out var args)) input = args.Clone();
+            }
+            catch { doc?.Dispose(); continue; }
+            doc.Dispose();
+            if (!string.IsNullOrEmpty(name)) yield return (name, input);
+        }
+    }
+
+    /// <summary>Estrae il bridge MCP embeddato nella DLL verso <paramref name="target"/>.</summary>
+    private static void ExtractEmbeddedMcpScript(string target)
+    {
+        var asm = typeof(RagEngine).Assembly;
+        using var s = asm.GetManifestResourceStream("WuicRagEngine.mcp-wuic-tools.mjs")
+            ?? throw new InvalidOperationException("Risorsa embeddata mcp-wuic-tools.mjs non trovata nella DLL.");
+        using var fs = new FileStream(target, FileMode.Create, FileAccess.Write, FileShare.None);
+        s.CopyTo(fs);
+    }
+
+    /// <summary>Path del `claude` CLI: env WUIC_RAG_CLAUDE_CLI, altrimenti probe nelle dir del PATH
+    /// per <c>node_modules/@anthropic-ai/claude-code/bin/claude.exe</c> (npm global) o claude.exe diretto.
+    /// Null se non trovato.</summary>
+    private static string? ResolveClaudeCli()
+    {
+        string env = Environment.GetEnvironmentVariable("WUIC_RAG_CLAUDE_CLI");
+        if (!string.IsNullOrWhiteSpace(env) && File.Exists(env)) return env;
+        bool win = OperatingSystem.IsWindows();
+        string exe = win ? "claude.exe" : "claude";
+        string rel = Path.Combine("node_modules", "@anthropic-ai", "claude-code", "bin", exe);
+        foreach (var dir in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator))
+        {
+            if (string.IsNullOrWhiteSpace(dir)) continue;
+            string d = dir.Trim();
+            try
+            {
+                string p1 = Path.Combine(d, rel);
+                if (File.Exists(p1)) return p1;
+                string p2 = Path.Combine(d, exe);
+                if (File.Exists(p2)) return p2;
+            }
+            catch { }
+        }
+        return null;
+    }
+
+    /// <summary>Path di <c>node</c>: env WUIC_RAG_NODE, altrimenti probe nel PATH. Fallback "node".</summary>
+    private static string ResolveNodeExe()
+    {
+        string env = Environment.GetEnvironmentVariable("WUIC_RAG_NODE");
+        if (!string.IsNullOrWhiteSpace(env) && File.Exists(env)) return env;
+        string exe = OperatingSystem.IsWindows() ? "node.exe" : "node";
+        foreach (var dir in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator))
+        {
+            if (string.IsNullOrWhiteSpace(dir)) continue;
+            try { string p = Path.Combine(dir.Trim(), exe); if (File.Exists(p)) return p; } catch { }
+        }
+        return "node";
+    }
+
+    /// <summary>Modello da passare al CLI (--model): env WUIC_RAG_AGENT_MODEL, altrimenti il model
+    /// risolto dalla config (rag-llm-default-chat-model / anthropic-default-chat-model) se e' un id
+    /// Claude; null = default subscription della CLI (es. opus). Rende la scelta config-driven.</summary>
+    private static string ResolveAgentModel(string model)
+    {
+        var ov = Environment.GetEnvironmentVariable("WUIC_RAG_AGENT_MODEL");
+        if (!string.IsNullOrWhiteSpace(ov)) return ov.Trim();
+        if (!string.IsNullOrWhiteSpace(model) && model.Trim().StartsWith("claude", StringComparison.OrdinalIgnoreCase))
+            return model.Trim();
+        return null;
+    }
+
+    /// <summary>Modello primario realmente usato dal CLI, dal blocco `modelUsage` del
+    /// `--output-format json`: la chiave con piu' input_tokens (l'agente principale, non il
+    /// quick-model dei subtask). Null se assente.</summary>
+    private static string ExtractCliPrimaryModel(string stdout)
+    {
+        if (string.IsNullOrWhiteSpace(stdout)) return null;
+        try
+        {
+            using var doc = JsonDocument.Parse(stdout.Trim());
+            if (doc.RootElement.ValueKind == JsonValueKind.Object
+                && doc.RootElement.TryGetProperty("modelUsage", out var mu) && mu.ValueKind == JsonValueKind.Object)
+            {
+                string best = null; long bestIn = -1;
+                foreach (var p in mu.EnumerateObject())
+                {
+                    long inTok = 0;
+                    if (p.Value.ValueKind == JsonValueKind.Object
+                        && p.Value.TryGetProperty("inputTokens", out var it) && it.ValueKind == JsonValueKind.Number)
+                        inTok = it.GetInt64();
+                    if (inTok > bestIn) { bestIn = inTok; best = p.Name; }
+                }
+                return best;
+            }
+        }
+        catch { }
+        return null;
+    }
+
+    private static int AgentTimeoutMs()
+    {
+        var v = Environment.GetEnvironmentVariable("WUIC_RAG_AGENT_TIMEOUT_MS");
+        return !string.IsNullOrWhiteSpace(v) && int.TryParse(v.Trim(), out var n) && n > 0 ? n : 120000;
+    }
+
     // ---- mapping tool -> kind (verbatim da rag_server) ----
     private static readonly Dictionary<string, string> s_actionToolToKind = new(StringComparer.Ordinal)
     {
@@ -692,7 +1147,8 @@ public sealed class RagEngine : IDisposable
     /// <summary>{"kind":..., ...tool_input} con unwrap callback_js/condition_js + sanitize NL fields.</summary>
     internal static bool IsOpenAiCompat(string? provider)
         => provider != null && (provider.Equals("openai", StringComparison.OrdinalIgnoreCase)
-            || provider.Equals("openrouter", StringComparison.OrdinalIgnoreCase));
+            || provider.Equals("openrouter", StringComparison.OrdinalIgnoreCase)
+            || provider.Equals("ollama", StringComparison.OrdinalIgnoreCase));
 
     /// <summary>Base URL del provider: override esplicito, altrimenti default per provider.</summary>
     internal static string ResolveBaseUrl(string? provider, string? baseUrl)
@@ -700,6 +1156,7 @@ public sealed class RagEngine : IDisposable
         if (!string.IsNullOrWhiteSpace(baseUrl)) return baseUrl!.TrimEnd('/');
         if (provider != null && provider.Equals("openrouter", StringComparison.OrdinalIgnoreCase)) return "https://openrouter.ai/api/v1";
         if (provider != null && provider.Equals("openai", StringComparison.OrdinalIgnoreCase)) return "https://api.openai.com/v1";
+        if (provider != null && provider.Equals("ollama", StringComparison.OrdinalIgnoreCase)) return "http://localhost:11434/v1";
         return "https://api.anthropic.com";
     }
 
@@ -875,7 +1332,7 @@ public sealed class RagEngine : IDisposable
             if (block == null) continue;
             string json = NormalizeJsObjectToJson(block);
             if (json == null) continue;
-            try { using var d = JsonDocument.Parse(json); return new { type = "tool_use", name, input = d.RootElement.Clone() }; }
+            try { using var d = JsonDocument.Parse(SanitizeModelJsonEscapes(json)); return new { type = "tool_use", name, input = d.RootElement.Clone() }; }
             catch { /* prova il prossimo match */ }
         }
         return null;
@@ -1018,11 +1475,23 @@ public sealed class RagEngine : IDisposable
     /// <summary>Costruisce un blocco tool_use da una stringa JSON candidata, validando che
     /// `name` sia un tool WUIC noto (propose_* o utility). Accetta sia `arguments` sia
     /// `parameters` come contenitore degli input (alcuni modelli usano l'uno o l'altro).</summary>
+    /// <summary>Ripara gli escape NON-JSON che i modelli locali (qwen/Ollama) producono
+    /// spesso dentro callback_js/condition_js: tipicamente `\'` (apice singolo escapato,
+    /// valido in JS ma NON in JSON -> JsonDocument.Parse fallisce e la tool-call viene persa).
+    /// L'apice singolo non va MAI escapato in JSON, quindi `\'` -> `'` e' sempre sicuro;
+    /// la lookbehind evita di toccare `\\'` (backslash escapato + apice). Verificato
+    /// 2026-06-21: variante toolbar_action 'bulk-archive' falliva 1/5 SOLO per questo.</summary>
+    private static string SanitizeModelJsonEscapes(string json)
+    {
+        if (string.IsNullOrEmpty(json) || json.IndexOf("\\'", StringComparison.Ordinal) < 0) return json;
+        return System.Text.RegularExpressions.Regex.Replace(json, @"(?<!\\)\\'", "'");
+    }
+
     private static object? TryBuildToolUse(string json)
     {
         try
         {
-            using var d = JsonDocument.Parse(json);
+            using var d = JsonDocument.Parse(SanitizeModelJsonEscapes(json));
             var r = d.RootElement;
             if (r.ValueKind != JsonValueKind.Object) return null;
             if (!r.TryGetProperty("name", out var nmEl) || nmEl.ValueKind != JsonValueKind.String) return null;

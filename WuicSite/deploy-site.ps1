@@ -1858,7 +1858,11 @@ if ($SkipRagArtifacts -or $LocalOnly) {
     if (-not (Test-Path $relMeta)) {
         throw "Upload RAG: index_release\metadata.jsonl non trovato in $RagArtifactsSourceDir. Buildalo (build_release_chunks.py + generate_embeddings.py build --output-dir index_release) prima del deploy: il sito pubblico NON deve mai servire l'indice interno."
     }
-    if (-not (Select-String -Path $relMeta -Pattern '\{ … \}' -SimpleMatch -Quiet)) {
+    # NB: -SimpleMatch -> il pattern e' LETTERALE, quindi NIENTE escape regex: il marker
+    # reale nel metadata.jsonl e' `{ … }` (graffe + ellissi U+2026), non `\{ … \}`. Con i
+    # backslash il guard cercava la stringa letterale `\{ … \}` (mai presente) e lanciava
+    # un falso-positivo "non redatto" anche su un indice correttamente redatto.
+    if (-not (Select-String -Path $relMeta -Pattern '{ … }' -SimpleMatch -Quiet)) {
         throw "Upload RAG: index_release\metadata.jsonl non sembra REDATTO (nessun marker '{ … }' di body troncato). Rischio leak: rigenera l'indice release prima del deploy."
     }
     Write-Sub "anti-leak OK: pubblico l'indice REDATTO index_release/ (body framework solo-firma)"

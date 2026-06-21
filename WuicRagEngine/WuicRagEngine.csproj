@@ -12,6 +12,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Bridge MCP per la modalita' agent-sdk (subscription MAX via `claude` CLI).
+         Embeddato nella DLL: il satellite lo estrae in una temp dir per-call, cosi' il
+         deploy resta "solo DLL" (nessun file .mjs da stageare separatamente). -->
+    <EmbeddedResource Include="agent-sdk\mcp-wuic-tools.mjs">
+      <LogicalName>WuicRagEngine.mcp-wuic-tools.mjs</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- .Gpu: include sia il provider CUDA (GPU) sia il fallback CPU. Su macchine
          senza CUDA/cuDNN l'append del provider CUDA fallisce e l'engine ricade su CPU
          (vedi OnnxSession.Build). Richiede CUDA 12.x + cuDNN 9.x sul deploy per la GPU. -->

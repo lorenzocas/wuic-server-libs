@@ -159,18 +159,57 @@ function sanitizeTags(rawTagsStr) {
 }
 
 // ----------------------------------------------------------------------------
+// dev.to-specific HTML transforms
+// ----------------------------------------------------------------------------
+// Pattern del corpus WUIC per le demo GIF click-to-play (poster jpg + GIF anim).
+// Esempio sorgente:
+//   <details class="rag-demo">
+//     <summary><img class="rag-demo-poster" src="/assets/.../rag-X.thumb.jpg" alt="..." />
+//       <span class="rag-demo-label">...Play demo — X...</span></summary>
+//     <img class="rag-demo-anim" src="/assets/.../rag-X.gif" alt="..." loading="lazy" />
+//   </details>
+//
+// Su wuic-framework.com il CSS `.rag-demo` rende il poster come thumbnail
+// cliccabile che on-expand mostra la GIF animata. Su dev.to:
+//   - le custom CSS class non esistono → il <details> rende rotto
+//   - il path `/assets/...` viene risolto come `dev.to/assets/...` → 404
+//   - la UX dev.to vuole comunque GIF visibili inline (non click-to-play)
+// Quindi: srotoliamo il blocco in un'unica `![alt](gif-url)` markdown image
+// che dev.to renderizza come GIF inline (autoplay).
+function transformDevtoDemoBlocks(body) {
+  return body.replace(
+    /<details class="rag-demo">[\s\S]*?<img class="rag-demo-anim" src="([^"]+)" alt="([^"]+)"[^>]*>[\s\S]*?<\/details>/g,
+    (_m, src, alt) => {
+      const absSrc = src.startsWith('/') ? `${SITE_ORIGIN}${src}` : src;
+      return `![${alt}](${absSrc})`;
+    },
+  );
+}
+
+// ----------------------------------------------------------------------------
 // Body link absolutization
 // ----------------------------------------------------------------------------
 function absolutizeLinks(body) {
-  // Markdown links + reference style images. Match `](/path...)` con un primo
-  // slash assoluto, ma non `](//cdn...)` o `](http...)`.
-  // Casi tipici nel nostro corpus:
-  //   [previous post](/blog/sql-table...)
-  //   [public demo](/sandbox)
-  //   [downloads page](/downloads)
-  //   [`install.sh`](/install.sh)
-  //   [posts](/blog)
-  return body.replace(/\]\((\/[^\s)]*)\)/g, (_m, p) => `](${SITE_ORIGIN}${p})`);
+  // 1) Markdown links + reference style images. Match `](/path...)` con un primo
+  //    slash assoluto, ma non `](//cdn...)` o `](http...)`.
+  //    Casi tipici nel corpus WUIC:
+  //      [previous post](/blog/sql-table...)
+  //      [public demo](/sandbox)
+  //      [downloads page](/downloads)
+  //      [`install.sh`](/install.sh)
+  //      [posts](/blog)
+  let out = body.replace(/\]\((\/[^\s)]*)\)/g, (_m, p) => `](${SITE_ORIGIN}${p})`);
+
+  // 2) HTML `<img src="/path">` (e <a href="/path">) eventualmente rimasti
+  //    fuori dai blocchi `<details>` gia' trasformati sopra. Senza questo,
+  //    dev.to risolve `/assets/foo.png` come `dev.to/assets/foo.png` → 404.
+  //    Match permissivo: src="/..." o href="/..." con qualsiasi quote style.
+  out = out.replace(
+    /\b(src|href)\s*=\s*(["'])(\/[^"'\s>]*)\2/g,
+    (_m, attr, q, p) => `${attr}=${q}${SITE_ORIGIN}${p}${q}`,
+  );
+
+  return out;
 }
 
 // ----------------------------------------------------------------------------
@@ -236,7 +275,12 @@ async function main() {
       tags,
       canonical,
     });
-    const absBody = absolutizeLinks(body);
+    // Order matters: transform <details class="rag-demo"> first so they become
+    // markdown ![alt](url) BEFORE the URL absolutization pass — otherwise
+    // absolutizeLinks would already have rewritten the inner src=, and the
+    // demo regex wouldn't match the now-mutated structure.
+    const demoXformed = transformDevtoDemoBlocks(body);
+    const absBody = absolutizeLinks(demoXformed);
     const devtoMd = fm + absBody;
 
     const outFile = path.join(OUTPUT_DIR, file);
