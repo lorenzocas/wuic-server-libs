@@ -15,7 +15,7 @@ Une version dédiée au **chatbot RAG** : la configuration du modèle LLM a ét�
 
 La configuration du fournisseur LLM du chatbot a été consolidée autour d'**une seule clé** et d'une liste explicite de fournisseurs.
 
-- `rag-llm-provider` — `anthropic` (défaut) / `openai` / `openrouter` / `ollama`. `ollama` est désormais une valeur de premier ordre : pointe vers un runtime local via `rag-llm-base-url`, au format compatible OpenAI.
+- `rag-llm-provider` — `anthropic` / `openai` / `openrouter` / `ollama`, **à définir explicitement** (aucun fournisseur par défaut : si vide, le chatbot reste en retrieval-only et n'invoque aucun LLM). `ollama` est désormais une valeur de premier ordre : pointe vers un runtime local via `rag-llm-base-url`, au format compatible OpenAI.
 - `rag-llm-api-key` — la source **unique** de la clé, indépendante du fournisseur choisi. Remplace l'ancien couple `llm-api-key` / `anthropic-api-key` (acceptés uniquement comme fallback de migration). La valeur spéciale `agent-sdk` utilise l'Agent SDK (`claude` CLI) via subscription au lieu de l'API à l'usage, si installé.
 - `rag-llm-base-url` — override de l'endpoint ; obligatoire pour `ollama` (ex. `http://HOST:11434/v1`), optionnel pour les autres fournisseurs.
 - `rag-llm-default-chat-model` — id du modèle pour le fournisseur choisi.
