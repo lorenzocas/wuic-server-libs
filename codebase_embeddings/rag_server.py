@@ -808,6 +808,25 @@ def chat_endpoint(req: ChatIn) -> ChatOut:
     # InvalidateMetadataRuntime) avviene SOLO dopo conferma esplicita dell'utente
     # tramite `POST /api/Rag/ApplyAction`.
     tools_def = [
+        # ---------------- Retrieval agentico (non-terminale): leggi metadata on-demand ----------------
+        # NB: il resolver lato .NET e' in RagController (Func<string,string> richiamato dall'engine).
+        {
+            "name": "request_metadata_detail",
+            "description": "Recupera DINAMICAMENTE dettagli di metadata della route corrente che NON sono nel contesto pagina, PRIMA di proporre un'azione. Il contesto pagina contiene di norma SOLO la route/pagina corrente: quando ti servono i nomi REALI delle colonne, l'identita' SQL (schema/tabella) o i dettagli di un lookup (alias di join, colonne correlate), NON inventarli — chiamali con questo tool e attendi il risultato (arriva come tool_result), poi emetti il tool propose_* appropriato usando i valori ottenuti. Workflow tipico: detail='columns' per avere le colonne della route, poi (se devi toccare un lookup) detail='lookup_columns' per l'alias di join. Non e' un'azione: non viene mostrato all'utente. Puoi chiamarlo piu' volte.",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "detail": {
+                        "type": "string",
+                        "enum": ["columns", "lookup_columns"],
+                        "description": "Tipo di dettaglio richiesto. 'columns': per la route data restituisce {table, md_id, sql_schema, sql_table, full_qualifier_*, columns[]} — l'elenco completo delle colonne (mc_nome_colonna) con tipo, eventuale lookup, required, pk e nome SQL reale, piu' l'identita' SQL (schema/tabella) per scrivere computed_formula/snippet con full qualifier. USALO quando il contesto pagina contiene solo la route e ti servono i nomi reali delle colonne. 'lookup_columns': per una colonna lookupByID restituisce {is_lookup, join_alias, value_field, text_field, related_route, related_columns[]} con cui comporre snippet SQL referenziando [<join_alias>].[<col>] (es. [StateProvinceID_stateprovinces].[StateProvinceName])."
+                    },
+                    "route": {"type": "string", "description": "Route corrente (es. 'cities'). Se non specificata dall'utente, usa quella del contesto pagina."},
+                    "column": {"type": "string", "description": "Nome colonna metadata (mc_nome_colonna) pertinente al dettaglio. Richiesto per detail='lookup_columns'. Ignorato per detail='columns'."}
+                },
+                "required": ["detail", "route"]
+            }
+        },
         {
             "name": "propose_toolbar_action",
             "description": (
@@ -921,6 +940,38 @@ def chat_endpoint(req: ChatIn) -> ChatOut:
                     "rationale": {"type": "string", "description": "1-2 frasi in italiano che spiegano cosa fa l'azione."}
                 },
                 "required": ["route", "label", "callback_js", "rationale"]
+            }
+        },
+        # ---------------- Menu entry ----------------
+        {
+            "name": "propose_menu_entry",
+            "description": (
+                "Propone una VOCE DI MENU che apre una route. Da chiamare quando l'utente "
+                "chiede 'aggiungi una voce di menu X che apre la route Y' o equivalenti "
+                "('voce di menu Scadenzario', 'mettila nel menu', 'menu entry ...'). Il "
+                "framework la persiste in `_metadati__menu` con INSERT IDEMPOTENTE (non "
+                "duplica se esiste gia' una voce con stessa uri+label). NON scrivere SQL a "
+                "mano ne' creare componenti: passa solo route + label. `md_id` (dalla route), "
+                "`mm_id` e `mmordine` (in coda) li calcola il backend."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "route": {"type": "string", "description": "Route name che la voce di menu apre (mm_uri_menu). Es. 'customertransactions'."},
+                    "label": {
+                        "type": "string",
+                        "description": (
+                            "Testo VISIBILE della voce di menu (mm_display_string_menu): quello che ha "
+                            "chiesto l'utente, di solito tra virgolette (es. 'Scadenzario'). NON il nome "
+                            "friendly della route/entita' (NON 'Customer Transactions')."
+                        )
+                    },
+                    "icon": {"type": "string", "description": "Opzionale. Classe PrimeIcons (default 'pi pi-list'). Es. 'pi pi-calendar'."},
+                    "tooltip": {"type": "string", "description": "Opzionale. Tooltip della voce (default = label)."},
+                    "parent_id": {"type": "integer", "description": "Opzionale. mm_id del menu padre per annidare la voce; omesso = voce top-level."},
+                    "rationale": {"type": "string", "description": "1-2 frasi in italiano che spiegano cosa fa la voce di menu."}
+                },
+                "required": ["route", "label", "rationale"]
             }
         },
         # ---------------- Table style ----------------
@@ -1110,6 +1161,42 @@ def chat_endpoint(req: ChatIn) -> ChatOut:
                             "  if (Number(record[field.mc_nome_colonna].value) < 0) { vr.message = 'Non puo essere negativo'; return false; } return true;\n"
                             "  const a = record['CampoA'].value, b = record['CampoB'].value; if (a && !b) { vr.message = 'CampoB obbligatorio'; return false; } return true;\n"
                             "  return String(record[field.mc_nome_colonna].value || '').length >= 5;  // lunghezza minima 5"
+                        )
+                    },
+                    "rationale": {"type": "string"}
+                },
+                "required": ["route", "column_name", "callback_js", "rationale"]
+            }
+        },
+        # ---------------- Suggest / autocomplete (FieldEditor) ----------------
+        {
+            "name": "propose_suggest_callback",
+            "description": (
+                "Propone un suggest/autocomplete sul FieldEditor di una colonna: un bottone "
+                "'suggest' (icona sparkles) accanto al campo che, al click, esegue un callback JS "
+                "per proporre/compilare un valore suggerito. Da chiamare quando l'utente chiede "
+                "'autocomplete / suggest / proponi un valore sul campo X'. La colonna DEVE esistere: "
+                "se il campo citato NON e' tra le colonne reali (request_metadata_detail{detail:'columns'}), "
+                "NON sostituirlo con un'altra colonna, fai una domanda di chiarimento. "
+                "Campo SQL: `_metadati__colonne.mcsuggestvaluecallback`."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "route": {"type": "string"},
+                    "column_name": {"type": "string", "description": "Colonna su cui abilitare il suggest (nome SQL REALE = mc_nome_colonna, da request_metadata_detail)."},
+                    "callback_js": {
+                        "type": "string",
+                        "description": (
+                            "Body-only JS (puo' essere async). Scope = i param REALI con cui il framework "
+                            "invoca il callback (FieldEditor.onSuggestClick -> [record, field, metaInfo, wtoolbox]): "
+                            "`record` (la riga, valori wrappati -> `record[field.mc_nome_colonna].value` / "
+                            "`record['altraColonna'].value`), `field` (MetadatiColonna della colonna), "
+                            "`metaInfo` (MetaInfo corrente), `wtoolbox` (WtoolboxService). Tipicamente CALCOLA "
+                            "un valore suggerito e lo IMPOSTA sul campo, oppure lo propone via wtoolbox. NON "
+                            "inventare nomi colonna: usa solo quelli reali.\n"
+                            "Esempio:\n"
+                            "  record[field.mc_nome_colonna].value = String(record['CustomerName'].value || '').trim().toUpperCase();"
                         )
                     },
                     "rationale": {"type": "string"}
