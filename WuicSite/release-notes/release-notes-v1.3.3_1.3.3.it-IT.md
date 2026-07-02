@@ -7,7 +7,7 @@
 
 ---
 
-Release dedicata al **chatbot RAG**: la configurazione del modello LLM è stata semplificata e unificata, l'uso di un modello locale gratuito (Qwen via Ollama) è ora di prima classe, e il motore è stato reso robusto verso le particolarità dei modelli locali — così le azioni proposte sul designer e sui metadati funzionano in modo affidabile anche senza un provider commerciale.
+Release dedicata al **chatbot RAG**: la configurazione del modello LLM è stata semplificata e unificata, l'uso di un modello locale gratuito (Qwen via Ollama) è ora di prima classe, e il motore è stato reso robusto verso le particolarità dei modelli locali — così le azioni proposte sul designer e sui metadati funzionano in modo affidabile anche senza un provider commerciale. Il pacchetto include inoltre un nuovo plugin per **Visual Studio Code**, **WUIC Assistant**, che porta lo stesso approccio agentico dentro l'editor.
 
 ---
 
@@ -39,6 +39,20 @@ Una guida completa per montare il server Ollama (Windows/Linux, esposizione in L
 
 Il motore è stato reso tollerante alle particolarità dei modelli locali, che — a differenza dei modelli commerciali — a volte non rispettano alla lettera il formato delle chiamate strumento. Il chatbot ora recupera correttamente l'azione proposta anche quando il modello la emette come testo o con escape JSON non standard. In pratica, le azioni sul designer e sui metadati — pulsanti di tabella (bulk), pulsanti di riga, stili condizionali, callback, iniezione di componenti nel designer — vengono proposte e applicate in modo affidabile anche con un LLM locale.
 
+## 🧩 Assistente agentico in VS Code — WUIC Assistant
+
+Il pacchetto include ora un plugin per **Visual Studio Code**, **WUIC Assistant** (`llm-workspace/plugin/wuic-assistant.vsix`): un assistente che conosce già le convenzioni del framework e opera direttamente sul progetto aperto. Genera componenti Angular (card, dashboard con tile KPI, list-grid con navigazione al form di modifica), componenti alimentati da un endpoint .NET personalizzato, e propone le modifiche ai metadati (stili condizionali, azioni di tabella e di riga, lookup). Ogni scrittura passa da un'anteprima prima della conferma.
+
+Usa lo stesso RAG locale WUIC tramite il server MCP `wuic-rag` (avviato automaticamente) e il grounding già presente nel progetto: non richiede configurazione manuale del server MCP. Il modello LLM è a scelta — **locale via Ollama** (Qwen, zero API key) oppure Anthropic.
+
+Installazione dallo ZIP:
+
+```
+code --install-extension llm-workspace/plugin/wuic-assistant.vsix
+```
+
+In alternativa lo installa `install-llm-workspace.ps1`. Poi `Ctrl+Shift+P` → **WUIC Assistant: Apri Chat**; il provider si sceglie nelle impostazioni (`wuicAssistant.provider` = `ollama` o `anthropic`).
+
 ## 🐛 Bug fix degni di nota
 
 - **Designer — layout multi-colonna**: l'iniezione di un layout a più colonne/aree (es. "3 colonne, ognuna con una griglia") proposta dal chatbot ora popola correttamente tutte le aree. In precedenza, dopo la prima cella, le successive non venivano risolte e i componenti restavano vuoti.
@@ -49,3 +63,4 @@ Il motore è stato reso tollerante alle particolarità dei modelli locali, che �
 1. Per usare un LLM locale gratuito, valorizzare in `appsettings.json` → `AppSettings`: `rag-llm-provider=ollama`, `rag-llm-base-url`, `rag-llm-api-key` (valore segnaposto, es. `ollama`) e `rag-llm-default-chat-model`.
 2. Migrare la chiave del chatbot su `rag-llm-api-key`: le precedenti `llm-api-key` e `anthropic-api-key` continuano a funzionare come fallback, ma la configurazione consigliata usa solo `rag-llm-api-key`.
 3. Per usare l'Agent SDK via subscription invece dell'API a consumo, impostare `rag-llm-api-key=agent-sdk` (richiede la `claude` CLI installata).
+4. Per l'assistente in VS Code, installare il plugin dallo ZIP: `code --install-extension llm-workspace/plugin/wuic-assistant.vsix` (oppure lasciarlo installare da `install-llm-workspace.ps1`).

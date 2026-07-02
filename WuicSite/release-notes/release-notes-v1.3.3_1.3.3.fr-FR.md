@@ -7,7 +7,7 @@
 
 ---
 
-Une version dédiée au **chatbot RAG** : la configuration du modèle LLM a été simplifiée et unifiée, l'exécution d'un modèle local gratuit (Qwen via Ollama) est désormais une option de premier ordre, et le moteur a été durci face aux particularités des modèles locaux — de sorte que les actions proposées sur le designer et sur les métadonnées fonctionnent de manière fiable même sans fournisseur commercial.
+Une version dédiée au **chatbot RAG** : la configuration du modèle LLM a été simplifiée et unifiée, l'exécution d'un modèle local gratuit (Qwen via Ollama) est désormais une option de premier ordre, et le moteur a été durci face aux particularités des modèles locaux — de sorte que les actions proposées sur le designer et sur les métadonnées fonctionnent de manière fiable même sans fournisseur commercial. Le paquet inclut par ailleurs un nouveau plugin **Visual Studio Code**, **WUIC Assistant**, qui apporte la même approche agentique dans l'éditeur.
 
 ---
 
@@ -39,6 +39,20 @@ Un guide complet pour monter le serveur Ollama (Windows/Linux, exposition LAN, t
 
 Le moteur a été rendu tolérant aux particularités des modèles locaux qui — contrairement aux modèles commerciaux — ne respectent parfois pas à la lettre le format des appels d'outil. Le chatbot récupère désormais correctement l'action proposée même lorsque le modèle l'émet sous forme de texte ou avec des escapes JSON non standard. En pratique, les actions sur le designer et sur les métadonnées — boutons de table (bulk), boutons de ligne, styles conditionnels, callbacks, injection de composants dans le designer — sont proposées et appliquées de manière fiable même avec un LLM local.
 
+## 🧩 Assistant agentique dans VS Code — WUIC Assistant
+
+Le paquet inclut désormais un plugin pour **Visual Studio Code**, **WUIC Assistant** (`llm-workspace/plugin/wuic-assistant.vsix`) : un assistant qui connaît déjà les conventions du framework et opère directement sur le projet ouvert. Il génère des composants Angular (cards, dashboards avec tuiles KPI, list-grids avec navigation vers le formulaire d'édition), des composants alimentés par un endpoint .NET personnalisé, et propose des modifications de métadonnées (styles conditionnels, actions de table et de ligne, lookups). Chaque écriture passe par un aperçu avant confirmation.
+
+Il utilise le même RAG local WUIC via le serveur MCP `wuic-rag` (démarré automatiquement) et le grounding déjà présent dans le projet, sans configuration manuelle du serveur MCP. Le modèle LLM est au choix — **local via Ollama** (Qwen, sans clé API) ou Anthropic.
+
+Installation depuis le ZIP :
+
+```
+code --install-extension llm-workspace/plugin/wuic-assistant.vsix
+```
+
+Sinon, `install-llm-workspace.ps1` l'installe. Puis `Ctrl+Shift+P` -> **WUIC Assistant: Apri Chat** ; le fournisseur se choisit dans les paramètres (`wuicAssistant.provider` = `ollama` ou `anthropic`).
+
 ## 🐛 Corrections de bugs notables
 
 - **Designer — layout multi-colonnes** : l'injection d'un layout multi-colonnes/multi-zones (ex. "3 colonnes, chacune avec une grille") proposée par le chatbot remplit désormais correctement toutes les zones. Auparavant, après la première cellule, les suivantes n'étaient pas résolues et les composants restaient vides.
@@ -49,3 +63,4 @@ Le moteur a été rendu tolérant aux particularités des modèles locaux qui �
 1. Pour utiliser un LLM local gratuit, renseigner dans `appsettings.json` -> `AppSettings` : `rag-llm-provider=ollama`, `rag-llm-base-url`, `rag-llm-api-key` (valeur indicative, ex. `ollama`) et `rag-llm-default-chat-model`.
 2. Migrer la clé du chatbot vers `rag-llm-api-key` : les anciennes `llm-api-key` et `anthropic-api-key` continuent de fonctionner en fallback, mais la configuration recommandée n'utilise que `rag-llm-api-key`.
 3. Pour utiliser l'Agent SDK via subscription au lieu de l'API à l'usage, définir `rag-llm-api-key=agent-sdk` (nécessite la `claude` CLI installée).
+4. Pour l'assistant dans VS Code, installer le plugin depuis le ZIP : `code --install-extension llm-workspace/plugin/wuic-assistant.vsix` (ou le laisser installer par `install-llm-workspace.ps1`).

@@ -7,7 +7,7 @@
 
 ---
 
-Ein Release rund um den **RAG-Chatbot**: Die LLM-Modellkonfiguration wurde vereinfacht und vereinheitlicht, der Betrieb eines kostenlosen lokalen Modells (Qwen via Ollama) ist nun eine erstklassige Option, und die Engine wurde gegen die Eigenheiten lokaler Modelle gehärtet — so funktionieren die auf dem Designer und auf Metadaten vorgeschlagenen Aktionen auch ohne kommerziellen Provider zuverlässig.
+Ein Release rund um den **RAG-Chatbot**: Die LLM-Modellkonfiguration wurde vereinfacht und vereinheitlicht, der Betrieb eines kostenlosen lokalen Modells (Qwen via Ollama) ist nun eine erstklassige Option, und die Engine wurde gegen die Eigenheiten lokaler Modelle gehärtet — so funktionieren die auf dem Designer und auf Metadaten vorgeschlagenen Aktionen auch ohne kommerziellen Provider zuverlässig. Das Paket enthält zudem ein neues **Visual Studio Code**-Plugin, **WUIC Assistant**, das denselben agentischen Ansatz in den Editor bringt.
 
 ---
 
@@ -39,6 +39,20 @@ Eine vollständige Anleitung zum Aufsetzen des Ollama-Servers (Windows/Linux, LA
 
 Die Engine wurde gegenüber den Eigenheiten lokaler Modelle tolerant gemacht, die — anders als kommerzielle Modelle — das Tool-Call-Format manchmal nicht strikt einhalten. Der Chatbot stellt die vorgeschlagene Aktion nun korrekt wieder her, selbst wenn das Modell sie als Text oder mit nicht standardkonformen JSON-Escapes ausgibt. In der Praxis werden die Aktionen auf dem Designer und auf Metadaten — Tabellen-Buttons (Bulk), Zeilen-Buttons, bedingte Stile, Callbacks, Komponenten-Injektion im Designer — auch mit einem lokalen LLM zuverlässig vorgeschlagen und angewendet.
 
+## 🧩 Agentischer Assistent in VS Code — WUIC Assistant
+
+Das Paket enthält nun ein Plugin für **Visual Studio Code**, **WUIC Assistant** (`llm-workspace/plugin/wuic-assistant.vsix`): ein Assistent, der die Framework-Konventionen bereits kennt und direkt am geöffneten Projekt arbeitet. Er erzeugt Angular-Komponenten (Cards, Dashboards mit KPI-Kacheln, List-Grids mit Navigation zum Bearbeitungsformular), Komponenten, die von einem eigenen .NET-Endpoint gespeist werden, und schlägt Metadaten-Änderungen vor (bedingte Stile, Tabellen- und Zeilenaktionen, Lookups). Jeder Schreibvorgang durchläuft eine Vorschau vor der Bestätigung.
+
+Er nutzt dasselbe lokale WUIC-RAG über den MCP-Server `wuic-rag` (automatisch gestartet) und das im Projekt bereits vorhandene Grounding, sodass keine manuelle MCP-Server-Konfiguration nötig ist. Das LLM-Modell ist frei wählbar — **lokal via Ollama** (Qwen, ohne API-Key) oder Anthropic.
+
+Installation aus dem ZIP:
+
+```
+code --install-extension llm-workspace/plugin/wuic-assistant.vsix
+```
+
+Alternativ installiert es `install-llm-workspace.ps1`. Danach `Ctrl+Shift+P` -> **WUIC Assistant: Apri Chat**; den Provider in den Einstellungen wählen (`wuicAssistant.provider` = `ollama` oder `anthropic`).
+
 ## 🐛 Nennenswerte Bugfixes
 
 - **Designer — mehrspaltiges Layout**: Die Injektion eines mehrspaltigen/mehrbereichigen Layouts (z. B. "3 Spalten, jede mit einem Grid"), das der Chatbot vorschlägt, füllt nun alle Bereiche korrekt. Zuvor wurden nach der ersten Zelle die folgenden nicht aufgelöst und die Komponenten blieben leer.
@@ -49,3 +63,4 @@ Die Engine wurde gegenüber den Eigenheiten lokaler Modelle tolerant gemacht, di
 1. Für ein kostenloses lokales LLM in `appsettings.json` -> `AppSettings` setzen: `rag-llm-provider=ollama`, `rag-llm-base-url`, `rag-llm-api-key` (Platzhalterwert, z. B. `ollama`) und `rag-llm-default-chat-model`.
 2. Den Chatbot-Schlüssel auf `rag-llm-api-key` migrieren: die bisherigen `llm-api-key` und `anthropic-api-key` funktionieren weiterhin als Fallback, doch die empfohlene Konfiguration nutzt nur `rag-llm-api-key`.
 3. Um das Agent SDK via Subscription statt der kostenpflichtigen API zu nutzen, `rag-llm-api-key=agent-sdk` setzen (erfordert die installierte `claude` CLI).
+4. Für den VS-Code-Assistenten das Plugin aus dem ZIP installieren: `code --install-extension llm-workspace/plugin/wuic-assistant.vsix` (oder von `install-llm-workspace.ps1` installieren lassen).
