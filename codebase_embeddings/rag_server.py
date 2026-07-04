@@ -46,6 +46,16 @@ if not LOG.handlers:
 INDEX_DIR = Path(os.environ.get("WUIC_RAG_INDEX_DIR", "index"))
 TRANSLATE_CACHE_PATH = Path(os.environ.get("WUIC_RAG_TRANSLATE_CACHE", "_translate_cache_v3.json"))
 DEFAULT_CHAT_MODEL = os.environ.get("WUIC_RAG_DEFAULT_MODEL", "claude-haiku-4-5-20251001")
+# Parametri reranker/retrieval env-izzati (Fase 4 quick-win a): default = valori hardcoded
+# storici (top_n 40, blend 0.85, finestra candidati 32). Cambiabili senza toccare il sorgente
+# per il tuning post-retrain v5 (eval-gate). Alias validati contro il config eval.
+RERANK_TOP_N = int(os.environ.get("WUIC_RAG_CE_TOP_N", "40"))
+RERANK_BLEND = float(os.environ.get("WUIC_RAG_CE_BLEND", "0.85"))
+CANDIDATE_WINDOW = int(os.environ.get("WUIC_RAG_CANDIDATE_WINDOW", "32"))
+# Per-query metrics log (Fase 4 quick-win c): JSONL append opt-in per metriche online
+# (query, top_k, lang, profile, n risultati, top-1 rel_path + score). VUOTO = disabilitato
+# (nessuna scrittura su disco lato client). Non-fatale: un errore di log non rompe la query.
+QUERY_LOG_PATH = os.environ.get("WUIC_RAG_QUERY_LOG", "").strip()
 
 # Profilo di deployment.
 #   'internal' (DEFAULT): assistente full-source per chi ha i sorgenti (uso locale
@@ -296,7 +306,7 @@ def _load_state() -> None:
             top_k=1,
             use_cross_encoder=True,
             cross_encoder_top_n=2,
-            cross_encoder_blend=0.85,
+            cross_encoder_blend=RERANK_BLEND,
             cross_encoder_intent_weight=0.0,
             use_hyde=False,
         )
@@ -461,10 +471,11 @@ def _translate_query(query_text: str) -> str:
     return cache.get(query_text, query_text)
 
 
-# Finestra di candidati pre-CE FISSA per il chatbot (allineata al config eval:
+# Finestra di candidati pre-CE per il chatbot (allineata al config eval:
 # top_k=8 -> max(30, 32) = 32). Disaccoppiata dal numero di risultati richiesti
 # cosi' l'over-fetch per il dedup locali NON altera il ranking dei top risultati.
-_CHATBOT_CANDIDATE_WINDOW = 32
+# Env-izzata (Fase 4 quick-win a): default 32, override via WUIC_RAG_CANDIDATE_WINDOW.
+_CHATBOT_CANDIDATE_WINDOW = CANDIDATE_WINDOW
 
 
 def _effective_profile(req_profile: Optional[str]) -> str:
@@ -498,9 +509,9 @@ def _do_search(query_text: str, top_k: int) -> List[Dict[str, Any]]:
         top_k=top_k,
         candidate_window=_CHATBOT_CANDIDATE_WINDOW,
         use_cross_encoder=True,
-        # Defaults Phase C (gia' wired in generate_embeddings.py, ridichiarati qui per chiarezza)
-        cross_encoder_top_n=40,
-        cross_encoder_blend=0.85,
+        # Defaults Phase C env-izzati (Fase 4): default top_n 40 / blend 0.85, override via env.
+        cross_encoder_top_n=RERANK_TOP_N,
+        cross_encoder_blend=RERANK_BLEND,
         cross_encoder_intent_weight=0.0,
         use_hyde=False,
     )
@@ -712,6 +723,36 @@ def health() -> HealthOut:
     )
 
 
+def _log_query_metrics(kind: str, query: str, top_k: int, lang: str, profile: str,
+                       results: List[Dict[str, Any]]) -> None:
+    """Append 1 riga JSONL con la telemetria della query per l'analisi online (Fase 4).
+    Opt-in via WUIC_RAG_QUERY_LOG; non-fatale (un errore di log non deve rompere la query).
+    NB: a serving-time non c'e' ground-truth -> logghiamo top-1 rel_path + score + gap, il
+    segnale osservabile piu' utile (query a basso score/gap = candidate retrieval-miss)."""
+    if not QUERY_LOG_PATH:
+        return
+    try:
+        top1 = results[0] if results else {}
+        score1 = top1.get("score") or top1.get("score_vector")
+        score2 = (results[1].get("score") or results[1].get("score_vector")) if len(results) > 1 else None
+        rec = {
+            "ts": int(time.time()),
+            "kind": kind,
+            "top_k": top_k,
+            "lang": lang,
+            "profile": profile,
+            "n": len(results),
+            "query": (query or "")[:200],
+            "top1_rel_path": top1.get("rel_path"),
+            "top1_score": score1,
+            "score_gap": (score1 - score2) if (score1 is not None and score2 is not None) else None,
+        }
+        with open(QUERY_LOG_PATH, "a", encoding="utf-8") as fh:
+            fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    except Exception as exc:  # noqa: BLE001
+        LOG.debug("query-log skip: %s", exc)
+
+
 @app.post("/api/rag/query", response_model=QueryOut)
 def query_endpoint(req: QueryIn) -> QueryOut:
     _ensure_loaded()
@@ -723,6 +764,7 @@ def query_endpoint(req: QueryIn) -> QueryOut:
     results = _dedup_doc_locales(_do_search(q_en, _retrieval_pool(req.top_k, prof)), q_lang)
     results = _drop_ai_internal(results)
     results = _apply_release_filter(results, prof)
+    _log_query_metrics("query", req.query, req.top_k, q_lang, prof, results)
     return QueryOut(results=_format_sources(results, req.top_k, prof))
 
 
@@ -739,6 +781,7 @@ def chat_endpoint(req: ChatIn) -> ChatOut:
     results = _dedup_doc_locales(_do_search(q_en, _retrieval_pool(req.top_k, prof)), q_lang)
     results = _drop_ai_internal(results)
     results = _apply_release_filter(results, prof)
+    _log_query_metrics("chat", req.query, req.top_k, q_lang, prof, results)
     sources = _format_sources(results, req.top_k, prof)
 
     # Fallback se LLM disabilitato

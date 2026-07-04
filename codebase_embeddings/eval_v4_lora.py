@@ -20,18 +20,27 @@ from collections import defaultdict
 from pathlib import Path
 
 import numpy as np
-import torch
-from peft import PeftModel
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
+# ORDINE IMPORT CRITICO (F4 2026-07-04): sentence_transformers (via generate_embeddings) va
+# importato PRIMA di peft/transformers — sull'host 4090 (torch 2.6+ort 1.27) l'ordine inverso
+# segfaulta con ACCESS_VIOLATION (0xC0000005) all'import, senza alcun output. Verificato con
+# probe faulthandler: invertendo l'ordine il crash sparisce. Stessa classe della regola skill
+# "onnxruntime+torch stesso processo".
 import generate_embeddings
 from generate_embeddings import load_index, search_loaded
 from evaluate_rag import evaluate_case
 
+import torch
+from peft import PeftModel
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+import os
+
 TRANSLATE_CACHE = Path("_translate_cache_v3.json")
-TEST_PATH = Path("eval_queries.v4_doclabels_relabel_test.jsonl")
+TEST_PATH = Path(os.environ.get("WUIC_RAG_EVAL_TEST", "eval_queries.v4_doclabels_relabel_test.jsonl"))
 LORA_DIR = Path("lora_ce_v4")
-INDEX_DIR = Path("index")
+# Env-izzato (Fase 4): eval su indice versionato senza editare il sorgente.
+INDEX_DIR = Path(os.environ.get("WUIC_RAG_INDEX_DIR", "index"))
 BASE_MODEL = "BAAI/bge-reranker-v2-m3"
 
 

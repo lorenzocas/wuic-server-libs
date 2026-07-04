@@ -17,7 +17,9 @@ from sentence_transformers import SentenceTransformer
 
 DEFAULT_MODEL = "BAAI/bge-m3"
 DEFAULT_RERANKER_MODEL = "BAAI/bge-reranker-v2-m3"
-DEFAULT_LORA_CE_DIR = r"c:/src/Wuic/codebase_embeddings/lora_ce_v4"
+# LoRA cross-encoder adapter dir. Env-izzato (Fase 4 quick-win a): il retrain v5+
+# promuove cambiando WUIC_RAG_LORA_DIR senza editare il sorgente. Default = v4 (live).
+DEFAULT_LORA_CE_DIR = os.environ.get("WUIC_RAG_LORA_DIR", r"c:/src/Wuic/codebase_embeddings/lora_ce_v4")
 
 # Lazy global cache for the cross-encoder model: only loaded if explicitly
 # enabled. Loading bge-reranker-v2-m3 the first time downloads ~600 MB.
