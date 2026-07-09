@@ -101,6 +101,34 @@ export const routes: Routes = [
     data: { breadcrumbs: 'workflow-designer', roleRuleKey: 'workflow-designer', description: 'Workflow Designer WUIC: editor grafico per processi multistep con node-type custom, condizioni e deep-link a route.' }
   },
   {
+    path: 'scene3d_designer',
+    loadComponent: () => import('wuic-framework-lib-src/component/scene3d-designer/scene3d-designer.route.component').then((m) => m.Scene3dDesignerRouteComponent),
+    canMatch: [menuRouteAccessCanMatchGuard, roleRouteCanMatchGuard],
+    canActivate: [menuRouteAccessCanActivateGuard, roleRouteCanActivateGuard],
+    data: { breadcrumbs: 'scene3d-designer', description: 'Scene3D Designer WUIC: authoring di scene 3D (three.js) con palette oggetti, gizmo di trasformazione, import asset e binding alle route metadata.' }
+  },
+  {
+    path: 'scene3d_viewer/:scene_key/:camera_id',
+    loadComponent: () => import('wuic-framework-lib-src/component/scene3d-viewer/scene3d-viewer.route.component').then((m) => m.Scene3dViewerRouteComponent),
+    canMatch: [menuRouteAccessCanMatchGuard, roleRouteCanMatchGuard],
+    canActivate: [menuRouteAccessCanActivateGuard, roleRouteCanActivateGuard],
+    data: { breadcrumbs: 'scene3d-viewer', description: 'Scene3D Viewer WUIC: rendering read-only di una scena 3D dal punto di vista di una camera specifica.' }
+  },
+  {
+    path: 'scene3d_viewer/:scene_key',
+    loadComponent: () => import('wuic-framework-lib-src/component/scene3d-viewer/scene3d-viewer.route.component').then((m) => m.Scene3dViewerRouteComponent),
+    canMatch: [menuRouteAccessCanMatchGuard, roleRouteCanMatchGuard],
+    canActivate: [menuRouteAccessCanActivateGuard, roleRouteCanActivateGuard],
+    data: { breadcrumbs: 'scene3d-viewer', description: 'Scene3D Viewer WUIC: rendering runtime read-only di una scena 3D salvata, con binding dati live e click-through sui record collegati.' }
+  },
+  {
+    path: 'scene3d_viewer',
+    loadComponent: () => import('wuic-framework-lib-src/component/scene3d-viewer/scene3d-viewer.route.component').then((m) => m.Scene3dViewerRouteComponent),
+    canMatch: [menuRouteAccessCanMatchGuard, roleRouteCanMatchGuard],
+    canActivate: [menuRouteAccessCanActivateGuard, roleRouteCanActivateGuard],
+    data: { breadcrumbs: 'scene3d-viewer', description: 'Scene3D Viewer WUIC: rendering runtime read-only di scene 3D salvate.' }
+  },
+  {
     path: 'appsettings-editor',
     loadComponent: () => import('wuic-framework-lib-src/component/app-settings-editor/app-settings-editor.component').then((m) => m.AppSettingsEditorComponent),
     canMatch: [menuRouteAccessCanMatchGuard, roleRouteCanMatchGuard],
