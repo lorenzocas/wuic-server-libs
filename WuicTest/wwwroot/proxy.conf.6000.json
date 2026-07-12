@@ -1,0 +1,21 @@
+{
+  "/api": {
+    "target": "http://localhost:6000",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "warn"
+  },
+  "/upload": {
+    "target": "http://localhost:6000",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "warn"
+  },
+  "/ws": {
+    "target": "http://localhost:6000",
+    "secure": false,
+    "changeOrigin": true,
+    "ws": true,
+    "logLevel": "warn"
+  }
+}

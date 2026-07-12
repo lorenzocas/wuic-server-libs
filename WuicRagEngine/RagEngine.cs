@@ -1133,6 +1133,8 @@ public sealed class RagEngine : IDisposable
         ["propose_lifecycle_callback"] = "lifecycle_callback",
         ["propose_simple_metadata_update"] = "simple_metadata_update",
         ["propose_designer_inject"] = "designer_inject",
+        ["propose_scene3d_inject"] = "scene3d_inject",
+        ["propose_workflow_inject"] = "workflow_inject",
         ["propose_sql_metadata_field"] = "sql_metadata_field",
         ["propose_metadata_column_create"] = "metadata_column_create",
     };
@@ -1247,7 +1249,7 @@ public sealed class RagEngine : IDisposable
                         string name = fn.TryGetProperty("name", out var nm) ? (nm.GetString() ?? "") : "";
                         string args = fn.TryGetProperty("arguments", out var a) && a.ValueKind == JsonValueKind.String ? (a.GetString() ?? "{}") : "{}";
                         object input;
-                        try { using var ad = JsonDocument.Parse(string.IsNullOrWhiteSpace(args) ? "{}" : args); input = ad.RootElement.Clone(); }
+                        try { using var ad = JsonDocument.Parse(string.IsNullOrWhiteSpace(args) ? "{}" : args); input = CoerceStringifiedStructuredArgs(ad.RootElement); }
                         catch { input = new Dictionary<string, object>(); }
                         toolBlocks.Add(new { type = "tool_use", name, input });
                     }
@@ -1365,6 +1367,58 @@ public sealed class RagEngine : IDisposable
     private static string NormalizeJsObjectToJson(string s)
     {
         try { int i = 0; var sb = new System.Text.StringBuilder(); if (!NormVal(s, ref i, sb)) return null; return sb.ToString(); }
+        catch { return null; }
+    }
+
+    /// <summary>Campi tool-arg che sono BODY di codice/SQL/markup o testo libero: mai
+    /// coercerli in array/oggetto anche se il valore stringa somiglia a JSON (un
+    /// callback JS puo' iniziare con '[' o '{').</summary>
+    private static readonly HashSet<string> s_noCoerceArgFields = new(StringComparer.Ordinal)
+    {
+        "callback_js", "condition_js", "formula_js", "template_html", "sql_snippet",
+        "rationale", "label", "description", "innerText", "text"
+    };
+
+    /// <summary>Alcuni modelli OpenAI-compat (es. qwen3-coder via Ollama) serializzano i
+    /// parametri tool di tipo ARRAY/OGGETTO come STRINGA JSON (spesso JS-literal con apici
+    /// singoli): es. designer_inject.layout / scene3d_inject.objects arrivano come
+    /// <c>"[{'tool_name':...}]"</c> invece che come array. Il validator client fa
+    /// <c>Array.isArray</c> e li scarta → tool droppato. Qui, dopo il parse degli arguments,
+    /// ricostruiamo l'oggetto coercendo ogni valore-stringa che (a) non e' un campo
+    /// codice/testo (<see cref="s_noCoerceArgFields"/>) e (b) inizia con '[' o '{' e
+    /// (c) parsa come array/oggetto JSON (diretto o via <see cref="NormalizeJsObjectToJson"/>).
+    /// Idempotente sugli array/oggetti gia' strutturati. Vale per TUTTI i tool con param
+    /// strutturati (layout, objects, archetype_config, repeater_config, binding, fieldMap, value, ...).</summary>
+    private static object CoerceStringifiedStructuredArgs(JsonElement root)
+    {
+        if (root.ValueKind != JsonValueKind.Object) return root.Clone();
+        var dict = new Dictionary<string, object>(StringComparer.Ordinal);
+        foreach (var p in root.EnumerateObject())
+        {
+            if (p.Value.ValueKind == JsonValueKind.String && !s_noCoerceArgFields.Contains(p.Name))
+            {
+                string raw = p.Value.GetString() ?? "";
+                string t = raw.TrimStart();
+                if (t.Length > 0 && (t[0] == '[' || t[0] == '{'))
+                {
+                    JsonElement? parsed = TryParseJsonElement(raw) ?? TryParseJsonElement(NormalizeJsObjectToJson(raw));
+                    if (parsed.HasValue && (parsed.Value.ValueKind == JsonValueKind.Array || parsed.Value.ValueKind == JsonValueKind.Object))
+                    {
+                        dict[p.Name] = parsed.Value;
+                        continue;
+                    }
+                }
+            }
+            dict[p.Name] = p.Value.Clone();
+        }
+        return dict;
+    }
+
+    /// <summary>Parse difensivo di una stringa in JsonElement (clone svincolato dal document); null se invalida.</summary>
+    private static JsonElement? TryParseJsonElement(string? s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return null;
+        try { using var d = JsonDocument.Parse(s); return d.RootElement.Clone(); }
         catch { return null; }
     }
 
@@ -1503,10 +1557,10 @@ public sealed class RagEngine : IDisposable
             object input;
             if (r.TryGetProperty("arguments", out var argEl) || r.TryGetProperty("parameters", out argEl))
             {
-                if (argEl.ValueKind == JsonValueKind.Object) input = argEl.Clone();
+                if (argEl.ValueKind == JsonValueKind.Object) input = CoerceStringifiedStructuredArgs(argEl);
                 else if (argEl.ValueKind == JsonValueKind.String)
                 {
-                    try { using var ad = JsonDocument.Parse(argEl.GetString() ?? "{}"); input = ad.RootElement.Clone(); }
+                    try { using var ad = JsonDocument.Parse(argEl.GetString() ?? "{}"); input = CoerceStringifiedStructuredArgs(ad.RootElement); }
                     catch { input = new Dictionary<string, object>(); }
                 }
                 else input = new Dictionary<string, object>();

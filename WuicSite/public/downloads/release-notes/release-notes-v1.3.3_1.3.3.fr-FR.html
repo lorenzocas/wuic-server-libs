@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Release Notes v1.3.3_1.3.3 - WUIC Framework</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; color: #1e293b; background: #ffffff; line-height: 1.6; overflow-wrap: anywhere; word-wrap: break-word; }
+a { color: #6366f1; text-decoration: none; }
+a:hover { color: #4f46e5; text-decoration: underline; }
+
+/* Site-style header (mini-navbar) */
+.rn-header { background: rgba(255, 255, 255, 0.95); border-bottom: 1px solid #e2e8f0; backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 10; }
+.rn-header-inner { max-width: 1200px; margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.rn-brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: #0f172a; font-size: 1.15rem; }
+.rn-brand-bolt { display: inline-block; width: 24px; height: 24px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M13 2L3 14h7l-1 8 10-12h-7l1-8z'/></svg>") center/contain no-repeat; mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M13 2L3 14h7l-1 8 10-12h-7l1-8z'/></svg>") center/contain no-repeat; }
+.rn-back { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border: 1px solid #c7d2fe; border-radius: 6px; color: #4f46e5; background: #eef2ff; font-size: 0.9rem; transition: background 0.15s, border-color 0.15s; }
+.rn-back:hover { background: #e0e7ff; border-color: #a5b4fc; text-decoration: none; }
+
+/* Article container: same width as Site .container */
+.rn-article { max-width: 880px; margin: 0 auto; padding: 48px 24px 80px; }
+
+/* Headings: site palette */
+h1, h2, h3, h4 { color: #0f172a; line-height: 1.25; font-weight: 700; }
+h1 { font-size: 2rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; margin-bottom: 1.25rem; }
+h2 { font-size: 1.4rem; margin-top: 2.25rem; margin-bottom: 0.75rem; }
+h3 { font-size: 1.125rem; margin-top: 1.5rem; margin-bottom: 0.5rem; color: #334155; }
+
+p { margin: 0.75rem 0; color: #334155; }
+strong { color: #0f172a; font-weight: 600; }
+
+ul, ol { padding-left: 1.4rem; margin: 0.75rem 0; }
+li { margin: 0.25rem 0; color: #334155; }
+
+hr { border: 0; border-top: 1px solid #e2e8f0; margin: 2.5rem 0; }
+
+/* Inline code: tinta indigo che richiama il brand */
+code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.9em; }
+code { background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; padding: 0.1em 0.4em; border-radius: 4px; word-break: break-word; }
+pre { background: #f8fafc; border: 1px solid #e2e8f0; padding: 1rem 1.25rem; border-radius: 8px; overflow-x: auto; max-width: 100%; margin: 1rem 0; }
+pre code { background: transparent; color: #1e293b; border: 0; padding: 0; word-break: normal; }
+
+/* Tables: scrollabili, header indigo-tint */
+.table-wrap { overflow-x: auto; max-width: 100%; margin: 1.25rem 0; border: 1px solid #e2e8f0; border-radius: 8px; }
+table { border-collapse: collapse; width: max-content; min-width: 100%; background: #ffffff; }
+th, td { border-bottom: 1px solid #e2e8f0; padding: 0.65rem 0.95rem; text-align: left; vertical-align: top; font-size: 0.95rem; }
+th { background: #f8fafc; color: #0f172a; font-weight: 600; border-bottom-color: #cbd5e1; }
+tr:last-child td { border-bottom: 0; }
+td { color: #334155; }
+
+/* Blockquote: brand accent */
+blockquote { border-left: 3px solid #6366f1; margin: 1.25rem 0; padding: 0.6rem 1.1rem; color: #475569; background: #eef2ff; border-radius: 0 6px 6px 0; }
+blockquote p { color: #475569; }
+
+img { max-width: 100%; height: auto; border-radius: 6px; }
+</style>
+<script>
+// Wrap tables post-render in scroll container (markdown converter emits raw <table>).
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('table').forEach(t => {
+    if (t.parentElement && t.parentElement.classList.contains('table-wrap')) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+});
+</script>
+</head>
+<body>
+<header class="rn-header">
+  <div class="rn-header-inner">
+    <a href="/" class="rn-brand"><span class="rn-brand-bolt"></span><span>WUIC</span></a>
+    <a href="/downloads" class="rn-back">&larr; Retour aux t&eacute;l&eacute;chargements</a>
+  </div>
+</header>
+<article class="rn-article">
+<h1 id="notes-de-version-wuic-framework-v1.3.3">Notes de version — WUIC Framework v1.3.3</h1>
+<p><strong>Date</strong> : 21 juin 2026
+<strong>Version précédemment publiée</strong> : 1.3.2 (18 juin 2026)
+<strong>Backend</strong> : .NET 10 + IIS / Linux nginx
+<strong>Frontend</strong> : Angular 21</p>
+<hr />
+<p>Une version dédiée au <strong>chatbot RAG</strong> : la configuration du modèle LLM a été simplifiée et unifiée, l'exécution d'un modèle local gratuit (Qwen via Ollama) est désormais une option de premier ordre, et le moteur a été durci face aux particularités des modèles locaux — de sorte que les actions proposées sur le designer et sur les métadonnées fonctionnent de manière fiable même sans fournisseur commercial. Le paquet inclut par ailleurs un nouveau plugin <strong>Visual Studio Code</strong>, <strong>WUIC Assistant</strong>, qui apporte la même approche agentique dans l'éditeur. Enfin, le <strong>designer de dashboards</strong> reçoit un ensemble d'améliorations d'édition : alignement sur la grille, positionnement absolu optionnel, raccourcis clavier avec sélection multiple, import/export JSON et presets, déplacement des éléments entre onglets et import de dashboards/presets dans un conteneur.</p>
+<hr />
+<h2 id="chatbot-rag-configuration-llm-unifiee">🤖 Chatbot RAG — configuration LLM unifiée</h2>
+<p>La configuration du fournisseur LLM du chatbot a été consolidée autour d'<strong>une seule clé</strong> et d'une liste explicite de fournisseurs.</p>
+<ul>
+<li><code>rag-llm-provider</code> — <code>anthropic</code> / <code>openai</code> / <code>openrouter</code> / <code>ollama</code>, <strong>à définir explicitement</strong> (aucun fournisseur par défaut : si vide, le chatbot reste en retrieval-only et n'invoque aucun LLM). <code>ollama</code> est désormais une valeur de premier ordre : pointe vers un runtime local via <code>rag-llm-base-url</code>, au format compatible OpenAI.</li>
+<li><code>rag-llm-api-key</code> — la source <strong>unique</strong> de la clé, indépendante du fournisseur choisi. Remplace l'ancien couple <code>llm-api-key</code> / <code>anthropic-api-key</code> (acceptés uniquement comme fallback de migration). La valeur spéciale <code>agent-sdk</code> utilise l'Agent SDK (<code>claude</code> CLI) via subscription au lieu de l'API à l'usage, si installé.</li>
+<li><code>rag-llm-base-url</code> — override de l'endpoint ; obligatoire pour <code>ollama</code> (ex. <code>http://HOST:11434/v1</code>), optionnel pour les autres fournisseurs.</li>
+<li><code>rag-llm-default-chat-model</code> — id du modèle pour le fournisseur choisi.</li>
+</ul>
+<p>Toutes les clés restent en <strong>hot-reload</strong> depuis <code>appsettings.json</code> : changer de fournisseur ou de modèle ne nécessite aucun redémarrage.</p>
+<h2 id="llm-local-gratuit-qwen-via-ollama-sans-cle-api">🧠 LLM local gratuit (Qwen via Ollama), sans clé API</h2>
+<p>Le chatbot peut désormais tourner entièrement sur un <strong>modèle local ouvert et gratuit</strong> — par exemple <strong>Qwen</strong> (<code>qwen2.5-coder:32b</code>) servi par <strong>Ollama</strong> sur sa propre machine ou sur le LAN — sans clé API et sans coût par token. Configuration typique dans <code>appsettings.json</code> -&gt; <code>AppSettings</code> :</p>
+<pre><code>rag-llm-provider           = ollama
+rag-llm-base-url           = http://HOST:11434/v1
+rag-llm-api-key            = ollama
+rag-llm-default-chat-model = qwen2.5-coder:32b
+</code></pre>
+<p>Un guide complet pour monter le serveur Ollama (Windows/Linux, exposition LAN, tuning du context, démarrage persistant) est inclus dans le paquet.</p>
+<h2 id="actions-du-chatbot-fiables-meme-avec-des-modeles-locaux">⚙️ Actions du chatbot fiables même avec des modèles locaux</h2>
+<p>Le moteur a été rendu tolérant aux particularités des modèles locaux qui — contrairement aux modèles commerciaux — ne respectent parfois pas à la lettre le format des appels d'outil. Le chatbot récupère désormais correctement l'action proposée même lorsque le modèle l'émet sous forme de texte ou avec des escapes JSON non standard. En pratique, les actions sur le designer et sur les métadonnées — boutons de table (bulk), boutons de ligne, styles conditionnels, callbacks, injection de composants dans le designer — sont proposées et appliquées de manière fiable même avec un LLM local.</p>
+<h2 id="assistant-agentique-dans-vs-code-wuic-assistant">🧩 Assistant agentique dans VS Code — WUIC Assistant</h2>
+<p>Le paquet inclut désormais un plugin pour <strong>Visual Studio Code</strong>, <strong>WUIC Assistant</strong> (<code>llm-workspace/plugin/wuic-assistant.vsix</code>) : un assistant qui connaît déjà les conventions du framework et opère directement sur le projet ouvert. Il génère des composants Angular (cards, dashboards avec tuiles KPI, list-grids avec navigation vers le formulaire d'édition), des composants alimentés par un endpoint .NET personnalisé, et propose des modifications de métadonnées (styles conditionnels, actions de table et de ligne, lookups). Chaque écriture passe par un aperçu avant confirmation.</p>
+<p>Il utilise le même RAG local WUIC via le serveur MCP <code>wuic-rag</code> (démarré automatiquement) et le grounding déjà présent dans le projet, sans configuration manuelle du serveur MCP. Le modèle LLM est au choix — <strong>local via Ollama</strong> (Qwen, sans clé API) ou Anthropic.</p>
+<p>Installation depuis le ZIP :</p>
+<pre><code>code --install-extension llm-workspace/plugin/wuic-assistant.vsix
+</code></pre>
+<p>Sinon, <code>install-llm-workspace.ps1</code> l'installe. Puis <code>Ctrl+Shift+P</code> -&gt; <strong>WUIC Assistant: Apri Chat</strong> ; le fournisseur se choisit dans les paramètres (<code>wuicAssistant.provider</code> = <code>ollama</code> ou <code>anthropic</code>).</p>
+<h2 id="designer-de-dashboards-edition-plus-rapide">🎨 Designer de dashboards — édition plus rapide</h2>
+<ul>
+<li><strong>Alignement sur la grille</strong> : activable depuis le menu d'actions du designer, il affiche la grille sur le canvas et aligne automatiquement le glissement, le redimensionnement et les drops depuis la palette. À l'activation, les éléments déjà présents sur le canvas sont eux aussi alignés sur la grille.</li>
+<li><strong>Flux normal / absolu</strong> : nouveau flag dans le menu d'actions (par défaut : flux normal, aucun changement pour les dashboards existants). En mode absolu, les éléments déposés se positionnent aux coordonnées du drop, hors du flux : en redimensionner un ne déplace pas les autres. Le drop dans un conteneur utilise le conteneur comme référence de position, et le runtime reconnaît automatiquement les dashboards enregistrés dans ce mode.</li>
+<li><strong>Raccourcis clavier</strong> : <code>Suppr</code>/<code>Backspace</code> supprime l'élément sélectionné, les flèches le déplacent, <code>Ctrl+Z</code>/<code>Ctrl+Y</code> annule/rétablit. En traçant un rectangle de sélection depuis une zone vide du canvas, on sélectionne plusieurs éléments : les flèches et <code>Suppr</code> agissent sur toute la sélection.</li>
+<li><strong>Import/export JSON et presets</strong> : le dashboard courant s'exporte en fichier JSON ré-importable (identique au contenu persisté), utile pour transférer des layouts entre environnements. Les presets enregistrent des layouts réutilisables sous un nom et se réappliquent en un clic.</li>
+<li><strong>Déplacer entre onglets</strong> : depuis le menu contextuel d'un élément dans un onglet, <em>Déplacer vers un nouvel onglet</em> crée un nouvel onglet et y migre l'élément (bindings et état préservés) ; <em>Déplacer vers un autre onglet</em> — disponible quand la tabview a plusieurs onglets — le déplace vers un onglet existant au choix. L'onglet de destination est activé automatiquement, tout comme un onglet fraîchement déposé.</li>
+<li><strong>Importer un dashboard/preset dans un élément</strong> : depuis le menu contextuel d'un conteneur, on importe un dashboard enregistré ou un preset directement dans l'élément ; les identifiants des éléments importés sont régénérés et les références internes (datasources comprises) remappées, sans collision avec le contenu existant.</li>
+</ul>
+<h2 id="corrections-de-bugs-notables">🐛 Corrections de bugs notables</h2>
+<ul>
+<li><strong>Designer — layout multi-colonnes</strong> : l'injection d'un layout multi-colonnes/multi-zones (ex. &quot;3 colonnes, chacune avec une grille&quot;) proposée par le chatbot remplit désormais correctement toutes les zones. Auparavant, après la première cellule, les suivantes n'étaient pas résolues et les composants restaient vides.</li>
+<li><strong>Chatbot — whitelist des routes</strong> : lorsqu'on demande de lier un composant à une route au nom inexact (ex. &quot;provincie&quot; pour &quot;stateprovinces&quot;), le chatbot effectue désormais le match sémantique et propose l'action, au lieu de répondre à tort que la liste des routes est en cours de chargement.</li>
+</ul>
+<h2 id="mises-a-jour-operationnelles-recommandees-pour-qui-met-a-jour">🔧 Mises à jour opérationnelles recommandées pour qui met à jour</h2>
+<ol>
+<li>Pour utiliser un LLM local gratuit, renseigner dans <code>appsettings.json</code> -&gt; <code>AppSettings</code> : <code>rag-llm-provider=ollama</code>, <code>rag-llm-base-url</code>, <code>rag-llm-api-key</code> (valeur indicative, ex. <code>ollama</code>) et <code>rag-llm-default-chat-model</code>.</li>
+<li>Migrer la clé du chatbot vers <code>rag-llm-api-key</code> : les anciennes <code>llm-api-key</code> et <code>anthropic-api-key</code> continuent de fonctionner en fallback, mais la configuration recommandée n'utilise que <code>rag-llm-api-key</code>.</li>
+<li>Pour utiliser l'Agent SDK via subscription au lieu de l'API à l'usage, définir <code>rag-llm-api-key=agent-sdk</code> (nécessite la <code>claude</code> CLI installée).</li>
+<li>Pour l'assistant dans VS Code, installer le plugin depuis le ZIP : <code>code --install-extension llm-workspace/plugin/wuic-assistant.vsix</code> (ou le laisser installer par <code>install-llm-workspace.ps1</code>).</li>
+</ol>
+
+</article>
+</body>
+</html>

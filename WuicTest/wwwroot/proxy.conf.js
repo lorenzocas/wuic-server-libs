@@ -86,19 +86,66 @@ const apiBypass = function(req, res /*, proxyOptions*/) {
   return undefined;
 };
 
+// ---------------------------------------------------------------------------
+// Silenziamento errori proxy quando il backend non e' (ancora) raggiungibile.
+//
+// Il dev-server Angular usa il proxy di Vite (prefisso log `[vite] http proxy
+// error`). Vite ignora `logLevel` (opzione http-proxy-middleware) e stampa il
+// suo stack AggregateError ad ogni chiamata verso un backend down: rumore inutile
+// durante la race di avvio (FE parte prima del BE) o un restart del BE. NB: NON
+// e' un problema in produzione (IIS/NSSM servono same-origin, senza proxy).
+//
+// `silentConfigure` rimuove l'handler d'errore rumoroso che Vite aggiunge PRIMA
+// di invocare `configure`, e installa il nostro: una riga throttled + risposta
+// 503 pulita (o destroy del socket per gli upgrade WS). Funziona anche col
+// dev-server webpack legacy (che onora `configure`/`onError`).
+let _lastProxyWarn = 0;
+function onProxyError(err, req, res) {
+  const code = (err && (err.code || (err.errors && err.errors[0] && err.errors[0].code))) || '';
+  const msg = (err && err.message) || '';
+  const transient =
+    code === 'ECONNREFUSED' || code === 'ECONNRESET' || code === 'ETIMEDOUT' || /socket hang up/i.test(msg);
+  if (transient) {
+    const now = Date.now();
+    if (now - _lastProxyWarn > 3000) {
+      console.warn('[proxy] backend non ancora raggiungibile (' + (code || 'connessione rifiutata') + ') — avvialo/attendi, riprovo…');
+      _lastProxyWarn = now;
+    }
+  } else {
+    console.error('[proxy] error:', msg || err);
+  }
+  try {
+    if (res && typeof res.writeHead === 'function' && !res.headersSent) {
+      res.writeHead(503, { 'Content-Type': 'application/json' });
+      res.end('{"error":"backend-unreachable"}');
+    } else if (res && typeof res.destroy === 'function') {
+      res.destroy(); // socket upgrade WS: niente writeHead
+    }
+  } catch { /* ignore */ }
+}
+
+function silentConfigure(proxy /*, options */) {
+  proxy.removeAllListeners('error'); // droppa l'handler stack-noisy di Vite (aggiunto prima di configure)
+  proxy.on('error', onProxyError);
+}
+
 module.exports = {
   '/api': {
     target: 'http://localhost:5000',
     secure: false,
     changeOrigin: true,
-    logLevel: 'warn',
+    logLevel: 'silent',
+    configure: silentConfigure,
+    onError: onProxyError,
     bypass: apiBypass,
   },
   '/upload': {
     target: 'http://localhost:5000',
     secure: false,
     changeOrigin: true,
-    logLevel: 'warn',
+    logLevel: 'silent',
+    configure: silentConfigure,
+    onError: onProxyError,
   },
   // WebSocket notifiche realtime (NotificationRealtimeService -> /ws/notifications).
   // `ws: true` e' OBBLIGATORIO: senza, il dev-server NON inoltra l'upgrade WebSocket
@@ -109,6 +156,8 @@ module.exports = {
     secure: false,
     changeOrigin: true,
     ws: true,
-    logLevel: 'warn',
+    logLevel: 'silent',
+    configure: silentConfigure,
+    onError: onProxyError,
   },
 };

@@ -9,6 +9,7 @@
     "test": "ng test",
     "serve:dev": "ng serve wuic-test --configuration=development --prebundle=true --host localhost --port 4200",
     "serve:npm": "ng serve wuic-test --configuration=npm --host localhost --port 4200",
+    "serve:6200": "ng serve wuic-test --configuration=development6000 --prebundle=true --host localhost --port 6200 --proxy-config proxy.conf.6000.js",
     "build:dev": "ng build wuic-test --configuration=development",
     "//build:prod": "DEV-TIME ONLY. The 'production' angular.json config has NO fileReplacement for environment.ts -> environment.prod.ts, so the bundle keeps absolute http://localhost:5000 URLs. DO NOT ship this output. For releasable bundles use 'build:npm' (consumed by deploy-release.ps1).",
     "build:prod": "ng build wuic-test --configuration=production",

@@ -36,6 +36,22 @@ export const routes: Routes = [
     data: { breadcrumbs: 'workflow-runner', description: 'Runner WUIC Workflow: esegue e monitora un grafo di processo step-by-step, con deep-link a route collegate dai nodi.' }
   },
   {
+    // Scene3D Viewer multi-segmento PRIMA dei generici `:route/:action[/:filters]`
+    // (altrimenti il router matcha quelli e la pagina finisce nel metadata-editor).
+    path: 'scene3d_viewer/:scene_key/:camera_id',
+    loadComponent: () => import('wuic-framework-lib-src/component/scene3d-viewer/scene3d-viewer.route.component').then((m) => m.Scene3dViewerRouteComponent),
+    canMatch: [menuRouteAccessCanMatchGuard, roleRouteCanMatchGuard],
+    canActivate: [menuRouteAccessCanActivateGuard, roleRouteCanActivateGuard],
+    data: { breadcrumbs: 'scene3d-viewer', description: 'Scene3D Viewer WUIC: rendering read-only di una scena 3D dal punto di vista di una camera specifica.' }
+  },
+  {
+    path: 'scene3d_viewer/:scene_key',
+    loadComponent: () => import('wuic-framework-lib-src/component/scene3d-viewer/scene3d-viewer.route.component').then((m) => m.Scene3dViewerRouteComponent),
+    canMatch: [menuRouteAccessCanMatchGuard, roleRouteCanMatchGuard],
+    canActivate: [menuRouteAccessCanActivateGuard, roleRouteCanActivateGuard],
+    data: { breadcrumbs: 'scene3d-viewer', description: 'Scene3D Viewer WUIC: rendering runtime read-only di una scena 3D salvata, con binding dati live e click-through sui record collegati.' }
+  },
+  {
     path: ':route/report-designer',
     loadComponent: () => import('wuic-framework-lib-src/component/report-designer/report-designer.component').then((m) => m.ReportDesignerComponent),
     canMatch: [menuRouteAccessCanMatchGuard, roleRouteCanMatchGuard],
@@ -108,20 +124,9 @@ export const routes: Routes = [
     data: { breadcrumbs: 'scene3d-designer', description: 'Scene3D Designer WUIC: authoring di scene 3D (three.js) con palette oggetti, gizmo di trasformazione, import asset e binding alle route metadata.' }
   },
   {
-    path: 'scene3d_viewer/:scene_key/:camera_id',
-    loadComponent: () => import('wuic-framework-lib-src/component/scene3d-viewer/scene3d-viewer.route.component').then((m) => m.Scene3dViewerRouteComponent),
-    canMatch: [menuRouteAccessCanMatchGuard, roleRouteCanMatchGuard],
-    canActivate: [menuRouteAccessCanActivateGuard, roleRouteCanActivateGuard],
-    data: { breadcrumbs: 'scene3d-viewer', description: 'Scene3D Viewer WUIC: rendering read-only di una scena 3D dal punto di vista di una camera specifica.' }
-  },
-  {
-    path: 'scene3d_viewer/:scene_key',
-    loadComponent: () => import('wuic-framework-lib-src/component/scene3d-viewer/scene3d-viewer.route.component').then((m) => m.Scene3dViewerRouteComponent),
-    canMatch: [menuRouteAccessCanMatchGuard, roleRouteCanMatchGuard],
-    canActivate: [menuRouteAccessCanActivateGuard, roleRouteCanActivateGuard],
-    data: { breadcrumbs: 'scene3d-viewer', description: 'Scene3D Viewer WUIC: rendering runtime read-only di una scena 3D salvata, con binding dati live e click-through sui record collegati.' }
-  },
-  {
+    // NB ordine: le varianti multi-segmento del viewer sono definite PRIMA dei
+    // pattern generici `:route/:action[/:filters]` (vedi sopra) che altrimenti
+    // catturano l'URL e montano il metadata-editor su 'scene3d_viewer'.
     path: 'scene3d_viewer',
     loadComponent: () => import('wuic-framework-lib-src/component/scene3d-viewer/scene3d-viewer.route.component').then((m) => m.Scene3dViewerRouteComponent),
     canMatch: [menuRouteAccessCanMatchGuard, roleRouteCanMatchGuard],

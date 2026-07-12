@@ -1,0 +1,6 @@
+# TLS automatico Let's Encrypt: Caddy emette e rinnova da solo il certificato
+# per questo host al primo hit (richiede il DNS gia' puntato a questo VPS).
+analytics.wuic-framework.com {
+	encode gzip
+	reverse_proxy plausible:8000
+}

@@ -79,6 +79,18 @@
     <priority>0.3</priority>
   </url>
   <url>
+    <loc>https://wuic-framework.com/blog/workflow-engine-graph-source-of-truth</loc>
+    <lastmod>2026-07-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/blog/teaching-a-coding-agent-with-dpo</loc>
+    <lastmod>2026-07-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://wuic-framework.com/blog/local-llm-ollama-mcp-agentic-vscode</loc>
     <lastmod>2026-06-14</lastmod>
     <changefreq>monthly</changefreq>

@@ -1723,6 +1723,191 @@ def chat_endpoint(req: ChatIn) -> ChatOut:
                 "required": ["action_type", "rationale"]
             }
         },
+        # ---------------- Scene3D inject (client-only) ----------------
+        # Tool dedicato al designer 3D (`/scene3d_designer`): iniezione di
+        # oggetti three.js nella scena, modifica proprieta', rimozione.
+        # Kind 'scene3d_inject' gestito client-side dallo
+        # scene3d-designer.component via ChatbotHostRegistryService (stesso
+        # pattern di designer_inject). Catalogo ground truth indicizzato dal
+        # RAG: docs/pages/_internal/scene3d-tool-catalog.md.
+        {
+            "name": "propose_scene3d_inject",
+            "description": (
+                "USA QUESTO TOOL quando l'utente sta sulla pagina "
+                "/scene3d_designer (editor visuale di scene 3D three.js) e "
+                "chiede operazioni sulla scena via lingua naturale.\n\n"
+                "Supporta 3 azioni discriminate da `action_type`:\n\n"
+                "1. **action_type='inject'**: aggiunge nuovi oggetti alla scena "
+                "(anche piu' di uno = creare una scena intera con un prompt). "
+                "Esempi: 'aggiungi un cubo rosso', 'crea una scena con piano, "
+                "luce direzionale e 3 sfere', 'metti un testo 3D Benvenuto', "
+                "'aggiungi un mesh repeater sulla route cities come grafico a "
+                "barre', 'kanban 3D degli ordini per stato'. Compila `objects[]`.\n\n"
+                "2. **action_type='set_property'**: modifica UNA proprieta' di un "
+                "oggetto gia' in scena. Esempi: 'sposta il cubo a x=5', 'colora "
+                "la sfera di blu', 'raddoppia la scala del testo', 'alza "
+                "l'intensita' della luce a 2', 'ruota il toro di 45 gradi su Y', "
+                "'cambia la route del repeater in orders'. Compila `target_name` "
+                "+ `prop_name` + `value`. Il `target_name` lo trovi nello "
+                "SCENE3D STATE iniettato nel system prompt (righe tipo "
+                "`Cubo [a1b2c3d4] (box, pos=(0,0.5,0), color=#ff0000)`): usa il "
+                "nome esatto, oppure lo uuid tra [] se ci sono nomi duplicati.\n\n"
+                "3. **action_type='remove'**: rimuove un oggetto (e i suoi figli) "
+                "dalla scena. Esempi: 'cancella la sfera', 'togli la luce "
+                "puntiforme'. Compila `target_name`.\n\n"
+                "TIPI OGGETTO AMMESSI (`objects[].type`, case-sensitive): "
+                "'box', 'sphere', 'plane', 'cylinder', 'cone', 'torus', 'group', "
+                "'meshRepeater', 'ambientLight', 'directionalLight', "
+                "'pointLight', 'spotLight', 'perspectiveCamera', 'text3d', "
+                "oppure 'custom:<codice>' per i tipi custom elencati nello "
+                "SCENE3D STATE (sezione 'TIPI CUSTOM DISPONIBILI'). Mai "
+                "inventare tipi non in queste liste ('importedAsset' NON e' "
+                "iniettabile: richiede il file picker utente - se chiesto, "
+                "rispondi testuale spiegando di usare 'Importa asset' dalla "
+                "palette).\n\n"
+                "PROPRIETA' PER OGGETTO (in `objects[]` per inject; come "
+                "`prop_name` per set_property):\n"
+                "  - `name` (string): nome assegnato all'oggetto (default: label "
+                "del tipo). Usa nomi parlanti quando l'utente li da'.\n"
+                "  - `position`, `rotation_deg`, `scale` ([x,y,z]; rotation in "
+                "GRADI; scale accetta anche un numero singolo uniforme). "
+                "Convenzioni: Y = su, il piano di lavoro e' XZ, unita' ~metri; "
+                "appoggia gli oggetti sul piano (es. cubo lato 1 -> y=0.5). "
+                "Distanzia gli oggetti (~2-4 unita') per non sovrapporli.\n"
+                "  - `color` (string CSS '#rrggbb'): colore materiale (mesh) o "
+                "della luce.\n"
+                "  - `intensity` (number): solo luci.\n"
+                "  - `text` (string): solo text3d, contenuto del testo.\n"
+                "  - `visible`, `castShadow` (bool).\n"
+                "  - `binding` (object {route, recordId?, fieldMap?}): binding "
+                "dell'oggetto a una route metadata (click-through nel viewer).\n"
+                "  - `repeater_config` (object): SOLO type='meshRepeater' - "
+                "merge parziale sulla config di default. Campi principali: "
+                "{route:'<route reale>', maxRecords:int, meshSource:{mode:"
+                "'fixed', type:'box|sphere|...'}, layout:{mode:'<vedi sotto>', "
+                "spacing:num}, fieldMap:{posX/posY/posZ/rotX/rotY/rotZ/scale/"
+                "color/texture/visible/text:'<colonna>'}, e la config "
+                "dell'archetipo scelto}.\n\n"
+                "MESH REPEATER (DATAREPEATER 3D): UN oggetto per record della "
+                "route bindata. `layout.mode` decide la visualizzazione - mappa "
+                "la richiesta utente al mode giusto:\n"
+                "  - 'griglia di oggetti'                 -> layout.mode='grid' (default)\n"
+                "  - 'linea'/'fila'                       -> 'line'; 'cerchio' -> 'circle'; 'cubo 3D' -> 'cube'\n"
+                "  - 'carosello'/'galleria'               -> 'carousel' (config `carousel`)\n"
+                "  - 'grafico'/'a barre'/'a torta'/...    -> 'chart'  (config `chart`: type bar|pie|area|funnel|radar|scatter, valueColumn, labelColumn)\n"
+                "  - 'heatmap'/'matrice'                  -> 'surface' (config `surface`: rowColumn, colColumn, valueColumn)\n"
+                "  - 'gauge'/'tachimetro'/'KPI'           -> 'gauge' (config `gauge`: valueColumn, labelColumn, min, max)\n"
+                "  - 'albero'/'gerarchia'                 -> 'tree'; 'grafo'/'rete' -> 'nodegraph' (config `graph`: idColumn, parentColumn, labelColumn, valueColumn)\n"
+                "  - 'mappa'/'pin geografici'             -> 'map' (config `map`: latColumn, lonColumn, labelColumn, valueColumn)\n"
+                "  - 'magazzino'/'scaffali'               -> 'warehouse' (config `warehouse`: aisleColumn, shelfColumn, qtyColumn, labelColumn)\n"
+                "  - 'kanban'/'colonne per stato'         -> 'kanban' (config `kanban`: statusColumn, labelColumn)\n"
+                "  - 'calendario'                         -> 'calendar' (config `calendar`: dateColumn, valueColumn)\n"
+                "  - 'barre impilate'                     -> 'stacked' (config `stacked`: categoryColumn, seriesColumn, valueColumn)\n"
+                "Esempio ('kanban 3D degli ordini per stato'):\n"
+                "  objects=[{type:'meshRepeater', name:'Kanban ordini', "
+                "repeater_config:{route:'orders', layout:{mode:'kanban', spacing:2}, "
+                "kanban:{statusColumn:'status', labelColumn:'order_number'}}}]\n\n"
+                "ROUTE E COLONNE - REGOLE ANTI-HALLUCINATION (identiche a "
+                "propose_designer_inject): `route` (di repeater_config/binding) "
+                "DEVE venire dalla whitelist 'ROUTE METADATA DISPONIBILI' nello "
+                "SCENE3D STATE (fuzzy match semantico se l'utente storpia il "
+                "nome; se whitelist '<caricamento in corso>' NON inventare, "
+                "rispondi di riprovare tra un secondo; multi-match ambiguo -> "
+                "chiedi; zero match -> proponi 2-3 nomi reali vicini). I nomi "
+                "colonna nelle config (`statusColumn`, `fieldMap`, ecc.) DEVONO "
+                "essere colonne reali della route: se non le conosci, "
+                "recuperale col tool request_metadata_detail {detail:'columns', "
+                "route:'<route>'} PRIMA di proporre. SINGLE-MATCH CONFIDENTE -> "
+                "emetti il tool_use SUBITO, senza chiedere 'Procedo?' (il chip "
+                "Applica E' la conferma); dichiara il match nel rationale.\n\n"
+                "SCENE COMPOSTE: per 'crea una scena <descrizione>' componi "
+                "objects[] con luci (1 ambientLight + 1 directionalLight se la "
+                "scena non ne ha), un plane come pavimento se serve, e gli "
+                "oggetti richiesti con posizioni sparse sensate. Non duplicare "
+                "luci gia' presenti nello SCENE3D STATE.\n\n"
+                "NON usare questo tool per: modifiche metadata permanenti "
+                "(propose_simple_metadata_update & co.), componenti della "
+                "dashboard 2D (propose_designer_inject, solo su /designer), "
+                "import di file asset. Agisce solo sullo state client del "
+                "designer 3D (persistito al click 'Salva scena')."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "action_type": {
+                        "type": "string",
+                        "enum": ["inject", "set_property", "remove"],
+                        "description": "Tipo di operazione richiesta sulla scena 3D."
+                    },
+                    "objects": {
+                        "type": "array",
+                        "description": (
+                            "Solo per action_type='inject'. Lista di oggetti da "
+                            "aggiungere alla scena (1..N; N>1 = scena composta). "
+                            "Ordine = ordine di creazione."
+                        ),
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "type": {
+                                    "type": "string",
+                                    "description": "Tipo oggetto dal catalogo (case-sensitive): box|sphere|plane|cylinder|cone|torus|group|meshRepeater|ambientLight|directionalLight|pointLight|spotLight|perspectiveCamera|text3d|custom:<codice>. NON inventare."
+                                },
+                                "name": {"type": "string", "description": "Nome opzionale da assegnare all'oggetto (default: label del tipo)."},
+                                "position": {"type": "array", "items": {"type": "number"}, "description": "[x,y,z] in unita' scena (Y=su). Default [0,0,0]."},
+                                "rotation_deg": {"type": "array", "items": {"type": "number"}, "description": "[x,y,z] rotazione in GRADI. Default [0,0,0]."},
+                                "scale": {"description": "Numero (uniforme) o [x,y,z]. Default 1."},
+                                "color": {"type": "string", "description": "Colore CSS '#rrggbb' del materiale (mesh) o della luce."},
+                                "intensity": {"type": "number", "description": "Solo luci: intensita' (default 1)."},
+                                "text": {"type": "string", "description": "Solo text3d: contenuto del testo."},
+                                "repeater_config": {
+                                    "type": "object",
+                                    "description": "Solo meshRepeater: merge parziale sulla config default. Vedi description del tool (route, layout.mode, fieldMap, config archetipo)."
+                                },
+                                "binding": {
+                                    "type": "object",
+                                    "description": "Binding a route metadata: {route:'<route reale>', recordId?:string|number, fieldMap?:object}."
+                                }
+                            },
+                            "required": ["type"]
+                        }
+                    },
+                    "target_name": {
+                        "type": "string",
+                        "description": (
+                            "Solo per action_type='set_property' o 'remove'. Nome "
+                            "esatto dell'oggetto target come appare nello SCENE3D "
+                            "STATE; in caso di nomi duplicati usa lo uuid breve "
+                            "mostrato tra [] accanto al nome."
+                        )
+                    },
+                    "prop_name": {
+                        "type": "string",
+                        "description": (
+                            "Solo per action_type='set_property'. Una tra: 'name', "
+                            "'position', 'rotation_deg', 'scale', 'color', "
+                            "'intensity', 'text', 'visible', 'castShadow', "
+                            "'binding', 'repeater_config'."
+                        )
+                    },
+                    "value": {
+                        "description": (
+                            "Solo per action_type='set_property'. Nuovo valore, tipo "
+                            "conforme alla proprieta': [x,y,z] per position/"
+                            "rotation_deg, numero o [x,y,z] per scale, string CSS "
+                            "per color, number per intensity, string per name/text, "
+                            "bool per visible/castShadow, object per binding/"
+                            "repeater_config (merge parziale)."
+                        )
+                    },
+                    "rationale": {
+                        "type": "string",
+                        "description": "1-2 frasi italiano che spiegano l'operazione proposta (mostrate all'utente prima dell'apply)."
+                    }
+                },
+                "required": ["action_type", "rationale"]
+            }
+        },
         # ---------------- Memory tools ----------------
         # `remember_fact` permette all'LLM di pinnare un "fatto high-priority"
         # della sessione (preferenze utente, decisioni architetturali, vincoli
@@ -1748,6 +1933,261 @@ def chat_endpoint(req: ChatIn) -> ChatOut:
                     }
                 },
                 "required": ["fact"]
+            }
+        },
+        # ---------------- Workflow designer inject (client-only) ----------------
+        {
+            "name": "propose_workflow_inject",
+            "description": "USA QUESTO TOOL quando l'utente sta sulla pagina /workflow-designer (editor visuale di workflow a grafo) e chiede di creare/modificare/configurare un workflow via lingua naturale.\n\nIl grafo e' un overlay di authoring: l'apply agisce sullo state client del designer, la persistenza avviene solo al click 'Salva grafo'. Kind CLIENT-ONLY (workflow-designer.component.onChatbotProposedWorkflowAction), mai backend.\n\nSupporta 6 azioni discriminate da action_type:\n1. 'inject' (default): aggiunge nodi (nodes[]) e archi (connections[]); puo' costruire un intero scheletro in un colpo. Referenzia i nodi nuovi nelle connessioni via local_id. Opzionale disconnect[] per il rewiring.\n2. 'insert': inserisce UN nodo (node) su un arco esistente (between{source,sourceOutput?,target,targetInput?}): rimuove source->target e crea source->nuovo->target. I nodi terminali (timer/end) NON sono inseribili in mezzo.\n3. 'set_property': configura UN campo di un nodo esistente. Compila target_name (id o label dallo WORKFLOW STATE) + prop_name + value.\n4. 'remove': elimina un nodo (mai lo Start). Compila target_name.\n5. 'connect' / 6. 'disconnect': aggiunge/rimuove un arco tra due nodi esistenti (source,sourceOutput?,target,targetInput?).\n\nTIPI DI NODO (nodes[].type / node.type, lo start e' SINGLETON e non si aggiunge): 'route' (uno step su una lista/route dell'app; out 'out'), 'action' (bottone/azione; out 'out'; scope 0=tab,1=col,2=interna con actionCallback), 'condition' (bivio; out 'true'/'false'; campo conditionExpression JS su record), 'switch' (bivio N-rami; out case_<n>/else; switchConfig{expression,cases[{key,label,condition}]}), 'timer' (SLA; SOLO input, terminale; richiede route a monte), 'parallel_split' (fork; out 'out'; splitConfig), 'parallel_join' (sync; out 'out'), 'end' (terminatore; SOLO input).\n\nSOCKET: condition ha out 'true'/'false'; switch ha un out per case ('case_1','case_2',...) + 'else'; gli altri hanno 'out'. Gli input si chiamano 'in' e accettano piu' archi. Se ometti sourceOutput viene usato il socket primario (out, o 'true' per condition, o il primo case per switch).\n\nprop_name ammessi (set_property): name/label, route, action (solo route), conditionExpression (solo condition), switchConfig/switchExpression (solo switch), timerConfig (solo timer), splitConfig (solo parallel_split), actionCallback/actionType/actionTypeId/actionScope/actionScopeId (solo action). Il tipo del nodo deve combaciare.\n\nANTI-HALLUCINATION ROUTE (identico a propose_scene3d_inject/propose_designer_inject): il route dei nodi 'route' DEVE venire dalla whitelist 'ROUTE METADATA DISPONIBILI' nello WORKFLOW STATE iniettato nel system prompt (fuzzy match semantico se storpiato; se whitelist '<caricamento in corso>' NON inventare, rispondi di riprovare tra un istante; multi-match ambiguo -> chiedi; zero match -> proponi 2-3 nomi reali vicini). SINGLE-MATCH CONFIDENTE -> emetti il tool_use SUBITO (il chip Applica E' la conferma); dichiara il match nel rationale.\n\nSCHELETRI COMPOSTI: per 'crea uno scheletro di <descrizione>' componi nodes[] (start esiste gia': collega la prima route allo Start referenziandolo per label 'Start') + connections[] via local_id. Evita gli errori di lint: Action non legata a una route (WF-E03), Timer senza route a monte (WF-E07), Switch con cases ma formula vuota (WF-E12).\n\nNON usare questo tool per: metadata SQL permanenti (propose_simple_metadata_update & co.), dashboard 2D (propose_designer_inject, solo su /designer), scene 3D (propose_scene3d_inject, solo su /scene3d_designer).",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "action_type": {
+                        "type": "string",
+                        "enum": [
+                            "inject",
+                            "insert",
+                            "set_property",
+                            "remove",
+                            "connect",
+                            "disconnect"
+                        ],
+                        "description": "Tipo di operazione sul grafo workflow."
+                    },
+                    "nodes": {
+                        "type": "array",
+                        "description": "Solo inject: nodi da aggiungere (1..N; N>1 = scheletro composto).",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "local_id": {
+                                    "type": "string",
+                                    "description": "Id locale scelto da te per referenziare questo nodo nelle connections[] dello STESSO inject (non e' l'id reale)."
+                                },
+                                "type": {
+                                    "type": "string",
+                                    "description": "route|action|condition|switch|timer|parallel_split|parallel_join|end. NON 'start' (singleton). NON inventare."
+                                },
+                                "name": {
+                                    "type": "string",
+                                    "description": "Nome/label opzionale del nodo."
+                                },
+                                "route": {
+                                    "type": "string",
+                                    "description": "Solo type=route: route reale dalla whitelist ROUTE METADATA DISPONIBILI."
+                                },
+                                "action": {
+                                    "type": "string",
+                                    "description": "Solo type=route: archetipo (default 'list')."
+                                },
+                                "actionTypeId": {
+                                    "type": "number",
+                                    "description": "Solo type=action: id tipo azione (default 1)."
+                                },
+                                "actionScopeId": {
+                                    "type": "number",
+                                    "description": "Solo type=action: 0=tab,1=col,2=interna (default 0)."
+                                },
+                                "conditionExpression": {
+                                    "type": "string",
+                                    "description": "Solo type=condition: espressione JS sul record (es. record.stato==='approvato')."
+                                },
+                                "switchConfig": {
+                                    "type": "object",
+                                    "description": "Solo type=switch: {expression, cases:[{key,label,condition}]} (condition confronta il token resultExpression)."
+                                },
+                                "timerConfig": {
+                                    "type": "object",
+                                    "description": "Solo type=timer: {state_value, reference_date_field, duration_minutes, action, target, message}."
+                                },
+                                "splitConfig": {
+                                    "type": "object",
+                                    "description": "Solo type=parallel_split: {task_route, fk_field, record_pk_field, branches:[...]}."
+                                },
+                                "actionCallback": {
+                                    "type": "string",
+                                    "description": "Solo type=action scope 2 (interna): corpo JS del callback."
+                                },
+                                "x": {
+                                    "type": "number",
+                                    "description": "Posizione X opzionale sul canvas."
+                                },
+                                "y": {
+                                    "type": "number",
+                                    "description": "Posizione Y opzionale sul canvas."
+                                }
+                            }
+                        }
+                    },
+                    "connections": {
+                        "type": "array",
+                        "description": "Solo inject: archi da creare tra i nodi (nuovi via local_id o esistenti via id/label).",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "source": {
+                                    "type": "string",
+                                    "description": "local_id (nodo nuovo) o id/label (nodo esistente) sorgente."
+                                },
+                                "sourceOutput": {
+                                    "type": "string",
+                                    "description": "Socket di uscita (default: primario). condition: 'true'/'false'; switch: 'case_<n>'/'else'; altri: 'out'."
+                                },
+                                "target": {
+                                    "type": "string",
+                                    "description": "local_id o id/label del nodo target."
+                                },
+                                "targetInput": {
+                                    "type": "string",
+                                    "description": "Socket di ingresso (default 'in')."
+                                }
+                            }
+                        }
+                    },
+                    "disconnect": {
+                        "type": "array",
+                        "description": "Solo inject: archi da rimuovere (rewiring) prima di aggiungere le connections.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "source": {
+                                    "type": "string",
+                                    "description": "local_id (nodo nuovo) o id/label (nodo esistente) sorgente."
+                                },
+                                "sourceOutput": {
+                                    "type": "string",
+                                    "description": "Socket di uscita (default: primario). condition: 'true'/'false'; switch: 'case_<n>'/'else'; altri: 'out'."
+                                },
+                                "target": {
+                                    "type": "string",
+                                    "description": "local_id o id/label del nodo target."
+                                },
+                                "targetInput": {
+                                    "type": "string",
+                                    "description": "Socket di ingresso (default 'in')."
+                                }
+                            }
+                        }
+                    },
+                    "node": {
+                        "type": "object",
+                        "description": "Solo insert: il nodo da inserire (stessa shape di nodes[]).",
+                        "properties": {
+                            "local_id": {
+                                "type": "string",
+                                "description": "Id locale scelto da te per referenziare questo nodo nelle connections[] dello STESSO inject (non e' l'id reale)."
+                            },
+                            "type": {
+                                "type": "string",
+                                "description": "route|action|condition|switch|timer|parallel_split|parallel_join|end. NON 'start' (singleton). NON inventare."
+                            },
+                            "name": {
+                                "type": "string",
+                                "description": "Nome/label opzionale del nodo."
+                            },
+                            "route": {
+                                "type": "string",
+                                "description": "Solo type=route: route reale dalla whitelist ROUTE METADATA DISPONIBILI."
+                            },
+                            "action": {
+                                "type": "string",
+                                "description": "Solo type=route: archetipo (default 'list')."
+                            },
+                            "actionTypeId": {
+                                "type": "number",
+                                "description": "Solo type=action: id tipo azione (default 1)."
+                            },
+                            "actionScopeId": {
+                                "type": "number",
+                                "description": "Solo type=action: 0=tab,1=col,2=interna (default 0)."
+                            },
+                            "conditionExpression": {
+                                "type": "string",
+                                "description": "Solo type=condition: espressione JS sul record (es. record.stato==='approvato')."
+                            },
+                            "switchConfig": {
+                                "type": "object",
+                                "description": "Solo type=switch: {expression, cases:[{key,label,condition}]} (condition confronta il token resultExpression)."
+                            },
+                            "timerConfig": {
+                                "type": "object",
+                                "description": "Solo type=timer: {state_value, reference_date_field, duration_minutes, action, target, message}."
+                            },
+                            "splitConfig": {
+                                "type": "object",
+                                "description": "Solo type=parallel_split: {task_route, fk_field, record_pk_field, branches:[...]}."
+                            },
+                            "actionCallback": {
+                                "type": "string",
+                                "description": "Solo type=action scope 2 (interna): corpo JS del callback."
+                            },
+                            "x": {
+                                "type": "number",
+                                "description": "Posizione X opzionale sul canvas."
+                            },
+                            "y": {
+                                "type": "number",
+                                "description": "Posizione Y opzionale sul canvas."
+                            }
+                        }
+                    },
+                    "between": {
+                        "type": "object",
+                        "description": "Solo insert: l'arco esistente su cui inserire il nodo.",
+                        "properties": {
+                            "source": {
+                                "type": "string",
+                                "description": "local_id (nodo nuovo) o id/label (nodo esistente) sorgente."
+                            },
+                            "sourceOutput": {
+                                "type": "string",
+                                "description": "Socket di uscita (default: primario). condition: 'true'/'false'; switch: 'case_<n>'/'else'; altri: 'out'."
+                            },
+                            "target": {
+                                "type": "string",
+                                "description": "local_id o id/label del nodo target."
+                            },
+                            "targetInput": {
+                                "type": "string",
+                                "description": "Socket di ingresso (default 'in')."
+                            }
+                        }
+                    },
+                    "target_name": {
+                        "type": "string",
+                        "description": "Solo set_property/remove: id o label del nodo esistente (dallo WORKFLOW STATE)."
+                    },
+                    "prop_name": {
+                        "type": "string",
+                        "description": "Solo set_property: campo da configurare (conditionExpression, switchConfig, switchExpression, timerConfig, splitConfig, actionCallback, actionTypeId, actionScopeId, route, action, name)."
+                    },
+                    "value": {
+                        "description": "Solo set_property: nuovo valore (stringa/numero/oggetto secondo prop_name)."
+                    },
+                    "source": {
+                        "type": "string",
+                        "description": "Solo connect/disconnect: nodo sorgente (id o label)."
+                    },
+                    "sourceOutput": {
+                        "type": "string",
+                        "description": "Solo connect/disconnect: socket di uscita (default primario)."
+                    },
+                    "target": {
+                        "type": "string",
+                        "description": "Solo connect/disconnect: nodo target (id o label)."
+                    },
+                    "targetInput": {
+                        "type": "string",
+                        "description": "Solo connect/disconnect: socket di ingresso (default 'in')."
+                    },
+                    "rationale": {
+                        "type": "string",
+                        "description": "Breve motivazione dell'azione (mostrata nel chip)."
+                    }
+                },
+                "required": [
+                    "action_type"
+                ]
             }
         },
         # ---------------- Metadata column create (workflow step 1) ----------------
@@ -2226,6 +2666,8 @@ def chat_endpoint(req: ChatIn) -> ChatOut:
                 "propose_lifecycle_callback":     "lifecycle_callback",
                 "propose_simple_metadata_update": "simple_metadata_update",
                 "propose_designer_inject":        "designer_inject",
+                "propose_scene3d_inject":         "scene3d_inject",
+                "propose_workflow_inject":        "workflow_inject",
                 "propose_sql_metadata_field":     "sql_metadata_field",
                 "propose_metadata_column_create": "metadata_column_create",
             }

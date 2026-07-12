@@ -114,6 +114,21 @@
                 }
               ],
               "tsConfig": "tsconfig.app.json"
+            },
+            "development5200": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": {
+                "scripts": true,
+                "styles": true,
+                "vendor": true
+              },
+              "fileReplacements": [
+                {
+                  "replace": "src/app/environments/environment.ts",
+                  "with": "src/app/environments/environment.5200.ts"
+                }
+              ]
             }
           },
           "defaultConfiguration": "development"
@@ -129,6 +144,9 @@
             },
             "npm": {
               "buildTarget": "crm-app:build:npm"
+            },
+            "development5200": {
+              "buildTarget": "crm-app:build:development5200"
             }
           },
           "defaultConfiguration": "development"

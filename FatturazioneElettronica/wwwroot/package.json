@@ -15,7 +15,8 @@
     "//build:npm": "Canonical release build. Used by deploy-release.ps1. Has fileReplacements for environment.ts->environment.prod.ts (path-relative URLs, work behind any reverse proxy) and wuic-bridges/* -> wuic-bridges-npm/*.",
     "build:npm": "ng build fatturazione-elettronica --configuration=npm",
     "test:selectors:ngdeep": "node e2e/check-ngdeep-selectors.mjs",
-    "test:selectors:ngdeep:strict": "node e2e/check-ngdeep-selectors.mjs --strict"
+    "test:selectors:ngdeep:strict": "node e2e/check-ngdeep-selectors.mjs --strict",
+    "serve:4400": "ng serve fatturazione-elettronica --configuration=development5400 --prebundle=true --host localhost --port 4400 --proxy-config proxy.conf.5400.json"
   },
   "private": true,
   "dependencies": {

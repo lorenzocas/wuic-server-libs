@@ -30,6 +30,56 @@
   justify-content: center;
   gap: 16px;
   margin-bottom: 48px;
+  flex-wrap: wrap;
+}
+
+/* "Built with WUIC" — le 3 free app complete sono l'unica social proof
+   reale disponibile oggi: vanno mostrate subito dopo la hero, non sepolte
+   in fondo a /downloads. */
+.builtwith-section {
+  padding: 28px 0;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+
+  .builtwith-inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .builtwith-label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #64748b;
+  }
+
+  .builtwith-app {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    color: #334155;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+    &:hover {
+      border-color: #a5b4fc;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.12);
+    }
+
+    i {
+      color: #6366f1;
+    }
+  }
 }
 
 .hero-tech {

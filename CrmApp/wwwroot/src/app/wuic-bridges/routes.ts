@@ -14,6 +14,18 @@ export const routes: Routes = [
     data: { breadcrumbs: 'workflow-runner' }
   },
   {
+    // Scene3D Viewer multi-segmento PRIMA dei generici `:route/:action[/:filters]`
+    // (altrimenti il router matcha quelli e la pagina finisce nel metadata-editor).
+    path: 'scene3d_viewer/:scene_key/:camera_id',
+    loadComponent: () => import('wuic-framework-lib-src/component/scene3d-viewer/scene3d-viewer.route.component').then((m) => m.Scene3dViewerRouteComponent),
+    data: { breadcrumbs: 'scene3d-viewer' }
+  },
+  {
+    path: 'scene3d_viewer/:scene_key',
+    loadComponent: () => import('wuic-framework-lib-src/component/scene3d-viewer/scene3d-viewer.route.component').then((m) => m.Scene3dViewerRouteComponent),
+    data: { breadcrumbs: 'scene3d-viewer' }
+  },
+  {
     path: ':route/report-designer',
     loadComponent: () => import('wuic-framework-lib-src/component/report-designer/report-designer.component').then((m) => m.ReportDesignerComponent),
     data: { breadcrumbs: 'report-designer' }
@@ -59,5 +71,16 @@ export const routes: Routes = [
     path: 'workflow-designer',
     loadComponent: () => import('wuic-framework-lib-src/component/workflow-designer/workflow-designer.route.component').then((m) => m.WorkflowDesignerRouteComponent),
     data: { breadcrumbs: 'workflow-designer' }
+  },
+  {
+    path: 'scene3d_designer',
+    loadComponent: () => import('wuic-framework-lib-src/component/scene3d-designer/scene3d-designer.route.component').then((m) => m.Scene3dDesignerRouteComponent),
+    data: { breadcrumbs: 'scene3d-designer' }
+  },
+  {
+    // Varianti multi-segmento definite piu' in alto, PRIMA dei generici.
+    path: 'scene3d_viewer',
+    loadComponent: () => import('wuic-framework-lib-src/component/scene3d-viewer/scene3d-viewer.route.component').then((m) => m.Scene3dViewerRouteComponent),
+    data: { breadcrumbs: 'scene3d-viewer' }
   }
 ];

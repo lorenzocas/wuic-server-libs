@@ -28,7 +28,10 @@
   <meta property="og:title" content="WUIC Framework — Metadata-Driven Business Applications">
   <meta property="og:description" content="Build complete CRUD apps, dashboards, workflows, reports and AI chatbots from metadata. .NET 10 + Angular 21, no boilerplate.">
   <meta property="og:url" content="https://wuic-framework.com/">
-  <meta property="og:image" content="https://wuic-framework.com/assets/og-image.svg">
+  <!-- PNG obbligatorio: LinkedIn/X/WhatsApp NON renderizzano og:image SVG
+       (card vuota). Il PNG 1200x630 e' renderizzato dal .svg sorgente via
+       scripts/render-brand-icons.mjs — rigenerarlo a ogni modifica del brand. -->
+  <meta property="og:image" content="https://wuic-framework.com/assets/og-image.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="WUIC Framework — metadata-driven business applications">
@@ -42,7 +45,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="WUIC Framework — Metadata-Driven Business Applications">
   <meta name="twitter:description" content="Build complete CRUD apps, dashboards, workflows, reports and AI chatbots from metadata.">
-  <meta name="twitter:image" content="https://wuic-framework.com/assets/og-image.svg">
+  <meta name="twitter:image" content="https://wuic-framework.com/assets/og-image.png">
   <meta name="twitter:image:alt" content="WUIC Framework">
 
   <!-- ─── Icons ─────────────────────────────────────────────────────── -->
@@ -80,7 +83,7 @@
         "name": "WUIC Framework",
         "alternateName": "WUIC",
         "url": "https://wuic-framework.com/",
-        "logo": "https://wuic-framework.com/assets/og-image.svg",
+        "logo": "https://wuic-framework.com/assets/og-image.png",
         "founder": {
           "@type": "Person",
           "name": "Lorenzo Castrico"
@@ -141,6 +144,13 @@
       }
     })();
   </script>
+
+  <!-- Plausible Analytics (self-hosted su VPS dedicato analytics.wuic-framework.com).
+       Cookieless/privacy-first: nessun banner necessario. La riga window.plausible
+       e' lo stub che accoda i goal custom (sandbox_open, download_click, ...)
+       chiamati nel codice del sito anche prima che script.js sia caricato. -->
+  <script defer data-domain="wuic-framework.com" src="https://analytics.wuic-framework.com/js/script.file-downloads.outbound-links.tagged-events.js"></script>
+  <script>window.plausible=window.plausible||function(){(window.plausible.q=window.plausible.q||[]).push(arguments)}</script>
 </head>
 <body>
   <app-root></app-root>

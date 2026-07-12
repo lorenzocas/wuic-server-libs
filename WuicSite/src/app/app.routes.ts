@@ -80,13 +80,11 @@ export const routes: Routes = [
   },
   {
     path: 'start',
-    data: {
-      title: 'Get started with WUIC',
-      subtitle: 'A focused landing page for evaluators — guided demo, sandbox access, and direct contact. This is the destination for our paid campaigns starting Sprint 5.',
-      path: '/start',
-      eta: 'Sprint 5 (8–10 weeks)',
-    },
-    loadComponent: () => import('./pages/_placeholder/coming-soon').then(m => m.ComingSoon),
+    // Ads landing (Sprint 5): bareLayout hides navbar+footer — every nav
+    // link is a leak out of the paid-click funnel. Hero variant comes from
+    // the `m` query param (see Start component docs).
+    data: { bareLayout: true },
+    loadComponent: () => import('./pages/start/start').then(m => m.Start),
   },
 
   { path: '**', redirectTo: '' }

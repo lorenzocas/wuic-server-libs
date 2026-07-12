@@ -23,7 +23,13 @@
       "title2": "Framework für Business-Anwendungen",
       "subtitle": "Definiere eine Tabelle, erhalte die UI: Listen, Dashboards, Workflows und Berichte aus Metadaten generiert. Kein Boilerplate.",
       "ctaDownload": "Gratis herunterladen",
-      "ctaDemo": "Demo testen"
+      "ctaDemo": "Live-Demo testen"
+    },
+    "builtwith": {
+      "label": "Gebaut mit WUIC",
+      "crm": "CrmApp — vollständiges CRM",
+      "invoice": "FatturazioneElettronica — SDI-E-Rechnung",
+      "fleet": "FlottaMezzi — Flottenmanagement"
     },
     "features": {
       "sectionTitle": "Alles enthalten, null Boilerplate",
@@ -207,6 +213,21 @@
       },
       "buy": "Jetzt kaufen — 1.200 €"
     },
+    "sh": {
+      "label": "Software House",
+      "desc": "Für Software-Häuser, die WUIC-Anwendungen an mehrere Endkunden ausliefern. Alles aus Professional, ohne Deployment-Limits.",
+      "fingerprintsLine": "<strong>3</strong> Entwickler-Arbeitsplätze + <strong>unbegrenzte Produktion</strong>",
+      "highlights": {
+        "all": "Alles aus Professional enthalten",
+        "seats": "3 Entwickler-Arbeitsplätze (Dev-Fingerprints)",
+        "fingerprints": "Unbegrenzte Produktions-Fingerprints auf Endkunden-Servern",
+        "support": "Prioritäts-Support — garantierte Antwort innerhalb von 48h",
+        "resale": "Explizite Weiterverkaufsrechte für Kundenprojekte"
+      },
+      "contact": "Kontaktieren Sie uns",
+      "concierge": "Dediziertes Onboarding: Lizenzen werden manuell innerhalb von 24h ausgestellt."
+    },
+    "economics": "💡 <strong>500 Endnutzer auf WUIC: 1.200 € / Jahr</strong> (eine Professional-Lizenz). Dieselbe Größenordnung auf Budibase Premium: ~33.000 $ / Jahr. Der WUIC-Preis hängt nie von der Nutzerzahl ab.",
     "tryFree": "Herunterladen und kostenlos testen",
     "maintenance": {
       "title": "Wartungsfenster: 12 Monate Updates",
@@ -214,6 +235,7 @@
       "bulletDev": "<strong>Developer</strong>: 300 € / zusätzliches Jahr",
       "bulletPro": "<strong>Professional</strong>: 600 € / zusätzliches Jahr",
       "note": "Die Verlängerungslizenz eröffnet ein neues 12-monatiges Fenster für zukünftige Updates. Keine Verlängerungspflicht: Zahlung nur, wenn ein Upgrade gewünscht wird.",
+      "deadline": "Der <strong>halbe Preis</strong> gilt für Verlängerungen, die <strong>innerhalb von 60 Tagen nach Ablauf</strong> des Fensters gekauft werden. Danach kostet die Verlängerung 75 % der Basislizenz (Developer 450 €, Professional 900 €). Bereits ausgestellte Lizenzen behalten ihre ursprünglichen Konditionen.",
       "buyDev": "Dev-Verlängerung — 300 €",
       "buyPro": "Pro-Verlängerung — 600 €"
     },
@@ -222,6 +244,13 @@
       "p1": "Jede Lizenz enthält eine feste Anzahl <strong>Machine-Fingerprints</strong> (1 bei Developer, 3 bei Professional). Bei Bedarf für mehr Server kostet jeder zusätzliche Fingerprint <strong>200 € / Jahr</strong> und wird als Patch auf der bestehenden Lizenz verwaltet (gleicher Inhaber, gleiches Ablaufdatum).",
       "example": "<strong>Beispiel Software-Haus:</strong> Pro (1.200 €) + 3 Zusatz-Fingerprints (600 €) = <strong>1.800 € / Jahr</strong> für 1 Entwicklungsumgebung + 5 Endkunden-Server. Kein technisches Limit für die Anzahl von Fingerprints pro Lizenz.",
       "buy": "Fingerprint hinzufügen — 200 €"
+    },
+    "howToBuy": {
+      "title": "So funktioniert der Kauf",
+      "step1": "<strong>Zahlen Sie mit PayPal</strong> (Karte akzeptiert) — Sie erhalten eine reguläre Rechnung mit MwSt. (elektronische Rechnung via SDI für italienische Kunden).",
+      "step2": "<strong>Senden Sie uns den machineFingerprint</strong> Ihres Servers — abrufbar über <code>GET /api/Meta/LicenseStatus</code> (optional: auch nach der Installation möglich).",
+      "step3": "<strong>Sie erhalten Ihr signiertes Lizenz-Payload innerhalb von 24h</strong> an die beim Kauf verwendete E-Mail: in <code>appsettings.json</code> einfügen und Backend neu starten.",
+      "po": "Bestellung per PO / Überweisung? <a href='mailto:licensing@wuic-framework.com'>Schreiben Sie uns</a> — wir unterstützen PO-basiertes Procurement."
     },
     "comparisonTitle": "Vollständiger Funktionsvergleich",
     "comparison": {
@@ -695,7 +724,34 @@
     "legal":     { "title": "Rechtliche Hinweise und Haftungsausschluss",             "description": "Hinweise zur Framework-Nutzung, Drittanbieter-Lizenzen (Syncfusion, PrimeNG), Verantwortlichkeiten des Lizenznehmers." },
     "privacy":   { "title": "Datenschutzerklärung",                                   "description": "DSGVO-Datenschutzerklärung für wuic-framework.com: erhobene Daten, Zwecke, Rechtsgrundlage, Rechte der Betroffenen, Kontakt des Verantwortlichen." },
     "cookies":   { "title": "Cookie-Richtlinie",                                      "description": "Verwendete Cookie-Typen (technisch und PayPal-Drittanbieter), Zwecke, Einwilligungsmanagement, italienische und europäische rechtliche Verweise." },
-    "terms":     { "title": "Allgemeine Geschäftsbedingungen",                        "description": "Verkaufsbedingungen für WUIC-Lizenzen: Gegenstand, Preise, Zahlungsmethoden, Aktivierung, Support, Garantien und Einschränkungen." }
+    "terms":     { "title": "Allgemeine Geschäftsbedingungen",                        "description": "Verkaufsbedingungen für WUIC-Lizenzen: Gegenstand, Preise, Zahlungsmethoden, Aktivierung, Support, Garantien und Einschränkungen." },
+    "start":     { "title": "Mit WUIC starten",                                       "description": "Testen Sie WUIC in 10 Minuten: Live-Sandbox ohne Installation oder kostenloser Download. 600–1.200 €/Jahr pauschal, kein Preis pro Nutzer." }
+  },
+  "start": {
+    "hero": {
+      "default": {
+        "title": "Definieren Sie eine SQL-Tabelle. Erhalten Sie die Anwendung.",
+        "subtitle": "WUIC generiert Listen, Formulare, Dashboards, Workflows und Berichte Ihrer Business-Anwendung aus Datenbank-Metadaten. Volle Angular-Freiheit, wo Sie eigenen Code brauchen."
+      },
+      "competitor": {
+        "title": "Die Self-Hosted-Alternative, die Sie einmal installieren und besitzen",
+        "subtitle": "Kein Preis pro Nutzer, kein Cloud-Lock-in: WUIC läuft auf Ihren Servern (Windows oder Linux), liest Ihre SQL-Datenbank, und die installierte Version gehört Ihnen für immer."
+      }
+    },
+    "price": "<strong>600–1.200 € / Jahr</strong> pauschal · kein Preis pro Nutzer · die installierte Version gehört Ihnen für immer",
+    "ctaSandbox": "Live-Sandbox ausprobieren",
+    "ctaDownload": "Kostenlosen Trial herunterladen",
+    "demoLink": "Lieber eine geführte Demo? Schreiben Sie uns — 30 Minuten zu Ihrem Anwendungsfall.",
+    "demoMailSubject": "WUIC Anfrage geführte Demo",
+    "captureAlt": "Von der SQL-Tabelle zur funktionierenden Oberfläche — echte Aufnahme",
+    "captureCaption": "Von der SQL-Tabelle zur funktionierenden UI — echte Aufnahme, kein Schnitt.",
+    "proofTitle": "Gebaut mit WUIC",
+    "proofApps": {
+      "crm": "CrmApp — vollständiges CRM",
+      "invoice": "FatturazioneElettronica — SDI-E-Rechnung",
+      "fleet": "FlottaMezzi — Flottenmanagement"
+    },
+    "legalPrivacy": "Datenschutz"
   },
   "sandbox": {
     "hero": {
@@ -807,7 +863,7 @@
         "hosting":  { "label": "Hosting-Modell", "notes": { "wuic": "Selbst gehostet (Ihr IIS / Linux)", "retool": "Cloud-SaaS — Self-Hosting nur Enterprise", "refine": "Selbst gehostet (npm-Paket)", "budibase": "Selbst gehostet oder Cloud", "appsmith": "Selbst gehostet oder Cloud" } },
         "source":   { "label": "Quellcode", "notes": { "wuic": "Closed-Source", "retool": "Closed-Source", "refine": "MIT (Open-Source)", "budibase": "GPL-3.0", "appsmith": "Apache-2.0" } },
         "ui":       { "label": "UI-Stack", "notes": { "wuic": "Angular 21 + PrimeNG", "retool": "Proprietär", "refine": "React (beliebige UI-Lib)", "budibase": "Svelte (proprietär)", "appsmith": "Proprietär" } },
-        "best":     { "label": "Am besten für", "notes": { "wuic": "Enterprise-CRM/ERP aus einem SQL-Schema", "retool": "Interne Admin-Tools, schnelles Prototyping", "refine": "React-Devs, die maßgeschneiderte Admin-UIs bauen", "budibase": "Nicht-Entwickler, die Formulare über PostgreSQL bauen", "appsmith": "Interne Tools mit eigener JS-Logik" } }
+        "best":     { "label": "Am besten für", "notes": { "wuic": "Anwendungen der CRM/ERP-Klasse aus einem SQL-Schema", "retool": "Interne Admin-Tools, schnelles Prototyping", "refine": "React-Devs, die maßgeschneiderte Admin-UIs bauen", "budibase": "Nicht-Entwickler, die Formulare über PostgreSQL bauen", "appsmith": "Interne Tools mit eigener JS-Logik" } }
       }
     },
     "features": {
@@ -826,7 +882,7 @@
         "iis":         { "label": "Selbst gehostet auf Windows / IIS", "detail": "Deployment auf Windows-Server im Unternehmen ohne Container oder Linux." },
         "angular":     { "label": "UI anpassen mit voller Angular-Kontrolle", "detail": "Greifen Sie auf native Angular-Komponenten zurück, wenn das Framework nicht ausreicht." },
         "lockin":      { "label": "Vendor-Lock-in-Risiko", "detail": "Wie stark sind Ihre Daten und UI an die Plattform gebunden, wenn Sie aufhören zu zahlen / sie zu nutzen?", "notes": { "wuic": "Geschlossene Runtime, aber Daten + Metadaten bleiben in Ihrem SQL — exportierbar", "retool": "Hoch — Cloud-Lock-in, JS-Apps leben in Retool", "refine": "Niedrig — Ihr Code ist reines React", "budibase": "Mittel — Apps leben im Budibase-Format", "appsmith": "Mittel — Apps leben als AppSmith-JSON" } },
-        "pricing":     { "label": "Preismodell", "detail": "Wie das Lizenzmodell mit Team / Nutzern skaliert.", "notes": { "wuic": "Jährlich pro Entwickler (600-1200 €/Dev)", "retool": "Pro Endnutzer/Monat — wird schnell teuer", "refine": "Kostenlos (Open-Source); Enterprise-Tier optional", "budibase": "Pro Nutzer/Monat + Self-Hosting kostenlos", "appsmith": "Kostenlos (Community); Business-Tier nach Nutzung" } }
+        "pricing":     { "label": "Preismodell", "detail": "Wie das Lizenzmodell mit Team / Nutzern skaliert.", "notes": { "wuic": "Jährlich pro Maschine (600-1200 €) — 500 Endnutzer: weiterhin 1.200 €/Jahr", "retool": "Pro Endnutzer/Monat — wird schnell teuer", "refine": "Kostenlos (Open-Source); Enterprise-Tier optional", "budibase": "Pro Nutzer/Monat + Self-Hosting kostenlos", "appsmith": "Kostenlos (Community); Business-Tier nach Nutzung" } }
       }
     },
     "choice": {
@@ -886,7 +942,7 @@
         "closed":  { "q": "Warum sollte ich ein Closed-Source-Framework vor Refine, Budibase oder AppSmith wählen?", "a": "Drei Gründe, die wir von Teams hören, die WUIC wählen: (1) viel weniger handgeschriebener Code pro App — Metadaten ersetzen Hunderte von TS-Dateien; (2) Production-grade Workflow- + Report-Engine ab Werk, wo die Open-Source-Konkurrenten meist Bolt-ons brauchen; (3) First-Class-Self-Hosting auf Windows/IIS ohne Docker, was in vielen Unternehmensumgebungen immer noch zählt. Der Tradeoff ist ehrlich: Wenn der Quellcode im Repo nicht verhandelbar ist, gewinnen die Open-Source-Konkurrenten diese Runde und Sie sollten einen davon wählen." },
         "lockin":  { "q": "Sperrt WUIC mich ein, wenn ich wegmigrieren will?", "a": "Ihre Anwendungsdaten leben in Ihrer eigenen SQL-Datenbank — WUIC liest sie, hostet sie nicht. Ihre Metadaten (Route-Definitionen, Spalten-Sichtbarkeit, Aktions-Logik) leben in zwei SQL-Tabellen, ebenfalls unter Ihrer Kontrolle. UI-Anpassung ist reiner Angular-Code in Ihrem Repository. Das Migrationsrisiko besteht daher vor allem darin, die Runtime zu ersetzen, nicht die Daten zu extrahieren. Wir würden nicht null Lock-in behaupten, aber es ist materiell niedriger als bei Cloud-SaaS-Konkurrenten." },
         "lowcode": { "q": "Wo ziehen Sie die Grenze zwischen WUIC und einer Low-Code-Plattform?", "a": "WUIC hat eine Meinung dazu, UI aus Metadaten zu generieren, hält sich aber bei allem anderen heraus: Routing, Services, Custom-Komponenten, Deployment, SSO, Observability — alles Standard-Angular und -.NET. Low-Code-Plattformen besitzen typischerweise den gesamten Stack und beschränken Sie auf ihre Primitive. Wir sehen WUIC als „code-sparendes Framework\" eher als Low-Code: weniger Tippen, volle Entwicklerkontrolle." },
-        "try":     { "q": "Kann ich es vor einer Lizenzverpflichtung ausprobieren?", "a": "Ja — jeder Lizenz-Tier kommt mit einer 30-Tage-Evaluierung. Die jährliche Developer-Lizenz startet bei 600 €/Dev. Sie können auch eine geführte Demo auf der Get-Started-Seite buchen oder das Framework von der Downloads-Seite herunterladen und auf einer bereits vorhandenen SQL-Server-Instanz laufen lassen." }
+        "try":     { "q": "Kann ich es vor einer Lizenzverpflichtung ausprobieren?", "a": "Ja — laden Sie das Framework von der Downloads-Seite herunter und lassen Sie es auf einer bereits vorhandenen SQL-Server-Instanz laufen: ohne Lizenz läuft es im Trial-Modus (20 Datensätze pro Abfrage), ausreichend, um alle Funktionen zu bewerten. Oder erkunden Sie sofort die Live-Demo, ohne etwas zu installieren. Die jährliche Developer-Lizenz startet bei 600 € pro Maschine." }
       }
     },
     "cta": {

@@ -7,8 +7,14 @@
     </h1>
     <p class="hero-subtitle">{{ 'home.hero.subtitle' | translate }}</p>
     <div class="hero-actions">
+      <!-- Sandbox first: zero-friction path for cold traffic. The download
+           ZIP (0.5-1 GB + SQL Server required) stays as the secondary CTA
+           for evaluators who already decided to install. -->
+      <a href="https://demo.wuic-framework.com/" target="_blank" rel="noopener">
+        <p-button [label]="'home.hero.ctaDemo' | translate" icon="pi pi-play-circle" size="large" />
+      </a>
       <a routerLink="/downloads">
-        <p-button [label]="'home.hero.ctaDownload' | translate" icon="pi pi-download" size="large" />
+        <p-button [label]="'home.hero.ctaDownload' | translate" icon="pi pi-download" severity="secondary" [outlined]="true" size="large" />
       </a>
     </div>
     <div class="hero-tech">
@@ -17,6 +23,25 @@
       <span>PrimeNG</span>
       <span>SQL Server / MySQL</span>
     </div>
+  </div>
+</section>
+
+<!-- Built with WUIC — social proof strip (3 free complete apps) -->
+<section class="builtwith-section">
+  <div class="container builtwith-inner">
+    <span class="builtwith-label">{{ 'home.builtwith.label' | translate }}</span>
+    <a routerLink="/downloads" fragment="free-apps" class="builtwith-app">
+      <i class="pi pi-users"></i>
+      <span>{{ 'home.builtwith.crm' | translate }}</span>
+    </a>
+    <a routerLink="/downloads" fragment="free-apps" class="builtwith-app">
+      <i class="pi pi-file-check"></i>
+      <span>{{ 'home.builtwith.invoice' | translate }}</span>
+    </a>
+    <a routerLink="/downloads" fragment="free-apps" class="builtwith-app">
+      <i class="pi pi-truck"></i>
+      <span>{{ 'home.builtwith.fleet' | translate }}</span>
+    </a>
   </div>
 </section>
 

@@ -1,0 +1,66 @@
+<div class="start-page">
+
+  <!-- Brand mark only — deliberately not a link (funnel, no leaks). -->
+  <header class="start-brand">
+    <img src="assets/brand/wuic-icon-w-faceted.svg" alt="WUIC" width="36" height="36">
+    <span>WUIC</span>
+  </header>
+
+  <section class="start-hero">
+    <h1>{{ 'start.hero.' + variant() + '.title' | translate }}</h1>
+    <p class="start-subtitle">{{ 'start.hero.' + variant() + '.subtitle' | translate }}</p>
+
+    <p class="start-price" [innerHTML]="'start.price' | translate"></p>
+
+    <div class="start-ctas">
+      <a [href]="demoUrl" target="_blank" rel="noopener" (click)="track('sandbox_open')">
+        <p-button [label]="'start.ctaSandbox' | translate" icon="pi pi-play-circle" size="large"></p-button>
+      </a>
+      <a href="/downloads" (click)="track('download_click')">
+        <p-button [label]="'start.ctaDownload' | translate" icon="pi pi-download" severity="secondary" [outlined]="true" size="large"></p-button>
+      </a>
+    </div>
+
+    <p class="start-demo-link">
+      <a [href]="'mailto:info@wuic-framework.com?subject=' + ('start.demoMailSubject' | translate)">
+        {{ 'start.demoLink' | translate }}
+      </a>
+    </p>
+  </section>
+
+  <section class="start-capture">
+    <img src="/assets/wuic-framework-docs/screenshots/list-grid__list-grid-base__desktop.gif"
+         alt="{{ 'start.captureAlt' | translate }}" loading="lazy">
+    <p class="start-capture-caption">{{ 'start.captureCaption' | translate }}</p>
+  </section>
+
+  <section class="start-proof">
+    <h2>{{ 'start.proofTitle' | translate }}</h2>
+    <div class="start-proof-apps">
+      <div class="proof-app">
+        <i class="pi pi-users"></i>
+        <span>{{ 'start.proofApps.crm' | translate }}</span>
+      </div>
+      <div class="proof-app">
+        <i class="pi pi-file-check"></i>
+        <span>{{ 'start.proofApps.invoice' | translate }}</span>
+      </div>
+      <div class="proof-app">
+        <i class="pi pi-truck"></i>
+        <span>{{ 'start.proofApps.fleet' | translate }}</span>
+      </div>
+    </div>
+    <div class="start-badges">
+      <span class="badge">.NET 10</span>
+      <span class="badge">Angular 21</span>
+      <span class="badge">Linux + Windows</span>
+      <span class="badge">SQL Server + MySQL</span>
+    </div>
+  </section>
+
+  <footer class="start-legal">
+    <span>© 2026 Lorenzo Castrico · P.IVA IT02098880681</span>
+    <a href="/privacy">{{ 'start.legalPrivacy' | translate }}</a>
+  </footer>
+
+</div>

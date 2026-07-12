@@ -86,6 +86,27 @@ export class Pricing implements OnInit {
   }
 
   /**
+   * Software House tier is contact-only by design: license issuing is manual
+   * (concierge) until there's enough volume to justify a self-serve portal,
+   * so there is no PRODUCTS entry / PayPal flow for it.
+   */
+  buildSoftwareHouseMailto(): string {
+    const subject = 'WUIC licenza — tier Software House';
+    const body = [
+      'Ciao,',
+      '',
+      'sono interessato al tier Software House (4.800 EUR / anno):',
+      '3 postazioni di sviluppo + fingerprint di produzione illimitati.',
+      '',
+      'Azienda:',
+      'Numero indicativo di deployment cliente previsti:',
+      '',
+      'Grazie.',
+    ].join('\n');
+    return `mailto:${this.contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  }
+
+  /**
    * Feature comparison rows — only ✓/✗ state + i18n keys live here.
    * Group title and row labels are resolved at render time from the loaded
    * translation JSON under `pricing.comparison.groups.{titleKey}` and

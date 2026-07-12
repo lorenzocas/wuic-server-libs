@@ -87,8 +87,16 @@
             "analyze": {
               "optimization": true,
               "budgets": [
-                { "type": "initial", "maximumWarning": "10MB", "maximumError": "100MB" },
-                { "type": "anyComponentStyle", "maximumWarning": "10MB", "maximumError": "100MB" }
+                {
+                  "type": "initial",
+                  "maximumWarning": "10MB",
+                  "maximumError": "100MB"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "10MB",
+                  "maximumError": "100MB"
+                }
               ],
               "outputHashing": "all",
               "extractLicenses": true,
@@ -118,14 +126,53 @@
               "sourceMap": false,
               "outputHashing": "all",
               "fileReplacements": [
-                { "replace": "src/app/wuic-bridges/core.ts", "with": "src/app/wuic-bridges-npm/core.ts" },
-                { "replace": "src/app/wuic-bridges/ui.ts", "with": "src/app/wuic-bridges-npm/ui.ts" },
-                { "replace": "src/app/wuic-bridges/notifications.ts", "with": "src/app/wuic-bridges-npm/notifications.ts" },
-                { "replace": "src/app/wuic-bridges/routes.ts", "with": "src/app/wuic-bridges-npm/routes.ts" },
-                { "replace": "src/app/wuic-bridges/widget-loaders.ts", "with": "src/app/wuic-bridges-npm/widget-loaders.ts" },
-                { "replace": "src/app/wuic-bridges/widget-loaders-advanced.ts", "with": "src/app/wuic-bridges-npm/widget-loaders-advanced.ts" },
-                { "replace": "src/app/wuic-bridges/public.ts", "with": "src/app/wuic-bridges-npm/public.ts" },
-                { "replace": "src/app/environments/environment.ts", "with": "src/app/environments/environment.prod.ts" }
+                {
+                  "replace": "src/app/wuic-bridges/core.ts",
+                  "with": "src/app/wuic-bridges-npm/core.ts"
+                },
+                {
+                  "replace": "src/app/wuic-bridges/ui.ts",
+                  "with": "src/app/wuic-bridges-npm/ui.ts"
+                },
+                {
+                  "replace": "src/app/wuic-bridges/notifications.ts",
+                  "with": "src/app/wuic-bridges-npm/notifications.ts"
+                },
+                {
+                  "replace": "src/app/wuic-bridges/routes.ts",
+                  "with": "src/app/wuic-bridges-npm/routes.ts"
+                },
+                {
+                  "replace": "src/app/wuic-bridges/widget-loaders.ts",
+                  "with": "src/app/wuic-bridges-npm/widget-loaders.ts"
+                },
+                {
+                  "replace": "src/app/wuic-bridges/widget-loaders-advanced.ts",
+                  "with": "src/app/wuic-bridges-npm/widget-loaders-advanced.ts"
+                },
+                {
+                  "replace": "src/app/wuic-bridges/public.ts",
+                  "with": "src/app/wuic-bridges-npm/public.ts"
+                },
+                {
+                  "replace": "src/app/environments/environment.ts",
+                  "with": "src/app/environments/environment.prod.ts"
+                }
+              ]
+            },
+            "development5400": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": {
+                "scripts": true,
+                "styles": true,
+                "vendor": true
+              },
+              "fileReplacements": [
+                {
+                  "replace": "src/app/environments/environment.ts",
+                  "with": "src/app/environments/environment.5400.ts"
+                }
               ]
             }
           },
@@ -145,6 +192,9 @@
             },
             "npm": {
               "buildTarget": "fatturazione-elettronica:build:npm"
+            },
+            "development5400": {
+              "buildTarget": "fatturazione-elettronica:build:development5400"
             }
           },
           "defaultConfiguration": "development"
@@ -153,7 +203,9 @@
           "builder": "@angular/build:unit-test",
           "options": {
             "tsConfig": "tsconfig.spec.json",
-            "exclude": ["src/app/environments/**"]
+            "exclude": [
+              "src/app/environments/**"
+            ]
           }
         }
       }

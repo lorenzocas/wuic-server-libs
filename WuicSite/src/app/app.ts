@@ -1,5 +1,5 @@
-import { Component, inject } from '@angular/core';
-import { NavigationError, Router, RouterOutlet } from '@angular/router';
+import { Component, inject, signal } from '@angular/core';
+import { NavigationEnd, NavigationError, Router, RouterOutlet } from '@angular/router';
 import { Navbar } from './components/navbar/navbar';
 import { Footer } from './components/footer/footer';
 import { CookieBanner } from './components/cookie-banner/cookie-banner';
@@ -16,7 +16,20 @@ export class App {
   private readonly router = inject(Router);
   private readonly maintenance = inject(MaintenanceService);
 
+  /**
+   * True when the active route declares `data: { bareLayout: true }` —
+   * navbar and footer are hidden. Used by ads landing pages (/start) where
+   * every nav link is a leak out of the conversion funnel.
+   */
+  readonly bareLayout = signal(false);
+
   constructor() {
+    this.router.events.subscribe(ev => {
+      if (!(ev instanceof NavigationEnd)) return;
+      let route = this.router.routerState.snapshot.root;
+      while (route.firstChild) route = route.firstChild;
+      this.bareLayout.set(route.data?.['bareLayout'] === true);
+    });
     // Watch Router events: when a lazy-loaded chunk fails to load (typically
     // because the IIS maintenance rewrite returned HTML where a .js was
     // expected), the router emits a NavigationError whose error message

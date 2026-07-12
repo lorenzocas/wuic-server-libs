@@ -2,8 +2,29 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
   gap: 32px;
+  /* 1240px: room for 3 cards of >=340px + 2 gap; below ~1100px the auto-fit
+     wraps to 2+1 and then to a single column on mobile. */
+  max-width: 1240px;
+  margin: 0 auto 24px;
+}
+
+/* Stat "500 utenti" sotto la tier-grid: il miglior numero che abbiamo va
+   reso visibile subito dopo i prezzi, prima dei dettagli operativi. */
+.economics-note {
   max-width: 900px;
   margin: 0 auto 56px;
+  padding: 16px 22px;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 12px;
+  color: #3730a3;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  text-align: center;
+
+  strong {
+    color: #312e81;
+  }
 }
 
 :host ::ng-deep .paypal-unavailable-banner {
@@ -117,6 +138,21 @@
 .tier-badge-pro {
   background: #d1fae5;
   color: #047857;
+}
+
+.tier-badge-sh {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+/* Nota sotto il CTA "Contattaci" del tier Software House (emissione manuale). */
+.tier-cta-note {
+  display: block;
+  margin-top: 10px;
+  font-size: 0.8rem;
+  color: #64748b;
+  line-height: 1.45;
+  text-align: center;
 }
 
 .tier-price {
@@ -321,6 +357,15 @@
     color: #64748b;
     font-style: italic;
   }
+
+  .maintenance-deadline {
+    font-size: 0.9rem;
+    color: #475569;
+    background: #f8fafc;
+    border-left: 3px solid #94a3b8;
+    padding: 10px 14px;
+    border-radius: 0 8px 8px 0;
+  }
 }
 
 .fingerprints-box {
@@ -447,6 +492,54 @@
 .check-no {
   color: #cbd5e1;
   font-size: 1rem;
+}
+
+/* "Come funziona l'acquisto": 3 step numerati + riga PO/bonifico.
+   Stesso pattern visivo dei box maintenance/fingerprints (max 900px). */
+.howtobuy-box {
+  max-width: 900px;
+  margin: 0 auto 56px;
+  padding: 24px 28px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+
+  h3 {
+    margin: 0 0 16px;
+    font-size: 1.1rem;
+    color: #0f172a;
+
+    i {
+      margin-right: 8px;
+      color: #6366f1;
+    }
+  }
+
+  .howtobuy-steps {
+    margin: 0 0 14px;
+    padding-left: 22px;
+    color: #334155;
+    line-height: 1.6;
+
+    li {
+      margin-bottom: 8px;
+
+      strong {
+        color: #0f172a;
+      }
+    }
+  }
+
+  .howtobuy-po {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #64748b;
+
+    a {
+      color: #4f46e5;
+      font-weight: 600;
+    }
+  }
 }
 
 .trial-box {

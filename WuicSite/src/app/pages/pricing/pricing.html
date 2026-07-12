@@ -99,7 +99,42 @@
           </a>
         </div>
       </p-card>
+
+      <p-card styleClass="tier-card tier-card-sh">
+        <div class="tier-header">
+          <div class="tier-badge tier-badge-sh">
+            <i class="pi pi-building"></i>
+            <span>{{ 'pricing.sh.label' | translate }}</span>
+          </div>
+          <div class="tier-price">
+            <span class="price-amount">4.800 €</span>
+            <span class="price-period">{{ 'pricing.perYear' | translate }}</span>
+          </div>
+          <p class="tier-desc">{{ 'pricing.sh.desc' | translate }}</p>
+          <div class="tier-fingerprints">
+            <i class="pi pi-desktop"></i>
+            <span [innerHTML]="'pricing.sh.fingerprintsLine' | translate"></span>
+          </div>
+        </div>
+
+        <ul class="tier-highlights">
+          <li><i class="pi pi-check"></i> {{ 'pricing.sh.highlights.all' | translate }}</li>
+          <li><i class="pi pi-check"></i> {{ 'pricing.sh.highlights.seats' | translate }}</li>
+          <li><i class="pi pi-check"></i> {{ 'pricing.sh.highlights.fingerprints' | translate }}</li>
+          <li><i class="pi pi-check"></i> {{ 'pricing.sh.highlights.support' | translate }}</li>
+          <li><i class="pi pi-check"></i> {{ 'pricing.sh.highlights.resale' | translate }}</li>
+        </ul>
+
+        <div class="tier-cta tier-cta-stack">
+          <a [href]="buildSoftwareHouseMailto()" class="tier-cta-fallback">
+            <p-button [label]="'pricing.sh.contact' | translate" icon="pi pi-envelope" severity="secondary" [outlined]="true"></p-button>
+          </a>
+          <span class="tier-cta-note">{{ 'pricing.sh.concierge' | translate }}</span>
+        </div>
+      </p-card>
     </div>
+
+    <div class="economics-note" [innerHTML]="'pricing.economics' | translate"></div>
 
     <div class="maintenance-box">
       <div class="maintenance-icon">
@@ -113,6 +148,7 @@
           <li [innerHTML]="'pricing.maintenance.bulletPro' | translate"></li>
         </ul>
         <p class="maintenance-note">{{ 'pricing.maintenance.note' | translate }}</p>
+        <p class="maintenance-deadline" [innerHTML]="'pricing.maintenance.deadline' | translate"></p>
         <div class="maintenance-actions">
           @if (paypalAvailable) {
             <p-button [label]="'pricing.maintenance.buyDev' | translate" icon="pi pi-shopping-cart" severity="secondary" size="small"
@@ -147,6 +183,16 @@
           }
         </div>
       </div>
+    </div>
+
+    <div class="howtobuy-box">
+      <h3><i class="pi pi-shopping-cart"></i> {{ 'pricing.howToBuy.title' | translate }}</h3>
+      <ol class="howtobuy-steps">
+        <li [innerHTML]="'pricing.howToBuy.step1' | translate"></li>
+        <li [innerHTML]="'pricing.howToBuy.step2' | translate"></li>
+        <li [innerHTML]="'pricing.howToBuy.step3' | translate"></li>
+      </ol>
+      <p class="howtobuy-po" [innerHTML]="'pricing.howToBuy.po' | translate"></p>
     </div>
 
     <h2 class="comparison-title">{{ 'pricing.comparisonTitle' | translate }}</h2>

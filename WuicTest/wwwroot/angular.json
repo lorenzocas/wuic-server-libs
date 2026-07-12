@@ -116,6 +116,21 @@
                 "vendor": true
               }
             },
+            "development6000": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": {
+                "scripts": true,
+                "styles": true,
+                "vendor": true
+              },
+              "fileReplacements": [
+                {
+                  "replace": "src/app/environments/environment.ts",
+                  "with": "src/app/environments/environment.6000.ts"
+                }
+              ]
+            },
             "npm": {
               "optimization": {
                 "scripts": true,
@@ -174,6 +189,9 @@
             },
             "development": {
               "buildTarget": "wuic-test:build:development"
+            },
+            "development6000": {
+              "buildTarget": "wuic-test:build:development6000"
             },
             "npm": {
               "buildTarget": "wuic-test:build:npm"

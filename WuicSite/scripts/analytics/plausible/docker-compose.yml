@@ -1,0 +1,59 @@
+# Plausible Community Edition — stack self-hosted.
+# Layout derivato dal compose ufficiale di plausible/community-edition,
+# adattato per girare dentro WSL2 su un host Windows condiviso:
+#   - porta pubblicata su 127.0.0.1 (mai 0.0.0.0): l'unico ingresso e' il
+#     reverse proxy IIS su Windows via localhostForwarding;
+#   - restart: unless-stopped su tutti i servizi cosi' i container ripartono
+#     quando il keep-alive riavvia la distro dopo un reboot;
+#   - ClickHouse con config alleggerita (vedi clickhouse/*.xml) per non
+#     saturare I/O/disco del box condiviso.
+services:
+  plausible_db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  plausible_events_db:
+    image: clickhouse/clickhouse-server:24.3-alpine
+    restart: unless-stopped
+    volumes:
+      - event-data:/var/lib/clickhouse
+      - ./clickhouse/config.xml:/etc/clickhouse-server/config.d/logging.xml:ro
+      - ./clickhouse/user-config.xml:/etc/clickhouse-server/users.d/logging.xml:ro
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  plausible:
+    image: ghcr.io/plausible/community-edition:v2.1.4
+    restart: unless-stopped
+    command: sh -c "/entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"
+    depends_on:
+      plausible_db:
+        condition: service_healthy
+      plausible_events_db:
+        condition: service_healthy
+    ports:
+      # SOLO loopback lato WSL. IIS su Windows raggiunge questa porta via
+      # WSL localhostForwarding. Non esporre mai su 0.0.0.0.
+      - "127.0.0.1:8000:8000"
+    env_file:
+      - plausible-conf.env
+
+volumes:
+  db-data:
+  event-data:

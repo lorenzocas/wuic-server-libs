@@ -1,7 +1,43 @@
 {
-  "generatedAt": "2026-06-17T23:15:09.688Z",
-  "count": 12,
+  "generatedAt": "2026-07-12T17:52:33.819Z",
+  "count": 14,
   "posts": [
+    {
+      "slug": "workflow-engine-graph-source-of-truth",
+      "title": "The graph is the source of truth: shipping an embeddable workflow engine",
+      "date": "2026-07-11",
+      "author": "Lorenzo Castrico",
+      "description": "How we built a workflow engine into a metadata-driven Angular framework — why the visual graph stays the single source of truth, and how assisted authoring keeps non-experts productive.",
+      "tags": [
+        "workflow",
+        "bpm",
+        "angular",
+        "metadata-driven",
+        "low-code",
+        "framework"
+      ],
+      "readingMinutes": 7,
+      "sourcePath": "assets/blog/workflow-engine-graph-source-of-truth.md"
+    },
+    {
+      "slug": "teaching-a-coding-agent-with-dpo",
+      "title": "Teaching a local coding agent from its own mistakes: DPO on a 30B model",
+      "date": "2026-07-05",
+      "author": "Lorenzo Castrico",
+      "description": "Our VS Code assistant was passing every test on its curriculum — which meant the curriculum had stopped measuring anything. Here's how we built honest eval sets, found two silent contaminations in our test bench, and used Direct Preference Optimization to teach a 30B model to pick the right tool on the first try instead of getting bounced by a guard and correcting afterwards. Five OutOfMemory crashes, one counterintuitive fix, and a clean 4-hour training run included.",
+      "tags": [
+        "dpo",
+        "qlora",
+        "fine-tuning",
+        "llm",
+        "local-inference",
+        "ollama",
+        "vscode",
+        "agentic"
+      ],
+      "readingMinutes": 7,
+      "sourcePath": "assets/blog/teaching-a-coding-agent-with-dpo.md"
+    },
     {
       "slug": "local-llm-ollama-mcp-agentic-vscode",
       "title": "Running the WUIC assistant on a local LLM: Ollama, an MCP server, and a free agentic VS Code",
@@ -20,7 +56,7 @@
         "architecture",
         "ai"
       ],
-      "readingMinutes": 8,
+      "readingMinutes": 10,
       "sourcePath": "assets/blog/local-llm-ollama-mcp-agentic-vscode.md"
     },
     {

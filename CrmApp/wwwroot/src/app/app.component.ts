@@ -82,8 +82,12 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
   // (skill crash-reporting Commit 9b — Opzione B). Il consumer non subscribe
   // piu' a GlobalHandler.messageNotification: lo fa il dialog component.
 
-  isBusy: BehaviorSubject<boolean>;
-  fixBusy: boolean = false;
+  // `WtoolboxService.isBusy` e' un BehaviorSubject STATICO inizializzato
+  // inline: e' disponibile gia' alla field-init. Assegnarlo (e flippare
+  // `fixBusy`) in ngAfterContentInit cambiava il binding del primo `@if`
+  // DOPO il check del ciclo corrente → NG0100 in dev mode a ogni load.
+  isBusy: BehaviorSubject<boolean> = WtoolboxService.isBusy;
+  fixBusy: boolean = true;
   showFirstRunInstall = false;
   firstRunLoading = true;
   firstRunInstalling = false;
@@ -254,8 +258,8 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
   }
 
   ngAfterContentInit(): void {
-    this.isBusy = WtoolboxService.isBusy;
-    this.fixBusy = true;
+    // isBusy/fixBusy inizializzati inline (vedi dichiarazione campi): il
+    // riassegnamento qui causava NG0100 sul primo @if del template.
   }
 
   ngOnDestroy(): void {

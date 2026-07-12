@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Release Notes v1.5.0_1.5.0 - WUIC Framework</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; color: #1e293b; background: #ffffff; line-height: 1.6; overflow-wrap: anywhere; word-wrap: break-word; }
+a { color: #6366f1; text-decoration: none; }
+a:hover { color: #4f46e5; text-decoration: underline; }
+
+/* Site-style header (mini-navbar) */
+.rn-header { background: rgba(255, 255, 255, 0.95); border-bottom: 1px solid #e2e8f0; backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 10; }
+.rn-header-inner { max-width: 1200px; margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.rn-brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: #0f172a; font-size: 1.15rem; }
+.rn-brand-bolt { display: inline-block; width: 24px; height: 24px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M13 2L3 14h7l-1 8 10-12h-7l1-8z'/></svg>") center/contain no-repeat; mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M13 2L3 14h7l-1 8 10-12h-7l1-8z'/></svg>") center/contain no-repeat; }
+.rn-back { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border: 1px solid #c7d2fe; border-radius: 6px; color: #4f46e5; background: #eef2ff; font-size: 0.9rem; transition: background 0.15s, border-color 0.15s; }
+.rn-back:hover { background: #e0e7ff; border-color: #a5b4fc; text-decoration: none; }
+
+/* Article container: same width as Site .container */
+.rn-article { max-width: 880px; margin: 0 auto; padding: 48px 24px 80px; }
+
+/* Headings: site palette */
+h1, h2, h3, h4 { color: #0f172a; line-height: 1.25; font-weight: 700; }
+h1 { font-size: 2rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; margin-bottom: 1.25rem; }
+h2 { font-size: 1.4rem; margin-top: 2.25rem; margin-bottom: 0.75rem; }
+h3 { font-size: 1.125rem; margin-top: 1.5rem; margin-bottom: 0.5rem; color: #334155; }
+
+p { margin: 0.75rem 0; color: #334155; }
+strong { color: #0f172a; font-weight: 600; }
+
+ul, ol { padding-left: 1.4rem; margin: 0.75rem 0; }
+li { margin: 0.25rem 0; color: #334155; }
+
+hr { border: 0; border-top: 1px solid #e2e8f0; margin: 2.5rem 0; }
+
+/* Inline code: tinta indigo che richiama il brand */
+code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.9em; }
+code { background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; padding: 0.1em 0.4em; border-radius: 4px; word-break: break-word; }
+pre { background: #f8fafc; border: 1px solid #e2e8f0; padding: 1rem 1.25rem; border-radius: 8px; overflow-x: auto; max-width: 100%; margin: 1rem 0; }
+pre code { background: transparent; color: #1e293b; border: 0; padding: 0; word-break: normal; }
+
+/* Tables: scrollabili, header indigo-tint */
+.table-wrap { overflow-x: auto; max-width: 100%; margin: 1.25rem 0; border: 1px solid #e2e8f0; border-radius: 8px; }
+table { border-collapse: collapse; width: max-content; min-width: 100%; background: #ffffff; }
+th, td { border-bottom: 1px solid #e2e8f0; padding: 0.65rem 0.95rem; text-align: left; vertical-align: top; font-size: 0.95rem; }
+th { background: #f8fafc; color: #0f172a; font-weight: 600; border-bottom-color: #cbd5e1; }
+tr:last-child td { border-bottom: 0; }
+td { color: #334155; }
+
+/* Blockquote: brand accent */
+blockquote { border-left: 3px solid #6366f1; margin: 1.25rem 0; padding: 0.6rem 1.1rem; color: #475569; background: #eef2ff; border-radius: 0 6px 6px 0; }
+blockquote p { color: #475569; }
+
+img { max-width: 100%; height: auto; border-radius: 6px; }
+</style>
+<script>
+// Wrap tables post-render in scroll container (markdown converter emits raw <table>).
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('table').forEach(t => {
+    if (t.parentElement && t.parentElement.classList.contains('table-wrap')) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+});
+</script>
+</head>
+<body>
+<header class="rn-header">
+  <div class="rn-header-inner">
+    <a href="/" class="rn-brand"><span class="rn-brand-bolt"></span><span>WUIC</span></a>
+    <a href="/downloads" class="rn-back">&larr; Torna ai download</a>
+  </div>
+</header>
+<article class="rn-article">
+<h1 id="release-notes-wuic-framework-v1.5.0">Release Notes — WUIC Framework v1.5.0</h1>
+<p><strong>Data</strong>: 11 luglio 2026
+<strong>Versione precedente pubblicata</strong>: 1.3.2 (18 giugno 2026)
+<strong>Backend</strong>: .NET 10 + IIS / Linux nginx
+<strong>Frontend</strong>: Angular 21</p>
+<hr />
+<p>Release ampia, che raccoglie il lavoro su più fronti. Il <strong>chatbot RAG</strong> ha una configurazione del modello LLM semplificata e unificata, con l'uso di un modello locale gratuito (Qwen via Ollama) ora di prima classe e un motore robusto verso le particolarità dei modelli locali; è incluso un nuovo plugin per <strong>Visual Studio Code</strong>, <strong>WUIC Assistant</strong>, che porta lo stesso approccio agentico dentro l'editor. Arriva il nuovo <strong>Scene3D Designer</strong> per l'authoring di scene 3D dentro l'app — con materiali PBR, effetti shader, luci con bake, fisica e un viewer che lega gli oggetti ai dati — e il rendering è ora selezionabile tra WebGL e <strong>WebGPU</strong>. Il <strong>Workflow Designer</strong> riceve un pacchetto di authoring assistito (template, validazione del grafo, dialog guidati, guida in linea), e il <strong>Dashboard Designer</strong> un pacchetto di miglioramenti all'editing.</p>
+<hr />
+<h2 id="rag-chatbot-configurazione-llm-unificata">🤖 RAG Chatbot — configurazione LLM unificata</h2>
+<p>La configurazione del provider LLM del chatbot è stata consolidata attorno a <strong>una sola chiave</strong> e a un elenco esplicito di provider.</p>
+<ul>
+<li><code>rag-llm-provider</code> — <code>anthropic</code> / <code>openai</code> / <code>openrouter</code> / <code>ollama</code>, <strong>da impostare esplicitamente</strong> (nessun provider di default: se vuoto il chatbot resta in retrieval-only, senza invocare alcun LLM). <code>ollama</code> è ora un valore di prima classe: punta a un runtime locale via <code>rag-llm-base-url</code>, con formato OpenAI-compatibile.</li>
+<li><code>rag-llm-api-key</code> — <strong>unica fonte</strong> della chiave, indipendente dal provider scelto. Sostituisce la precedente coppia <code>llm-api-key</code> / <code>anthropic-api-key</code> (che restano accettate solo come fallback di migrazione). Il valore speciale <code>agent-sdk</code> usa l'Agent SDK (<code>claude</code> CLI) via subscription invece dell'API a consumo, se installato.</li>
+<li><code>rag-llm-base-url</code> — override dell'endpoint; obbligatorio per <code>ollama</code> (es. <code>http://HOST:11434/v1</code>), opzionale per gli altri provider.</li>
+<li><code>rag-llm-default-chat-model</code> — id del modello per il provider scelto.</li>
+</ul>
+<p>Tutte le chiavi restano in <strong>hot-reload</strong> da <code>appsettings.json</code>: cambiare provider o modello non richiede restart.</p>
+<h2 id="llm-locale-gratuito-qwen-via-ollama-zero-api-key">🧠 LLM locale gratuito (Qwen via Ollama), zero API key</h2>
+<p>Il chatbot può ora girare interamente su un <strong>modello locale open</strong> — ad esempio <strong>Qwen</strong> (<code>qwen2.5-coder:32b</code>) servito da <strong>Ollama</strong> sulla propria macchina o sulla LAN — senza API key e senza costi per token. Configurazione tipica in <code>appsettings.json</code> → <code>AppSettings</code>:</p>
+<pre><code>rag-llm-provider           = ollama
+rag-llm-base-url           = http://HOST:11434/v1
+rag-llm-api-key            = ollama
+rag-llm-default-chat-model = qwen2.5-coder:32b
+</code></pre>
+<p>Una guida completa per montare il server Ollama (Windows/Linux, esposizione in LAN, tuning del context, avvio persistente) è inclusa nel pacchetto.</p>
+<h2 id="azioni-del-chatbot-affidabili-anche-con-modelli-locali">⚙️ Azioni del chatbot affidabili anche con modelli locali</h2>
+<p>Il motore è stato reso tollerante alle particolarità dei modelli locali, che — a differenza dei modelli commerciali — a volte non rispettano alla lettera il formato delle chiamate strumento. Il chatbot ora recupera correttamente l'azione proposta anche quando il modello la emette come testo o con escape JSON non standard. In pratica, le azioni sul designer e sui metadati — pulsanti di tabella (bulk), pulsanti di riga, stili condizionali, callback, iniezione di componenti nel designer — vengono proposte e applicate in modo affidabile anche con un LLM locale.</p>
+<h2 id="assistente-agentico-in-vs-code-wuic-assistant">🧩 Assistente agentico in VS Code — WUIC Assistant</h2>
+<p>Il pacchetto include ora un plugin per <strong>Visual Studio Code</strong>, <strong>WUIC Assistant</strong> (<code>llm-workspace/plugin/wuic-assistant.vsix</code>): un assistente che conosce già le convenzioni del framework e opera direttamente sul progetto aperto. Genera componenti Angular (card, dashboard con tile KPI, list-grid con navigazione al form di modifica), componenti alimentati da un endpoint .NET personalizzato, e propone le modifiche ai metadati (stili condizionali, azioni di tabella e di riga, lookup). Ogni scrittura passa da un'anteprima prima della conferma.</p>
+<p>Usa lo stesso RAG locale WUIC tramite il server MCP <code>wuic-rag</code> (avviato automaticamente) e il grounding già presente nel progetto: non richiede configurazione manuale del server MCP. Il modello LLM è a scelta — <strong>locale via Ollama</strong> (Qwen, zero API key) oppure Anthropic.</p>
+<p>Installazione dallo ZIP:</p>
+<pre><code>code --install-extension llm-workspace/plugin/wuic-assistant.vsix
+</code></pre>
+<p>In alternativa lo installa <code>install-llm-workspace.ps1</code>. Poi <code>Ctrl+Shift+P</code> → <strong>WUIC Assistant: Apri Chat</strong>; il provider si sceglie nelle impostazioni (<code>wuicAssistant.provider</code> = <code>ollama</code> o <code>anthropic</code>).</p>
+<h2 id="scene3d-designer-novita">🧊 Scene3D Designer (novità)</h2>
+<p>Nuovo designer 3D visuale su route <code>#/scene3d_designer</code>, con pubblicazione read-only tramite lo Scene3D Viewer (<code>#/scene3d_viewer/:scene_key</code>). Consente di comporre una scena tridimensionale e di legarne gli oggetti ai dati dell'app.</p>
+<ul>
+<li><strong>Palette e import</strong>: primitive (cubo, sfera, piano, cilindro, cono, toro), gruppi, luci, camera, testo 3D e Mesh Repeater (istanze generate dai dati). Import di modelli esterni in glTF/GLB, OBJ, FBX, STL e DAE. La palette è estendibile da metadata con tipi custom.</li>
+<li><strong>Materiali PBR</strong>: metalness, roughness, emissivo, opacità, wireframe, flat shading e facce; per il materiale fisico anche transmission, IOR, spessore e assorbimento volumetrico (vetro colorato).</li>
+<li><strong>Effetti shader</strong>: un effetto descritto in JSON (con schema, autocompletamento e vista &quot;a struttura&quot;) viene compilato per il renderer attivo; in alternativa, shader GLSL scritti a mano sul renderer WebGL.</li>
+<li><strong>Illuminazione</strong>: luci di scena con ombre morbide, bake dell'illuminazione statica nei vertex color (unlit) e — sul renderer WebGL — un path tracing di anteprima fotorealistica.</li>
+<li><strong>Animazioni e fisica</strong>: transport per le clip degli asset importati; fisica per-oggetto opzionale con simulazione Play/Stop nel designer e autoplay nel viewer.</li>
+<li><strong>Binding ai dati</strong>: ogni oggetto si lega a una route WUIC (con record opzionale) e mappa proprietà visive (etichetta, colore, visibilità) sulle colonne; doppio click su un oggetto bindato nel viewer apre la CRUD del record.</li>
+<li><strong>Anteprime automatiche</strong>: al salvataggio la scena viene fotografata dal canvas e mostrata come anteprima nell'elenco &quot;Carica scena&quot;, senza configurazione né processi esterni.</li>
+</ul>
+<p>Le route del designer e del viewer richiedono la feature <code>scene3d-designer</code>. Le tabelle di supporto vengono create e aggiornate automaticamente al primo utilizzo, su tutti i database supportati.</p>
+<h2 id="renderer-webgpu-opt-in">🖥️ Renderer WebGPU (opt-in)</h2>
+<p>Il rendering di scene e viewer è ora selezionabile tra <strong>WebGL</strong> (default) e <strong>WebGPU</strong> (attivabile dalla toolbar). Quando WebGPU non è disponibile nel browser, il designer resta automaticamente su WebGL senza alcun intervento. La modalità scelta viene salvata con la scena e ripristinata all'apertura. Con il renderer WebGPU attivo, il bake delle luci gira su GPU (ombre incluse), molto più rapido sulle scene dense; gli shader GLSL scritti a mano e il path tracing restano disponibili sul renderer WebGL.</p>
+<h2 id="workflow-designer-authoring-assistito">🔀 Workflow Designer — authoring assistito</h2>
+<p>Il designer di workflow (<code>#/workflow-designer</code>) accompagna ora la costruzione di un processo da zero.</p>
+<ul>
+<li><strong>Template di partenza</strong>: &quot;Nuovo da template&quot; genera un grafo pronto per i pattern comuni (approvazione semplice, coda claim/release, catena a soglie, task paralleli): si scelgono la route principale e — dove serve — il campo di stato, e grafo, azioni e transizioni nascono già collegati.</li>
+<li><strong>Validazione del grafo</strong>: &quot;Valida grafo&quot; segnala i problemi prima del salvataggio (start senza sbocchi, nodi irraggiungibili, azione senza target, condition vuota, ramo morto, timer o split incompleti, permesso con ruolo inesistente). Cliccando un rilievo il canvas inquadra il nodo. Il salvataggio non è mai bloccato: con problemi aperti compare un riepilogo con &quot;Salva comunque&quot;.</li>
+<li><strong>Configurazioni guidate</strong>: i dialog di timer e task paralleli usano dropdown e un autocompletamento delle route, invece di campi liberi da digitare a memoria.</li>
+<li><strong>Onboarding e guida</strong>: checklist dei primi passi su un canvas nuovo, tooltip descrittivi sulla palette e una &quot;Guida rapida&quot; con la legenda delle forme e un glossario dei concetti (transizione, guardia, permesso, azione interna).</li>
+</ul>
+<h2 id="dashboard-designer-editing-piu-rapido">🎨 Dashboard Designer — editing più rapido</h2>
+<ul>
+<li><strong>Snap alla griglia</strong>: attivabile dal menu azioni del designer, mostra la griglia sul canvas e allinea automaticamente trascinamento, ridimensionamento e drop dalla palette. All'attivazione anche gli elementi già presenti nel canvas vengono allineati alla griglia.</li>
+<li><strong>Flusso normale / assoluto</strong>: nuovo flag nel menu azioni (default: flusso normale, nessun cambiamento per le dashboard esistenti). In modalità assoluta gli elementi droppati si posizionano alle coordinate del drop, fuori dal flusso: ridimensionarne uno non sposta gli altri. Il drop dentro un contenitore usa il contenitore come riferimento di posizione, e il runtime riconosce automaticamente le dashboard salvate in questa modalità.</li>
+<li><strong>Scorciatoie da tastiera</strong>: <code>Canc</code>/<code>Backspace</code> elimina l'elemento selezionato, le frecce lo spostano, <code>Ctrl+Z</code>/<code>Ctrl+Y</code> annulla/ripete. Trascinando un rettangolo di selezione da un'area vuota del canvas si selezionano più elementi: frecce e <code>Canc</code> agiscono sull'intera selezione.</li>
+<li><strong>Import/Export JSON e preset</strong>: la dashboard corrente si esporta come file JSON re-importabile (identico al contenuto persistito), utile per portare layout tra ambienti. I preset salvano layout riusabili con un nome e si riapplicano in un click.</li>
+<li><strong>Sposta nei tab</strong>: dal menu contestuale di un elemento dentro un tab, <em>Sposta in nuovo Tab</em> crea un nuovo tab e ci migra l'elemento (binding e stato preservati); <em>Sposta in altro tab</em> — disponibile quando il tabview ha più tab — lo sposta in un tab esistente a scelta. Il tab di destinazione viene attivato automaticamente, così come un tab appena droppato.</li>
+<li><strong>Importa dashboard/preset in un elemento</strong>: dal menu contestuale di un contenitore si importa una dashboard salvata o un preset direttamente dentro l'elemento; gli identificativi degli elementi importati vengono rigenerati e i riferimenti interni (datasource inclusi) rimappati, senza collisioni con il contenuto esistente.</li>
+</ul>
+<h2 id="bug-fix-degni-di-nota">🐛 Bug fix degni di nota</h2>
+<ul>
+<li><strong>Designer — layout multi-colonna</strong>: l'iniezione di un layout a più colonne/aree (es. &quot;3 colonne, ognuna con una griglia&quot;) proposta dal chatbot ora popola correttamente tutte le aree. In precedenza, dopo la prima cella, le successive non venivano risolte e i componenti restavano vuoti.</li>
+<li><strong>Chatbot — whitelist delle route</strong>: quando si chiede di bindare un componente a una route con un nome non esatto (es. &quot;provincie&quot; per &quot;stateprovinces&quot;), il chatbot effettua ora il match semantico e propone l'azione, invece di rispondere erroneamente che l'elenco delle route è in caricamento.</li>
+<li><strong>Viewer 3D — navigazione tra scene</strong>: aprendo in sequenza scene diverse dallo stesso viewer, ora ciascuna carica la propria scena. In precedenza il viewer poteva continuare a mostrare la prima scena aperta.</li>
+<li><strong>Editor JSON con schema</strong>: l'editor di codice in modalità JSON offre ora una vista &quot;a struttura&quot; (attivabile con un interruttore) per aggiungere e rimuovere proprietà tipizzate guidate dallo schema, senza scrivere JSON a mano.</li>
+</ul>
+<h2 id="aggiornamenti-operativi-raccomandati-per-chi-aggiorna">🔧 Aggiornamenti operativi raccomandati per chi aggiorna</h2>
+<ol>
+<li>Per usare un LLM locale gratuito, valorizzare in <code>appsettings.json</code> → <code>AppSettings</code>: <code>rag-llm-provider=ollama</code>, <code>rag-llm-base-url</code>, <code>rag-llm-api-key</code> (valore segnaposto, es. <code>ollama</code>) e <code>rag-llm-default-chat-model</code>.</li>
+<li>Migrare la chiave del chatbot su <code>rag-llm-api-key</code>: le precedenti <code>llm-api-key</code> e <code>anthropic-api-key</code> continuano a funzionare come fallback, ma la configurazione consigliata usa solo <code>rag-llm-api-key</code>.</li>
+<li>Per l'assistente in VS Code, installare il plugin dallo ZIP: <code>code --install-extension llm-workspace/plugin/wuic-assistant.vsix</code> (oppure lasciarlo installare da <code>install-llm-workspace.ps1</code>).</li>
+<li>Per usare lo Scene3D Designer, abilitare la feature <code>scene3d-designer</code> nella licenza attiva. Le tabelle di supporto vengono create e migrate automaticamente al primo utilizzo; il renderer WebGPU è opt-in dalla toolbar, con fallback automatico a WebGL.</li>
+</ol>
+
+</article>
+</body>
+</html>

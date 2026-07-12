@@ -1,7 +1,11 @@
-<app-navbar />
+@if (!bareLayout()) {
+  <app-navbar />
+}
 <main class="site-main">
   <router-outlet />
 </main>
-<app-footer />
+@if (!bareLayout()) {
+  <app-footer />
+}
 <app-cookie-banner />
 <app-maintenance-toast />

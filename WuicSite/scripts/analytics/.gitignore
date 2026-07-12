@@ -1,0 +1,4 @@
+# Segreti runtime generati dal bootstrap (mai versionare)
+plausible/plausible-conf.env
+ubuntu-rootfs.tar.gz
+*.log

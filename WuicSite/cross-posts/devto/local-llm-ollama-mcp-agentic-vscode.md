@@ -127,3 +127,19 @@ Because it ships in the workspace template, a WUIC app is agentic-ready out of t
 You install the two extensions, point them at your Ollama host, and you have a WUIC-aware agentic assistant in your editor for the price of the electricity.
 
 Local LLMs are not magic and they are not free. But for "an assistant that knows our framework, runs all day, and never sends our code anywhere" — they are exactly the right tool, and the trade-offs are ones you can plan around once you see them written down.
+
+---
+
+## Update — July 2026: a faster brain, a longer memory, and a second serving quirk
+
+A month of running this in anger changed most of the numbers above — for the better. Same architecture, same honest accounting.
+
+**The model is now a Mixture-of-Experts, fine-tuned on our own mistakes.** The dense `qwen2.5-coder:32b` gave way to `qwen3-coder:30b` — a MoE with ~3B active parameters that generates at **~197 tokens/s** on the same 24 GB GPU (the dense 32B did ~30). Then we [DPO-trained it on the assistant's own failure traces](https://wuic-framework.com/blog/teaching-a-coding-agent-with-dpo), and that fine-tune is now the default brain for the in-product chatbot too. On the routing suite — grown from 89 to **102 variants** — the base MoE scores 88/102; the DPO fine-tune scores **96/102 at identical speed**. The ~8 s/call in the table above is now ~2–7 s.
+
+**The context window doubled, and here is the honest math.** We wrote "~24k tokens of KV cache" above. With grouped-query attention (4 KV heads) and a q8 cache, this model's KV costs ~52 KB/token — so 49k of context adds only ~2.6 GB on top of ~19 GB of weights. **49152 tokens, still 100% on-GPU**, generation speed unchanged. 64k also fits, but leaves ~1.7 GB of headroom on a box that also drives a desktop — we passed. Context is never "free at the same VRAM"; it was simply cheaper than we assumed.
+
+**A second serving quirk, same lesson as the first.** The MoE sometimes serializes *array-typed* tool arguments as a stringified JS literal — `"layout": "[{'tool_name': ...}]"` instead of an actual array. The schema validator rightly drops it, and our designer-tool routing quietly fell to 9/21. One more tolerant-parser pass (coerce string arguments that parse as arrays/objects back into structure, code fields excluded) took it back to 20/21. If you keep one sentence from this post, keep this one: **the weights are capable; the adapter around them is where the work is.**
+
+**The toolbox grew a dimension.** The chatbot now drives the **3D scene designer** the same way it drives the dashboard designer: "add a red cube", "kanban wall of the orders by status", "build a warehouse scene bound to the stock table" — one tool call, applied client-side to the live three.js scene, data-bound through the 3D mesh repeater. Same host-registry pattern, new canvas.
+
+**And the frontier-vs-local check, re-run.** We benchmarked a newer *dense* 27B against the MoE: it is genuinely better at routing (perfect on the kinds the MoE fumbles) — and **4× slower** (44 vs 197 tok/s), with no MTP head in the quantized build to claw the speed back. For an interactive assistant we kept the MoE + DPO: 96/102 at full speed beats ~99/102 at thirty seconds a reply. The hybrid recommendation above stands — now the local half is just much closer to the frontier than it was in June.
