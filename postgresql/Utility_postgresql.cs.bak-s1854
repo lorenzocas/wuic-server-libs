@@ -34,7 +34,7 @@ using System.ServiceModel;
 using HttpContext = System.WebCore.HttpContext;
 using WuicCore.Services.Licensing;
 
-namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
+namespace WEB_UI_CRAFTER.ProjectData.ServiziPostgreSql
 {
     public class Utility
     {
@@ -96,17 +96,16 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
 
         public static void customizeImgDBInsert(Dictionary<string, object> entity, _Metadati_Colonne_Upload uploader, _Metadati_Tabelle tabel, string safetable_name, ref string field_list, ref string value_list, bool base64Image)
         {
-            field_list += (field_list == "" ? "" : ", ") + RawHelpers.escapeDBObjectName(uploader.MultipleUploadBlobFieldName, "mysql");
+            field_list += (field_list == "" ? "" : ", ") + RawHelpers.escapeDBObjectName(uploader.MultipleUploadBlobFieldName, "postgresql");
             if (!string.IsNullOrEmpty(RawHelpers.ParseNull(entity[uploader.mc_nome_colonna])))
             {
                 // Resolve the upload-time folder id: prefer __guid (the
                 // multi-upload temp folder the client wrote into), then __id
                 // when it is a real value (not a placeholder "0"/""), then
                 // fall back to __guid even if blank as the original behavior.
-                // Without preferring __guid, two consecutive isDBUpload
-                // columns processed in the same BuildDynamicInsertQuery run
-                // can resolve to different paths if the loop populates
-                // entity["__id"] partway through iteration.
+                // Mirrors mysql/Utility_mysql.cs:customizeImgDBInsert so two
+                // consecutive isDBUpload columns processed in the same
+                // BuildDynamicInsertQuery resolve to the same folder.
                 string __id = null;
                 if (entity.ContainsKey("__guid"))
                 {
@@ -145,7 +144,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
 
                     ////append to query
                     ////alternative like openrowset ->  http://www.sql-workbench.net/manual/using.html#blob-support
-                    value_list += (value_list == "" ? "" : ", ") + "x'" + hexString + "'";
+                    value_list += (value_list == "" ? "" : ", ") + "decode('" + hexString + "', 'hex')";
                 }
             }
             else
@@ -165,13 +164,14 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
 
                 // Fallback to the upload-time __guid folder when the canonical
                 // pkey path doesn't have the file yet. The client uploads to
-                // <root>/<route>/<__guid>/<file> (the multi-upload pattern's
-                // temp folder); _Metadati_methods.RawUpdateFlatData later
-                // moves it into <root>/<route>/<pkey>/, but
-                // BuildDynamicUpdateQuery (and therefore this method) runs
-                // BEFORE that cleanup. Without this fallback the UPDATE SET
-                // clause omits the BLOB literal entirely and the existing blob
-                // value silently survives the update.
+                // <root>/<route>/<__guid>/<file> (the multi-upload temp
+                // folder); _Metadati_methods.RawUpdateFlatData later moves it
+                // into <root>/<route>/<pkey>/, but BuildDynamicUpdateQuery
+                // (and therefore this method) runs BEFORE that cleanup.
+                // Without this fallback the UPDATE SET clause omits the BLOB
+                // literal entirely and the existing blob value silently
+                // survives the update (PG bytea column stays at its prior
+                // value or NULL). Mirrors mysql/Utility_mysql.cs:customizeImgDBUpdate.
                 if (!System.IO.File.Exists(tmp_path) && entity.ContainsKey("__guid"))
                 {
                     string guid = entity["__guid"]?.ToString();
@@ -212,7 +212,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
                     ////for older version bytea Escape Format
                     ////use decode('...', 'hex')
 
-                    field_value_list += (field_value_list == "" ? "" : ", ") + RawHelpers.escapeDBObjectName(uploader.MultipleUploadBlobFieldName, "mysql") + "=x'" + hexString + "'";
+                    field_value_list += (field_value_list == "" ? "" : ", ") + RawHelpers.escapeDBObjectName(uploader.MultipleUploadBlobFieldName, "postgresql") + "=decode('" + hexString + "', 'hex')";
 
                     ////append to query
                     ////alternative like openrowset ->  http://www.sql-workbench.net/manual/using.html#blob-support
@@ -428,8 +428,8 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
             if (!string.IsNullOrWhiteSpace(configuredTypeName))
                 typeCandidates.Add(configuredTypeName.Trim());
 
-            typeCandidates.Add("WEB_UI_CRAFTER.ProjectData.ServiziMySql.UtilityHost");
-            typeCandidates.Add("WEB_UI_CRAFTER.ProjectData.ServiziMySql.CustomCrudHooks");
+            typeCandidates.Add("WEB_UI_CRAFTER.ProjectData.ServiziPostgreSql.UtilityHost");
+            typeCandidates.Add("WEB_UI_CRAFTER.ProjectData.ServiziPostgreSql.CustomCrudHooks");
             typeCandidates.Add("WEB_UI_CRAFTER.ProjectData.Servizi.UtilityHost");
             typeCandidates.Add("WEB_UI_CRAFTER.ProjectData.Servizi.CustomCrudHooks");
 
@@ -481,7 +481,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
             string idLingua = "";
             string idUtente = "";
 
-            using (myConn = MySqlProviderGateway.GetOpenConnection(false))
+            using (myConn = PostGresProviderGateway.GetOpenConnection(false))
             {
                 myCmd = myConn.CreateCommand();
 
@@ -497,7 +497,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
 
                 myReader.Close();
                 myConn.Close();
-
+                myCmd = null;
             }
 
             return idLingua + "-" + idUtente;
@@ -548,7 +548,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
                 return dir.EnumerateFiles().ToList().Select((x) => new my_file_info() { name = x.Name, folder = x.Directory.Name, extension = x.Extension, OriginalPath = x.FullName, bytesyze = (int)x.Length, kbsyze = (int)(x.Length / 1024) }).ToList();
             else
             {
-                _ = dir.EnumerateFiles();
+                var dirs = dir.EnumerateFiles();
                 List<my_file_info> fi = fileTypes.SelectMany(i => dir.EnumerateFiles("*.*", SearchOption.AllDirectories)).Distinct().ToList().Select((x) => new my_file_info() { name = x.Name, folder = x.Directory.Name, extension = x.Extension, OriginalPath = x.FullName, bytesyze = (int)x.Length, kbsyze = (int)(x.Length / 1024) }).ToList();
                 return fi;
             }
@@ -588,7 +588,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
                         DbConnection myConn;
                         DbCommand myCmd;
 
-                        using (myConn = MySqlProviderGateway.GetOpenConnection(false))
+                        using (myConn = PostGresProviderGateway.GetOpenConnection(false))
                         {
                             try
                             {
@@ -604,7 +604,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
                             }
                         }
                         myConn.Close();
-
+                        myCmd = null;
                     }
                     else
                         throw new FileNotFoundException(HttpContext.Current.Server.MapPath((routePath != null) ? routePath : "/") + imgName);
@@ -620,7 +620,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
                 DbConnection myConn;
                 DbCommand myCmd;
 
-                using (myConn = MySqlProviderGateway.GetOpenConnection(false))
+                using (myConn = PostGresProviderGateway.GetOpenConnection(false))
                 {
                     try
                     {
@@ -636,7 +636,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
                     }
                 }
                 myConn.Close();
-
+                myCmd = null;
             }
         }
 
@@ -699,17 +699,25 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
 
         public static string getConnectionString(ConcurrentDictionary<string, object> utenteExtra)
         {
+
+            string connectionString = "";
+
             if (utenteExtra.ContainsKey("connection"))
             {
-                string userConnection = utenteExtra["connection"]?.ToString();
+                string userConnection = utenteExtra["connection"].ToString();
+
                 if (!string.IsNullOrEmpty(userConnection))
+                    connectionString = ConfigHelper.ResolveConnectionString(userConnection);
+                else
                 {
-                    var resolved = ConfigHelper.ResolveConnectionString(userConnection);
-                    if (!string.IsNullOrEmpty(resolved))
-                        return resolved;
+                    connectionString = ConfigHelper.ResolveConnectionString("DataSQLConnection");
                 }
             }
-            return ConfigHelper.ResolveConnectionString("DataSQLConnection") ?? "";
+            else
+            {
+                connectionString = ConfigHelper.ResolveConnectionString("DataSQLConnection");
+            }
+            return connectionString;
         }
 
         public static string authenticate()
@@ -727,7 +735,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
                 {
                     metaModelRaw.SysInfo infos = context.GetSysInfos();
 
-                    using (DbConnection connection = string.IsNullOrEmpty(infos.user_db_name) ? MySqlProviderGateway.GetOpenConnection(true) : MySqlProviderGateway.getSpecificConnection(infos.user_db_name))
+                    using (DbConnection connection = string.IsNullOrEmpty(infos.user_db_name) ? PostGresProviderGateway.GetOpenConnection(true) : PostGresProviderGateway.getSpecificConnection(infos.user_db_name))
                     {
                         SqlMapper.FastExpando token = connection.Query(
                             string.Format("SELECT token, ip FROM {0} WHERE {1} = '{2}' and Dateadd(MINUTE, " +
@@ -746,7 +754,8 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
 
                         if (saved_token != user.user_token || current_ip != saved_ip || string.IsNullOrEmpty(saved_token))
                         {
-                            connection.Execute(string.Format("UPDATE {0} SET {1}='', LastActivityDate=getdate() WHERE {2} = {3}",
+                            // PG-native (port da mysql/Utility_mysql.cs): NOW() invece di MSSQL getdate(); colonne `utenti` lowercase 2026-05-18.
+                            connection.Execute(string.Format("UPDATE {0} SET {1}='', lastactivitydate=NOW() WHERE {2} = {3}",
                                                                 infos.user_table_name,
                                                                 "token",
                                                                 infos.user_id_column_name,
@@ -756,7 +765,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
                         }
                         else
                         {
-                            connection.Execute(string.Format("UPDATE {0} SET LastActivityDate=getdate() WHERE {1} = {2}",
+                            connection.Execute(string.Format("UPDATE {0} SET lastactivitydate=NOW() WHERE {1} = {2}",
                                                                 infos.user_table_name,
                                                                 infos.user_id_column_name,
                                                                 user.user_id));
@@ -778,14 +787,14 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
 
                 if (infos != null)
                 {
-                    using (DbConnection connection = MySqlProviderGateway.GetOpenConnection(true))
+                    using (DbConnection connection = PostGresProviderGateway.GetOpenConnection(true))
                     {
                         bool isPwdEncripted = RawHelpers.ParseBool(ConfigHelper.GetSettingAsString("IsPwdEncripted"));
 
                         string pwd = password;
                         if (isPwdEncripted)
                         {
-                            _ = Global.pbkdf2Hash(pwd);
+                            pwd = Global.pbkdf2Hash(pwd);
                         }
 
                         string iP = HttpContext.Current.Request.UserHostAddress;
@@ -818,7 +827,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
 
         public static user getUserByID(string user_id)
         {
-            var utente = MySqlProviderGateway.getUserByID(user_id);
+            var utente = PostGresProviderGateway.getUserByID(user_id);
 
 
             return utente;
@@ -841,7 +850,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
             string email = user.Where(x => x.Key == "email").Any() ? RawHelpers.ParseNull(user.Where(x => x.Key == "email").First().Value) : "";
             string uName = user.Where(x => x.Key == infos.username_column_name).Any() ? RawHelpers.ParseNull(user.Where(x => x.Key == infos.username_column_name).First().Value).ToString() : "";
 
-            var lastAct = user.Where(x => x.Key == "LastActivityDate").Any() ? RawHelpers.ParseNull(user.Where(x => x.Key == "LastActivityDate").First().Value) : null;
+            var lastAct = user.Where(x => string.Equals(x.Key, "lastactivitydate", StringComparison.OrdinalIgnoreCase)).Any() ? RawHelpers.ParseNull(user.Where(x => string.Equals(x.Key, "lastactivitydate", StringComparison.OrdinalIgnoreCase)).First().Value) : null;
             DateTime lastActivity = DateTime.MinValue;
 
             if (lastAct != null)
@@ -881,6 +890,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
             if (extra_fields != null)
             {
                 // foreach (string extra_field in extra_fields)
+                // {
                 //     var user_param = user.data[extra_field];
                 //     u.extra_keys.Add(extra_field, user_param != null ? user_param.ToString() : "");
                 // }
@@ -950,7 +960,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
 
                     for (int mdx = 0; mdx < modelObject.Count; mdx++)
                     {
-
+                        string titleX = title;
                         string caption = modelObject[mdx].metaInfo.mc_display_string_in_view;
 
                         Excel.SetColumnHeadingValue(spreadsheet, worksheet, Convert.ToUInt32(mdx + 1),
@@ -979,7 +989,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
                                     styleIndex = 2;
 
                                     short? decimals = metaInfo.mc_ui_slider_decimals;
-
+                                    string format = metaInfo.mc_ui_slider_format;
 
                                     if (decimals.HasValue)
                                     {
@@ -1102,13 +1112,13 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
                 (new DocumentFormat.OpenXml.Drawing.Charts.Chart());
 
             PlotArea plotArea = new PlotArea();
-
+            Layout layout = new Layout();
 
             PieChart pie = new PieChart();
 
             PieChartSeries pieSiries = new PieChartSeries();
 
-            _ = pie.AppendChild<PieChartSeries>(new PieChartSeries());
+            PieChartSeries pieSeries = pie.AppendChild<PieChartSeries>(new PieChartSeries());
 
 
             DocumentFormat.OpenXml.Drawing.Charts.Formula formula = new DocumentFormat.OpenXml.Drawing.Charts.Formula();
@@ -1143,6 +1153,8 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
         #endregion
     }
 }
+
+
 
 
 

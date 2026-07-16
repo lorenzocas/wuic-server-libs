@@ -1487,9 +1487,10 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                 infos.password_column_name ?? string.Empty,
                 "pwd_hash", "password", "passwd", "pwd"
             };
-            _ = user.data.Keys.Where(x => !sensitiveColumnDenylist.Contains(x));
+            var extra_fields = user.data.Keys.Where(x => !sensitiveColumnDenylist.Contains(x));
 
             // foreach (string extra_field in extra_fields)
+            // {
             //     var user_param = user.data[extra_field];
             //     u.extra_keys.Add(extra_field, user_param != null ? user_param.ToString() : "");
             // }
@@ -1601,7 +1602,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
         {
             using (metaRawModel context = new metaRawModel())
             {
-                _ = context.GetSysInfos();
+                SysInfo infos = context.GetSysInfos();
 
 
                 using (MySqlConnection connection = GetOpenConnection(true))
@@ -1874,7 +1875,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
         public static string getTableFullName(_Metadati_Tabelle tab)
         {
             string table_name = tab.md_nome_tabella;
-            string safetable_name; _ = (string.IsNullOrEmpty(tab.md_db_name) ? "" : "`" + tab.md_db_name + "`.") + (!string.IsNullOrEmpty(tab.md_schema_name) ? "`" + tab.md_schema_name + "`." : ".") + EscapeDBObjectName(table_name);
+            string safetable_name = (string.IsNullOrEmpty(tab.md_db_name) ? "" : "`" + tab.md_db_name + "`.") + (!string.IsNullOrEmpty(tab.md_schema_name) ? "`" + tab.md_schema_name + "`." : ".") + EscapeDBObjectName(table_name);
             if (string.IsNullOrEmpty(tab.md_db_name))
             {
                 if (string.IsNullOrEmpty(tab.md_schema_name))
@@ -2009,7 +2010,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                     if (string.IsNullOrEmpty(completeSettings))
                         completeSettings = "{}";
 
-                    _ = JsonConvert.DeserializeObject(completeSettings);
+                    var deserializedSettings = JsonConvert.DeserializeObject(completeSettings);
 
                     Dictionary<string, object> dict = JsonConvert.DeserializeObject<Dictionary<string, object>>(completeSettings);
 
@@ -2027,7 +2028,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
         public static string saveCustomSettings(string user_id, string settings, string key)
         {
-            _ = user.getUserByID(user_id);
+            user u = user.getUserByID(user_id);
 
             using (MySqlConnection connection = metaQueryMySql.GetOpenConnection(true))
             {
@@ -2090,7 +2091,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
             using (metaRawModel context = new metaRawModel())
             {
                 List<_Metadati_Colonne> mcs = context.GetMetadati_Colonnes(null, null, route);
-
+                StringBuilder sb = new StringBuilder();
                 string file = RawHelpers.ExportToExcel2(mcs, dati, route, route, uid, progressGuid, excelTheme, excelThemeMode);
 
                 return file;
@@ -2344,7 +2345,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                 if (tabel != null)
                 {
                     string route_name = tabel.md_route_name;
-
+                    string table_name = tabel.md_nome_tabella;
 
                     bool isMeta = RawHelpers.checkIsMetaData(route_name);
 
@@ -2402,7 +2403,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                 if (tabel != null)
                 {
                     string route_name = tabel.md_route_name;
-
+                    string table_name = tabel.md_nome_tabella;
 
                     bool isMeta = RawHelpers.checkIsMetaData(route_name);
 
@@ -2586,7 +2587,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
         {
             using (metaRawModel context = new metaRawModel())
             {
-                _ = context.GetMetadati_Tabelles(ownerRoute).FirstOrDefault();
+                _Metadati_Tabelle ownerTable = context.GetMetadati_Tabelles(ownerRoute).FirstOrDefault();
                 _Metadati_Colonne_Lookup col = context.GetMetadati_Colonnes(mc_id.ToString(), "", ownerRoute).FirstOrDefault() as _Metadati_Colonne_Lookup;
 
                 if (col != null)
@@ -3015,7 +3016,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                             newMMEntity[colGrid.mc_ui_grid_manytomany_related_id_field] = subEntity[colGrid.mc_ui_grid_related_id_field];
                             newMMEntity[colGrid.mc_ui_grid_manytomany_local_id_field] = entity[colGrid.mc_ui_grid_local_id_field];
 
-                            _ = InsertflatData(newMMEntity, subRoute, userId);
+                            string insertedID = InsertflatData(newMMEntity, subRoute, userId);
                         }
                         else if (subEntity.ContainsKey("___deleted") && (bool)subEntity["___deleted"])
                         {
@@ -3388,7 +3389,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
             bool enableServerSideCrudChangeLog = RawHelpers.ParseBool(ConfigHelper.GetSettingAsString("enableServerSideCrudChangeLog") ?? "true");
             if (enableServerSideCrudChangeLog && deleteChanges.Count > 0)
             {
-                string operationType;
+                string operationType = "delete_physical";
                 string globalLogicDeleteField = RawHelpers.ParseNull(ConfigHelper.GetSettingAsString("logicDeleteField"));
                 if (!string.IsNullOrEmpty(globalLogicDeleteField))
                 {
@@ -3565,7 +3566,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
                                 ////****************IT's WRONG!!!!*******************
 
-                                _ = InsertflatData(newMMEntity, subRoute, userId);
+                                string insertedID = InsertflatData(newMMEntity, subRoute, userId);
 
                             }
                         }
@@ -3869,6 +3870,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                     string delete_log = "";
                     if (tabel.md_logging_enable)
                     {
+                        //if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
                         //{
                         //    userId = Utility.id_extraClient(ref userId);
                         //}
@@ -3894,6 +3896,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                         string delete_log = "";
                         if (tabel.md_logging_enable)
                         {
+                            //if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
                             //{
                             //    userId = Utility.id_extraClient(ref userId);
                             //}
@@ -4412,7 +4415,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                 lst.ForEach((fld) =>
                 {
 
-                    _ = EscapeDBObjectName(fld.mc_nome_colonna);
+                    string safeAlias = EscapeDBObjectName(fld.mc_nome_colonna);
 
                     string currentFld = GetCurrentFieldString(tab, fld);
 
@@ -4768,7 +4771,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
                 var realOperator = GetRealOperator(f.operatore);
                 string quote = fld != null ? RawHelpers.getQuoteFromColumn(fld) : "";
-
+                var valore = f.value;
 
                 if (fld != null && fld.mc_ui_column_type == "multiple_check")
                 {
@@ -4836,6 +4839,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
                     dynamic mapProps = null;
                     // if (!string.IsNullOrEmpty(fld.mc_props_bag))
+                    // {
                     //     dynamic extraProps = RawHelpers.deserialize(fld.mc_props_bag, null);
                     //     if (extraProps != null)
                     //     {
@@ -4896,6 +4900,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                 {
                     dynamic mapProps = null;
                     // if (!string.IsNullOrEmpty(fld.mc_props_bag))
+                    // {
                     //     dynamic extraProps = RawHelpers.deserialize(fld.mc_props_bag, null);
                     //     if (extraProps != null)
                     //     {
@@ -5186,7 +5191,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
         {
             string where = "";
 
-            string tableName;
+            string tableName = tab.md_nome_tabella;
             string safetableName = GetTableName(tab);
 
             #region paging
@@ -5311,12 +5316,12 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
             #endregion
 
-            List<_Metadati_Colonne> cols;
+            List<_Metadati_Colonne> cols = tab._Metadati_Colonnes;
 
             if (tab._Metadati_Colonnes == null)
             {
                 tab.skipColumns = false;
-
+                cols = tab._Metadati_Colonnes;
             }
 
             _Metadati_Colonne_Lookup lc = linkedCol as _Metadati_Colonne_Lookup;
@@ -5541,7 +5546,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                     string relatedKeyName = grid_col.mc_ui_grid_manytomany_related_id_field;
                     if (localKeyName == "")
                         localKeyName = pkey.mc_nome_colonna;
-                    _ = grid_col_metadata.First(x => x.mc_nome_colonna == localKeyName) as _Metadati_Colonne_Lookup;
+                    _Metadati_Colonne_Lookup local_key = grid_col_metadata.First(x => x.mc_nome_colonna == localKeyName) as _Metadati_Colonne_Lookup;
                     _Metadati_Colonne_Lookup related_key = grid_col_metadata.First(x => x.mc_nome_colonna == relatedKeyName) as _Metadati_Colonne_Lookup;
 
                     string display_col = related_key.mc_ui_lookup_entity_name.Replace(" ", "_") + "___" + related_key.mc_ui_lookup_dataTextField + "__" + related_key.mc_nome_colonna;
@@ -5621,7 +5626,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                     Dictionary<string, object> extraDict = NormalizeToDictionary((object)extraProps);
                     if (extraDict != null && extraDict.TryGetValue("serverProperties", out object serverPropsObj))
                     {
-
+                        serverProps = serverPropsObj;
 
                         Dictionary<string, object> serverPropsDict = NormalizeToDictionary(serverPropsObj);
                         if (serverPropsDict != null &&
@@ -5643,7 +5648,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                 {
                     orderSafetableName = EscapeDBObjectName(look.mc_nome_colonna + "_" + look.mc_ui_lookup_entity_name);
 
-
+                    string calculatedText = look.mc_ui_lookup_computed_dataTextField;
 
                     using (metaRawModel ctx = new metaRawModel())
                     {
@@ -5654,7 +5659,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                             related.skipColumns = false;
                             _Metadati_Colonne descField = related._Metadati_Colonnes.FirstOrDefault(x => x.mc_nome_colonna == look.mc_ui_lookup_dataTextField);
                             string safeField = RawHelpers.getStoreColumnName(descField);
-                            string safename; _ = EscapeDBObjectName(look.mc_ui_lookup_entity_name) + "." + EscapeDBObjectName(safeField);
+                            string safename = EscapeDBObjectName(look.mc_ui_lookup_entity_name) + "." + EscapeDBObjectName(safeField);
 
                             if (look.mc_is_computed.HasValue && look.mc_is_computed.Value)
                                 safename = "(" + look.mc_computed_formula + ")";
@@ -5898,7 +5903,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
         {
             filterInfo.filters.Where(x => x.field != "__extra" && x.isHaving).ToList().ForEach((f) =>
             {
-                _ = f.havingAggregation + "_" + fld.mc_nome_colonna + "_" + def.id;
+                string having_alias = f.havingAggregation + "_" + fld.mc_nome_colonna + "_" + def.id;
 
                 var realOperator = GetRealOperator(f.operatore);
                 string quote = RawHelpers.getQuoteFromColumn(fld);
@@ -6156,7 +6161,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                     {
                         string safeappend = EscapeDBObjectName(col.mc_ui_lookup_entity_name.Replace(" ", "_") + "___" + col.mc_ui_lookup_dataTextField + "__" + col.mc_nome_colonna);
 
-                        _ = GetTableName(relatedTable);
+                        string safeEntityName = GetTableName(relatedTable);
                         string safeUniqueEntityName = EscapeDBObjectName(col.mc_nome_colonna + "_" + col.mc_ui_lookup_entity_name);
                         string safeTextField = EscapeDBObjectName(col.mc_ui_lookup_dataTextField);
                         string calculatedText = col.mc_ui_lookup_computed_dataTextField;
@@ -6280,7 +6285,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
             string safetable_name = RawHelpers.getStoreTableName(tabel, "mysql");
 
-            _ = metadata.OfType<_Metadati_Colonne_Upload>().ToList();
+            List<_Metadati_Colonne_Upload> metadataUpload = metadata.OfType<_Metadati_Colonne_Upload>().ToList();
 
             metadata.Where(x => !x.mc_is_computed.HasValue || !x.mc_is_computed.Value || x.GetType() == typeof(_Metadati_Colonne_Grid)).ToList().ForEach((fld) =>
             {
@@ -6582,7 +6587,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                     {
                         foreach (Dictionary<string, object> subEntity in collection)
                         {
-
+                            string localfield = colGrid.mc_ui_grid_manytomany_related_id_field;
                             if (subEntity.ContainsKey("___added") && (bool)subEntity["___added"])
                             {
                                 if (subEntity.ContainsKey("___deleted"))
@@ -6599,7 +6604,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                                 if (colGrid.mc_ui_grid_related_id_field != colGrid.mc_ui_grid_local_id_field && !subEntity.ContainsKey(colGrid.mc_ui_grid_related_id_field))
                                     subEntity[colGrid.mc_ui_grid_related_id_field] = subEntity[colGrid.mc_ui_grid_local_id_field];
 
-                                _ = InsertflatData(subEntity, subRoute, user_id);
+                                string insertedID = InsertflatData(subEntity, subRoute, user_id);
 
                             }
                             else if (subEntity.ContainsKey("___deleted") && subEntity["___deleted"] != null && (bool)subEntity["___deleted"])
@@ -6677,6 +6682,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
             if (tabel.md_logging_enable)
             {
+                //if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
                 //{
                 //    user_id = Utility.id_extraClient(ref user_id);
                 //}
@@ -6746,6 +6752,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                     string delete_log = "";
                     if (tabel.md_logging_enable)
                     {
+                        //if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
                         //{
                         //    user_id = Utility.id_extraClient(ref user_id);
                         //}
@@ -6761,6 +6768,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                         string delete_log = "";
                         if (tabel.md_logging_enable)
                         {
+                            //if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
                             //{
                             //    user_id = Utility.id_extraClient(ref user_id);
                             //}
@@ -6786,6 +6794,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                         string delete_log = "";
                         if (tabel.md_logging_enable)
                         {
+                            //if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
                             //{
                             //    user_id = Utility.id_extraClient(ref user_id);
                             //}
@@ -7302,7 +7311,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
             bool base64Image = RawHelpers.ParseBool(ConfigHelper.GetSettingAsString("base64Image") ?? "false");
 
-            _ = metadata.OfType<_Metadati_Colonne_Upload>().Where(x => !string.IsNullOrEmpty(x.MultipleUploadBlobFieldName)).Select(x => x.MultipleUploadBlobFieldName).ToList();
+            List<string> skipUploadFields = metadata.OfType<_Metadati_Colonne_Upload>().Where(x => !string.IsNullOrEmpty(x.MultipleUploadBlobFieldName)).Select(x => x.MultipleUploadBlobFieldName).ToList();
 
             metadata.Where(x => !x.mc_is_computed.HasValue || !x.mc_is_computed.Value).ToList().ForEach((fld) =>
             {
@@ -7527,7 +7536,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                             if (!string.IsNullOrEmpty(point?.First?.ToString()) && !string.IsNullOrEmpty(point?.Second?.ToString()))
                             {
                                 valore = string.Format("GeomFromText('POINT({0} {1})')", point.First.ToString(), point.Second.ToString());
-
+                                quote = "";
                             }
                             else
                             {
@@ -7540,7 +7549,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                         if (valore != null && !string.IsNullOrEmpty(valore.ToString()))
                         {
                             valore = string.Format("GeomFromText('{0}')", valore.ToString().Replace("'", "''"));
-
+                            quote = "";
                         }
                     }
                     else if (fld.mc_db_column_type == "geography")
@@ -7595,7 +7604,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                                 valore = string.Format("GeomFromText('{0}')", rawGeo.Replace("'", "''"));
                             }
 
-
+                            quote = "";
                         }
                     }
 
@@ -7723,6 +7732,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
             if (tabel.md_logging_enable)
             {
+                //if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
                 //{
                 //    user_id = Utility.id_extraClient(ref user_id);
                 //}
@@ -7795,7 +7805,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                 {
                     foreach (routePair rp in relatedRouteToClone)
                     {
-                        _ = _Metadati_Colonne.getColonneByUserID(rp.relatedRoute, 0, user_id, dataMode.insert, null);
+                        List<_Metadati_Colonne> related_metadata = _Metadati_Colonne.getColonneByUserID(rp.relatedRoute, 0, user_id, dataMode.insert, null);
                         FilterInfos fltr = RawHelpers.createStandardFilter(rp.relatedIdField, originalID, pkeys[0]);
                         rawPagedResult res = GetFlatData(user_id, rp.relatedRoute, 0, null, null, null, fltr, "AND", true, null, null);
                         foreach (SqlMapper.FastExpando o in res.results)
@@ -8370,10 +8380,10 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                                         if (!parseFKey(uploadOption, tabel, record, context, ref errorCount, log, fileName, recordCounter, "mysql"))
                                             return log.ToString();
 
-
+                                        fkeyParsed = true;
 
                                         string update_query = metaQueryMySql.BuildDynamicUpdateQuery(record, tabel._Metadati_Colonnes.ToList(), uploadOption.user_id, true);
-                                        _ = con.Execute(update_query, null, myTrans).ToString();
+                                        string result = con.Execute(update_query, null, myTrans).ToString();
 
                                         updatedRecord++;
                                         continue;
@@ -8391,7 +8401,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                                 }
 
                                 string insert_query = metaQueryMySql.BuildDynamicInsertQuery(record, tabel._Metadati_Colonnes.ToList(), uploadOption.user_id, out pk, true);
-                                _ = con.Execute(insert_query, null, myTrans).ToString();
+                                string result = con.Execute(insert_query, null, myTrans).ToString();
                                 insertedRecord++;
                                 continue;
                             }

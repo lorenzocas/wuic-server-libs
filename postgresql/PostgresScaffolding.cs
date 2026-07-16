@@ -1106,7 +1106,6 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
             string canonical = GetPostgresCanonicalType(column.DataType);
 
             // PK type detection: IDENTITY (PG `is_identity='YES'` or SERIAL)
-            // → "IDENTITY"; pure-integer non-identity → "MAX" pattern;
             // UUID → "GUID"; everything else → manual.
             if (mc_is_primary_key)
             {

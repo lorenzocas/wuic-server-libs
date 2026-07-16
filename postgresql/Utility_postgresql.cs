@@ -497,7 +497,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziPostgreSql
 
                 myReader.Close();
                 myConn.Close();
-                myCmd = null;
+
             }
 
             return idLingua + "-" + idUtente;
@@ -548,7 +548,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziPostgreSql
                 return dir.EnumerateFiles().ToList().Select((x) => new my_file_info() { name = x.Name, folder = x.Directory.Name, extension = x.Extension, OriginalPath = x.FullName, bytesyze = (int)x.Length, kbsyze = (int)(x.Length / 1024) }).ToList();
             else
             {
-                var dirs = dir.EnumerateFiles();
+                _ = dir.EnumerateFiles();
                 List<my_file_info> fi = fileTypes.SelectMany(i => dir.EnumerateFiles("*.*", SearchOption.AllDirectories)).Distinct().ToList().Select((x) => new my_file_info() { name = x.Name, folder = x.Directory.Name, extension = x.Extension, OriginalPath = x.FullName, bytesyze = (int)x.Length, kbsyze = (int)(x.Length / 1024) }).ToList();
                 return fi;
             }
@@ -604,7 +604,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziPostgreSql
                             }
                         }
                         myConn.Close();
-                        myCmd = null;
+
                     }
                     else
                         throw new FileNotFoundException(HttpContext.Current.Server.MapPath((routePath != null) ? routePath : "/") + imgName);
@@ -636,7 +636,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziPostgreSql
                     }
                 }
                 myConn.Close();
-                myCmd = null;
+
             }
         }
 
@@ -794,7 +794,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziPostgreSql
                         string pwd = password;
                         if (isPwdEncripted)
                         {
-                            pwd = Global.pbkdf2Hash(pwd);
+                            _ = Global.pbkdf2Hash(pwd);
                         }
 
                         string iP = HttpContext.Current.Request.UserHostAddress;
@@ -844,7 +844,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziPostgreSql
 
             string userid = user.Where(x => x.Key == infos.user_id_column_name).Any() ? RawHelpers.ParseNull(user.Where(x => x.Key == infos.user_id_column_name).First().Value).ToString() : "";
             string display = user.Where(x => x.Key == infos.user_description_column_name).Any() ? RawHelpers.ParseNull(user.Where(x => x.Key == infos.user_description_column_name).First().Value).ToString() : "";
-            bool isAdmin = user.Where(x => x.Key == infos.isAdmin_column_name).Any() ? RawHelpers.ParseBool(user.Where(x => x.Key == infos.isAdmin_column_name).First().Value) : false;
+            bool isAdmin = user.Where(x => x.Key == infos.isAdmin_column_name).Any() && RawHelpers.ParseBool(user.Where(x => x.Key == infos.isAdmin_column_name).First().Value);
             string role_id = user.Where(x => x.Key == infos.role_id_column_name).Any() ? RawHelpers.ParseNull(user.Where(x => x.Key == infos.role_id_column_name).First().Value).ToString() : "";
             string ip = user.Where(x => x.Key == "ip").Any() ? RawHelpers.ParseNull(user.Where(x => x.Key == "ip").First().Value) : "";
             string email = user.Where(x => x.Key == "email").Any() ? RawHelpers.ParseNull(user.Where(x => x.Key == "email").First().Value) : "";
@@ -890,7 +890,6 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziPostgreSql
             if (extra_fields != null)
             {
                 // foreach (string extra_field in extra_fields)
-                // {
                 //     var user_param = user.data[extra_field];
                 //     u.extra_keys.Add(extra_field, user_param != null ? user_param.ToString() : "");
                 // }
@@ -960,7 +959,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziPostgreSql
 
                     for (int mdx = 0; mdx < modelObject.Count; mdx++)
                     {
-                        string titleX = title;
+
                         string caption = modelObject[mdx].metaInfo.mc_display_string_in_view;
 
                         Excel.SetColumnHeadingValue(spreadsheet, worksheet, Convert.ToUInt32(mdx + 1),
@@ -989,7 +988,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziPostgreSql
                                     styleIndex = 2;
 
                                     short? decimals = metaInfo.mc_ui_slider_decimals;
-                                    string format = metaInfo.mc_ui_slider_format;
+
 
                                     if (decimals.HasValue)
                                     {
@@ -1112,13 +1111,13 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziPostgreSql
                 (new DocumentFormat.OpenXml.Drawing.Charts.Chart());
 
             PlotArea plotArea = new PlotArea();
-            Layout layout = new Layout();
+
 
             PieChart pie = new PieChart();
 
             PieChartSeries pieSiries = new PieChartSeries();
 
-            PieChartSeries pieSeries = pie.AppendChild<PieChartSeries>(new PieChartSeries());
+            _ = pie.AppendChild<PieChartSeries>(new PieChartSeries());
 
 
             DocumentFormat.OpenXml.Drawing.Charts.Formula formula = new DocumentFormat.OpenXml.Drawing.Charts.Formula();

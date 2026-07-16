@@ -531,7 +531,7 @@ FROM {fromTable}
 
         public static string buildChartSelect(string chartType, string route, string user_id, string aggregationFunction, string valueField, FilterInfos filters, string categoryAxFld)
         {
-            chartType tipo = (chartType)Enum.Parse(typeof(chartType), chartType);
+            _ = (chartType)Enum.Parse(typeof(chartType), chartType);
 
             //route:                utenti
             //chartType:            bar
@@ -567,7 +567,7 @@ FROM {fromTable}
                     _Metadati_Tabelle relatedTable = mmd.GetMetadati_Tabelles(categoryColumnLookUp.mc_ui_lookup_entity_name).FirstOrDefault();
                     string safeEntityName = GetTablePrefix(relatedTable) + EscapeDBObjectName(relatedTable.md_nome_tabella);
                     string safeUniqueEntityName = metaQuery.EscapeDBObjectName(categoryColumnLookUp.mc_nome_colonna + "_" + categoryColumnLookUp.mc_ui_lookup_entity_name);
-                    string calculatedText = categoryColumnLookUp.mc_ui_lookup_computed_dataTextField;
+
                     string safeTextField = metaQuery.EscapeDBObjectName(categoryColumnLookUp.mc_ui_lookup_dataTextField);
                     join = string.Format(" LEFT JOIN {0} AS {3} ON {1} = {2} ", safeEntityName, current_fld, safeUniqueEntityName + "." + metaQuery.EscapeDBObjectName(categoryColumnLookUp.mc_ui_lookup_dataValueField), safeUniqueEntityName);
                     group_by = safeUniqueEntityName + "." + safeTextField;
@@ -907,7 +907,7 @@ FROM {fromTable}
                             cmd.Parameters.Add(new SqlParameter("mc_nome_colonna", col_name));
                             cmd.Parameters.Add(new SqlParameter("mc_ui_column_type", mc_ui_column_type));
                             cmd.Parameters.Add(new SqlParameter("mccomputedformula", !isReticular ? "null" : ""));
-                            cmd.Parameters.Add(new SqlParameter("mciscomputed", !isReticular ? true : false));
+                            cmd.Parameters.Add(new SqlParameter("mciscomputed", !isReticular));
                             cmd.Parameters.Add(new SqlParameter("mcgrantbydefault", true));
                             cmd.Parameters.Add(new SqlParameter("mcordine", total_col_count));
                             cmd.Parameters.Add(new SqlParameter("mc_ui_slider_format", "N"));
@@ -947,7 +947,7 @@ FROM {fromTable}
                             cmd.Parameters.Add(new SqlParameter("mc_nome_colonna", col_name));
                             cmd.Parameters.Add(new SqlParameter("mc_ui_column_type", mc_ui_column_type));
                             cmd.Parameters.Add(new SqlParameter("mccomputedformula", !isReticular ? "null" : ""));
-                            cmd.Parameters.Add(new SqlParameter("mciscomputed", !isReticular ? true : false));
+                            cmd.Parameters.Add(new SqlParameter("mciscomputed", !isReticular));
                             cmd.Parameters.Add(new SqlParameter("mcgrantbydefault", true));
                             cmd.Parameters.Add(new SqlParameter("mcordine", total_col_count));
                             cmd.Parameters.Add(new SqlParameter("mc_ui_slider_format", "N"));
@@ -978,7 +978,7 @@ FROM {fromTable}
                             cmd.Parameters.Add(new SqlParameter("mc_nome_colonna", col_name));
                             cmd.Parameters.Add(new SqlParameter("mc_ui_column_type", mc_ui_column_type));
                             cmd.Parameters.Add(new SqlParameter("mccomputedformula", !isReticular ? "null" : ""));
-                            cmd.Parameters.Add(new SqlParameter("mciscomputed", !isReticular ? true : false));
+                            cmd.Parameters.Add(new SqlParameter("mciscomputed", !isReticular));
                             cmd.Parameters.Add(new SqlParameter("mcgrantbydefault", true));
                             cmd.Parameters.Add(new SqlParameter("mcordine", total_col_count));
                             cmd.Parameters.Add(new SqlParameter("mc_ui_slider_format", "N"));
@@ -1009,7 +1009,7 @@ FROM {fromTable}
                             cmd.Parameters.Add(new SqlParameter("mc_nome_colonna", col_name));
                             cmd.Parameters.Add(new SqlParameter("mc_ui_column_type", mc_ui_column_type));
                             cmd.Parameters.Add(new SqlParameter("mccomputedformula", !isReticular ? "null" : ""));
-                            cmd.Parameters.Add(new SqlParameter("mciscomputed", !isReticular ? true : false));
+                            cmd.Parameters.Add(new SqlParameter("mciscomputed", !isReticular));
                             cmd.Parameters.Add(new SqlParameter("mcgrantbydefault", true));
                             cmd.Parameters.Add(new SqlParameter("mcordine", total_col_count));
                             return cmd.ExecuteScalar().ToString();
@@ -1039,7 +1039,7 @@ FROM {fromTable}
                             cmd.Parameters.Add(new SqlParameter("mc_nome_colonna", col_name));
                             cmd.Parameters.Add(new SqlParameter("mc_ui_column_type", mc_ui_column_type));
                             cmd.Parameters.Add(new SqlParameter("mccomputedformula", !isReticular ? "null" : ""));
-                            cmd.Parameters.Add(new SqlParameter("mciscomputed", !isReticular ? true : false));
+                            cmd.Parameters.Add(new SqlParameter("mciscomputed", !isReticular));
                             cmd.Parameters.Add(new SqlParameter("mcgrantbydefault", true));
                             cmd.Parameters.Add(new SqlParameter("mcordine", total_col_count));
                             return cmd.ExecuteScalar().ToString();
@@ -1069,7 +1069,7 @@ FROM {fromTable}
                             cmd.Parameters.Add(new SqlParameter("mc_nome_colonna", col_name));
                             cmd.Parameters.Add(new SqlParameter("mc_ui_column_type", mc_ui_column_type));
                             cmd.Parameters.Add(new SqlParameter("mccomputedformula", !isReticular ? "''" : ""));
-                            cmd.Parameters.Add(new SqlParameter("mciscomputed", !isReticular ? true : false));
+                            cmd.Parameters.Add(new SqlParameter("mciscomputed", !isReticular));
                             cmd.Parameters.Add(new SqlParameter("mcgrantbydefault", true));
                             cmd.Parameters.Add(new SqlParameter("mcordine", total_col_count));
                             cmd.Parameters.Add(new SqlParameter("mchideinedit", true));
@@ -1359,10 +1359,9 @@ FROM {fromTable}
                 infos.password_column_name ?? string.Empty,
                 "pwd_hash", "password", "passwd", "pwd"
             };
-            var extra_fields = user.data.Keys.Where(x => !sensitiveColumnDenylist.Contains(x));
+            _ = user.data.Keys.Where(x => !sensitiveColumnDenylist.Contains(x));
 
             // foreach (string extra_field in extra_fields)
-            // {
             //     var user_param = user.data[extra_field];
             //     u.extra_keys.Add(extra_field, user_param != null ? user_param.ToString() : "");
             // }
@@ -1453,7 +1452,7 @@ FROM {fromTable}
         {
             using (metaRawModel context = new metaRawModel())
             {
-                SysInfo infos = context.GetSysInfos();
+                _ = context.GetSysInfos();
 
 
                 using (NpgsqlConnection connection = GetOpenConnection(true))
@@ -1613,7 +1612,7 @@ FROM {fromTable}
                 if (tabel != null)
                 {
                     string route_name = tabel.md_route_name;
-                    string table_name = tabel.md_nome_tabella;
+
 
                     bool isMeta = RawHelpers.checkIsMetaData(route_name);
 
@@ -2099,9 +2098,9 @@ FROM {fromTable}
                         string __id_src = entity.ContainsKey("__guid") ? entity["__guid"]?.ToString() :
                                           entity.ContainsKey("__id") ? entity["__id"]?.ToString() :
                                           entity.ContainsKey("uid") ? entity["uid"]?.ToString() :
-                                          entity[metadata.First(x => x.mc_is_primary_key is true).mc_nome_colonna]?.ToString();
+                                          entity[metadata.First(x => x.mc_is_primary_key).mc_nome_colonna]?.ToString();
                         // DESTINATION id: il pkey del record esistente.
-                        string __id_dst = entity[metadata.First(x => x.mc_is_primary_key is true).mc_nome_colonna]?.ToString();
+                        string __id_dst = entity[metadata.First(x => x.mc_is_primary_key).mc_nome_colonna]?.ToString();
 
                         string rootPath = upload_fix.DefaultUploadRootPath;
                         if (string.IsNullOrEmpty(rootPath) || rootPath == "null")
@@ -2464,7 +2463,7 @@ FROM {fromTable}
                         foreach (Dictionary<string, object> subEntity in collection)
                         {
                             if (subEntity == null) continue;
-                            string localfield = colGrid.mc_ui_grid_manytomany_related_id_field;
+
                             if (subEntity.ContainsKey("___added") && subEntity["___added"] != null)
                             {
                                 if ((bool)subEntity["___added"])
@@ -2488,7 +2487,7 @@ FROM {fromTable}
                                         && subEntity.ContainsKey(colGrid.mc_ui_grid_local_id_field))
                                         subEntity[colGrid.mc_ui_grid_related_id_field] = subEntity[colGrid.mc_ui_grid_local_id_field];
 
-                                    string insertedID = InsertflatData(subEntity, subRoute, userId);
+                                    _ = InsertflatData(subEntity, subRoute, userId);
 
                                 }
                             }
@@ -3153,7 +3152,6 @@ FROM {fromTable}
             string fieldList = "";
             // PG: niente CHECKSUM nativo (MSSQL-only); niente COUNT(DISTINCT col1, col2)
             // (MySQL-only). Pattern PG-safe per "count delle combinazioni distinct":
-            //   COUNT(DISTINCT COALESCE(c1::text,'§') || '~' || COALESCE(c2::text,'§') || ...)
             // - In PG `NULL || 'x'` ritorna NULL (semantic ANSI), quindi senza COALESCE l'intera
             //   expression collassa a NULL e COUNT(DISTINCT NULL) = 0 — count completamente
             //   sbagliato. COALESCE(...,'§') sostituisce ogni NULL con sentinella prima del
@@ -3186,7 +3184,7 @@ FROM {fromTable}
                     {
                         string safeappend = EscapeDBObjectName(col.mc_ui_lookup_entity_name.Replace(" ", "_") + "___" + col.mc_ui_lookup_dataTextField + "__" + col.mc_nome_colonna);
 
-                        string safeEntityName = GetTableName(relatedTable);
+                        _ = GetTableName(relatedTable);
                         string safeUniqueEntityName = EscapeDBObjectName(col.mc_nome_colonna + "_" + col.mc_ui_lookup_entity_name);
                         string safeTextField = EscapeDBObjectName(col.mc_ui_lookup_dataTextField);
                         string calculatedText = col.mc_ui_lookup_computed_dataTextField;
@@ -3322,7 +3320,7 @@ FROM {fromTable}
         {
             string where = "";
 
-            string tableName = tab.md_nome_tabella;
+            string tableName;
             string safetableName = GetTableName(tab);
 
             #region paging
@@ -3932,15 +3930,14 @@ FROM {fromTable}
                     string lat_field = "";
                     string lon_field = "";
 
-                    dynamic extraProps = RawHelpers.deserialize(fld.mc_props_bag, null);
+                    _ = RawHelpers.deserialize(fld.mc_props_bag, null);
                     dynamic mapProps = null;
-                    // if (extraProps != null)
                     // {
                     //     mapProps = extraProps.mapProperties;
                     // }
 
-                    string lat = "";
-                    string lng = "";
+
+
                     bool singleGeography = false;
 
                     if (fld.mc_ui_column_type == "google_map")
@@ -3997,9 +3994,8 @@ FROM {fromTable}
                 }
                 else if (realOperator == "mapdistance")
                 {
-                    dynamic extraProps = RawHelpers.deserialize(fld.mc_props_bag, null);
+                    _ = RawHelpers.deserialize(fld.mc_props_bag, null);
                     dynamic mapProps = null;
-                    // if (extraProps != null)
                     // {
                     //     mapProps = extraProps.mapProperties;
                     // }
@@ -4235,8 +4231,8 @@ FROM {fromTable}
                 {
                     orderSafetableName = EscapeDBObjectName(look.mc_nome_colonna + "_" + look.mc_ui_lookup_entity_name);
 
-                    string calculatedText = look.mc_ui_lookup_computed_dataTextField;
-                    string safename = EscapeDBObjectName(look.mc_ui_lookup_entity_name) + "." + EscapeDBObjectName(look.mc_ui_lookup_dataTextField);
+
+                    string safename; _ = EscapeDBObjectName(look.mc_ui_lookup_entity_name) + "." + EscapeDBObjectName(look.mc_ui_lookup_dataTextField);
                     if (look.mc_is_computed.Value)
                         safename = "(" + look.mc_computed_formula + ")";
                     sort += ((sort == "") ? " ORDER BY " : ", ") + orderSafetableName + "." + look.mc_ui_lookup_dataValueField + " " + sortDir;
@@ -4351,7 +4347,7 @@ FROM {fromTable}
         {
             filterInfo.filters.Where(x => x.field != "__extra" && x.isHaving).ToList().ForEach((f) =>
             {
-                string having_alias = f.havingAggregation + "_" + fld.mc_nome_colonna + "_" + def.id;
+                _ = f.havingAggregation + "_" + fld.mc_nome_colonna + "_" + def.id;
 
                 var realOperator = GetRealOperator(f.operatore);
                 string quote = RawHelpers.getQuoteFromColumn(fld);
@@ -4639,7 +4635,7 @@ FROM {fromTable}
                     string relatedKeyName = grid_col.mc_ui_grid_manytomany_related_id_field;
                     if (localKeyName == "")
                         localKeyName = pkey.mc_nome_colonna;
-                    _Metadati_Colonne_Lookup local_key = grid_col_metadata.First(x => x.mc_nome_colonna == localKeyName) as _Metadati_Colonne_Lookup;
+                    _ = grid_col_metadata.First(x => x.mc_nome_colonna == localKeyName) as _Metadati_Colonne_Lookup;
                     _Metadati_Colonne_Lookup related_key = grid_col_metadata.First(x => x.mc_nome_colonna == relatedKeyName) as _Metadati_Colonne_Lookup;
 
                     string display_col = related_key.mc_ui_lookup_entity_name.Replace(" ", "_") + "___" + related_key.mc_ui_lookup_dataTextField + "__" + related_key.mc_nome_colonna;
@@ -4814,7 +4810,7 @@ FROM {fromTable}
                 if (!entity.ContainsKey(fld.mc_nome_colonna))
                     return;
 
-                if (deltaMode && !(fld.mc_is_primary_key is true) && !changedFields.Contains(fld.mc_nome_colonna))
+                if (deltaMode && !(fld.mc_is_primary_key) && !changedFields.Contains(fld.mc_nome_colonna))
                     return;
 
                 if (tabel.md_logging_enable)
@@ -5008,7 +5004,7 @@ FROM {fromTable}
                         foreach (Dictionary<string, object> subEntity in collection)
                         {
                             if (subEntity == null) continue;
-                            string localfield = colGrid.mc_ui_grid_manytomany_related_id_field;
+
                             if (subEntity.ContainsKey("___added") && subEntity["___added"] != null && (bool)subEntity["___added"])
                             {
                                 if (subEntity.ContainsKey("___deleted"))
@@ -5029,7 +5025,7 @@ FROM {fromTable}
                                     && subEntity.ContainsKey(colGrid.mc_ui_grid_local_id_field))
                                     subEntity[colGrid.mc_ui_grid_related_id_field] = subEntity[colGrid.mc_ui_grid_local_id_field];
 
-                                string insertedID = InsertflatData(subEntity, subRoute, userId);
+                                _ = InsertflatData(subEntity, subRoute, userId);
 
                             }
                             else if (subEntity.ContainsKey("___deleted") && subEntity["___deleted"] != null && (bool)subEntity["___deleted"])
@@ -5161,7 +5157,7 @@ FROM {fromTable}
 
                 string current_fld = safetable_name + "." + safecolumn_name;
 
-                if (fld.mc_is_primary_key is true)
+                if (fld.mc_is_primary_key)
                 {
                     // PG strict typing: integer col = '123' (text) → 42883. Only quote when value isn't numeric.
                     bool isNumericDel = int.TryParse(entity[fld.mc_nome_colonna]?.ToString() ?? "", out _);
@@ -5421,7 +5417,7 @@ FROM {fromTable}
                     keys.Add(key);
             }
 
-            foreach (var pk in (metadata ?? new List<_Metadati_Colonne>()).Where(x => x.mc_is_primary_key is true))
+            foreach (var pk in (metadata ?? new List<_Metadati_Colonne>()).Where(x => x.mc_is_primary_key))
             {
                 if (!string.IsNullOrEmpty(pk?.mc_nome_colonna) && original.ContainsKey(pk.mc_nome_colonna))
                     keys.Add(pk.mc_nome_colonna);
@@ -5499,7 +5495,7 @@ FROM {fromTable}
 
             if (localId == null)
             {
-                _Metadati_Colonne pkey = metadata?.FirstOrDefault(x => x.mc_is_primary_key is true);
+                _Metadati_Colonne pkey = metadata?.FirstOrDefault(x => x.mc_is_primary_key);
                 if (pkey != null)
                 {
                     entity?.TryGetValue(pkey.mc_nome_colonna, out localId);
@@ -5706,7 +5702,7 @@ FROM {fromTable}
             bool base64Image = RawHelpers.ParseBool(ConfigHelper.GetSettingAsString("base64Image") ?? "false");
 
             _Metadati_Tabelle tabel = metadata[0]._Metadati_Tabelle;
-            string table_name = tabel.md_nome_tabella;
+            string table_name;
             string safetable_name = GetTableName(tabel);
 
             if (!tabel.md_insertable)
@@ -6158,7 +6154,7 @@ FROM {fromTable}
                 {
                     foreach (routePair rp in relatedRouteToClone)
                     {
-                        List<_Metadati_Colonne> related_metadata = _Metadati_Colonne.getColonneByUserID(rp.relatedRoute, 0, user_id, dataMode.insert, null);
+                        _ = _Metadati_Colonne.getColonneByUserID(rp.relatedRoute, 0, user_id, dataMode.insert, null);
                         FilterInfos fltr = RawHelpers.createStandardFilter(rp.relatedIdField, originalID, pkeys[0]);
                         rawPagedResult res = GetFlatData(user_id, rp.relatedRoute, 0, null, null, null, fltr, "AND", true, null, null);
                         foreach (SqlMapper.FastExpando o in res.results)

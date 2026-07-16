@@ -881,7 +881,7 @@ WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
             int paren = t.IndexOf('(');
             string typeOnly = paren > 0 ? t.Substring(0, paren).Trim() : t;
             // Re-attach trailing "WITH TIME ZONE" suffix that arrives separately.
-            _ = paren > 0 && t.Length > paren ? t.Substring(t.LastIndexOf(')') + 1).Trim() : "";
+            string suffix = paren > 0 && t.Length > paren ? t.Substring(t.LastIndexOf(')') + 1).Trim() : "";
 
             // NUMBER classification: integer if scale==0, decimal otherwise.
             if (typeOnly == "NUMBER")

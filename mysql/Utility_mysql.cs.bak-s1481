@@ -548,7 +548,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
                 return dir.EnumerateFiles().ToList().Select((x) => new my_file_info() { name = x.Name, folder = x.Directory.Name, extension = x.Extension, OriginalPath = x.FullName, bytesyze = (int)x.Length, kbsyze = (int)(x.Length / 1024) }).ToList();
             else
             {
-                _ = dir.EnumerateFiles();
+                var dirs = dir.EnumerateFiles();
                 List<my_file_info> fi = fileTypes.SelectMany(i => dir.EnumerateFiles("*.*", SearchOption.AllDirectories)).Distinct().ToList().Select((x) => new my_file_info() { name = x.Name, folder = x.Directory.Name, extension = x.Extension, OriginalPath = x.FullName, bytesyze = (int)x.Length, kbsyze = (int)(x.Length / 1024) }).ToList();
                 return fi;
             }
@@ -881,6 +881,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
             if (extra_fields != null)
             {
                 // foreach (string extra_field in extra_fields)
+                // {
                 //     var user_param = user.data[extra_field];
                 //     u.extra_keys.Add(extra_field, user_param != null ? user_param.ToString() : "");
                 // }
@@ -950,7 +951,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
 
                     for (int mdx = 0; mdx < modelObject.Count; mdx++)
                     {
-
+                        string titleX = title;
                         string caption = modelObject[mdx].metaInfo.mc_display_string_in_view;
 
                         Excel.SetColumnHeadingValue(spreadsheet, worksheet, Convert.ToUInt32(mdx + 1),
@@ -979,7 +980,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
                                     styleIndex = 2;
 
                                     short? decimals = metaInfo.mc_ui_slider_decimals;
-
+                                    string format = metaInfo.mc_ui_slider_format;
 
                                     if (decimals.HasValue)
                                     {
@@ -1102,13 +1103,13 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
                 (new DocumentFormat.OpenXml.Drawing.Charts.Chart());
 
             PlotArea plotArea = new PlotArea();
-
+            Layout layout = new Layout();
 
             PieChart pie = new PieChart();
 
             PieChartSeries pieSiries = new PieChartSeries();
 
-            _ = pie.AppendChild<PieChartSeries>(new PieChartSeries());
+            PieChartSeries pieSeries = pie.AppendChild<PieChartSeries>(new PieChartSeries());
 
 
             DocumentFormat.OpenXml.Drawing.Charts.Formula formula = new DocumentFormat.OpenXml.Drawing.Charts.Formula();

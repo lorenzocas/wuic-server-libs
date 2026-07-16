@@ -34,7 +34,7 @@ using System.ServiceModel;
 using HttpContext = System.WebCore.HttpContext;
 using WuicCore.Services.Licensing;
 
-namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
+namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
 {
     public class Utility
     {
@@ -94,19 +94,32 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
         }
 
 
+        // Marker prefix per BLOB payload bind-by-parameter.
+        // Convenzione: l'entity dict riceve chiavi `__oracle_blob_param::<placeholder>` = byte[]
+        // (per BLOB) o string (per base64 string lunga). Il chiamante (UpdateflatData/InsertflatData)
+        // estrae queste chiavi prima di eseguire la query, e bind ogni payload come OracleParameter
+        // con OracleDbType.Blob (byte[]) o OracleDbType.Clob (string base64).
+        // Necessario perche' Oracle limita SQL string literal a 4000 byte → un BLOB JPEG di
+        // ~30 KB dentro `hextoraw('...')` causa ORA-01704.
+        public const string OracleBlobParamMarkerPrefix = "__oracle_blob_param::";
+
+        private static string BuildBlobPlaceholderName(string columnPhysicalName, string opKind)
+        {
+            // Bind variable Oracle: solo [A-Za-z0-9_], inizio con lettera, max 30 char.
+            string safe = System.Text.RegularExpressions.Regex.Replace(columnPhysicalName ?? "", "[^A-Za-z0-9_]", "_");
+            string raw = "blob_" + (opKind ?? "x") + "_" + safe;
+            if (raw.Length > 28) raw = raw.Substring(0, 28);
+            return raw;
+        }
+
         public static void customizeImgDBInsert(Dictionary<string, object> entity, _Metadati_Colonne_Upload uploader, _Metadati_Tabelle tabel, string safetable_name, ref string field_list, ref string value_list, bool base64Image)
         {
-            field_list += (field_list == "" ? "" : ", ") + RawHelpers.escapeDBObjectName(uploader.MultipleUploadBlobFieldName, "mysql");
+            field_list += (field_list == "" ? "" : ", ") + metaQueryOracleSql.EscapeDBObjectName(uploader.MultipleUploadBlobFieldName);
             if (!string.IsNullOrEmpty(RawHelpers.ParseNull(entity[uploader.mc_nome_colonna])))
             {
-                // Resolve the upload-time folder id: prefer __guid (the
-                // multi-upload temp folder the client wrote into), then __id
-                // when it is a real value (not a placeholder "0"/""), then
-                // fall back to __guid even if blank as the original behavior.
-                // Without preferring __guid, two consecutive isDBUpload
-                // columns processed in the same BuildDynamicInsertQuery run
-                // can resolve to different paths if the loop populates
-                // entity["__id"] partway through iteration.
+                // Resolve upload-time folder id: prefer __guid (multi-upload temp
+                // folder), then __id when real ("0"/"" placeholder skipped), then
+                // fall back to __guid. Mirrors mysql/Utility_mysql.cs:customizeImgDBInsert.
                 string __id = null;
                 if (entity.ContainsKey("__guid"))
                 {
@@ -126,9 +139,17 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
 
                 if (base64Image)
                 {
-                    string base64Converted = "";
-                    base64Converted = Utility.ImageToBase64(tmp_path);
-                    value_list += (value_list == "" ? "" : ", ") + "'" + base64Converted + "'";
+                    // Anche base64 puo' superare il limite 4000 byte di Oracle string literal:
+                    // un'immagine ~3 KB diventa ~4 KB base64 → ORA-01704. Bind come CLOB param.
+                    if (!System.IO.File.Exists(tmp_path))
+                    {
+                        value_list += (value_list == "" ? "" : ", ") + "null";
+                        return;
+                    }
+                    string base64Converted = Utility.ImageToBase64(tmp_path);
+                    string placeholder = BuildBlobPlaceholderName(uploader.MultipleUploadBlobFieldName, "ins");
+                    entity[OracleBlobParamMarkerPrefix + placeholder + "::clob"] = base64Converted ?? "";
+                    value_list += (value_list == "" ? "" : ", ") + ":" + placeholder;
                 }
                 else
                 {
@@ -140,12 +161,15 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
                     //serialize
                     byte[] bytes = System.IO.File.ReadAllBytes(tmp_path);
 
-                    ////HexFormat introduced in postgresql 9.0
-                    string hexString = RawHelpers.convertByteToHexString(bytes);
-
-                    ////append to query
-                    ////alternative like openrowset ->  http://www.sql-workbench.net/manual/using.html#blob-support
-                    value_list += (value_list == "" ? "" : ", ") + "x'" + hexString + "'";
+                    // FIX ORA-01704: invece di emettere `hextoraw('<hex>')` inline (string literal
+                    // soggetto al limite 4000 byte), emette `:blob_ins_<col>` placeholder e inietta
+                    // il byte[] nell'entity dict via marker key. UpdateflatData/InsertflatData
+                    // bind il payload come OracleParameter con OracleDbType.Blob a runtime.
+                    // Vecchio percorso (rotto su BLOB > ~2 KB):
+                    //     value_list += ... + "hextoraw('" + RawHelpers.convertByteToHexString(bytes) + "')";
+                    string placeholder = BuildBlobPlaceholderName(uploader.MultipleUploadBlobFieldName, "ins");
+                    entity[OracleBlobParamMarkerPrefix + placeholder + "::blob"] = bytes;
+                    value_list += (value_list == "" ? "" : ", ") + ":" + placeholder;
                 }
             }
             else
@@ -163,15 +187,11 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
 
                 string tmp_path = System.IO.Path.Combine(pth, entity[uploader.mc_nome_colonna].ToString());
 
-                // Fallback to the upload-time __guid folder when the canonical
-                // pkey path doesn't have the file yet. The client uploads to
-                // <root>/<route>/<__guid>/<file> (the multi-upload pattern's
-                // temp folder); _Metadati_methods.RawUpdateFlatData later
-                // moves it into <root>/<route>/<pkey>/, but
-                // BuildDynamicUpdateQuery (and therefore this method) runs
-                // BEFORE that cleanup. Without this fallback the UPDATE SET
-                // clause omits the BLOB literal entirely and the existing blob
-                // value silently survives the update.
+                // Fallback al folder upload-time __guid quando il pkey folder non
+                // ha ancora il file (il client carica in <root>/<route>/<__guid>/...,
+                // _Metadati_methods.RawUpdateFlatData lo sposta DOPO che
+                // BuildDynamicUpdateQuery ha gia' costruito la SET clause).
+                // Mirror mysql/Utility_mysql.cs:customizeImgDBUpdate.
                 if (!System.IO.File.Exists(tmp_path) && entity.ContainsKey("__guid"))
                 {
                     string guid = entity["__guid"]?.ToString();
@@ -194,7 +214,10 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
                         {
                             base64Converted = ImageToBase64(tmp_path);
                         }
-                        field_value_list += (field_value_list == "" ? "" : ", ") + uploader.MultipleUploadBlobFieldName + "='" + base64Converted + "'";
+                        // Bind base64 come CLOB param (potenzialmente > 4000 byte → ORA-01704).
+                        string placeholderB64 = BuildBlobPlaceholderName(uploader.MultipleUploadBlobFieldName, "upd");
+                        entity[OracleBlobParamMarkerPrefix + placeholderB64 + "::clob"] = base64Converted ?? "";
+                        field_value_list += (field_value_list == "" ? "" : ", ") + metaQueryOracleSql.EscapeDBObjectName(uploader.MultipleUploadBlobFieldName) + "=:" + placeholderB64;
                     }
                 }
                 else
@@ -206,20 +229,17 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
                     //serialize
                     byte[] bytes = System.IO.File.ReadAllBytes(tmp_path);
 
-                    ////HexFormat introduced in postgresql 9.0
-                    string hexString = RawHelpers.convertByteToHexString(bytes);
-
-                    ////for older version bytea Escape Format
-                    ////use decode('...', 'hex')
-
-                    field_value_list += (field_value_list == "" ? "" : ", ") + RawHelpers.escapeDBObjectName(uploader.MultipleUploadBlobFieldName, "mysql") + "=x'" + hexString + "'";
-
-                    ////append to query
-                    ////alternative like openrowset ->  http://www.sql-workbench.net/manual/using.html#blob-support
+                    // FIX ORA-01704: bind BLOB come OracleParameter invece di hextoraw('...') inline.
+                    // Vedi commento in customizeImgDBInsert per dettagli.
+                    // Vecchio percorso (rotto su BLOB > ~2 KB):
+                    //     field_value_list += ... + "=hextoraw('" + RawHelpers.convertByteToHexString(bytes) + "')";
+                    string placeholder = BuildBlobPlaceholderName(uploader.MultipleUploadBlobFieldName, "upd");
+                    entity[OracleBlobParamMarkerPrefix + placeholder + "::blob"] = bytes;
+                    field_value_list += (field_value_list == "" ? "" : ", ") + metaQueryOracleSql.EscapeDBObjectName(uploader.MultipleUploadBlobFieldName) + "=:" + placeholder;
                 }
             }
             else
-                field_value_list += (field_value_list == "" ? "" : ", ") + uploader.MultipleUploadBlobFieldName + "=" + "null";
+                field_value_list += (field_value_list == "" ? "" : ", ") + metaQueryOracleSql.EscapeDBObjectName(uploader.MultipleUploadBlobFieldName) + "=" + "null";
         }
 
         public static Exception customizeException(string method, Exception ex, user u, string route, string query, Dictionary<string, object> entity = null)
@@ -428,8 +448,8 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
             if (!string.IsNullOrWhiteSpace(configuredTypeName))
                 typeCandidates.Add(configuredTypeName.Trim());
 
-            typeCandidates.Add("WEB_UI_CRAFTER.ProjectData.ServiziMySql.UtilityHost");
-            typeCandidates.Add("WEB_UI_CRAFTER.ProjectData.ServiziMySql.CustomCrudHooks");
+            typeCandidates.Add("WEB_UI_CRAFTER.ProjectData.ServiziOracle.UtilityHost");
+            typeCandidates.Add("WEB_UI_CRAFTER.ProjectData.ServiziOracle.CustomCrudHooks");
             typeCandidates.Add("WEB_UI_CRAFTER.ProjectData.Servizi.UtilityHost");
             typeCandidates.Add("WEB_UI_CRAFTER.ProjectData.Servizi.CustomCrudHooks");
 
@@ -481,12 +501,12 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
             string idLingua = "";
             string idUtente = "";
 
-            using (myConn = MySqlProviderGateway.GetOpenConnection(false))
+            using (myConn = OracleProviderGateway.GetOpenConnection(false))
             {
                 myCmd = myConn.CreateCommand();
 
-                myCmd.CommandText = "SELECT ID_Utente, FK_Lingua, * from Utenti WHERE FK_Utente_WUIC = @FK_Utente_WUIC";
-                DbProviderUtil.AddWithValue(myCmd, "@FK_Utente_WUIC", utente.user_id);
+                myCmd.CommandText = "SELECT ID_Utente, FK_Lingua, * from Utenti WHERE FK_Utente_WUIC = :FK_Utente_WUIC";
+                DbProviderUtil.AddWithValue(myCmd, "FK_Utente_WUIC", utente.user_id);
 
                 myReader = myCmd.ExecuteReader();
                 if (myReader.Read())
@@ -548,7 +568,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
                 return dir.EnumerateFiles().ToList().Select((x) => new my_file_info() { name = x.Name, folder = x.Directory.Name, extension = x.Extension, OriginalPath = x.FullName, bytesyze = (int)x.Length, kbsyze = (int)(x.Length / 1024) }).ToList();
             else
             {
-                _ = dir.EnumerateFiles();
+                var dirs = dir.EnumerateFiles();
                 List<my_file_info> fi = fileTypes.SelectMany(i => dir.EnumerateFiles("*.*", SearchOption.AllDirectories)).Distinct().ToList().Select((x) => new my_file_info() { name = x.Name, folder = x.Directory.Name, extension = x.Extension, OriginalPath = x.FullName, bytesyze = (int)x.Length, kbsyze = (int)(x.Length / 1024) }).ToList();
                 return fi;
             }
@@ -588,14 +608,14 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
                         DbConnection myConn;
                         DbCommand myCmd;
 
-                        using (myConn = MySqlProviderGateway.GetOpenConnection(false))
+                        using (myConn = OracleProviderGateway.GetOpenConnection(false))
                         {
                             try
                             {
                                 myCmd = myConn.CreateCommand();
 
-                                myCmd.CommandText = string.Format("UPDATE {0} SET {1} = '{2}', NomeFoto = @NomeFoto , DataAggiornamento = getDate(), UtenteAggiornamento = {3} WHERE {4} = {5}", tableName, field, imgB64.ToString(), utente.user_id, keyName, keyValue);
-                                DbProviderUtil.AddWithValue(myCmd, "@NomeFoto", imgName);
+                                myCmd.CommandText = string.Format("UPDATE {0} SET {1} = '{2}', NomeFoto = :NomeFoto , DataAggiornamento = getDate(), UtenteAggiornamento = {3} WHERE {4} = {5}", tableName, field, imgB64.ToString(), utente.user_id, keyName, keyValue);
+                                DbProviderUtil.AddWithValue(myCmd, "NomeFoto", imgName);
                                 myCmd.ExecuteNonQuery();
                             }
                             catch (Exception)
@@ -620,14 +640,14 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
                 DbConnection myConn;
                 DbCommand myCmd;
 
-                using (myConn = MySqlProviderGateway.GetOpenConnection(false))
+                using (myConn = OracleProviderGateway.GetOpenConnection(false))
                 {
                     try
                     {
                         myCmd = myConn.CreateCommand();
 
-                        myCmd.CommandText = string.Format("UPDATE {0} SET {1} = '', NomeFoto = @NomeFoto WHERE {2} = {3} ", tableName, field, keyName, keyValue);
-                        DbProviderUtil.AddWithValue(myCmd, "@NomeFoto", imgName);
+                        myCmd.CommandText = string.Format("UPDATE {0} SET {1} = '', NomeFoto = :NomeFoto WHERE {2} = {3} ", tableName, field, keyName, keyValue);
+                        DbProviderUtil.AddWithValue(myCmd, "NomeFoto", imgName);
                         myCmd.ExecuteNonQuery();
                     }
                     catch (Exception ex)
@@ -699,17 +719,25 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
 
         public static string getConnectionString(ConcurrentDictionary<string, object> utenteExtra)
         {
+
+            string connectionString = "";
+
             if (utenteExtra.ContainsKey("connection"))
             {
-                string userConnection = utenteExtra["connection"]?.ToString();
+                string userConnection = utenteExtra["connection"].ToString();
+
                 if (!string.IsNullOrEmpty(userConnection))
+                    connectionString = ConfigHelper.ResolveConnectionString(userConnection);
+                else
                 {
-                    var resolved = ConfigHelper.ResolveConnectionString(userConnection);
-                    if (!string.IsNullOrEmpty(resolved))
-                        return resolved;
+                    connectionString = ConfigHelper.ResolveConnectionString("DataSQLConnection");
                 }
             }
-            return ConfigHelper.ResolveConnectionString("DataSQLConnection") ?? "";
+            else
+            {
+                connectionString = ConfigHelper.ResolveConnectionString("DataSQLConnection");
+            }
+            return connectionString;
         }
 
         public static string authenticate()
@@ -727,7 +755,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
                 {
                     metaModelRaw.SysInfo infos = context.GetSysInfos();
 
-                    using (DbConnection connection = string.IsNullOrEmpty(infos.user_db_name) ? MySqlProviderGateway.GetOpenConnection(true) : MySqlProviderGateway.getSpecificConnection(infos.user_db_name))
+                    using (DbConnection connection = string.IsNullOrEmpty(infos.user_db_name) ? OracleProviderGateway.GetOpenConnection(true) : OracleProviderGateway.getSpecificConnection(infos.user_db_name))
                     {
                         SqlMapper.FastExpando token = connection.Query(
                             string.Format("SELECT token, ip FROM {0} WHERE {1} = '{2}' and Dateadd(MINUTE, " +
@@ -746,7 +774,8 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
 
                         if (saved_token != user.user_token || current_ip != saved_ip || string.IsNullOrEmpty(saved_token))
                         {
-                            connection.Execute(string.Format("UPDATE {0} SET {1}='', LastActivityDate=getdate() WHERE {2} = {3}",
+                            // Oracle-native (port da mysql/Utility_mysql.cs): SYSDATE invece di MSSQL getdate(); identifier quoting "..." per case-sensitivity.
+                            connection.Execute(string.Format("UPDATE {0} SET {1}='', \"LastActivityDate\"=SYSDATE WHERE {2} = {3}",
                                                                 infos.user_table_name,
                                                                 "token",
                                                                 infos.user_id_column_name,
@@ -756,7 +785,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
                         }
                         else
                         {
-                            connection.Execute(string.Format("UPDATE {0} SET LastActivityDate=getdate() WHERE {1} = {2}",
+                            connection.Execute(string.Format("UPDATE {0} SET \"LastActivityDate\"=SYSDATE WHERE {1} = {2}",
                                                                 infos.user_table_name,
                                                                 infos.user_id_column_name,
                                                                 user.user_id));
@@ -778,7 +807,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
 
                 if (infos != null)
                 {
-                    using (DbConnection connection = MySqlProviderGateway.GetOpenConnection(true))
+                    using (DbConnection connection = OracleProviderGateway.GetOpenConnection(true))
                     {
                         bool isPwdEncripted = RawHelpers.ParseBool(ConfigHelper.GetSettingAsString("IsPwdEncripted"));
 
@@ -796,7 +825,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
                         dbArgs.Add("username", username);
                         dbArgs.Add("password", password);
 
-                        int modified = connection.Execute(string.Format("UPDATE {0} SET IsLoggedIn = 0, ip = @ip WHERE motivo = @motivo AND username = @username AND password = @password",
+                        int modified = connection.Execute(string.Format("UPDATE {0} SET IsLoggedIn = 0, ip = :ip WHERE motivo = :motivo AND username = :username AND password = :password",
                             infos.user_table_name), dbArgs);
 
                         return modified >= 0;
@@ -818,7 +847,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
 
         public static user getUserByID(string user_id)
         {
-            var utente = MySqlProviderGateway.getUserByID(user_id);
+            var utente = OracleProviderGateway.getUserByID(user_id);
 
 
             return utente;
@@ -881,6 +910,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
             if (extra_fields != null)
             {
                 // foreach (string extra_field in extra_fields)
+                // {
                 //     var user_param = user.data[extra_field];
                 //     u.extra_keys.Add(extra_field, user_param != null ? user_param.ToString() : "");
                 // }
@@ -950,7 +980,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
 
                     for (int mdx = 0; mdx < modelObject.Count; mdx++)
                     {
-
+                        string titleX = title;
                         string caption = modelObject[mdx].metaInfo.mc_display_string_in_view;
 
                         Excel.SetColumnHeadingValue(spreadsheet, worksheet, Convert.ToUInt32(mdx + 1),
@@ -979,7 +1009,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
                                     styleIndex = 2;
 
                                     short? decimals = metaInfo.mc_ui_slider_decimals;
-
+                                    string format = metaInfo.mc_ui_slider_format;
 
                                     if (decimals.HasValue)
                                     {
@@ -1102,13 +1132,13 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
                 (new DocumentFormat.OpenXml.Drawing.Charts.Chart());
 
             PlotArea plotArea = new PlotArea();
-
+            Layout layout = new Layout();
 
             PieChart pie = new PieChart();
 
             PieChartSeries pieSiries = new PieChartSeries();
 
-            _ = pie.AppendChild<PieChartSeries>(new PieChartSeries());
+            PieChartSeries pieSeries = pie.AppendChild<PieChartSeries>(new PieChartSeries());
 
 
             DocumentFormat.OpenXml.Drawing.Charts.Formula formula = new DocumentFormat.OpenXml.Drawing.Charts.Formula();
@@ -1143,6 +1173,8 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
         #endregion
     }
 }
+
+
 
 
 

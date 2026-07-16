@@ -545,7 +545,7 @@ FROM {fromTable}
 
         public static string buildChartSelect(string chartType, string route, string user_id, string aggregationFunction, string valueField, FilterInfos filters, string categoryAxFld)
         {
-            _ = (chartType)Enum.Parse(typeof(chartType), chartType);
+            chartType tipo = (chartType)Enum.Parse(typeof(chartType), chartType);
 
             //route:                utenti
             //chartType:            bar
@@ -582,7 +582,7 @@ FROM {fromTable}
                     _Metadati_Tabelle relatedTable = mmd.GetMetadati_Tabelles(categoryColumnLookUp.mc_ui_lookup_entity_name).FirstOrDefault();
                     string safeEntityName = EscapeDBObjectName(relatedTable.md_nome_tabella);
                     string safeUniqueEntityName = EscapeDBObjectName(categoryColumnLookUp.mc_nome_colonna + "_" + categoryColumnLookUp.mc_ui_lookup_entity_name);
-                    _ = NormalizeComputedTextSnippet(categoryColumnLookUp.mc_ui_lookup_computed_dataTextField);
+                    string calculatedText = NormalizeComputedTextSnippet(categoryColumnLookUp.mc_ui_lookup_computed_dataTextField);
                     // friendly→physical resolution: vedi commento in JoinBuilder.
                     _Metadati_Colonne textColCat = relatedTable?._Metadati_Colonnes
                         ?.FirstOrDefault(xk => xk.mc_nome_colonna == categoryColumnLookUp.mc_ui_lookup_dataTextField)
@@ -1172,7 +1172,7 @@ END;");
                             cmd.Parameters.Add(new OracleParameter("mc_nome_colonna", col_name));
                             cmd.Parameters.Add(new OracleParameter("mc_ui_column_type", mc_ui_column_type));
                             cmd.Parameters.Add(new OracleParameter("mccomputedformula", !isReticular ? "null" : ""));
-                            cmd.Parameters.Add(new OracleParameter("mciscomputed", !isReticular));
+                            cmd.Parameters.Add(new OracleParameter("mciscomputed", !isReticular ? true : false));
                             cmd.Parameters.Add(new OracleParameter("mcgrantbydefault", true));
                             cmd.Parameters.Add(new OracleParameter("mcordine", total_col_count));
                             var pOut = new OracleParameter("p_new_id", OracleDbType.Decimal) { Direction = ParameterDirection.Output };
@@ -1214,7 +1214,7 @@ END;");
                             cmd.Parameters.Add(new OracleParameter("mc_nome_colonna", col_name));
                             cmd.Parameters.Add(new OracleParameter("mc_ui_column_type", mc_ui_column_type));
                             cmd.Parameters.Add(new OracleParameter("mccomputedformula", !isReticular ? "null" : ""));
-                            cmd.Parameters.Add(new OracleParameter("mciscomputed", !isReticular));
+                            cmd.Parameters.Add(new OracleParameter("mciscomputed", !isReticular ? true : false));
                             cmd.Parameters.Add(new OracleParameter("mcgrantbydefault", true));
                             cmd.Parameters.Add(new OracleParameter("mcordine", total_col_count));
                             var pOut = new OracleParameter("p_new_id", OracleDbType.Decimal) { Direction = ParameterDirection.Output };
@@ -1247,7 +1247,7 @@ END;");
                             cmd.Parameters.Add(new OracleParameter("mc_nome_colonna", col_name));
                             cmd.Parameters.Add(new OracleParameter("mc_ui_column_type", mc_ui_column_type));
                             cmd.Parameters.Add(new OracleParameter("mccomputedformula", !isReticular ? "null" : ""));
-                            cmd.Parameters.Add(new OracleParameter("mciscomputed", !isReticular));
+                            cmd.Parameters.Add(new OracleParameter("mciscomputed", !isReticular ? true : false));
                             cmd.Parameters.Add(new OracleParameter("mcgrantbydefault", true));
                             cmd.Parameters.Add(new OracleParameter("mcordine", total_col_count));
                             var pOut = new OracleParameter("p_new_id", OracleDbType.Decimal) { Direction = ParameterDirection.Output };
@@ -1280,7 +1280,7 @@ END;");
                             cmd.Parameters.Add(new OracleParameter("mc_nome_colonna", col_name));
                             cmd.Parameters.Add(new OracleParameter("mc_ui_column_type", mc_ui_column_type));
                             cmd.Parameters.Add(new OracleParameter("mccomputedformula", !isReticular ? "null" : ""));
-                            cmd.Parameters.Add(new OracleParameter("mciscomputed", !isReticular));
+                            cmd.Parameters.Add(new OracleParameter("mciscomputed", !isReticular ? true : false));
                             cmd.Parameters.Add(new OracleParameter("mcgrantbydefault", true));
                             cmd.Parameters.Add(new OracleParameter("mcordine", total_col_count));
                             var pOut = new OracleParameter("p_new_id", OracleDbType.Decimal) { Direction = ParameterDirection.Output };
@@ -1313,7 +1313,7 @@ END;");
                             cmd.Parameters.Add(new OracleParameter("mc_nome_colonna", col_name));
                             cmd.Parameters.Add(new OracleParameter("mc_ui_column_type", mc_ui_column_type));
                             cmd.Parameters.Add(new OracleParameter("mccomputedformula", !isReticular ? "null" : ""));
-                            cmd.Parameters.Add(new OracleParameter("mciscomputed", !isReticular));
+                            cmd.Parameters.Add(new OracleParameter("mciscomputed", !isReticular ? true : false));
                             cmd.Parameters.Add(new OracleParameter("mcgrantbydefault", true));
                             cmd.Parameters.Add(new OracleParameter("mcordine", total_col_count));
                             var pOut = new OracleParameter("p_new_id", OracleDbType.Decimal) { Direction = ParameterDirection.Output };
@@ -1346,7 +1346,7 @@ END;");
                             cmd.Parameters.Add(new OracleParameter("mc_nome_colonna", col_name));
                             cmd.Parameters.Add(new OracleParameter("mc_ui_column_type", mc_ui_column_type));
                             cmd.Parameters.Add(new OracleParameter("mccomputedformula", !isReticular ? "''" : ""));
-                            cmd.Parameters.Add(new OracleParameter("mciscomputed", !isReticular));
+                            cmd.Parameters.Add(new OracleParameter("mciscomputed", !isReticular ? true : false));
                             cmd.Parameters.Add(new OracleParameter("mcgrantbydefault", true));
                             cmd.Parameters.Add(new OracleParameter("mcordine", total_col_count));
                             cmd.Parameters.Add(new OracleParameter("mchideinedit", true));
@@ -1622,9 +1622,10 @@ END;");
                 infos.password_column_name ?? string.Empty,
                 "pwd_hash", "password", "passwd", "pwd"
             };
-            _ = user.data.Keys.Where(x => !sensitiveColumnDenylist.Contains(x));
+            var extra_fields = user.data.Keys.Where(x => !sensitiveColumnDenylist.Contains(x));
 
             // foreach (string extra_field in extra_fields)
+            // {
             //     var user_param = user.data[extra_field];
             //     u.extra_keys.Add(extra_field, user_param != null ? user_param.ToString() : "");
             // }
@@ -1716,7 +1717,7 @@ END;");
         {
             using (metaRawModel context = new metaRawModel())
             {
-                _ = context.GetSysInfos();
+                SysInfo infos = context.GetSysInfos();
 
 
                 using (OracleConnection connection = GetOpenConnection(true))
@@ -1883,7 +1884,7 @@ END;");
                 if (tabel != null)
                 {
                     string route_name = tabel.md_route_name;
-
+                    string table_name = tabel.md_nome_tabella;
 
                     bool isMeta = RawHelpers.checkIsMetaData(route_name);
 
@@ -2192,6 +2193,7 @@ END;");
                         // Oracle detection: FUNCTION ≠ PROCEDURE. CommandType.StoredProcedure
                         // su FUNCTION → PLS-00221. Verifichiamo via USER_OBJECTS (case-insensitive
                         // via UPPER). Per FUNCTION ritorniamo SYS_REFCURSOR con anonymous block:
+                        //   BEGIN OPEN :rc FOR SELECT <func>(:p1,...) FROM DUAL; END;
                         // Solo per non-noResults — se noResults è true e' una procedure void.
                         // Detection FUNCTION vs PROCEDURE via OracleCommand isolato (NON usare Dapper
                         // sulla connection sharing — la SqlMapperRetry overlay puo' interferire e
@@ -3155,7 +3157,7 @@ END;");
             if (obj.Length > 0 && obj[0] != '_' && System.Text.RegularExpressions.Regex.IsMatch(obj, "^[A-Za-z][A-Za-z0-9_]*$"))
             {
                 string upper = obj.ToUpperInvariant();
-                _ = obj.ToLowerInvariant();
+                string lower = obj.ToLowerInvariant();
                 bool hasUpper = false, hasLower = false;
                 foreach (char c in obj) { if (char.IsUpper(c)) hasUpper = true; else if (char.IsLower(c)) hasLower = true; }
                 bool isMixedCase = hasUpper && hasLower;
@@ -3660,6 +3662,7 @@ END;");
             string fieldList = "";
             // Oracle: niente CHECKSUM nativo (MSSQL-only); niente COUNT(DISTINCT col1, col2)
             // (MySQL-only). Pattern Oracle-safe per "count delle combinazioni distinct":
+            //   COUNT(DISTINCT NVL(TO_CHAR(c1),'§') || '~' || NVL(TO_CHAR(c2),'§') || ...)
             // - NVL(TO_CHAR(c),'§') protegge dal collasso NULL → '' (Oracle tratta NULL
             //   come stringa vuota in ||, quindi senza NVL `NULL || '|' || 'a'` ed `'' ||
             //   '|' || 'a'` collidono e contiamo meno righe distinct di quante ne abbiamo).
@@ -3690,7 +3693,7 @@ END;");
                     {
                         string safeappend = EscapeDBObjectName(col.mc_ui_lookup_entity_name.Replace(" ", "_") + "___" + col.mc_ui_lookup_dataTextField + "__" + col.mc_nome_colonna);
 
-                        _ = GetTableName(relatedTable);
+                        string safeEntityName = GetTableName(relatedTable);
                         string safeUniqueEntityName = EscapeDBObjectName(col.mc_nome_colonna + "_" + col.mc_ui_lookup_entity_name);
                         // friendly→physical resolution: vedi commento in JoinBuilder.
                         _Metadati_Colonne textCol = relatedTable._Metadati_Colonnes
@@ -3833,7 +3836,7 @@ END;");
         {
             string where = "";
 
-            string tableName;
+            string tableName = tab.md_nome_tabella;
             string safetableName = GetTableName(tab);
 
             #region paging
@@ -4176,6 +4179,7 @@ END;");
             // Risoluzione friendly→physical del dataTextField via metadata target.
             // Su MSSQL `mc_nome_colonna` coincide col physical SQL name → l'identifier emesso
             // matcha sempre. Su Oracle la migration ha rinominato alcuni physical names
+            // (es. `md_route_name` friendly → `mdroutename` physical) e i due divergono;
             // emettere il friendly causa ORA-00904 "identificativo non valido". Stesso pattern
             // canonical gia' usato a riga 3000-3006 (combo standalone descriptor) e gia'
             // applicato qui sotto per `dataValueField` (line 3610-3617).
@@ -4485,14 +4489,15 @@ END;");
                     string lat_field = "";
                     string lon_field = "";
 
-                    _ = RawHelpers.deserialize(fld.mc_props_bag, null);
+                    dynamic extraProps = RawHelpers.deserialize(fld.mc_props_bag, null);
                     dynamic mapProps = null;
+                    // if (extraProps != null)
                     // {
                     //     mapProps = extraProps.mapProperties;
                     // }
 
-
-
+                    string lat = "";
+                    string lng = "";
                     bool singleGeography = false;
 
                     if (fld.mc_ui_column_type == "google_map")
@@ -4549,8 +4554,9 @@ END;");
                 }
                 else if (realOperator == "mapdistance")
                 {
-                    _ = RawHelpers.deserialize(fld.mc_props_bag, null);
+                    dynamic extraProps = RawHelpers.deserialize(fld.mc_props_bag, null);
                     dynamic mapProps = null;
+                    // if (extraProps != null)
                     // {
                     //     mapProps = extraProps.mapProperties;
                     // }
@@ -4808,8 +4814,8 @@ END;");
                 {
                     orderSafetableName = EscapeDBObjectName(look.mc_nome_colonna + "_" + look.mc_ui_lookup_entity_name);
 
-
-                    string safename; _ = EscapeDBObjectName(look.mc_ui_lookup_entity_name) + "." + EscapeDBObjectName(look.mc_ui_lookup_dataTextField);
+                    string calculatedText = look.mc_ui_lookup_computed_dataTextField;
+                    string safename = EscapeDBObjectName(look.mc_ui_lookup_entity_name) + "." + EscapeDBObjectName(look.mc_ui_lookup_dataTextField);
                     if (look.mc_is_computed.HasValue && look.mc_is_computed.Value)
                         safename = "(" + look.mc_computed_formula + ")";
                     sort += ((sort == "") ? " ORDER BY " : ", ") + orderSafetableName + "." + look.mc_ui_lookup_dataValueField + " " + sortDir;
@@ -4924,7 +4930,7 @@ END;");
         {
             filterInfo.filters.Where(x => x.field != "__extra" && x.isHaving).ToList().ForEach((f) =>
             {
-                _ = f.havingAggregation + "_" + fld.mc_nome_colonna + "_" + def.id;
+                string having_alias = f.havingAggregation + "_" + fld.mc_nome_colonna + "_" + def.id;
 
                 var realOperator = GetRealOperator(f.operatore);
                 string quote = RawHelpers.getQuoteFromColumn(fld);
@@ -5213,10 +5219,10 @@ END;");
                     string relatedKeyName = grid_col.mc_ui_grid_manytomany_related_id_field;
                     if (localKeyName == "")
                         localKeyName = pkey.mc_nome_colonna;
-                    _ = grid_col_metadata.First(x => x.mc_nome_colonna == localKeyName) as _Metadati_Colonne_Lookup;
+                    _Metadati_Colonne_Lookup local_key = grid_col_metadata.First(x => x.mc_nome_colonna == localKeyName) as _Metadati_Colonne_Lookup;
                     _Metadati_Colonne_Lookup related_key = grid_col_metadata.First(x => x.mc_nome_colonna == relatedKeyName) as _Metadati_Colonne_Lookup;
 
-                    _ = related_key.mc_ui_lookup_entity_name.Replace(" ", "_") + "___" + related_key.mc_ui_lookup_dataTextField + "__" + related_key.mc_nome_colonna;
+                    string display_col = related_key.mc_ui_lookup_entity_name.Replace(" ", "_") + "___" + related_key.mc_ui_lookup_dataTextField + "__" + related_key.mc_nome_colonna;
                     foreach (Dapper.SqlMapper.FastExpando row in rows)
                     {
                         string row_id = row.data[pkey.mc_nome_colonna].ToString();
@@ -5615,7 +5621,7 @@ END;");
                         foreach (object item in collection)
                         {
                             Dictionary<string, object> subEntity = (Dictionary<string, object>)item;
-
+                            string localfield = colGrid.mc_ui_grid_manytomany_related_id_field;
                             if (subEntity.ContainsKey("___added") && (bool)subEntity["___added"])
                             {
                                 if (subEntity.ContainsKey("___deleted"))
@@ -5632,7 +5638,7 @@ END;");
                                 if (colGrid.mc_ui_grid_related_id_field != colGrid.mc_ui_grid_local_id_field)
                                     subEntity[colGrid.mc_ui_grid_related_id_field] = subEntity[colGrid.mc_ui_grid_local_id_field];
 
-                                _ = InsertflatData(subEntity, subRoute, userId);
+                                string insertedID = InsertflatData(subEntity, subRoute, userId);
 
                             }
                             else if (subEntity.ContainsKey("___deleted") && subEntity["___deleted"] != null && (bool)subEntity["___deleted"])
@@ -5832,6 +5838,7 @@ END;");
                     string delete_log = "";
                     if (tabel.md_logging_enable)
                     {
+                        //if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
                         //{
                         //    user_id = Utility.id_extraClient(ref user_id);
 
@@ -5870,6 +5877,7 @@ END;");
                         string delete_log = "";
                         if (tabel.md_logging_enable)
                         {
+                            //if (ConfigHelper.GetSettingAsString("logging-extra_client") != null)
                             //{
                             //    user_id = Utility.id_extraClient(ref user_id);
                             //}
@@ -6501,7 +6509,7 @@ END;");
             bool base64Image = RawHelpers.ParseBool(ConfigHelper.GetSettingAsString("base64Image") ?? "false");
 
             _Metadati_Tabelle tabel = metadata[0]._Metadati_Tabelle;
-            string table_name;
+            string table_name = tabel.md_nome_tabella;
             string safetable_name = GetTableName(tabel);
 
             if (!tabel.md_insertable)
@@ -6995,7 +7003,7 @@ END;");
                 {
                     foreach (routePair rp in relatedRouteToClone)
                     {
-                        _ = _Metadati_Colonne.getColonneByUserID(rp.relatedRoute, 0, user_id, dataMode.insert, null);
+                        List<_Metadati_Colonne> related_metadata = _Metadati_Colonne.getColonneByUserID(rp.relatedRoute, 0, user_id, dataMode.insert, null);
                         FilterInfos fltr = RawHelpers.createStandardFilter(rp.relatedIdField, originalID, pkeys[0]);
                         rawPagedResult res = GetFlatData(user_id, rp.relatedRoute, 0, null, null, null, fltr, "AND", true, null, null);
                         foreach (SqlMapper.FastExpando o in res.results)
