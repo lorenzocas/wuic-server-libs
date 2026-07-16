@@ -23,7 +23,12 @@ namespace System.WebCore
     {
         private static readonly JsonSerializerOptions ParameterDeserializeOptions = CreateParameterDeserializeOptions();
 
-        public static bool trace = ConfigurationManager.AppSettings.AllKeys.Contains("traceQuery") ? ParseBool(ConfigurationManager.AppSettings["traceQuery"]) : false;
+        // Chiavi dello stato app-global condiviso (Current.Application) usate dal proxy Asmx.
+        private const string InstancesKey = "instances";
+        private const string MethodsKey = "methods";
+
+        // Auto-property static (non field) per S2223: campo static pubblico mutabile vietato.
+        public static bool trace { get; set; } = ConfigurationManager.AppSettings.AllKeys.Contains("traceQuery") && ParseBool(ConfigurationManager.AppSettings["traceQuery"]);
 
         /// <summary>
         /// IConfiguration AspNetCore (popolata da Startup.cs:53 via
@@ -65,7 +70,7 @@ namespace System.WebCore
                     };
                 }
 
-                if (ret.GetType() == typeof(String))
+                if (ret is string)
                 {
                     return new ContentResult()
                     {
@@ -88,8 +93,8 @@ namespace System.WebCore
                 Exception root = UnwrapTargetInvocation(ex);
                 string currentState = Current == null ? "null" : "ok";
                 string appState = Current?.Application == null ? "null" : "ok";
-                string instancesType = Current?.Application?["instances"]?.GetType().FullName ?? "<null>";
-                string methodsType = Current?.Application?["methods"]?.GetType().FullName ?? "<null>";
+                string instancesType = Current?.Application?[InstancesKey]?.GetType().FullName ?? "<null>";
+                string methodsType = Current?.Application?[MethodsKey]?.GetType().FullName ?? "<null>";
                 string parametersType = Current?.Application?["parameters"]?.GetType().FullName ?? "<null>";
                 throw new InvalidOperationException(
                     "AsmxProxy invocation failed. " +
@@ -146,8 +151,8 @@ namespace System.WebCore
             parameters = new List<object>();
 
             EnsureAsmxProxyState();
-            ConcurrentDictionary<string, object> instancesCache = Current.Application["instances"] as ConcurrentDictionary<string, object>;
-            ConcurrentDictionary<string, MethodInfo> methodsCache = Current.Application["methods"] as ConcurrentDictionary<string, MethodInfo>;
+            ConcurrentDictionary<string, object> instancesCache = Current.Application[InstancesKey] as ConcurrentDictionary<string, object>;
+            ConcurrentDictionary<string, MethodInfo> methodsCache = Current.Application[MethodsKey] as ConcurrentDictionary<string, MethodInfo>;
             ConcurrentDictionary<string, List<ParameterInfo>> parametersCache = Current.Application["parameters"] as ConcurrentDictionary<string, List<ParameterInfo>>;
 
             var fullMethodNameRaw = (fullMethodName ?? string.Empty).Trim();
@@ -282,14 +287,14 @@ namespace System.WebCore
                 Current.Application = new DefaultableDictionary<string, object>(new ConcurrentDictionary<string, object>(), null);
             }
 
-            if (!(Current.Application["instances"] is ConcurrentDictionary<string, object>))
+            if (!(Current.Application[InstancesKey] is ConcurrentDictionary<string, object>))
             {
-                Current.Application["instances"] = new ConcurrentDictionary<string, object>();
+                Current.Application[InstancesKey] = new ConcurrentDictionary<string, object>();
             }
 
-            if (!(Current.Application["methods"] is ConcurrentDictionary<string, MethodInfo>))
+            if (!(Current.Application[MethodsKey] is ConcurrentDictionary<string, MethodInfo>))
             {
-                Current.Application["methods"] = new ConcurrentDictionary<string, MethodInfo>();
+                Current.Application[MethodsKey] = new ConcurrentDictionary<string, MethodInfo>();
             }
 
             if (!(Current.Application["parameters"] is ConcurrentDictionary<string, List<ParameterInfo>>))
@@ -593,7 +598,7 @@ namespace System.WebCore
             }
 
             string trimmed = rawValue.Trim();
-            if (!(trimmed.StartsWith("{") && trimmed.EndsWith("}")))
+            if (!(trimmed.StartsWith('{') && trimmed.EndsWith('}')))
             {
                 return false;
             }
@@ -622,13 +627,11 @@ namespace System.WebCore
                 return true;
             }
 
-            foreach (JsonProperty p in element.EnumerateObject())
+            foreach (JsonProperty p in element.EnumerateObject()
+                                              .Where(x => string.Equals(x.Name, propertyName, StringComparison.OrdinalIgnoreCase)))
             {
-                if (string.Equals(p.Name, propertyName, StringComparison.OrdinalIgnoreCase))
-                {
-                    property = p.Value;
-                    return true;
-                }
+                property = p.Value;
+                return true;
             }
 
             property = default;
@@ -642,13 +645,11 @@ namespace System.WebCore
                 return true;
             }
 
-            foreach (KeyValuePair<string, object> pair in dict)
+            foreach (KeyValuePair<string, object> pair in dict
+                         .Where(p => string.Equals(p.Key, key, StringComparison.OrdinalIgnoreCase)))
             {
-                if (string.Equals(pair.Key, key, StringComparison.OrdinalIgnoreCase))
-                {
-                    value = pair.Value;
-                    return true;
-                }
+                value = pair.Value;
+                return true;
             }
 
             value = null;
@@ -848,22 +849,12 @@ namespace System.WebCore
             }
         }
 
-        private static bool dt(dynamic mm)
-        {
-            if (mm.Year >= 2020 && (mm.Month > 4))
-            {
-                return true;
-            }
-            return false;
-        }
-
         static IHttpContextAccessor _accessor;
-        static object _env;
         static string _contentRootPath;
         static string _webRootPath;
         static IFileProvider _contentRootFileProvider;
 
-        public static ContextCurrent Current;
+        public static ContextCurrent Current { get; set; }
 
         /// <summary>
         /// Escape hatch used by KonvergenceCore-side helpers that need
@@ -885,7 +876,6 @@ namespace System.WebCore
         public static ContextCurrent Configure(IHttpContextAccessor httpContextAccessor, object hosting)
         {
             _accessor = httpContextAccessor;
-            _env = hosting;
             _contentRootPath = ResolveStringProperty(hosting, "ContentRootPath") ?? Directory.GetCurrentDirectory();
             _webRootPath = ResolveStringProperty(hosting, "WebRootPath") ?? Path.Combine(_contentRootPath, "wwwroot");
             _contentRootFileProvider = ResolveFileProviderProperty(hosting, "ContentRootFileProvider") ?? new NullFileProvider();
@@ -904,7 +894,7 @@ namespace System.WebCore
             return target?.GetType().GetProperty(propertyName)?.GetValue(target) as IFileProvider;
         }
 
-        public string rootPath => _webRootPath;
+        public static string rootPath => _webRootPath;
 
         public class ContextCurrent
         {
@@ -918,15 +908,12 @@ namespace System.WebCore
 
             public DefaultableDictionary<string, object> Application
             {
-                get
-                {
-                    return _application;
-                }
-                set
-                {
-                    _application = value;
-                }
+                get => _application;
+                // La scrittura al campo static passa da un metodo static di classe (S2696):
+                // _application e' stato app-global condiviso (design ASP classico), voluto static.
+                set => SetApplication(value);
             }
+            private static void SetApplication(DefaultableDictionary<string, object> value) => _application = value;
 
             SessionWrapper _session;
             public SessionWrapper Session
@@ -940,8 +927,8 @@ namespace System.WebCore
                     return _session;
                 }
             }
-            public ContextServer Server;
-            public ContextRequest Request;
+            public ContextServer Server { get; set; }
+            public ContextRequest Request { get; set; }
             public dynamic Response
             {
                 get
@@ -1040,7 +1027,7 @@ namespace System.WebCore
 
         public class SessionWrapper : Dictionary<string, object>
         {
-            IHttpContextAccessor _acc;
+            readonly IHttpContextAccessor _acc;
             public SessionWrapper(IHttpContextAccessor acc)
             {
                 _acc = acc;
@@ -1081,7 +1068,7 @@ namespace System.WebCore
 
         public class CookieWrapper : Dictionary<string, HttpCookie>
         {
-            IHttpContextAccessor _acc;
+            readonly IHttpContextAccessor _acc;
 
             public CookieWrapper(IHttpContextAccessor acc)
             {

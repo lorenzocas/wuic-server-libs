@@ -418,7 +418,11 @@ namespace WuicOData
                 {
                     csKeys = string.Join(",", (connectionString ?? "").Split(';').Where(p => p.Contains("=")).Select(p => p.Split('=')[0].Trim()));
                 }
-                catch { }
+                catch
+                {
+                    // csKeys è solo diagnostica best-effort: un errore nel parsing
+                    // della connection string non deve mascherare l'eccezione originale.
+                }
                 throw new InvalidOperationException("TryConfigureMySql failed: " + ex.GetType().FullName + ": " + ex.Message + (ex.InnerException != null ? " | inner: " + ex.InnerException.GetType().FullName + ": " + ex.InnerException.Message : "") + " | csKeys=[" + csKeys + "]", ex);
             }
         }

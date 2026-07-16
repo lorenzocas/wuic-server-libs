@@ -1124,7 +1124,7 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
 
         static IEnumerable<TReturn> MultiMapImpl<TFirst, TSecond, TThird, TFourth, TFifth, TReturn>(this IDbConnection cnn, string sql, object map, object param, IDbTransaction transaction, string splitOn, int? commandTimeout, CommandType? commandType, IDataReader reader, Identity identity)
         {
-            identity = identity ?? new Identity(sql, commandType, cnn, typeof(TFirst), (object)param == null ? null : ((object)param).GetType(), new[] { typeof(TFirst), typeof(TSecond), typeof(TThird), typeof(TFourth), typeof(TFifth) });
+            identity = identity ?? new Identity(sql, commandType, cnn, typeof(TFirst), param == null ? null : param.GetType(), new[] { typeof(TFirst), typeof(TSecond), typeof(TThird), typeof(TFourth), typeof(TFifth) });
             CacheInfo cinfo = GetCacheInfo(identity);
             bool wasClosed = cnn.State == ConnectionState.Closed;
 
@@ -1139,7 +1139,7 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
                     if (reader == null)
                     {
                         if (wasClosed && cnn.State == ConnectionState.Closed) cnn.Open();
-                        ownedCommand = SetupCommand(cnn, transaction, sql, cinfo.ParamReader, (object)param, commandTimeout, commandType);
+                        ownedCommand = SetupCommand(cnn, transaction, sql, cinfo.ParamReader, param, commandTimeout, commandType);
                         try
                         {
                             ownedReader = ownedCommand.ExecuteReader(wasClosed ? CommandBehavior.CloseConnection : CommandBehavior.Default);
@@ -1601,7 +1601,7 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
                             listParam.Size = -1;
                         }
                     }
-                    if (isDbString && item as DbString != null)
+                    if (isDbString && item is DbString)
                     {
                         var str = item as DbString;
                         str.AddParameter(command, listParam.ParameterName);
@@ -1667,13 +1667,11 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
             }
             foreach (var prop in props)
             {
-                if (filterParams)
-                {
-                    if (identity.sql.IndexOf("@" + prop.Name, StringComparison.InvariantCultureIgnoreCase) < 0
-                        && identity.sql.IndexOf(":" + prop.Name, StringComparison.InvariantCultureIgnoreCase) < 0)
-                    { // can't see the parameter in the text (even in a comment, etc) - burn it with fire
-                        continue;
-                    }
+                if (filterParams
+                    && identity.sql.IndexOf("@" + prop.Name, StringComparison.InvariantCultureIgnoreCase) < 0
+                    && identity.sql.IndexOf(":" + prop.Name, StringComparison.InvariantCultureIgnoreCase) < 0)
+                { // can't see the parameter in the text (even in a comment, etc) - burn it with fire
+                    continue;
                 }
                 if (prop.PropertyType == typeof(DbString))
                 {
@@ -1812,7 +1810,7 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
         /// dialog (skill typed-localized-exceptions section 4-bis).
         /// Defaults to no-op so this assembly stays standalone.
         /// </summary>
-        public static Action<string, object> CommandObserver;
+        public static Action<string, object> CommandObserver { get; set; }
 
         private static IDbCommand SetupCommand(IDbConnection cnn, IDbTransaction transaction, string sql, Action<IDbCommand, object> paramReader, object obj, int? commandTimeout, CommandType? commandType)
         {
@@ -2518,6 +2516,11 @@ this IDbConnection cnn, string sql, Func<TFirst, TSecond, TThird, TFourth, TRetu
 
                     if (subDynamic.templates != null)
                     {
+                        // FIX: inizializza `templates` prima dell'Add (come nel ramo
+                        // plain-object sopra e nel Dapper originale). Senza questo,
+                        // combinare un DynamicParameters con template dentro un bag
+                        // fresco (il cui `templates` e' ancora null) lanciava NRE.
+                        templates = templates ?? new List<object>();
                         foreach (var t in subDynamic.templates)
                         {
                             templates.Add(t);
@@ -2601,12 +2604,9 @@ string name, object value = null, DbType? dbType = null, ParameterDirection? dir
                 p.Value = val ?? DBNull.Value;
                 p.Direction = param.ParameterDirection;
                 var s = val as string;
-                if (s != null)
+                if (s != null && s.Length <= 4000)
                 {
-                    if (s.Length <= 4000)
-                    {
-                        p.Size = 4000;
-                    }
+                    p.Size = 4000;
                 }
                 if (param.Size != null)
                 {

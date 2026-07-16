@@ -82,12 +82,10 @@ namespace WuicCore.Server.Api.Models
                         // happens to have a `hashedPassword` / `pwd_hash` / etc.
                         // column gets the same treatment for free.
                         var entityConfig = modelBuilder.AddEntityType(t);
-                        foreach (var prop in t.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+                        foreach (var prop in t.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                                              .Where(p => SensitivePropertyDenylist.Contains(p.Name)))
                         {
-                            if (SensitivePropertyDenylist.Contains(prop.Name))
-                            {
-                                entityConfig.RemoveProperty(prop);
-                            }
+                            entityConfig.RemoveProperty(prop);
                         }
                     }
                     catch (TargetInvocationException ex) when (
