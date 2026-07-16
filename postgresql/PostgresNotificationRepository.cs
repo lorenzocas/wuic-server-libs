@@ -25,6 +25,10 @@ using WuicCore.Services.Notifications;
 /// </summary>
 public sealed class postgresqlNotificationRepository : INotificationRepository
 {
+    // Nome del parametro Npgsql @user_id (S1192): usato nelle tuple (name, value)
+    // di BuildCommand, NON dentro il testo SQL (che resta letterale by-design).
+    private const string ParamUserId = "user_id";
+
     private readonly IConfiguration _configuration;
 
     public postgresqlNotificationRepository(IConfiguration configuration = null)
@@ -96,7 +100,7 @@ public sealed class postgresqlNotificationRepository : INotificationRepository
 
         await using (var countCmd = BuildCommand(cn,
             "SELECT COUNT(1) FROM _notifications WHERE user_id = @user_id AND is_read = false AND deleted_at IS NULL",
-            ("user_id", userId)))
+            (ParamUserId, userId)))
         {
             object scalar = await countCmd.ExecuteScalarAsync(cancellationToken);
             snapshot.UnreadCount = scalar == null || scalar == DBNull.Value ? 0 : Convert.ToInt32(scalar);
@@ -114,7 +118,7 @@ public sealed class postgresqlNotificationRepository : INotificationRepository
                                  ORDER BY created_at DESC, id DESC
                                  LIMIT @take";
 
-        await using (var listCmd = BuildCommand(cn, listSql, ("take", take), ("user_id", userId)))
+        await using (var listCmd = BuildCommand(cn, listSql, ("take", take), (ParamUserId, userId)))
         {
             await using var reader = await listCmd.ExecuteReaderAsync(cancellationToken);
             while (await reader.ReadAsync(cancellationToken))
@@ -123,13 +127,13 @@ public sealed class postgresqlNotificationRepository : INotificationRepository
                 {
                     Id = reader.GetInt32(0),
                     UserId = reader.GetInt32(1),
-                    Type = reader.IsDBNull(2) ? string.Empty : reader.GetString(2),
-                    Message = reader.IsDBNull(3) ? string.Empty : reader.GetString(3),
-                    TargetJson = reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
-                    PayloadJson = reader.IsDBNull(5) ? string.Empty : reader.GetString(5),
-                    IsRead = !reader.IsDBNull(6) && Convert.ToBoolean(reader.GetValue(6)),
-                    CreatedAt = reader.IsDBNull(7) ? DateTime.MinValue : DateTime.SpecifyKind(reader.GetDateTime(7), DateTimeKind.Utc),
-                    ReadAt = reader.IsDBNull(8) ? (DateTime?)null : DateTime.SpecifyKind(reader.GetDateTime(8), DateTimeKind.Utc)
+                    Type = await reader.IsDBNullAsync(2, cancellationToken) ? string.Empty : reader.GetString(2),
+                    Message = await reader.IsDBNullAsync(3, cancellationToken) ? string.Empty : reader.GetString(3),
+                    TargetJson = await reader.IsDBNullAsync(4, cancellationToken) ? string.Empty : reader.GetString(4),
+                    PayloadJson = await reader.IsDBNullAsync(5, cancellationToken) ? string.Empty : reader.GetString(5),
+                    IsRead = !await reader.IsDBNullAsync(6, cancellationToken) && Convert.ToBoolean(reader.GetValue(6)),
+                    CreatedAt = await reader.IsDBNullAsync(7, cancellationToken) ? DateTime.MinValue : DateTime.SpecifyKind(reader.GetDateTime(7), DateTimeKind.Utc),
+                    ReadAt = await reader.IsDBNullAsync(8, cancellationToken) ? (DateTime?)null : DateTime.SpecifyKind(reader.GetDateTime(8), DateTimeKind.Utc)
                 });
             }
         }
@@ -169,7 +173,7 @@ public sealed class postgresqlNotificationRepository : INotificationRepository
         await using var cn = await CreateOpenConnectionAsync(cancellationToken);
         await using (var cmd = BuildCommand(cn,
             "UPDATE _notifications SET is_read = true, read_at = COALESCE(read_at, (NOW() AT TIME ZONE 'UTC')::timestamp) WHERE user_id = @user_id AND is_read = false AND deleted_at IS NULL",
-            ("user_id", userId)))
+            (ParamUserId, userId)))
         {
             await cmd.ExecuteNonQueryAsync(cancellationToken);
         }
@@ -184,7 +188,7 @@ public sealed class postgresqlNotificationRepository : INotificationRepository
         await using var cn = await CreateOpenConnectionAsync(cancellationToken);
         await using (var cmd = BuildCommand(cn,
             "UPDATE _notifications SET deleted_at = (NOW() AT TIME ZONE 'UTC')::timestamp WHERE user_id = @user_id AND is_read = true AND deleted_at IS NULL",
-            ("user_id", userId)))
+            (ParamUserId, userId)))
         {
             await cmd.ExecuteNonQueryAsync(cancellationToken);
         }
@@ -203,8 +207,8 @@ public sealed class postgresqlNotificationRepository : INotificationRepository
         {
             await using var rdr = await selCmd.ExecuteReaderAsync(cancellationToken);
             if (!await rdr.ReadAsync(cancellationToken)) return null;
-            userId = rdr.IsDBNull(0) ? (int?)null : rdr.GetInt32(0);
-            isRead = !rdr.IsDBNull(1) && Convert.ToBoolean(rdr.GetValue(1));
+            userId = await rdr.IsDBNullAsync(0, cancellationToken) ? (int?)null : rdr.GetInt32(0);
+            isRead = !await rdr.IsDBNullAsync(1, cancellationToken) && Convert.ToBoolean(rdr.GetValue(1));
         }
         if (userId == null || !isRead) return userId;
 
@@ -241,7 +245,7 @@ public sealed class postgresqlNotificationRepository : INotificationRepository
                                      OR (COALESCE(target_json, '{}')::json ->> 'progressGuid') = @guid
                                      OR (COALESCE(target_json, '{}')::json ->> 'exportProgressGuid') = @guid
                                    )";
-        await using (var cmd = BuildCommand(cn, sql, ("user_id", userId), ("guid", guid)))
+        await using (var cmd = BuildCommand(cn, sql, (ParamUserId, userId), ("guid", guid)))
         {
             await cmd.ExecuteNonQueryAsync(cancellationToken);
         }
@@ -259,7 +263,7 @@ public sealed class postgresqlNotificationRepository : INotificationRepository
         await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
         {
-            if (!reader.IsDBNull(0)) users.Add(reader.GetInt32(0));
+            if (!await reader.IsDBNullAsync(0, cancellationToken)) users.Add(reader.GetInt32(0));
         }
         return users;
     }
@@ -276,7 +280,7 @@ public sealed class postgresqlNotificationRepository : INotificationRepository
         // PROCEDURE void). Vedi scripts/notifications/create-sp-postgres.sql per il DDL.
         const string sql = "SELECT sp_enqueue_notification(@user_id, @type, @message, @target_json, @payload_json, @source, @created_by)";
         await using var cmd = BuildCommand(cn, sql,
-            ("user_id",      request.userId),
+            (ParamUserId,    request.userId),
             ("type",         request.type ?? string.Empty),
             ("message",      request.message ?? string.Empty),
             ("target_json",  request.targetJson ?? string.Empty),

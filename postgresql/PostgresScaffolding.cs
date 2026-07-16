@@ -13,6 +13,15 @@ namespace metaModelRaw
 {
     public class PostgresScaffolding
     {
+        // S1192 — token NON-SQL riusati nel file: chiave dictionary di risposta,
+        // token di tipo canonico (GetPostgresCanonicalType/SetTypeFromPostgresColumn)
+        // e valore mc_ui_column_type. Nessuno finisce in testo SQL emesso.
+        private const string MessageKey = "message";
+        private const string TypeVarchar = "varchar";
+        private const string TypeBoolean = "boolean";
+        private const string TypePoint = "point";
+        private const string UiTypeNumber = "number";
+
         private static string NormalizeSchema(string schemaOrDb)
         {
             return string.IsNullOrWhiteSpace(schemaOrDb) ? "public" : schemaOrDb.Trim();
@@ -80,7 +89,7 @@ namespace metaModelRaw
             return ret.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         }
 
-        private static List<columnDefinition> GetPgColumns(string connection, string schema, string tableName, StringBuilder log)
+        private static List<columnDefinition> GetPgColumns(string connection, string schema, string tableName)
         {
             var ret = new List<columnDefinition>();
             using (DbConnection con = PostGresProviderGateway.CreateOpenConnection(connection))
@@ -460,14 +469,11 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
                         }
                     }
 
-                    if (src.IsPk)
+                    if (src.IsPk && (uicCol.mc_pk_name != src.PkName || !uicCol.mc_is_primary_key))
                     {
-                        if (uicCol.mc_pk_name != src.PkName || !uicCol.mc_is_primary_key)
-                        {
-                            uicCol.mc_pk_name = src.PkName;
-                            uicCol.mc_is_primary_key = true;
-                            updated = true;
-                        }
+                        uicCol.mc_pk_name = src.PkName;
+                        uicCol.mc_is_primary_key = true;
+                        updated = true;
                     }
 
                     string actualType = RawHelpers.getDBDataType((src.DataType ?? string.Empty).ToLowerInvariant());
@@ -529,7 +535,7 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
                     if (tb == "test" || tb == "information_schema")
                         continue;
 
-                    List<columnDefinition> columns = GetPgColumns(connection, effectiveSchema, tb, str);
+                    List<columnDefinition> columns = GetPgColumns(connection, effectiveSchema, tb);
 
                     foreach (columnDefinition col in columns)
                     {
@@ -545,7 +551,7 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
 
                 foreach (string vw in views.OrderBy(x => x))
                 {
-                    List<columnDefinition> columns = GetPgColumns(connection, effectiveSchema, vw, str);
+                    List<columnDefinition> columns = GetPgColumns(connection, effectiveSchema, vw);
                     foreach (columnDefinition col in columns)
                     {
                         scaffoldOfColumnPostgres(connection, connName, mmd, vw, db, col, str, ref createMenu, columns.Count);
@@ -598,16 +604,16 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
 
             using (metaRawModel mmd = new metaRawModel())
             {
-                List<columnDefinition> columns = GetPgColumns(connection, effectiveSchema, tableName, log);
+                List<columnDefinition> columns = GetPgColumns(connection, effectiveSchema, tableName);
                 columnDefinition col = columns.FirstOrDefault(x => string.Equals(x.Name, column, StringComparison.OrdinalIgnoreCase));
                 if (col == null)
-                    return new Dictionary<string, string>() { { "message", "Colonna non trovata" }, { "log", "Colonna non trovata" } };
+                    return new Dictionary<string, string>() { { MessageKey, "Colonna non trovata" }, { "log", "Colonna non trovata" } };
 
                 bool createMenu = false;
                 scaffoldOfColumnPostgres(connection, connName, mmd, tableName, effectiveSchema, col, log, ref createMenu, columns.Count);
                 return new Dictionary<string, string>()
                 {
-                    { "message", log.ToString() }, { "log", log.ToString() }
+                    { MessageKey, log.ToString() }, { "log", log.ToString() }
                 };
             }
         }
@@ -641,9 +647,9 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
             using (metaRawModel mmd = new metaRawModel())
             {
                 if (!GetPgTables(connection, effectiveSchema).Any(x => string.Equals(x, tableName, StringComparison.OrdinalIgnoreCase)))
-                    return new Dictionary<string, string>() { { "message", "Tabella non trovata" }, { "log", "Tabella non trovata" } };
+                    return new Dictionary<string, string>() { { MessageKey, "Tabella non trovata" }, { "log", "Tabella non trovata" } };
 
-                List<columnDefinition> columns = GetPgColumns(connection, effectiveSchema, tableName, log);
+                List<columnDefinition> columns = GetPgColumns(connection, effectiveSchema, tableName);
                 foreach (columnDefinition col in columns)
                     scaffoldOfColumnPostgres(connection, connName, mmd, tableName, effectiveSchema, col, log, ref createMenu, columns.Count);
 
@@ -666,7 +672,7 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
 
                 return new Dictionary<string, string>()
                 {
-                    { "message", log.ToString() },
+                    { MessageKey, log.ToString() },
                     { "log", log.ToString() },
                     { "id", scaffoldedId }
                 };
@@ -696,7 +702,7 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
                 string viewT = GetPgViews(connection, effectiveSchema).FirstOrDefault(x => string.Equals(x, viewName, StringComparison.OrdinalIgnoreCase));
                 if (!string.IsNullOrEmpty(viewT))
                 {
-                    List<columnDefinition> columns = GetPgColumns(connection, effectiveSchema, viewT, log);
+                    List<columnDefinition> columns = GetPgColumns(connection, effectiveSchema, viewT);
                     mmd.scaffoldOfViewMySql(connection, connName, viewT, mmd, log, effectiveSchema, createMenu);
 
                     foreach (columnDefinition col in columns)
@@ -748,7 +754,7 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
             {
                 string storedName = GetPgStored(connection, effectiveSchema).FirstOrDefault(x => string.Equals(x, stored, StringComparison.OrdinalIgnoreCase));
                 if (string.IsNullOrEmpty(storedName))
-                    return new Dictionary<string, string>() { { "message", "Stored non trovata" }, { "log", "Stored non trovata" } };
+                    return new Dictionary<string, string>() { { MessageKey, "Stored non trovata" }, { "log", "Stored non trovata" } };
 
                 mmd.scaffoldOfStoredMySql(connection, connName, storedName, mmd, log, effectiveSchema);
 
@@ -757,12 +763,12 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
 
                 return new Dictionary<string, string>()
                 {
-                    { "message", log.ToString() }, { "log", log.ToString() }
+                    { MessageKey, log.ToString() }, { "log", log.ToString() }
                 };
             }
         }
 
-        private void cloneToChild(object baseClassObj, object childClassObject)
+        private static void cloneToChild(object baseClassObj, object childClassObject)
         {
             foreach (PropertyInfo pinfo in baseClassObj.GetType().GetProperties())
             {
@@ -814,7 +820,7 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
         /// </summary>
         private static string GetPostgresCanonicalType(string pgRawType)
         {
-            if (string.IsNullOrEmpty(pgRawType)) return "varchar";
+            if (string.IsNullOrEmpty(pgRawType)) return TypeVarchar;
             string t = pgRawType.Trim().ToLowerInvariant();
             switch (t)
             {
@@ -850,12 +856,12 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
 
                 // character family
                 case "character varying":
-                case "varchar":
+                case TypeVarchar:
                 case "character":
                 case "char":
                 case "bpchar":
                 case "name":
-                    return "varchar";
+                    return TypeVarchar;
 
                 case "text":
                     return "text";
@@ -869,9 +875,9 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
                     return "text";
 
                 // boolean
-                case "boolean":
+                case TypeBoolean:
                 case "bool":
-                    return "boolean";
+                    return TypeBoolean;
 
                 // date/time family
                 case "date":
@@ -890,7 +896,7 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
                     return "time";
 
                 case "interval":
-                    return "varchar";
+                    return TypeVarchar;
 
                 // binary
                 case "bytea":
@@ -900,8 +906,8 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
                     return "uniqueidentifier";
 
                 // spatial (PostGIS arrives as udt_name)
-                case "point":
-                    return "point";
+                case TypePoint:
+                    return TypePoint;
                 case "polygon":
                 case "geometry":
                 case "geography":
@@ -910,7 +916,7 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
                 default:
                     // Unknown PG type — fall back to varchar/text. ENUM types
                     // arrive as the enum name (USER-DEFINED) and land here.
-                    return "varchar";
+                    return TypeVarchar;
             }
         }
 
@@ -924,7 +930,7 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
         {
             switch (canonical)
             {
-                case "varchar":
+                case TypeVarchar:
                     cm.mc_default_value = col.DefaultValue;
                     cm.mc_ui_column_type = "text";
                     if (col.MaximumLength > 0)
@@ -953,7 +959,7 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
                 case "int":
                     {
                         cm.mc_default_value = col.DefaultValue;
-                        cm.mc_ui_column_type = "number";
+                        cm.mc_ui_column_type = UiTypeNumber;
                         _Metadati_Colonne_Slider numCol = new _Metadati_Colonne_Slider();
                         RawHelpers.cloneToChild(cm, numCol);
                         numCol.mc_ui_slider_decimals = 0;
@@ -965,7 +971,7 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
                 case "decimal":
                     {
                         cm.mc_default_value = col.DefaultValue;
-                        cm.mc_ui_column_type = "number";
+                        cm.mc_ui_column_type = UiTypeNumber;
                         _Metadati_Colonne_Slider numCol = new _Metadati_Colonne_Slider();
                         RawHelpers.cloneToChild(cm, numCol);
                         numCol.mc_ui_slider_decimals = (short)col.NumericScale;
@@ -977,7 +983,7 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
                 case "float":
                     {
                         cm.mc_default_value = col.DefaultValue;
-                        cm.mc_ui_column_type = "number";
+                        cm.mc_ui_column_type = UiTypeNumber;
                         cm.mc_db_column_type = "float";
                         _Metadati_Colonne_Slider numCol = new _Metadati_Colonne_Slider();
                         RawHelpers.cloneToChild(cm, numCol);
@@ -990,7 +996,7 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
                 case "money":
                     {
                         cm.mc_default_value = col.DefaultValue;
-                        cm.mc_ui_column_type = "number";
+                        cm.mc_ui_column_type = UiTypeNumber;
                         _Metadati_Colonne_Slider monCol = new _Metadati_Colonne_Slider();
                         RawHelpers.cloneToChild(cm, monCol);
                         monCol.mc_ui_slider_decimals = (short)col.NumericScale;
@@ -999,9 +1005,9 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
                     }
                     break;
 
-                case "boolean":
+                case TypeBoolean:
                     cm.mc_default_value = col.DefaultValue;
-                    cm.mc_ui_column_type = "boolean";
+                    cm.mc_ui_column_type = TypeBoolean;
                     if (!col.Nullable && string.IsNullOrEmpty(cm.mc_default_value))
                         cm.mc_default_value = "false";
                     mm.AddColonna(cm);
@@ -1034,8 +1040,8 @@ WHERE t.mddbname = @db OR (@db = '' AND coalesce(t.mddbname, '') = '');";
                     mm.AddColonna(cm);
                     break;
 
-                case "point":
-                    cm.mc_ui_column_type = "point";
+                case TypePoint:
+                    cm.mc_ui_column_type = TypePoint;
                     mm.AddColonna(cm);
                     break;
 

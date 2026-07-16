@@ -19,6 +19,13 @@ public class postgresqlDataProvider : IMetaQuery
 {
     private const int UnlicensedMaxRecords = 20;
 
+    // S1192 — chiavi JSON NON-SQL riusate nel file (payload viewDefinition e
+    // response dictionary). Le stringhe SQL restano letterali per-provider by-design.
+    private const string ColumnsKey = "columns";
+    private const string TableAliasKey = "tableAlias";
+    private const string ColAliasKey = "alias";
+    private const string ErrorKey = "error";
+
     private static void ApplyUnlicensedRequestCap(PageInfo pageInfo)
     {
         if (pageInfo == null)
@@ -65,17 +72,17 @@ public class postgresqlDataProvider : IMetaQuery
 
     public user mapUserFields(SysInfo infos, Dapper.SqlMapper.FastExpando user)
     {
-        string userid = user.Where(x => x.Key == infos.user_id_column_name).First().Value.ToString();
-        string display = user.Where(x => x.Key == infos.user_description_column_name).First().Value.ToString();
-        bool isAdmin = (bool)user.Where(x => x.Key == infos.isAdmin_column_name).First().Value;
-        string roleId = user.Where(x => x.Key == infos.role_id_column_name).First().Value.ToString();
-        string userName = user.Where(x => x.Key == infos.username_column_name).First().Value.ToString();
+        string userid = user.First(x => x.Key == infos.user_id_column_name).Value.ToString();
+        string display = user.First(x => x.Key == infos.user_description_column_name).Value.ToString();
+        bool isAdmin = (bool)user.First(x => x.Key == infos.isAdmin_column_name).Value;
+        string roleId = user.First(x => x.Key == infos.role_id_column_name).Value.ToString();
+        string userName = user.First(x => x.Key == infos.username_column_name).Value.ToString();
 
         List<role> allRoles = GetRoleList();
         role myRole = allRoles?.FirstOrDefault(x => x.role_id == roleId);
         List<role> roles = GetMultipleRoleRoleByUserID(userid) ?? new List<role>();
 
-        var lastAct = user.Where(x => string.Equals(x.Key, "lastactivitydate", StringComparison.OrdinalIgnoreCase)).FirstOrDefault().Value;
+        var lastAct = user.FirstOrDefault(x => string.Equals(x.Key, "lastactivitydate", StringComparison.OrdinalIgnoreCase)).Value;
         DateTime lastActivity = DateTime.MinValue;
         if (lastAct != null)
             DateTime.TryParse(lastAct.ToString(), out lastActivity);
@@ -447,7 +454,7 @@ public class postgresqlDataProvider : IMetaQuery
                         var resultRows = new List<Dictionary<string, object>>();
                         if (rows.Count > 0) resultColumns.AddRange(rows[0].data.Keys);
                         foreach (var row in rows) resultRows.Add(new Dictionary<string, object>(row.data));
-                        response["columns"] = resultColumns;
+                        response[ColumnsKey] = resultColumns;
                         response["rows"] = resultRows;
                         response["rowCount"] = resultRows.Count;
                     }
@@ -481,14 +488,14 @@ LIMIT 1";
                 foreach (var tbl in tables)
                 {
                     string route = Convert.ToString(tbl["route"] ?? "").Trim();
-                    string alias = Convert.ToString(tbl["tableAlias"] ?? "").Trim();
-                    var cols = tbl["columns"] as JArray ?? new JArray();
+                    string alias = Convert.ToString(tbl[TableAliasKey] ?? "").Trim();
+                    var cols = tbl[ColumnsKey] as JArray ?? new JArray();
                     var selectedCols = new JArray(cols.Where(c => c["selected"]?.Value<bool>() == true));
                     if (string.IsNullOrWhiteSpace(route) || string.IsNullOrWhiteSpace(alias)) continue;
 
                     var meta = metaConn.Query(metaSql, new { route }).FirstOrDefault();
                     if (meta == null)
-                        throw new Exception($"Route '{route}' non trovata nei metadati.");
+                        throw new InvalidOperationException($"Route '{route}' non trovata nei metadati.");
 
                     tableInfos.Add((
                         alias,
@@ -512,11 +519,11 @@ LIMIT 1";
                     {
                         var dbCols = (List<Dapper.SqlMapper.FastExpando>)dataConnSchema.Query(colSql,
                             new { tableName = info.PhysicalName });
-                        foreach (var c in dbCols)
+                        foreach (var colData in dbCols.Select(c => c.data))
                         {
-                            string colName = Convert.ToString(c.data["column_name"]);
-                            string dataType = Convert.ToString(c.data["data_type"]).ToLowerInvariant();
-                            string udtName = Convert.ToString(c.data["udt_name"]).ToLowerInvariant();
+                            string colName = Convert.ToString(colData["column_name"]);
+                            string dataType = Convert.ToString(colData["data_type"]).ToLowerInvariant();
+                            string udtName = Convert.ToString(colData["udt_name"]).ToLowerInvariant();
                             string key = $"{info.Alias}|{colName}";
                             physicalColumns.Add(key);
                             if (dataType == "user-defined" && (udtName == "geometry" || udtName == "geography"))
@@ -531,8 +538,8 @@ LIMIT 1";
                 {
                     foreach (var col in info.SelectedCols)
                     {
-                        string realName = Convert.ToString(col["realName"] ?? col["alias"] ?? "").Trim();
-                        string colLabel = Convert.ToString(col["label"] ?? col["alias"] ?? "").Trim();
+                        string realName = Convert.ToString(col["realName"] ?? col[ColAliasKey] ?? "").Trim();
+                        string colLabel = Convert.ToString(col["label"] ?? col[ColAliasKey] ?? "").Trim();
                         string qualifiedAlias = $"{info.Alias}.{colLabel}";
                         string lookupKey = $"{info.Alias}|{realName}";
                         if (!string.IsNullOrWhiteSpace(realName) && physicalColumns.Contains(lookupKey))
@@ -592,7 +599,7 @@ LIMIT 1";
                         foreach (var tbl in tables)
                         {
                             string nid = Convert.ToString(tbl["nodeId"] ?? "");
-                            string ta = Convert.ToString(tbl["tableAlias"] ?? "");
+                            string ta = Convert.ToString(tbl[TableAliasKey] ?? "");
                             if (nid == srcNodeId) srcTblAlias = ta;
                             if (nid == tgtNodeId) tgtTblAlias = ta;
                         }
@@ -650,13 +657,10 @@ LIMIT 1";
                         joinedAliasSet.Add(newTableAlias);
                     }
                 }
-                foreach (var info in tableInfos)
+                foreach (var info in tableInfos.Where(t => !joinedAliasSet.Contains(t.Alias)))
                 {
-                    if (!joinedAliasSet.Contains(info.Alias))
-                    {
-                        fromSb.AppendLine();
-                        fromSb.Append($"  CROSS JOIN {FromOf(info)}");
-                    }
+                    fromSb.AppendLine();
+                    fromSb.Append($"  CROSS JOIN {FromOf(info)}");
                 }
 
                 string selectSql = string.Join(",\n  ", selectParts);
@@ -747,7 +751,7 @@ LIMIT 1";
                         var resultRows = new List<Dictionary<string, object>>();
                         if (rows.Count > 0) resultColumns.AddRange(rows[0].data.Keys);
                         foreach (var row in rows) resultRows.Add(new Dictionary<string, object>(row.data));
-                        response["columns"] = resultColumns;
+                        response[ColumnsKey] = resultColumns;
                         response["rows"] = resultRows;
                         response["rowCount"] = resultRows.Count;
                     }
@@ -757,7 +761,7 @@ LIMIT 1";
         catch (Exception ex)
         {
             response["ok"] = false;
-            response["error"] = ex.Message;
+            response[ErrorKey] = ex.Message;
         }
         return response;
     }
@@ -813,12 +817,12 @@ LIMIT 1";
                 foreach (var tbl in tables)
                 {
                     string route = Convert.ToString(tbl["route"] ?? "").Trim();
-                    string alias = Convert.ToString(tbl["tableAlias"] ?? "").Trim();
-                    var cols = tbl["columns"] as JArray ?? new JArray();
+                    string alias = Convert.ToString(tbl[TableAliasKey] ?? "").Trim();
+                    var cols = tbl[ColumnsKey] as JArray ?? new JArray();
                     var selectedCols = new JArray(cols.Where(c => c["selected"]?.Value<bool>() == true));
                     if (string.IsNullOrWhiteSpace(route) || string.IsNullOrWhiteSpace(alias)) continue;
                     var meta = metaConn.Query(metaSql, new { route }).FirstOrDefault();
-                    if (meta == null) throw new Exception($"Route '{route}' non trovata nei metadati.");
+                    if (meta == null) throw new InvalidOperationException($"Route '{route}' non trovata nei metadati.");
                     tableInfos.Add((alias, Convert.ToString(meta.table_name), Convert.ToString(meta.schema_name), Convert.ToString(meta.conn_name), selectedCols));
                 }
                 if (tableInfos.Count == 0) throw new ValidationException("No valid tables in viewDefinition.");
@@ -841,8 +845,8 @@ LIMIT 1";
                 {
                     foreach (var col in info.SelectedCols)
                     {
-                        string realName = Convert.ToString(col["realName"] ?? col["alias"] ?? "").Trim();
-                        string colLabel = Convert.ToString(col["label"] ?? col["alias"] ?? "").Trim();
+                        string realName = Convert.ToString(col["realName"] ?? col[ColAliasKey] ?? "").Trim();
+                        string colLabel = Convert.ToString(col["label"] ?? col[ColAliasKey] ?? "").Trim();
                         string qualifiedAlias = $"{info.Alias}.{colLabel}";
                         string lookupKey = $"{info.Alias}|{realName}";
                         string formula = Convert.ToString(col["formula"] ?? "").Trim();
@@ -881,7 +885,7 @@ LIMIT 1";
                         foreach (var tbl in tables)
                         {
                             string nid = Convert.ToString(tbl["nodeId"] ?? "");
-                            string ta = Convert.ToString(tbl["tableAlias"] ?? "");
+                            string ta = Convert.ToString(tbl[TableAliasKey] ?? "");
                             if (nid == srcAlias) srcTblAlias = ta;
                             if (nid == tgtAlias) tgtTblAlias = ta;
                         }
@@ -891,9 +895,10 @@ LIMIT 1";
                         bool srcInFrom = joinedAliasesCV.Contains(srcTblAlias);
                         bool tgtInFrom = joinedAliasesCV.Contains(tgtTblAlias);
                         string newTblAlias, anchorAlias, newCol, anchorCol;
-                        if (srcInFrom && !tgtInFrom) { newTblAlias = tgtTblAlias; anchorAlias = srcTblAlias; newCol = tgtCol; anchorCol = srcCol; }
-                        else if (!srcInFrom && tgtInFrom) { newTblAlias = srcTblAlias; anchorAlias = tgtTblAlias; newCol = srcCol; anchorCol = tgtCol; }
-                        else if (!srcInFrom && !tgtInFrom) { newTblAlias = tgtTblAlias; anchorAlias = srcTblAlias; newCol = tgtCol; anchorCol = srcCol; }
+                        // S1871: i rami (srcInFrom && !tgtInFrom) e (!srcInFrom && !tgtInFrom)
+                        // erano identici → merged su !tgtInFrom (target non ancora in FROM).
+                        if (!tgtInFrom) { newTblAlias = tgtTblAlias; anchorAlias = srcTblAlias; newCol = tgtCol; anchorCol = srcCol; }
+                        else if (!srcInFrom) { newTblAlias = srcTblAlias; anchorAlias = tgtTblAlias; newCol = srcCol; anchorCol = tgtCol; }
                         else continue;
 
                         var newInfo = tableInfos.FirstOrDefault(t => t.Alias == newTblAlias);
@@ -933,7 +938,7 @@ FROM {fromSb}";
                     if (exists && !overwrite_if_exists)
                     {
                         response["ok"] = false;
-                        response["error"] = $"View '{qualifiedViewName}' already exists.";
+                        response[ErrorKey] = $"View '{qualifiedViewName}' already exists.";
                         response["errorCode"] = "VIEW_EXISTS";
                         response["qualifiedView"] = qualifiedViewName;
                         response["sql"] = createViewSql;
@@ -954,7 +959,7 @@ FROM {fromSb}";
         catch (Exception ex)
         {
             response["ok"] = false;
-            response["error"] = ex.Message;
+            response[ErrorKey] = ex.Message;
         }
         return response;
     }
@@ -981,12 +986,12 @@ WHERE c.mc_ui_column_type = 'lookupByID'
   AND COALESCE(t.mdroutename, '') <> ''";
                 var rows = (List<Dapper.SqlMapper.FastExpando>)metaConn.Query(sql);
                 var fks = new List<Dictionary<string, string>>();
-                foreach (var r in rows)
+                foreach (var rowData in rows.Select(r => r.data))
                 {
                     fks.Add(new Dictionary<string, string>
                     {
-                        ["source"] = Convert.ToString(r.data["source_route"]),
-                        ["target"] = Convert.ToString(r.data["target_route"])
+                        ["source"] = Convert.ToString(rowData["source_route"]),
+                        ["target"] = Convert.ToString(rowData["target_route"])
                     });
                 }
                 response["ok"] = true;
@@ -996,7 +1001,7 @@ WHERE c.mc_ui_column_type = 'lookupByID'
         catch (Exception ex)
         {
             response["ok"] = false;
-            response["error"] = ex.Message;
+            response[ErrorKey] = ex.Message;
         }
         return response;
     }
@@ -1080,7 +1085,7 @@ WHERE c.mc_ui_column_type = 'lookupByID'
         catch (Exception ex)
         {
             response["ok"] = false;
-            response["error"] = ex.Message;
+            response[ErrorKey] = ex.Message;
             throw;
         }
     }
@@ -1103,7 +1108,7 @@ WHERE c.mc_ui_column_type = 'lookupByID'
                 {
                     string json = System.IO.File.ReadAllText(mappingPath);
                     var root = JObject.Parse(json);
-                    var cols = root["MetadatiColonne"]?["columns"] as JArray;
+                    var cols = root["MetadatiColonne"]?[ColumnsKey] as JArray;
                     if (cols != null)
                     {
                         foreach (JToken col in cols)
@@ -1116,7 +1121,12 @@ WHERE c.mc_ui_column_type = 'lookupByID'
                         }
                     }
                 }
-                catch { }
+                catch
+                {
+                    // Mapping file illeggibile/malformato: si prosegue con il
+                    // dizionario vuoto (fallback: nessuna colonna risolta, il
+                    // patch updateColumnMetadata ignora i campi non mappati).
+                }
             }
             _metadatiColonneCsToSqlCachePostgres = dict;
             return _metadatiColonneCsToSqlCachePostgres;
@@ -1159,7 +1169,7 @@ WHERE c.mc_ui_column_type = 'lookupByID'
         if (string.IsNullOrWhiteSpace(name))
             return false;
 
-        using (var conn = (NpgsqlConnection)metaQueryPostgreSql.GetOpenConnection(true))
+        using (var conn = metaQueryPostgreSql.GetOpenConnection(true))
         {
             using (var cmd = conn.CreateCommand())
             {
