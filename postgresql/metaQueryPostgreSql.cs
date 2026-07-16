@@ -31,6 +31,9 @@ namespace metaModelRaw
 {
     public partial class metaQueryPostgreSql
     {
+        // S1118: utility class con soli membri static — ctor privato per impedirne l'istanziazione.
+        private metaQueryPostgreSql() { }
+
         // ── S1192: costanti NON-SQL riusate nel file ──────────────────────────
         // Solo token non-SQL (chiavi JSON/entity, token di tipo metadata, nomi
         // parametro Dapper/Npgsql, format .NET, discriminatori dbms). Le stringhe
@@ -1219,41 +1222,6 @@ FROM {fromTable}
             return rows;
         }
 
-
-        private static string checkUserName(string user_name, string email, NpgsqlConnection connection)
-        {
-            if (user.getUserByName(user_name) != null)
-            {
-                return "-1";
-            }
-
-            if (user.getUserByEMail(email) != null)
-            {
-                return "-2";
-            }
-
-            string query = "select * from cms.register_requests where username=@username";
-            NpgsqlCommand cmd = new NpgsqlCommand(query, connection);
-            cmd.Parameters.Add(new SqlParameter("username", user_name));
-            NpgsqlDataAdapter adpt = new NpgsqlDataAdapter(cmd);
-            DataTable dt = new DataTable();
-            adpt.Fill(dt);
-
-            if (dt.Rows.Count > 0)
-                return "-1";
-
-            query = "select * from cms.register_requests where email=@email";
-            cmd = new NpgsqlCommand(query, connection);
-            cmd.Parameters.Add(new SqlParameter("email", email));
-            adpt = new NpgsqlDataAdapter(cmd);
-            dt = new DataTable();
-            adpt.Fill(dt);
-
-            if (dt.Rows.Count > 0)
-                return "-2";
-
-            return user_name;
-        }
 
         public static void logOut(user user)
         {
@@ -4228,7 +4196,6 @@ FROM {fromTable}
                         filterInfo.filters.Remove(f);
 
                     return;
-                    //
                 }
                 else if (fld.mc_ui_column_type == UiTypeNumberBoolean && f.value != null && f.value != "")
                 {
@@ -4393,106 +4360,6 @@ FROM {fromTable}
                         joins[ap] = joins[ap] + " AND " + string.Format("{1}.{2} = {0}.{3} ", EscapeDBObjectName(sys.user_table_name), safetableName, EscapeDBObjectName(tab.md_logging_insert_user_field_name), sys.user_id_column_name);
                 }
             }
-        }
-
-        private static string AppendHaving(_Metadati_Colonne fld, FilterInfos filterInfo, string logicOperator, string currentFld, string having, Definizione_Universi def)
-        {
-            filterInfo.filters.Where(x => x.field != ExtraFilterField && x.isHaving).ToList().ForEach((f) =>
-            {
-                _ = f.havingAggregation + "_" + fld.mc_nome_colonna + "_" + def.id;
-
-                var realOperator = GetRealOperator(f.operatore);
-                string quote = RawHelpers.getQuoteFromColumn(fld);
-
-                if (realOperator == "eqor")
-                {
-                    string nestedHaving = "";
-
-                    f.value.Split(',').ToList()
-                    .ForEach(x =>
-                    {
-                        nestedHaving = nestedHaving + (string.IsNullOrEmpty(nestedHaving) ? "(" : " OR ") + currentFld + " = " + string.Format(" {0}{1}{0} ", quote, x);
-                    });
-
-                    nestedHaving = nestedHaving + ")";
-
-                    having += ((having == "") ? " having " : " " + logicOperator + " ") + nestedHaving;
-                    filterInfo.filters.Remove(f);
-                    return;
-                }
-
-                string leftExtraOperator = quote;
-
-                string rightExtraOperator = leftExtraOperator;
-                if (realOperator == "ilike" || realOperator == "like")
-                {
-                    if (f.operatore == OpContains)
-                    {
-                        leftExtraOperator = quote + "%";
-                        rightExtraOperator = "%" + quote;
-                    }
-                    if (f.operatore == OpStartsWith)
-                    {
-                        leftExtraOperator = quote;
-                        rightExtraOperator = "%" + quote;
-                    }
-                    if (f.operatore == OpEndsWith)
-                    {
-                        leftExtraOperator = quote + "%";
-                        rightExtraOperator = quote;
-                    }
-                }
-
-                string async_extra_condition = "";
-
-                f.value = EscapeValue(f.value).ToString();
-
-                if (fld.mc_ui_column_type == UiTypeDatetime && f.value != null && f.value != "")
-                {
-                    //FIX UTC TIME ISSUE 
-                    string parsed = f.value.ToString().Replace(@"""", "");
-                    DateTime d = DateTime.Parse(parsed);
-                    f.value = d.AddHours(-1).ToString(DateTimeLogFormat);
-
-                    having += ((having == "") ? " where " : " " + logicOperator + " ") + string.Format("( {0}(", f.havingAggregation) + "DATEADD(ms, -DATEPART(ms, " + currentFld + "), " + currentFld + ")" + ")" + realOperator + string.Format(" {0}{1}{2} {3} )", leftExtraOperator, f.value, rightExtraOperator, async_extra_condition);
-                    filterInfo.filters.Remove(f);
-                    return;
-
-                }
-                else if (fld.mc_ui_column_type == "date" && f.value != null && f.value != "")
-                {
-                    //FIX UTC TIME ISSUE 
-                    string parsed = f.value.ToString().Replace(@"""", "");
-                    DateTime d = DateTime.Parse(parsed, new System.Globalization.CultureInfo("en-US", false));
-                    if (f.operatore == "le" || f.operatore == "lte")
-                        d = new DateTime(d.Year, d.Month, d.Day, 23, 59, 59);
-                    else
-                    {
-                        if (d.Hour != 0)
-                            d = d.AddHours(1);
-                    }
-
-                    f.value = d.ToString("yyyyMMdd");
-
-                    having += ((having == "") ? " having " : " " + logicOperator + " ") + string.Format("( {0}(", f.havingAggregation) + "DateAdd(day, datediff(day,0, " + currentFld + "), 0)" + ")" + realOperator + string.Format(" {0}{1}{2} {3} )", leftExtraOperator, f.value, rightExtraOperator, async_extra_condition);
-                    filterInfo.filters.Remove(f);
-
-                    return;
-                    //
-                }
-                else if (fld.mc_ui_column_type == UiTypeNumberBoolean && f.value != null && f.value != "")
-                {
-                    if (f.value.ToString().ToLower() == FalseLiteral || f.value.ToString().ToLower() == "0")
-                        f.value = "0";
-                    else
-                        f.value = "1";
-                }
-
-                having += ((having == "") ? " having " : " " + logicOperator + " ") + string.Format("( {0}(", f.havingAggregation) + currentFld + ")" + realOperator + string.Format(" {0}{1}{2} {3} )", leftExtraOperator, f.value, rightExtraOperator, async_extra_condition);
-                filterInfo.filters.Remove(f);
-            });
-
-            return having;
         }
 
         private static void AppendLoggingInsertFields(ref string fieldList, ref string valueList, _Metadati_Tabelle tabel, string userId, IDictionary<string, object> entity)
@@ -4732,7 +4599,8 @@ FROM {fromTable}
             static object CiGet(System.Collections.Generic.IDictionary<string, object> d, string key)
             {
                 if (d.TryGetValue(key, out var v)) return v;
-                foreach (var k in d.Keys.Where(k => string.Equals(k, key, System.StringComparison.OrdinalIgnoreCase))) return d[k];
+                var ciKey = d.Keys.FirstOrDefault(k => string.Equals(k, key, System.StringComparison.OrdinalIgnoreCase));
+                if (ciKey != null) return d[ciKey];
                 throw new System.Collections.Generic.KeyNotFoundException($"key '{key}' not found (case-insensitive). available: {string.Join(",", d.Keys)}");
             }
 

@@ -32,6 +32,9 @@ namespace metaModelRaw
 {
     public partial class metaQueryOracleSql
     {
+        // S1118: utility class con soli membri static — ctor privato per impedirne l'istanziazione.
+        private metaQueryOracleSql() { }
+
         // ── Costanti non-SQL (S1192): chiavi JSON/dict, token metadata, nomi bind
         //    parameter, format string .NET. Le query SQL restano letterali
         //    per-provider (by design) e NON sono estratte qui.
@@ -1512,41 +1515,6 @@ END;");
             }
 
             return rows;
-        }
-
-        private static string checkUserName(string user_name, string email, OracleConnection connection)
-        {
-            if (user.getUserByName(user_name) != null)
-            {
-                return "-1";
-            }
-
-            if (user.getUserByEMail(email) != null)
-            {
-                return "-2";
-            }
-
-            string query = "select * from cms.register_requests where username=:username";
-            OracleCommand cmd = new OracleCommand(query, connection);
-            cmd.Parameters.Add(new SqlParameter("username", user_name));
-            OracleDataAdapter adpt = new OracleDataAdapter(cmd);
-            DataTable dt = new DataTable();
-            adpt.Fill(dt);
-
-            if (dt.Rows.Count > 0)
-                return "-1";
-
-            query = "select * from cms.register_requests where email=:email";
-            cmd = new OracleCommand(query, connection);
-            cmd.Parameters.Add(new SqlParameter("email", email));
-            adpt = new OracleDataAdapter(cmd);
-            dt = new DataTable();
-            adpt.Fill(dt);
-
-            if (dt.Rows.Count > 0)
-                return "-2";
-
-            return user_name;
         }
 
         public static void logOut(user user)
@@ -3364,9 +3332,6 @@ END;");
         public static string GetCurrentFieldString(_Metadati_Tabelle tab, _Metadati_Colonne fld)
         {
             string safeColumnName = EscapeDBObjectName(RawHelpers.getStoreColumnName(fld));
-            // Alias: usiamo EscapeAliasName per preservare CamelCase nel response JSON
-            // (cross-dialect compat con template frontend `{{record.CityName}}`).
-            string safeAlias = EscapeAliasName(fld.mc_nome_colonna);
 
             string current_fld = GetTableName(tab) + "." + safeColumnName;
 
@@ -4816,7 +4781,6 @@ END;");
                         filterInfo.filters.Remove(f);
 
                     return;
-                    //
                 }
                 else if (fld.mc_ui_column_type == UiTypeNumberBoolean && f.value != null && f.value != "")
                 {
@@ -4999,107 +4963,6 @@ END;");
                         joins[ap] = joins[ap] + " AND " + string.Format("{1}.{2} = {0}.{3} ", EscapeDBObjectName(sys.user_table_name), safetableName, EscapeDBObjectName(tab.md_logging_insert_user_field_name), sys.user_id_column_name);
                 }
             }
-        }
-
-        private static string AppendHaving(_Metadati_Colonne fld, FilterInfos filterInfo, string logicOperator, string currentFld, string having, Definizione_Universi def)
-        {
-            filterInfo.filters.Where(x => x.field != ExtraFilterField && x.isHaving).ToList().ForEach((f) =>
-            {
-                _ = f.havingAggregation + "_" + fld.mc_nome_colonna + "_" + def.id;
-
-                var realOperator = GetRealOperator(f.operatore);
-                string quote = RawHelpers.getQuoteFromColumn(fld);
-
-                if (realOperator == "eqor")
-                {
-                    string nestedHaving = "";
-
-                    f.value.Split(',').ToList()
-                    .ForEach(x =>
-                    {
-                        nestedHaving = nestedHaving + (string.IsNullOrEmpty(nestedHaving) ? "(" : " OR ") + currentFld + " = " + string.Format(" {0}{1}{0} ", quote, x);
-                    });
-
-                    nestedHaving = nestedHaving + ")";
-
-                    having += ((having == "") ? " having " : " " + logicOperator + " ") + nestedHaving;
-                    filterInfo.filters.Remove(f);
-                    return;
-                }
-
-                string leftExtraOperator = quote;
-
-                string rightExtraOperator = leftExtraOperator;
-                if (realOperator == "like")
-                {
-                    if (f.operatore == OpContains)
-                    {
-                        leftExtraOperator = quote + "%";
-                        rightExtraOperator = "%" + quote;
-                    }
-                    if (f.operatore == OpStartsWith)
-                    {
-                        leftExtraOperator = quote;
-                        rightExtraOperator = "%" + quote;
-                    }
-                    if (f.operatore == OpEndsWith)
-                    {
-                        leftExtraOperator = quote + "%";
-                        rightExtraOperator = quote;
-                    }
-                }
-
-                string async_extra_condition = "";
-
-                f.value = EscapeValue(f.value).ToString();
-
-                if (fld.mc_ui_column_type == UiTypeDatetime && f.value != null && f.value != "")
-                {
-                    //FIX UTC TIME ISSUE 
-                    string parsed = f.value.ToString().Replace(@"""", "");
-                    DateTime d = DateTime.Parse(parsed);
-                    f.value = d.AddHours(-1).ToString(IsoDateTimeFormat);
-
-                    having += ((having == "") ? " where " : " " + logicOperator + " ") + string.Format("( {0}(", f.havingAggregation) + "DATEADD(ms, -DATEPART(ms, " + currentFld + "), " + currentFld + ")" + ")" + realOperator + string.Format(" {0}{1}{2} {3} )", leftExtraOperator, f.value, rightExtraOperator, async_extra_condition);
-                    filterInfo.filters.Remove(f);
-                    return;
-
-                }
-                else if (fld.mc_ui_column_type == "date" && f.value != null && f.value != "")
-                {
-                    //FIX UTC TIME ISSUE 
-                    string parsed = f.value.ToString().Replace(@"""", "");
-                    DateTime d = DateTime.Parse(parsed, new System.Globalization.CultureInfo("en-US", false));
-                    if (f.operatore == "le" || f.operatore == "lte")
-                        d = new DateTime(d.Year, d.Month, d.Day, 23, 59, 59);
-                    else
-                    {
-                        if (d.Hour != 0)
-                            d = d.AddHours(1);
-                    }
-
-                    f.value = d.ToString(CompactDateFormat);
-
-                    // FIX 2026-05-22: stesso fix di sopra, ma per HAVING clause (aggregations).
-                    having += ((having == "") ? " having " : " " + logicOperator + " ") + string.Format("( {0}(", f.havingAggregation) + "TRUNC(" + currentFld + "))" + realOperator + string.Format(" TO_DATE({0}{1}{2},'YYYYMMDD') {3} )", leftExtraOperator, f.value, rightExtraOperator, async_extra_condition);
-                    filterInfo.filters.Remove(f);
-
-                    return;
-                    //
-                }
-                else if (fld.mc_ui_column_type == UiTypeNumberBoolean && f.value != null && f.value != "")
-                {
-                    if (f.value.ToString().ToLower() == FalseLiteral || f.value.ToString().ToLower() == "0")
-                        f.value = "0";
-                    else
-                        f.value = "1";
-                }
-
-                having += ((having == "") ? " having " : " " + logicOperator + " ") + string.Format("( {0}(", f.havingAggregation) + currentFld + ")" + realOperator + string.Format(" {0}{1}{2} {3} )", leftExtraOperator, f.value, rightExtraOperator, async_extra_condition);
-                filterInfo.filters.Remove(f);
-            });
-
-            return having;
         }
 
         private static void AppendLoggingInsertFields(ref string fieldList, ref string valueList, _Metadati_Tabelle tabel, string userId, IDictionary<string, object> entity)
@@ -5329,11 +5192,8 @@ END;");
         {
             if (data == null || key == null) return null;
             if (data.TryGetValue(key, out object v)) return v;
-            foreach (var kv in data.Where(kv => string.Equals(kv.Key, key, StringComparison.OrdinalIgnoreCase)))
-            {
-                return kv.Value;
-            }
-            return null;
+            var match = data.FirstOrDefault(kv => string.Equals(kv.Key, key, StringComparison.OrdinalIgnoreCase));
+            return match.Value;
         }
 
         // Mirror PG / MySQL — il payload m2m dal frontend arriva come JArray<JObject>

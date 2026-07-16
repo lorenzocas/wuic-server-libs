@@ -55,8 +55,6 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziPostgreSql
             VIEW = 4
         }
 
-        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
         #region Customize select / insert / exceptions management
 
         public static bool isClientSideReport(string user_id,
@@ -921,8 +919,6 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziPostgreSql
 
         #region Excel
 
-        private static readonly Regex LeadingInteger = new Regex(@"^(-?\d+)");
-
         public static string ExportToExcel(string[] models, string[] datas, double timestamp)
         {
             using (System.IO.MemoryStream stream = new System.IO.MemoryStream())
@@ -1088,60 +1084,6 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziPostgreSql
             }
             else return false;
 
-        }
-
-        private static void InsertChartInSpreadsheet(SpreadsheetDocument document)
-        {
-            /******************************************************************/
-            //ActiveSheet.Shapes.AddChart.Select
-            //ActiveChart.SeriesCollection.NewSeries
-            /******************************************************************/
-
-
-            IEnumerable<Sheet> sheets = document.WorkbookPart.Workbook.Descendants<Sheet>().Where
-                (s => s.Name == "Chart");
-
-            WorksheetPart worksheetPart = (WorksheetPart)document.WorkbookPart.GetPartById(sheets.First().Id);
-
-            //// Add a new drawing to the worksheet.
-            DrawingsPart drawingsPart = worksheetPart.AddNewPart<DrawingsPart>();
-            worksheetPart.Worksheet.Append(new DocumentFormat.OpenXml.Spreadsheet.Drawing() { Id = worksheetPart.GetIdOfPart(drawingsPart) });
-            worksheetPart.Worksheet.Save();
-
-            //// Add a new chart and set the chart language to English-US.
-            ChartPart chartPart = drawingsPart.AddNewPart<ChartPart>();
-            chartPart.ChartSpace = new ChartSpace();
-            chartPart.ChartSpace.Append(new EditingLanguage() { Val = new StringValue("en-US") });
-
-            DocumentFormat.OpenXml.Drawing.Charts.Chart chart = chartPart.ChartSpace.AppendChild
-                <DocumentFormat.OpenXml.Drawing.Charts.Chart>
-                (new DocumentFormat.OpenXml.Drawing.Charts.Chart());
-
-            PlotArea plotArea = new PlotArea();
-
-
-            PieChart pie = new PieChart();
-
-            PieChartSeries pieSiries = new PieChartSeries();
-
-            _ = pie.AppendChild<PieChartSeries>(new PieChartSeries());
-
-
-            DocumentFormat.OpenXml.Drawing.Charts.Formula formula = new DocumentFormat.OpenXml.Drawing.Charts.Formula();
-
-
-            NumberReference numberRef = new NumberReference();
-            numberRef.Append(formula);
-
-            DocumentFormat.OpenXml.Drawing.Charts.Values value = new DocumentFormat.OpenXml.Drawing.Charts.Values();
-
-            value.Append(numberRef);
-            pieSiries.Append(value);
-            pie.Append(pieSiries);
-            plotArea.Append(pie);
-            chart.Append(plotArea);
-
-            chartPart.ChartSpace.Append(chart);
         }
 
         #endregion

@@ -37,6 +37,9 @@ namespace metaModelRaw
 {
     public partial class metaQueryMySql
     {
+        // S1118: utility class con soli membri static — ctor privato per impedirne l'istanziazione.
+        private metaQueryMySql() { }
+
         // ------------------------------------------------------------------
         // Costanti S1192 (letterali NON-SQL duplicati). Le query SQL restano
         // letterali e per-provider by-design: qui solo chiavi JSON/dizionario,
@@ -1350,41 +1353,6 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
             return connection;
         }
 
-        private static string checkUserName(string user_name, string email, MySqlConnection connection)
-        {
-            if (user.getUserByName(user_name) != null)
-            {
-                return "-1";
-            }
-
-            if (user.getUserByEMail(email) != null)
-            {
-                return "-2";
-            }
-
-            string query = "select * from cms.register_requests where username=@username";
-            MySqlCommand cmd = new MySqlCommand(query, connection);
-            cmd.Parameters.Add(new MySqlParameter("username", user_name));
-            MySqlDataAdapter adpt = new MySqlDataAdapter(cmd);
-            DataTable dt = new DataTable();
-            adpt.Fill(dt);
-
-            if (dt.Rows.Count > 0)
-                return "-1";
-
-            query = "select * from cms.register_requests where email=@email";
-            cmd = new MySqlCommand(query, connection);
-            cmd.Parameters.Add(new MySqlParameter("email", email));
-            adpt = new MySqlDataAdapter(cmd);
-            dt = new DataTable();
-            adpt.Fill(dt);
-
-            if (dt.Rows.Count > 0)
-                return "-2";
-
-            return user_name;
-        }
-
         public static void logOut(user user)
         {
             if (bool.Parse(ConfigHelper.GetSettingAsString("enableCookieAuthentication")))
@@ -2109,7 +2077,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                         dict[key] = null;
                         completeSettings = JsonConvert.SerializeObject(dict);
 
-                        connection.Execute("update utenti set customSettings=@customSettings where id_utente=@id_utente", new { customSettings = completeSettings, id_utente = u.user_id }).ToString();
+                        connection.Execute("update utenti set customSettings=@customSettings where id_utente=@id_utente", new { customSettings = completeSettings, id_utente = u.user_id });
                     }
 
                 }
@@ -3269,7 +3237,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                                 dbArgs.Add(OldValueKey, metaQueryMySql.EscapeValue(change.oldValue));
                                 dbArgs.Add(TimestampKey, metaQueryMySql.EscapeValue(change.timestamp));
 
-                                connection2.Execute("INSERT INTO ChangeDetail(FK_IdChange, Field, NewValue, OldValue, TimestampClient) VALUES(@masterId, @field, @newValue, @oldValue, @timestamp)", dbArgs).ToString();
+                                connection2.Execute("INSERT INTO ChangeDetail(FK_IdChange, Field, NewValue, OldValue, TimestampClient) VALUES(@masterId, @field, @newValue, @oldValue, @timestamp)", dbArgs);
                             }
                         }
                         catch (Exception ex)
@@ -3520,7 +3488,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                             dbArgs.Add(OldValueKey, metaQueryMySql.EscapeValue(change[OldValueKey]));
                             dbArgs.Add(TimestampKey, metaQueryMySql.EscapeValue(change[TimestampKey]));
 
-                            connection2.Execute("INSERT INTO ChangeDetail(FK_IdChange, Field, NewValue, OldValue, TimestampClient) VALUES(@masterId, @field, @newValue, @oldValue, @timestamp)", dbArgs).ToString();
+                            connection2.Execute("INSERT INTO ChangeDetail(FK_IdChange, Field, NewValue, OldValue, TimestampClient) VALUES(@masterId, @field, @newValue, @oldValue, @timestamp)", dbArgs);
                         }
                     }
                     catch (Exception ex)
@@ -4441,42 +4409,6 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
         }
 
-        private static void ManageAggregates(List<AggregationInfo> aggregates, string where, MySqlConnection connection, List<AggregationResult> aggregateValues, string safetableName, string join)
-        {
-            if (aggregates != null && aggregates.Count > 0)
-            {
-                StringBuilder aggregateFields = new StringBuilder();
-                foreach (AggregationInfo agg in aggregates.Where(a => a.field.IndexOf("fk_") < 0))
-                {
-                    foreach (string ag in agg.aggregate.Split(','))
-                    {
-                        aggregateFields.Append((aggregateFields.Length == 0 ? "" : ", ") + string.Format("{0}({1}) AS " + agg.field, ag, safetableName + "." + EscapeDBObjectName(agg.field)));
-                    }
-                }
-
-                Dapper.SqlMapper.FastExpando aggValue = connection.Query(string.Format("SELECT {0} FROM {1} {2} {3} {4}", aggregateFields.ToString(), safetableName, join, where, ""), commandTimeout: int.Parse(ConfigHelper.GetSettingAsString(AutoQueryTimeoutSetting))).FirstOrDefault();
-
-                foreach (AggregationInfo agg in aggregates.Where(a => a.field.IndexOf("fk_") < 0))
-                {
-                    foreach (string ag in agg.aggregate.Split(','))
-                    {
-                        string aggValueString = "";
-
-                        if (aggValue.data[agg.field] != null)
-                            aggValueString = aggValue.data[agg.field].ToString();
-
-                        aggregateValues.Add(new AggregationResult()
-                        {
-                            field = agg.field,
-                            aggregateValue = string.IsNullOrEmpty(aggValueString) ? new Nullable<decimal>() : new Nullable<decimal>(decimal.Parse(aggValueString)),
-                            aggregation = ag
-                        });
-                    }
-                }
-
-            }
-        }
-
         public static string BuildDynamicFieldList(metaRawModel mmd, List<_Metadati_Colonne> lst, _Metadati_Tabelle tab, Dictionary<aliasPair, string> joins, string formulaLookup, List<string> joinsAppend, int mcId, _Metadati_Colonne_Lookup lookuprelatedCol, string extraFields = "")
         {
             string fieldList = "";
@@ -5064,12 +4996,12 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                     catch
                     {
                         string[] separators = new[] { "||", "|", ";", "," };
-                        foreach (var separator in separators.Where(s => rawRange.Contains(s)))
+                        var separator = separators.FirstOrDefault(s => rawRange.Contains(s));
+                        if (separator != null)
                         {
                             var parts = rawRange.Split(new[] { separator }, 2, StringSplitOptions.None);
                             fromValue = parts.Length > 0 ? parts[0] : null;
                             toValue = parts.Length > 1 ? parts[1] : null;
-                            break;
                         }
                     }
                 }
@@ -5943,106 +5875,6 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                         joins[ap] = joins[ap] + " AND " + string.Format("{1}.{2} = {0}.{3} ", safeUserTableName, safetableName, EscapeDBObjectName(tab.md_logging_insert_user_field_name), sys.user_id_column_name);
                 }
             }
-        }
-
-        private static string AppendHaving(_Metadati_Colonne fld, FilterInfos filterInfo, string logicOperator, string current_fld, string having, Definizione_Universi def)
-        {
-            filterInfo.filters.Where(x => x.field != ExtraFilterFieldName && x.isHaving).ToList().ForEach((f) =>
-            {
-                _ = f.havingAggregation + "_" + fld.mc_nome_colonna + "_" + def.id;
-
-                var realOperator = GetRealOperator(f.operatore);
-                string quote = RawHelpers.getQuoteFromColumn(fld);
-
-                if (realOperator == "eqor")
-                {
-                    string nestedHaving = "";
-
-                    f.value.Split(',').ToList()
-                    .ForEach(x =>
-                    {
-                        nestedHaving = nestedHaving + (string.IsNullOrEmpty(nestedHaving) ? "(" : " OR ") + current_fld + " = " + string.Format(" {0}{1}{0} ", quote, x);
-                    });
-
-                    nestedHaving = nestedHaving + ")";
-
-                    having += ((having == "") ? " having " : " " + logicOperator + " ") + nestedHaving;
-                    filterInfo.filters.Remove(f);
-                    return;
-                }
-
-                string leftExtraOperator = quote;
-
-                string rightExtraOperator = leftExtraOperator;
-                if (realOperator == "like")
-                {
-                    if (f.operatore == OpContains)
-                    {
-                        leftExtraOperator = quote + "%";
-                        rightExtraOperator = "%" + quote;
-                    }
-                    if (f.operatore == OpStartsWith)
-                    {
-                        leftExtraOperator = quote;
-                        rightExtraOperator = "%" + quote;
-                    }
-                    if (f.operatore == OpEndsWith)
-                    {
-                        leftExtraOperator = quote + "%";
-                        rightExtraOperator = quote;
-                    }
-                }
-
-                string async_extra_condition = "";
-
-                f.value = EscapeValue(f.value).ToString();
-
-                if (fld.mc_ui_column_type == ColTypeDatetime && f.value != null && f.value != "")
-                {
-                    //FIX UTC TIME ISSUE 
-                    string parsed = f.value.ToString().Replace(@"""", "");
-                    DateTime d = DateTime.Parse(parsed);
-                    f.value = d.AddHours(-1).ToString(CompactDateTimeFormat);
-
-                    having += ((having == "") ? " where " : " " + logicOperator + " ") + string.Format("( {0}(", f.havingAggregation) + "DATEADD(ms, -DATEPART(ms, " + current_fld + "), " + current_fld + ")" + ")" + realOperator + string.Format(" {0}{1}{2} {3} )", leftExtraOperator, f.value, rightExtraOperator, async_extra_condition);
-                    filterInfo.filters.Remove(f);
-                    return;
-
-                }
-                else if (fld.mc_ui_column_type == "date" && f.value != null && f.value != "")
-                {
-                    //FIX UTC TIME ISSUE 
-                    string parsed = f.value.ToString().Replace(@"""", "");
-                    DateTime d = DateTime.Parse(parsed, new System.Globalization.CultureInfo("en-US", false));
-                    if (f.operatore == "le" || f.operatore == "lte")
-                        d = new DateTime(d.Year, d.Month, d.Day, 23, 59, 59);
-                    else
-                    {
-                        if (d.Hour != 0)
-                            d = d.AddHours(1);
-                    }
-
-                    f.value = d.ToString(CompactDateFormat);
-
-                    having += ((having == "") ? " having " : " " + logicOperator + " ") + string.Format("( {0}(", f.havingAggregation) + "DateAdd(day, datediff(day,0, " + current_fld + "), 0)" + ")" + realOperator + string.Format(" {0}{1}{2} {3} )", leftExtraOperator, f.value, rightExtraOperator, async_extra_condition);
-                    filterInfo.filters.Remove(f);
-
-                    return;
-                    //
-                }
-                else if (fld.mc_ui_column_type == ColTypeNumberBoolean && f.value != null && f.value != "")
-                {
-                    if (f.value.ToString().ToLower() == FalseString || f.value.ToString().ToLower() == "0")
-                        f.value = "0";
-                    else
-                        f.value = "1";
-                }
-
-                having += ((having == "") ? " having " : " " + logicOperator + " ") + string.Format("( {0}(", f.havingAggregation) + current_fld + ")" + realOperator + string.Format(" {0}{1}{2} {3} )", leftExtraOperator, f.value, rightExtraOperator, async_extra_condition);
-                filterInfo.filters.Remove(f);
-            });
-
-            return having;
         }
 
         private static void AppendLoggingInsertFields(ref string field_list, ref string value_list, _Metadati_Tabelle tabel, string user_id, IDictionary<string, object> entity)
