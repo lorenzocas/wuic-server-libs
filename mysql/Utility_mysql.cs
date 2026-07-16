@@ -780,12 +780,23 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
                 {
                     using (DbConnection connection = MySqlProviderGateway.GetOpenConnection(true))
                     {
-                        bool isPwdEncripted = RawHelpers.ParseBool(ConfigHelper.GetSettingAsString("IsPwdEncripted"));
+                        string encriptionMethod = ConfigHelper.GetSettingAsString("encriptionMethod");
 
-                        string pwd = password;
-                        if (isPwdEncripted)
+                        // La password a DB puo' essere hashata (pbkdf2 SALATO o legacy):
+                        // e' impossibile confrontarla direttamente nella WHERE. Si legge
+                        // l'hash salvato e lo si verifica con Global.verifyPassword
+                        // (copre pbkdf2, legacy MD5/SHA1 e plaintext), poi si aggiorna
+                        // senza password nella WHERE.
+                        var checkArgs = new DynamicParameters();
+                        checkArgs.Add("motivo", token);
+                        checkArgs.Add("username", username);
+                        string storedHash = connection.QueryColumn<string>(string.Format(
+                            "SELECT {1} FROM {0} WHERE motivo = @motivo AND username = @username",
+                            infos.user_table_name, infos.password_column_name), checkArgs).FirstOrDefault();
+
+                        if (string.IsNullOrEmpty(storedHash) || !Global.verifyPassword(password, storedHash, encriptionMethod))
                         {
-                            _ = Global.pbkdf2Hash(pwd);
+                            return false;
                         }
 
                         string iP = HttpContext.Current.Request.UserHostAddress;
@@ -794,12 +805,11 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
                         dbArgs.Add("ip", iP);
                         dbArgs.Add("motivo", token);
                         dbArgs.Add("username", username);
-                        dbArgs.Add("password", password);
 
-                        int modified = connection.Execute(string.Format("UPDATE {0} SET IsLoggedIn = 0, ip = @ip WHERE motivo = @motivo AND username = @username AND password = @password",
+                        int modified = connection.Execute(string.Format("UPDATE {0} SET IsLoggedIn = 0, ip = @ip WHERE motivo = @motivo AND username = @username",
                             infos.user_table_name), dbArgs);
 
-                        return modified >= 0;
+                        return modified > 0;
                     }
                 }
             }
