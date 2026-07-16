@@ -13,6 +13,13 @@ namespace metaModelRaw
 {
     public class OracleScaffolding
     {
+        /// <summary>Chiave del dictionary di risposta scaffolding letta dal dialog UI (insieme a "log").</summary>
+        private const string MessageKey = "message";
+        /// <summary>Token canonico WUIC per i tipi carattere (valore metadata, non SQL).</summary>
+        private const string CanonicalVarchar = "varchar";
+        /// <summary>Token canonico WUIC per i tipi data/ora (valore metadata, non SQL).</summary>
+        private const string CanonicalDatetime = "datetime";
+
         private static string NormalizeOwner(string schemaOrDb)
         {
             return string.IsNullOrWhiteSpace(schemaOrDb) ? string.Empty : schemaOrDb.Trim().ToUpperInvariant();
@@ -84,7 +91,7 @@ namespace metaModelRaw
             return ret.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         }
 
-        private static List<columnDefinition> GetOracleColumns(string connection, string owner, string tableName, StringBuilder log)
+        private static List<columnDefinition> GetOracleColumns(string connection, string owner, string tableName)
         {
             var ret = new List<columnDefinition>();
             // LEFT JOIN su ALL_CONSTRAINTS + ALL_CONS_COLUMNS per popolare InPrimaryKey + Identity. Mirror task #66 PG.
@@ -471,14 +478,11 @@ WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
                         }
                     }
 
-                    if (src.IsPk)
+                    if (src.IsPk && (uicCol.mc_pk_name != src.PkName || !uicCol.mc_is_primary_key))
                     {
-                        if (uicCol.mc_pk_name != src.PkName || !uicCol.mc_is_primary_key)
-                        {
-                            uicCol.mc_pk_name = src.PkName;
-                            uicCol.mc_is_primary_key = true;
-                            updated = true;
-                        }
+                        uicCol.mc_pk_name = src.PkName;
+                        uicCol.mc_is_primary_key = true;
+                        updated = true;
                     }
 
                     string actualType = RawHelpers.getDBDataType((src.DataType ?? string.Empty).ToLowerInvariant());
@@ -541,7 +545,7 @@ WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
                     {
                         createMenu = createM;
 
-                        List<columnDefinition> columns = GetOracleColumns(connection, owner, tb, str);
+                        List<columnDefinition> columns = GetOracleColumns(connection, owner, tb);
 
                         foreach (columnDefinition col in columns)
                         {
@@ -565,7 +569,7 @@ WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
                 {
                     try
                     {
-                        List<columnDefinition> columns = GetOracleColumns(connection, owner, vw, str);
+                        List<columnDefinition> columns = GetOracleColumns(connection, owner, vw);
                         foreach (columnDefinition col in columns)
                         {
                             scaffoldOfColumnOracle(connection, connName, mmd, vw, db, col, str, ref createMenu, columns.Count);
@@ -632,10 +636,10 @@ WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
 
             using (metaRawModel mmd = new metaRawModel())
             {
-                List<columnDefinition> columns = GetOracleColumns(connection, owner, tableName, log);
+                List<columnDefinition> columns = GetOracleColumns(connection, owner, tableName);
                 columnDefinition col = columns.FirstOrDefault(x => string.Equals(x.Name, column, StringComparison.OrdinalIgnoreCase));
                 if (col == null)
-                    return new Dictionary<string, string>() { { "message", "Colonna non trovata" }, { "log", "Colonna non trovata" } };
+                    return new Dictionary<string, string>() { { MessageKey, "Colonna non trovata" }, { "log", "Colonna non trovata" } };
 
                 bool createMenu = false;
                 scaffoldOfColumnOracle(connection, connName, mmd, tableName, owner, col, log, ref createMenu, columns.Count);
@@ -647,7 +651,7 @@ WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
                 string logText = log.ToString();
                 return new Dictionary<string, string>()
                 {
-                    { "message", logText },
+                    { MessageKey, logText },
                     { "log", logText }
                 };
             }
@@ -678,9 +682,9 @@ WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
             using (metaRawModel mmd = new metaRawModel())
             {
                 if (!GetOracleTables(connection, owner).Any(x => string.Equals(x, tableName, StringComparison.OrdinalIgnoreCase)))
-                    return new Dictionary<string, string>() { { "message", "Tabella non trovata" }, { "log", "Tabella non trovata" } };
+                    return new Dictionary<string, string>() { { MessageKey, "Tabella non trovata" }, { "log", "Tabella non trovata" } };
 
-                List<columnDefinition> columns = GetOracleColumns(connection, owner, tableName, log);
+                List<columnDefinition> columns = GetOracleColumns(connection, owner, tableName);
                 foreach (columnDefinition col in columns)
                     scaffoldOfColumnOracle(connection, connName, mmd, tableName, owner, col, log, ref createMenu, columns.Count);
 
@@ -717,7 +721,7 @@ WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
 
                 return new Dictionary<string, string>()
                 {
-                    { "message", logText },
+                    { MessageKey, logText },
                     { "log", logText },
                     { "id", scaffoldedId }
                 };
@@ -745,7 +749,7 @@ WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
                 string viewT = GetOracleViews(connection, owner).FirstOrDefault(x => string.Equals(x, viewName, StringComparison.OrdinalIgnoreCase));
                 if (!string.IsNullOrEmpty(viewT))
                 {
-                    List<columnDefinition> columns = GetOracleColumns(connection, owner, viewT, log);
+                    List<columnDefinition> columns = GetOracleColumns(connection, owner, viewT);
                     mmd.scaffoldOfViewMySql(connection, connName, viewT, mmd, log, owner, createMenu);
 
                     foreach (columnDefinition col in columns)
@@ -766,7 +770,7 @@ WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
             // Shape parity con MSSQL/PG (vedi commento in scaffoldTable).
             return new Dictionary<string, string>()
             {
-                { "message", logg },
+                { MessageKey, logg },
                 { "log", logg }
             };
         }
@@ -794,7 +798,7 @@ WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
             {
                 string storedName = GetOracleStored(connection, owner).FirstOrDefault(x => string.Equals(x, stored, StringComparison.OrdinalIgnoreCase));
                 if (string.IsNullOrEmpty(storedName))
-                    return new Dictionary<string, string>() { { "message", "Stored non trovata" }, { "log", "Stored non trovata" } };
+                    return new Dictionary<string, string>() { { MessageKey, "Stored non trovata" }, { "log", "Stored non trovata" } };
 
                 mmd.scaffoldOfStoredMySql(connection, connName, storedName, mmd, log, owner);
 
@@ -809,13 +813,13 @@ WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
                 string logText = log.ToString();
                 return new Dictionary<string, string>()
                 {
-                    { "message", logText },
+                    { MessageKey, logText },
                     { "log", logText }
                 };
             }
         }
 
-        private void cloneToChild(object baseClassObj, object childClassObject)
+        private static void cloneToChild(object baseClassObj, object childClassObject)
         {
             foreach (PropertyInfo pinfo in baseClassObj.GetType().GetProperties())
             {
@@ -873,7 +877,7 @@ WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
         /// </summary>
         private static string GetOracleCanonicalType(string oracleRawType, int precision, int scale)
         {
-            if (string.IsNullOrEmpty(oracleRawType)) return "varchar";
+            if (string.IsNullOrEmpty(oracleRawType)) return CanonicalVarchar;
             // Trim type-parameters: "TIMESTAMP(6)" → "TIMESTAMP",
             // "NVARCHAR2(200)" → "NVARCHAR2", "INTERVAL DAY(2) TO SECOND(6)"
             // → "INTERVAL DAY TO SECOND".
@@ -913,7 +917,7 @@ WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
                 case "NVARCHAR2":
                 case "CHAR":
                 case "NCHAR":
-                    return "varchar";
+                    return CanonicalVarchar;
 
                 case "CLOB":
                 case "NCLOB":
@@ -925,18 +929,18 @@ WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
 
                 // date/time family — Oracle quirk: DATE includes time
                 case "DATE":
-                    return "datetime";
+                    return CanonicalDatetime;
 
                 case "TIMESTAMP":
                     // TIMESTAMP / TIMESTAMP(N) / TIMESTAMP(N) WITH (LOCAL) TIME ZONE
                     // tutti mappano a `datetime`. Il suffisso "WITH TIME ZONE"
                     // o "WITH LOCAL TIME ZONE" non cambia la classificazione UI.
-                    return "datetime";
+                    return CanonicalDatetime;
 
                 case "INTERVAL DAY TO SECOND":
                 case "INTERVAL YEAR TO MONTH":
                     // No first-class UI widget for INTERVAL; treat as text.
-                    return "varchar";
+                    return CanonicalVarchar;
 
                 case "RAW":
                 case "LONG RAW":
@@ -946,7 +950,7 @@ WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
 
                 case "ROWID":
                 case "UROWID":
-                    return "varchar";
+                    return CanonicalVarchar;
 
                 // Spatial types (SDO_GEOMETRY) arrive as the type name
                 case "SDO_GEOMETRY":
@@ -955,7 +959,7 @@ WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
                 default:
                     // Unknown / user-defined object types → fall back to varchar.
                     // (PG had the same default for ENUM USER-DEFINED.)
-                    return "varchar";
+                    return CanonicalVarchar;
             }
         }
 
@@ -969,7 +973,7 @@ WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
         {
             switch (canonical)
             {
-                case "varchar":
+                case CanonicalVarchar:
                     cm.mc_default_value = col.DefaultValue;
                     cm.mc_ui_column_type = "text";
                     if (col.MaximumLength > 0)
@@ -1042,9 +1046,9 @@ WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
                     mm.AddColonna(cm);
                     break;
 
-                case "datetime":
+                case CanonicalDatetime:
                     cm.mc_default_value = col.DefaultValue;
-                    cm.mc_ui_column_type = "datetime";
+                    cm.mc_ui_column_type = CanonicalDatetime;
                     mm.AddColonna(cm);
                     break;
 

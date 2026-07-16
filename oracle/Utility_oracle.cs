@@ -64,14 +64,21 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
             return true;
         }
 
+        // S1075: root virtuale di default degli upload, centralizzata come const.
+        // E' un virtual path applicativo fisso (override configurabile via
+        // appsettings "uploadFolder"), non un percorso ambiente-dipendente.
+        private const string DefaultUploadRootVirtualPath = "~/upload/";
+
         private static string ResolveUploadRecordDirectory(_Metadati_Colonne_Upload uploader, _Metadati_Tabelle tabel, string recordId)
         {
+            string configuredUploadFolder = ConfigHelper.GetSettingAsString("uploadFolder");
+            string defaultUploadRoot = configuredUploadFolder != null ? (configuredUploadFolder + "/") : DefaultUploadRootVirtualPath;
             string basePath = string.IsNullOrEmpty(uploader.DefaultUploadRootPath) || uploader.DefaultUploadRootPath == "null"
-                ? ((ConfigHelper.GetSettingAsString("uploadFolder") != null ? (ConfigHelper.GetSettingAsString("uploadFolder") + "/") : ("~/upload/")))
+                ? defaultUploadRoot
                 : uploader.DefaultUploadRootPath;
 
             string normalizedBasePath = (basePath ?? string.Empty).Trim().Trim('\'', '"');
-            if (normalizedBasePath.StartsWith("/") && normalizedBasePath.Length > 2 && normalizedBasePath[2] == ':')
+            if (normalizedBasePath.StartsWith('/') && normalizedBasePath.Length > 2 && normalizedBasePath[2] == ':')
             {
                 normalizedBasePath = normalizedBasePath.TrimStart('/');
             }
@@ -103,6 +110,11 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
         // ~30 KB dentro `hextoraw('...')` causa ORA-01704.
         public const string OracleBlobParamMarkerPrefix = "__oracle_blob_param::";
 
+        /// <summary>Chiave dell'entity dict che trasporta il GUID client-side del record.</summary>
+        private const string GuidKey = "__guid";
+        /// <summary>Chiave di exceptionData per il titolo (localizzato) mostrato dal client.</summary>
+        private const string TitleKey = "title";
+
         private static string BuildBlobPlaceholderName(string columnPhysicalName, string opKind)
         {
             // Bind variable Oracle: solo [A-Za-z0-9_], inizio con lettera, max 30 char.
@@ -121,9 +133,9 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
                 // folder), then __id when real ("0"/"" placeholder skipped), then
                 // fall back to __guid. Mirrors mysql/Utility_mysql.cs:customizeImgDBInsert.
                 string __id = null;
-                if (entity.ContainsKey("__guid"))
+                if (entity.ContainsKey(GuidKey))
                 {
-                    string g = entity["__guid"]?.ToString();
+                    string g = entity[GuidKey]?.ToString();
                     if (!string.IsNullOrWhiteSpace(g)) __id = g;
                 }
                 if (__id == null && entity.ContainsKey("__id"))
@@ -131,7 +143,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
                     string i = entity["__id"]?.ToString();
                     if (!string.IsNullOrWhiteSpace(i) && i != "0") __id = i;
                 }
-                if (__id == null) __id = entity.ContainsKey("__guid") ? entity["__guid"]?.ToString() : "";
+                if (__id == null) __id = entity.ContainsKey(GuidKey) ? entity[GuidKey]?.ToString() : "";
 
                 string pth = ResolveUploadRecordDirectory(uploader, tabel, __id);
 
@@ -191,9 +203,9 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
                 // _Metadati_methods.RawUpdateFlatData lo sposta DOPO che
                 // BuildDynamicUpdateQuery ha gia' costruito la SET clause).
                 // Mirror mysql/Utility_mysql.cs:customizeImgDBUpdate.
-                if (!System.IO.File.Exists(tmp_path) && entity.ContainsKey("__guid"))
+                if (!System.IO.File.Exists(tmp_path) && entity.ContainsKey(GuidKey))
                 {
-                    string guid = entity["__guid"]?.ToString();
+                    string guid = entity[GuidKey]?.ToString();
                     if (!string.IsNullOrWhiteSpace(guid))
                     {
                         string guidPth = ResolveUploadRecordDirectory(uploader, tabel, guid);
@@ -248,7 +260,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
                 //Key violation
                 customException newEx = new customException("data_already_inserted_warning", route);
                 newEx.exceptionData.Add("errorCode", sqlEx.Number);
-                newEx.exceptionData.Add("title", "data_already_inserted_title");
+                newEx.exceptionData.Add(TitleKey, "data_already_inserted_title");
                 newEx.exceptionData.Add("localizationResources", new string[] { route.Replace("_", " ").ToUpper() });
 
                 string serializedEx = RawHelpers.serialize(newEx, new MetadataContractresolver(), false);
@@ -258,7 +270,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
             else if (ex.Message == "already_logged")
             {
                 customException newEx = new customException("user_already_logged_warning", route);
-                newEx.exceptionData.Add("title", "auth_error_title");
+                newEx.exceptionData.Add(TitleKey, "auth_error_title");
                 newEx.exceptionData.Add("code", "already_logged");
                 string serializedEx = RawHelpers.serialize(newEx, new MetadataContractresolver(), false);
                 JsonException jEx = new JsonException(serializedEx);
@@ -268,7 +280,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
             else if (ex.Message == "new_logged_ip")
             {
                 customException newEx = new customException("user_already_logged_other_ip_warning", route);
-                newEx.exceptionData.Add("title", "auth_error_title");
+                newEx.exceptionData.Add(TitleKey, "auth_error_title");
                 newEx.exceptionData.Add("code", "new_logged_ip");
 
                 string serializedEx = RawHelpers.serialize(newEx, new MetadataContractresolver(), false);
@@ -279,7 +291,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
             else if (ex.Message == "missing_email_logged_checking")
             {
                 customException newEx = new customException("user_mail_missing_warning", route);
-                newEx.exceptionData.Add("title", "auth_error_title");
+                newEx.exceptionData.Add(TitleKey, "auth_error_title");
                 newEx.exceptionData.Add("code", "missing_email_logged_checking");
 
                 string serializedEx = RawHelpers.serialize(newEx, new MetadataContractresolver(), false);
@@ -290,7 +302,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
             else if (ex.Message == "user_not_found")
             {
                 customException newEx = new customException("user_not_found_warning", route);
-                newEx.exceptionData.Add("title", "user_not_found_title");
+                newEx.exceptionData.Add(TitleKey, "user_not_found_title");
 
                 string serializedEx = RawHelpers.serialize(newEx, new MetadataContractresolver(), false);
                 JsonException jEx = new JsonException(serializedEx);
@@ -300,7 +312,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
             else
             {
                 customException newEx = new customException(RawHelpers.flatException(ex, false).Message, route);
-                newEx.exceptionData.Add("title", string.Format("Error method: '{0}' - Route: '{1}'", method, route));
+                newEx.exceptionData.Add(TitleKey, string.Format("Error method: '{0}' - Route: '{1}'", method, route));
                 newEx.exceptionData.Add("stackTrace", ex.StackTrace);
                 newEx.exceptionData.Add("query", query);
 
@@ -546,10 +558,10 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
             System.IO.DirectoryInfo dir = new System.IO.DirectoryInfo(HttpContext.Current.Server.MapPath("~/" + folder));
 
             if (fileTypes.Count == 0)
-                return dir.GetFiles().ToList().Select((x) => new my_file_info() { folder = x.DirectoryName, extension = x.Extension, OriginalPath = x.Name, bytesyze = (int)x.Length, kbsyze = (int)(x.Length / 1024) }).ToList();
+                return dir.GetFiles().Select((x) => new my_file_info() { folder = x.DirectoryName, extension = x.Extension, OriginalPath = x.Name, bytesyze = (int)x.Length, kbsyze = (int)(x.Length / 1024) }).ToList();
             else
             {
-                List<my_file_info> fi = fileTypes.SelectMany(i => dir.GetFiles(i)).Distinct().ToList().Select((x) => new my_file_info() { folder = x.DirectoryName, extension = x.Extension, OriginalPath = x.Name, bytesyze = (int)x.Length, kbsyze = (int)(x.Length / 1024) }).ToList();
+                List<my_file_info> fi = fileTypes.SelectMany(i => dir.GetFiles(i)).Distinct().Select((x) => new my_file_info() { folder = x.DirectoryName, extension = x.Extension, OriginalPath = x.Name, bytesyze = (int)x.Length, kbsyze = (int)(x.Length / 1024) }).ToList();
                 return fi;
             }
         }
@@ -563,11 +575,11 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
             System.IO.DirectoryInfo dir = new System.IO.DirectoryInfo(HttpContext.Current.Server.MapPath("~/" + folder));
 
             if (fileTypes.Count == 0)
-                return dir.EnumerateFiles().ToList().Select((x) => new my_file_info() { name = x.Name, folder = x.Directory.Name, extension = x.Extension, OriginalPath = x.FullName, bytesyze = (int)x.Length, kbsyze = (int)(x.Length / 1024) }).ToList();
+                return dir.EnumerateFiles().Select((x) => new my_file_info() { name = x.Name, folder = x.Directory.Name, extension = x.Extension, OriginalPath = x.FullName, bytesyze = (int)x.Length, kbsyze = (int)(x.Length / 1024) }).ToList();
             else
             {
                 _ = dir.EnumerateFiles();
-                List<my_file_info> fi = fileTypes.SelectMany(i => dir.EnumerateFiles("*.*", SearchOption.AllDirectories)).Distinct().ToList().Select((x) => new my_file_info() { name = x.Name, folder = x.Directory.Name, extension = x.Extension, OriginalPath = x.FullName, bytesyze = (int)x.Length, kbsyze = (int)(x.Length / 1024) }).ToList();
+                List<my_file_info> fi = fileTypes.SelectMany(i => dir.EnumerateFiles("*.*", SearchOption.AllDirectories)).Distinct().Select((x) => new my_file_info() { name = x.Name, folder = x.Directory.Name, extension = x.Extension, OriginalPath = x.FullName, bytesyze = (int)x.Length, kbsyze = (int)(x.Length / 1024) }).ToList();
                 return fi;
             }
         }
@@ -581,7 +593,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
             System.IO.DirectoryInfo dir = new System.IO.DirectoryInfo(HttpContext.Current.Server.MapPath("~/" + folder));
             var dirs = dir.EnumerateDirectories();
 
-            List<my_file_info> dirsList = dirs.ToList().Select((x) => new my_file_info() { folder = x.Name, extension = null }).ToList();
+            List<my_file_info> dirsList = dirs.Select((x) => new my_file_info() { folder = x.Name, extension = null }).ToList();
             return dirsList;
         }
 
@@ -595,42 +607,28 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
             {
                 string uploadBasePath = "/upload/";
 
-                try
+                if (File.Exists(HttpContext.Current.Server.MapPath(uploadBasePath + ((routePath != null) ? routePath : "/")) + imgName))
                 {
-                    if (File.Exists(HttpContext.Current.Server.MapPath(uploadBasePath + ((routePath != null) ? routePath : "/")) + imgName))
+                    string filePath = HttpContext.Current.Server.MapPath(uploadBasePath + ((routePath != null) ? routePath : "/") + imgName);
+                    string imgB64 = ImageToBase64(filePath);
+
+                    // scrivi in upload il file nel DB nel campo Foto
+                    DbConnection myConn;
+                    DbCommand myCmd;
+
+                    using (myConn = OracleProviderGateway.GetOpenConnection(false))
                     {
-                        string filePath = HttpContext.Current.Server.MapPath(uploadBasePath + ((routePath != null) ? routePath : "/") + imgName);
-                        string imgB64 = ImageToBase64(filePath);
+                        myCmd = myConn.CreateCommand();
 
-                        // scrivi in upload il file nel DB nel campo Foto
-                        DbConnection myConn;
-                        DbCommand myCmd;
-
-                        using (myConn = OracleProviderGateway.GetOpenConnection(false))
-                        {
-                            try
-                            {
-                                myCmd = myConn.CreateCommand();
-
-                                myCmd.CommandText = string.Format("UPDATE {0} SET {1} = '{2}', NomeFoto = :NomeFoto , DataAggiornamento = getDate(), UtenteAggiornamento = {3} WHERE {4} = {5}", tableName, field, imgB64.ToString(), utente.user_id, keyName, keyValue);
-                                DbProviderUtil.AddWithValue(myCmd, "NomeFoto", imgName);
-                                myCmd.ExecuteNonQuery();
-                            }
-                            catch (Exception)
-                            {
-                                throw;
-                            }
-                        }
-                        myConn.Close();
-
+                        myCmd.CommandText = string.Format("UPDATE {0} SET {1} = '{2}', NomeFoto = :NomeFoto , DataAggiornamento = getDate(), UtenteAggiornamento = {3} WHERE {4} = {5}", tableName, field, imgB64.ToString(), utente.user_id, keyName, keyValue);
+                        DbProviderUtil.AddWithValue(myCmd, "NomeFoto", imgName);
+                        myCmd.ExecuteNonQuery();
                     }
-                    else
-                        throw new FileNotFoundException(HttpContext.Current.Server.MapPath((routePath != null) ? routePath : "/") + imgName);
+                    myConn.Close();
+
                 }
-                catch (FileNotFoundException)
-                {
-                    throw;
-                }
+                else
+                    throw new FileNotFoundException(HttpContext.Current.Server.MapPath((routePath != null) ? routePath : "/") + imgName);
             }
             else
             {
@@ -709,7 +707,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
 
 
 
-        public string getRealPath()
+        public static string getRealPath()
         {
             RawHelpers.authenticate();
             return getCustomerProjectPath();
@@ -797,7 +795,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
 
 
 
-        public bool switchUser(string token, string username, string password)
+        public static bool switchUser(string token, string username, string password)
         {
             using (metaRawModel context = new metaRawModel())
             {
@@ -870,15 +868,15 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
         public static user mapUserFields(SysInfo infos, SqlMapper.FastExpando user)
         {
 
-            string userid = user.Where(x => x.Key == infos.user_id_column_name).Any() ? RawHelpers.ParseNull(user.Where(x => x.Key == infos.user_id_column_name).First().Value).ToString() : "";
-            string display = user.Where(x => x.Key == infos.user_description_column_name).Any() ? RawHelpers.ParseNull(user.Where(x => x.Key == infos.user_description_column_name).First().Value).ToString() : "";
-            bool isAdmin = user.Where(x => x.Key == infos.isAdmin_column_name).Any() && RawHelpers.ParseBool(user.Where(x => x.Key == infos.isAdmin_column_name).First().Value);
-            string role_id = user.Where(x => x.Key == infos.role_id_column_name).Any() ? RawHelpers.ParseNull(user.Where(x => x.Key == infos.role_id_column_name).First().Value).ToString() : "";
-            string ip = user.Where(x => x.Key == "ip").Any() ? RawHelpers.ParseNull(user.Where(x => x.Key == "ip").First().Value) : "";
-            string email = user.Where(x => x.Key == "email").Any() ? RawHelpers.ParseNull(user.Where(x => x.Key == "email").First().Value) : "";
-            string uName = user.Where(x => x.Key == infos.username_column_name).Any() ? RawHelpers.ParseNull(user.Where(x => x.Key == infos.username_column_name).First().Value).ToString() : "";
+            string userid = user.Any(x => x.Key == infos.user_id_column_name) ? RawHelpers.ParseNull(user.First(x => x.Key == infos.user_id_column_name).Value).ToString() : "";
+            string display = user.Any(x => x.Key == infos.user_description_column_name) ? RawHelpers.ParseNull(user.First(x => x.Key == infos.user_description_column_name).Value).ToString() : "";
+            bool isAdmin = user.Any(x => x.Key == infos.isAdmin_column_name) && RawHelpers.ParseBool(user.First(x => x.Key == infos.isAdmin_column_name).Value);
+            string role_id = user.Any(x => x.Key == infos.role_id_column_name) ? RawHelpers.ParseNull(user.First(x => x.Key == infos.role_id_column_name).Value).ToString() : "";
+            string ip = user.Any(x => x.Key == "ip") ? RawHelpers.ParseNull(user.First(x => x.Key == "ip").Value) : "";
+            string email = user.Any(x => x.Key == "email") ? RawHelpers.ParseNull(user.First(x => x.Key == "email").Value) : "";
+            string uName = user.Any(x => x.Key == infos.username_column_name) ? RawHelpers.ParseNull(user.First(x => x.Key == infos.username_column_name).Value).ToString() : "";
 
-            var lastAct = user.Where(x => x.Key == "LastActivityDate").Any() ? RawHelpers.ParseNull(user.Where(x => x.Key == "LastActivityDate").First().Value) : null;
+            var lastAct = user.Any(x => x.Key == "LastActivityDate") ? RawHelpers.ParseNull(user.First(x => x.Key == "LastActivityDate").Value) : null;
             DateTime lastActivity = DateTime.MinValue;
 
             if (lastAct != null)
@@ -912,7 +910,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
                 infos.password_column_name ?? string.Empty,
                 "pwd_hash", "password", "passwd", "pwd"
             };
-            var extra_fields = user.data.Keys.Where(x => !sensitiveColumnDenylist.Contains(x)).Any()
+            var extra_fields = user.data.Keys.Any(x => !sensitiveColumnDenylist.Contains(x))
                 ? user.data.Keys.Where(x => !sensitiveColumnDenylist.Contains(x))
                 : null;
             if (extra_fields != null)
@@ -923,9 +921,9 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
                 // }
             }
 
-            if (user.Where(x => x.Key == infos.azienda_id_column_name).Any())
+            if (user.Any(x => x.Key == infos.azienda_id_column_name))
             {
-                KeyValuePair<string, object>? az_field = user.Where(x => x.Key == infos.azienda_id_column_name).FirstOrDefault();
+                KeyValuePair<string, object>? az_field = user.FirstOrDefault(x => x.Key == infos.azienda_id_column_name);
                 if (az_field != null)
                 {
                     object id_azienda = az_field.Value.Value;
@@ -944,7 +942,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
 
         private static readonly Regex LeadingInteger = new Regex(@"^(-?\d+)");
 
-        public string ExportToExcel(string[] models, string[] datas, double timestamp)
+        public static string ExportToExcel(string[] models, string[] datas, double timestamp)
         {
             using (System.IO.MemoryStream stream = new System.IO.MemoryStream())
             {
@@ -1111,7 +1109,9 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
 
         }
 
-        private static void InsertChartInSpreadsheet(SpreadsheetDocument document, string rangeRef, chartType chartType, string cellName, string rangeEtichette, string rangeValue)
+        // S1172: rimossi i parametri mai usati (rangeRef, chartType, cellName,
+        // rangeEtichette, rangeValue) — metodo privato senza call-site che li consumi.
+        private static void InsertChartInSpreadsheet(SpreadsheetDocument document)
         {
             /******************************************************************/
             //ActiveSheet.Shapes.AddChart.Select
@@ -1167,10 +1167,10 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
 
         #endregion
 
-        private void throwJsonException(Exception ex, string route, string method)
+        private static void throwJsonException(Exception ex, string route, string method)
         {
             customException newEx = new customException(RawHelpers.flatException(ex, false).Message, route);
-            newEx.exceptionData.Add("title", "Error method: " + method);
+            newEx.exceptionData.Add(TitleKey, "Error method: " + method);
             newEx.exceptionData.Add("stackTrace", ex.StackTrace);
             string serializedEx = RawHelpers.serialize(newEx, new MetadataContractresolver(), false);
             JsonException jEx = new JsonException(serializedEx);

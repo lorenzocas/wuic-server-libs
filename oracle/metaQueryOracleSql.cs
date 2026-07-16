@@ -32,6 +32,73 @@ namespace metaModelRaw
 {
     public partial class metaQueryOracleSql
     {
+        // ── Costanti non-SQL (S1192): chiavi JSON/dict, token metadata, nomi bind
+        //    parameter, format string .NET. Le query SQL restano letterali
+        //    per-provider (by design) e NON sono estratte qui.
+
+        // Chiavi JSON delle opzioni pivot / filtri client
+        private const string FieldKey = "field";
+        private const string ValueKey = "value";
+        private const string CastDateKey = "castDate";
+        private const string CastToDateKey = "castToDate";
+        private const string ApplyDateCastKey = "applyDateCast";
+        private const string GroupByKey = "groupBy";
+        private const string DateGroupByKey = "dateGroupBy";
+
+        // Token operatore filtro (payload client, non SQL)
+        private const string OpContains = "contains";
+        private const string OpStartsWith = "startswith";
+        private const string OpEndsWith = "endswith";
+
+        // Identificatori dialetto/dbms per gli helper RawHelpers.*
+        private const string OracleDialect = "oracle";
+        private const string MssqlDialect = "mssql";
+
+        // Chiavi speciali di entity/filter payload
+        private const string ExtraFilterField = "__extra";
+        private const string EntityGuidKey = "__guid";
+        private const string OriginalEntityKey = "__original";
+        private const string EntityAddedKey = "___added";
+        private const string EntityDeletedKey = "___deleted";
+        private const string EntitySelectedKey = "___selected";
+        private const string CountParamName = "count__";
+
+        // Token metadata (mc_db_column_type / mc_ui_column_type / md_primary_key_type)
+        private const string DbTypeVarchar = "varchar";
+        private const string DbTypeDecimal = "decimal";
+        private const string DbTypeFloat = "float";
+        private const string DbTypePoint = "point";
+        private const string DbTypeGeometry = "geometry";
+        private const string UiTypeNumber = "number";
+        private const string UiTypeBoolean = "boolean";
+        private const string UiTypeDatetime = "datetime";
+        private const string UiTypeMultipleCheck = "multiple_check";
+        private const string UiTypeNumberBoolean = "number_boolean";
+        private const string UiTypeNumberSlider = "number_slider";
+        private const string PkTypeIdentity = "IDENTITY";
+
+        // Varie non-SQL
+        private const string FalseLiteral = "false";
+        private const string IsoDateTimeFormat = "yyyy-MM-dd HH:mm:ss";
+        private const string CompactDateFormat = "yyyyMMdd";
+        private const string TextColumnNameFormat = "colonna_{0}_testo";
+
+        // Nomi bind parameter Oracle (INSERT reticolare _metadati__colonne)
+        private const string ParamVoaClass = "voa_class";
+        private const string ParamMdId = "md_id";
+        private const string ParamMcDbColumnType = "mc_db_column_type";
+        private const string ParamMcDisplayStringInEdit = "mc_display_string_in_edit";
+        private const string ParamMcDisplayStringInView = "mc_display_string_in_view";
+        private const string ParamMcLogicEditable = "mc_logic_editable";
+        private const string ParamMcLogicNullable = "mc_logic_nullable";
+        private const string ParamMcNomeColonna = "mc_nome_colonna";
+        private const string ParamMcUiColumnType = "mc_ui_column_type";
+        private const string ParamMcComputedFormula = "mccomputedformula";
+        private const string ParamMcIsComputed = "mciscomputed";
+        private const string ParamMcGrantByDefault = "mcgrantbydefault";
+        private const string ParamMcOrdine = "mcordine";
+        private const string ParamPNewId = "p_new_id";
+
         public static SerializableDictionary<string, object> GeneratePivotQuery(
             string route,
             List<string> rowColumns,
@@ -54,7 +121,6 @@ namespace metaModelRaw
                 aggregateFunction,
                 valueColumns,
                 filterInfo,
-                sortInfo,
                 valueAggregates,
                 rowColumnOptions,
                 columnColumnOptions,
@@ -69,7 +135,6 @@ namespace metaModelRaw
             string aggregateFunction,
             List<string> valueColumns,
             object filterInfo,
-            object sortInfo,
             object rowColumnOptions,
             object columnColumnOptions,
             object valueAggregates,
@@ -81,7 +146,7 @@ namespace metaModelRaw
                 int normalizedTopRows = Math.Max(0, Math.Min(100000, topRows));
                 var normalizedRoute = (route ?? string.Empty).Trim();
                 if (string.IsNullOrWhiteSpace(normalizedRoute))
-                    throw new Exception("Route obbligatoria.");
+                    throw new ArgumentException("Route obbligatoria.");
 
                 var normalizedSingleValueColumn = (valueColumn ?? string.Empty).Trim();
                 var normalizedValueColumns = (valueColumns ?? new List<string>())
@@ -91,7 +156,7 @@ namespace metaModelRaw
                 if (!string.IsNullOrWhiteSpace(normalizedSingleValueColumn))
                     normalizedValueColumns.Insert(0, normalizedSingleValueColumn);
                 if (!normalizedValueColumns.Any())
-                    throw new Exception("Selezionare almeno una valueColumn.");
+                    throw new ArgumentException("Selezionare almeno una valueColumn.");
 
                 var rowAliases = (rowColumns ?? new List<string>())
                     .Where(x => !string.IsNullOrWhiteSpace(x))
@@ -122,12 +187,12 @@ namespace metaModelRaw
                         var alias = Convert.ToString(item["alias"] ?? string.Empty)?.Trim();
                         if (string.IsNullOrWhiteSpace(alias))
                             continue;
-                        var castDate = item["castDate"]?.Value<bool?>()
-                            ?? item["castToDate"]?.Value<bool?>()
-                            ?? item["applyDateCast"]?.Value<bool?>()
+                        var castDate = item[CastDateKey]?.Value<bool?>()
+                            ?? item[CastToDateKey]?.Value<bool?>()
+                            ?? item[ApplyDateCastKey]?.Value<bool?>()
                             ?? false;
                         rowCastDateByAlias[alias] = castDate;
-                        rowGroupByByAlias[alias] = NormalizeDateGroupBy(Convert.ToString(item["groupBy"] ?? item["dateGroupBy"] ?? string.Empty));
+                        rowGroupByByAlias[alias] = NormalizeDateGroupBy(Convert.ToString(item[GroupByKey] ?? item[DateGroupByKey] ?? string.Empty));
                     }
                 }
                 else if (rowOptionsRoot is JObject rowOptionsObj)
@@ -140,11 +205,11 @@ namespace metaModelRaw
                         var castDate = false;
                         if (p.Value is JObject nested)
                         {
-                            castDate = nested["castDate"]?.Value<bool?>()
-                                ?? nested["castToDate"]?.Value<bool?>()
-                                ?? nested["applyDateCast"]?.Value<bool?>()
+                            castDate = nested[CastDateKey]?.Value<bool?>()
+                                ?? nested[CastToDateKey]?.Value<bool?>()
+                                ?? nested[ApplyDateCastKey]?.Value<bool?>()
                                 ?? false;
-                            rowGroupByByAlias[alias] = NormalizeDateGroupBy(Convert.ToString(nested["groupBy"] ?? nested["dateGroupBy"] ?? string.Empty));
+                            rowGroupByByAlias[alias] = NormalizeDateGroupBy(Convert.ToString(nested[GroupByKey] ?? nested[DateGroupByKey] ?? string.Empty));
                         }
                         else if (p.Value is JValue jv)
                         {
@@ -161,7 +226,7 @@ namespace metaModelRaw
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .ToList();
                 if (!pivotAliases.Any())
-                    throw new Exception("Selezionare almeno una colonna pivot (asse colonne).");
+                    throw new ArgumentException("Selezionare almeno una colonna pivot (asse colonne).");
 
                 var colCastDateByAlias = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
                 var colGroupByByAlias = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -173,12 +238,12 @@ namespace metaModelRaw
                         var alias = Convert.ToString(item["alias"] ?? string.Empty)?.Trim();
                         if (string.IsNullOrWhiteSpace(alias))
                             continue;
-                        var castDate = item["castDate"]?.Value<bool?>()
-                            ?? item["castToDate"]?.Value<bool?>()
-                            ?? item["applyDateCast"]?.Value<bool?>()
+                        var castDate = item[CastDateKey]?.Value<bool?>()
+                            ?? item[CastToDateKey]?.Value<bool?>()
+                            ?? item[ApplyDateCastKey]?.Value<bool?>()
                             ?? false;
                         colCastDateByAlias[alias] = castDate;
-                        colGroupByByAlias[alias] = NormalizeDateGroupBy(Convert.ToString(item["groupBy"] ?? item["dateGroupBy"] ?? string.Empty));
+                        colGroupByByAlias[alias] = NormalizeDateGroupBy(Convert.ToString(item[GroupByKey] ?? item[DateGroupByKey] ?? string.Empty));
                     }
                 }
                 else if (colOptionsRoot is JObject colOptionsObj)
@@ -191,11 +256,11 @@ namespace metaModelRaw
                         var castDate = false;
                         if (p.Value is JObject nested)
                         {
-                            castDate = nested["castDate"]?.Value<bool?>()
-                                ?? nested["castToDate"]?.Value<bool?>()
-                                ?? nested["applyDateCast"]?.Value<bool?>()
+                            castDate = nested[CastDateKey]?.Value<bool?>()
+                                ?? nested[CastToDateKey]?.Value<bool?>()
+                                ?? nested[ApplyDateCastKey]?.Value<bool?>()
                                 ?? false;
-                            colGroupByByAlias[alias] = NormalizeDateGroupBy(Convert.ToString(nested["groupBy"] ?? nested["dateGroupBy"] ?? string.Empty));
+                            colGroupByByAlias[alias] = NormalizeDateGroupBy(Convert.ToString(nested[GroupByKey] ?? nested[DateGroupByKey] ?? string.Empty));
                         }
                         else if (p.Value is JValue jv)
                         {
@@ -215,14 +280,14 @@ namespace metaModelRaw
                 {
                     _Metadati_Tabelle table = mrm.GetMetadati_Tabelles(normalizedRoute).FirstOrDefault();
                     if (table == null)
-                        throw new Exception($"Route '{normalizedRoute}' non trovata nei metadati.");
+                        throw new InvalidOperationException($"Route '{normalizedRoute}' non trovata nei metadati.");
 
                     int mdId = table.md_id;
                     string tableName = (table.md_nome_tabella ?? string.Empty).Trim();
                     string schemaName = (table.md_schema_name ?? string.Empty).Trim();
                     string connectionName = string.IsNullOrWhiteSpace(table.md_conn_name) ? "DataSQLConnection" : table.md_conn_name.Trim();
                     if (string.IsNullOrWhiteSpace(tableName))
-                        throw new Exception($"La route '{normalizedRoute}' non ha md_nome_tabella valorizzata.");
+                        throw new InvalidOperationException($"La route '{normalizedRoute}' non ha md_nome_tabella valorizzata.");
 
                     var metaColumns = mrm.GetMetadati_Colonnes("", mdId.ToString())
                         .Where(c => !string.IsNullOrWhiteSpace(c.mc_nome_colonna))
@@ -243,7 +308,7 @@ namespace metaModelRaw
                     string ResolveReal(string alias)
                     {
                         if (!mapAliasToReal.TryGetValue(alias, out var real))
-                            throw new Exception($"Colonna '{alias}' non trovata nelle colonne della route.");
+                            throw new InvalidOperationException($"Colonna '{alias}' non trovata nelle colonne della route.");
                         return real;
                     }
 
@@ -287,14 +352,18 @@ namespace metaModelRaw
                         }).ToList();
 
                     var valueDefs = effectiveValueDefs
-                        .Select(v => new
+                        .Select(v =>
                         {
-                            Alias = v.Alias,
-                            Real = ResolveReal(v.Alias),
-                            Caption = string.IsNullOrWhiteSpace(v.Caption)
-                                ? (mapAliasToDisplay.TryGetValue(v.Alias, out var d) ? d : v.Alias)
-                                : v.Caption,
-                            Aggregate = v.Aggregate
+                            string caption = v.Caption;
+                            if (string.IsNullOrWhiteSpace(caption))
+                                caption = mapAliasToDisplay.TryGetValue(v.Alias, out var d) ? d : v.Alias;
+                            return new
+                            {
+                                Alias = v.Alias,
+                                Real = ResolveReal(v.Alias),
+                                Caption = caption,
+                                Aggregate = v.Aggregate
+                            };
                         })
                         .ToList();
 
@@ -366,11 +435,11 @@ namespace metaModelRaw
                     {
                         foreach (var f in filterItems.OfType<JObject>())
                         {
-                            var fieldAlias = Convert.ToString(f["field"] ?? string.Empty)?.Trim();
+                            var fieldAlias = Convert.ToString(f[FieldKey] ?? string.Empty)?.Trim();
                             if (string.IsNullOrWhiteSpace(fieldAlias) || !mapAliasToReal.TryGetValue(fieldAlias, out var fieldReal))
                                 continue;
                             var op = Convert.ToString(f["operatore"] ?? f["operator"] ?? "eq")?.Trim().ToLowerInvariant();
-                            var val = f["value"];
+                            var val = f[ValueKey];
                             string colExpr = BaseCol(fieldReal);
                             switch (op)
                             {
@@ -399,13 +468,13 @@ namespace metaModelRaw
                                 case "<=":
                                     filterParts.Add($"{colExpr} <= {ToProviderLiteralPivot(val)}");
                                     break;
-                                case "contains":
+                                case OpContains:
                                     filterParts.Add($"{colExpr} LIKE '%{EscapeSqlStringPivot(Convert.ToString(val ?? string.Empty))}%'");
                                     break;
-                                case "startswith":
+                                case OpStartsWith:
                                     filterParts.Add($"{colExpr} LIKE '{EscapeSqlStringPivot(Convert.ToString(val ?? string.Empty))}%'");
                                     break;
-                                case "endswith":
+                                case OpEndsWith:
                                     filterParts.Add($"{colExpr} LIKE '%{EscapeSqlStringPivot(Convert.ToString(val ?? string.Empty))}'");
                                     break;
                             }
@@ -462,7 +531,7 @@ FROM {fromTable}
                     response["schema"] = schemaName;
                     response["table"] = tableName;
                     response["connectionName"] = connectionName;
-                    response["dbms"] = "oracle";
+                    response["dbms"] = OracleDialect;
                     response["query"] = query.Trim();
                     response["topRows"] = normalizedTopRows;
                     response["valueColumns"] = valueDefs.Select(x => x.Alias).ToList();
@@ -487,8 +556,11 @@ FROM {fromTable}
 
         private static JToken ToJTokenSafePivot(object value)
         {
+            // S1168: empty JObject al posto di null — i call-site pattern-matchano
+            // `is JObject` / `is JArray` e con un JObject vuoto producono le stesse
+            // mappe vuote del vecchio percorso null.
             if (value == null)
-                return null;
+                return new JObject();
             if (value is JToken token)
                 return token;
             try
@@ -497,7 +569,7 @@ FROM {fromTable}
             }
             catch
             {
-                return null;
+                return new JObject();
             }
         }
 
@@ -564,7 +636,7 @@ FROM {fromTable}
             using (metaRawModel mmd = new metaRawModel())
             {
                 List<_Metadati_Colonne> lst = _Metadati_Colonne.getColonneByUserID(route, 0, user_id, dataMode.view, null);
-                _Metadati_Tabelle tab = lst.First()._Metadati_Tabelle;
+                _Metadati_Tabelle tab = lst[0]._Metadati_Tabelle;
 
                 // Oracle: no 3-part `[db].dbo.table`. Schema implicit via connection user.
                 string table_name = EscapeDBObjectName(tab.md_nome_tabella);
@@ -600,18 +672,15 @@ FROM {fromTable}
                     group_by = current_fld;
                 }
 
-                if (filters != null)
+                if (filters != null && filters.filters.Count > 0)
                 {
-                    if (filters.filters.Count > 0)
-
-                        lst.ForEach(fld =>
-                        {
-                            if (filters.filters.Any(x => x.field == "__extra"))
-                                where = AppendFilter(fld, filters, "AND", (current_fld), where, tab, "", user_id);
-                            else
-                                where = AppendFilter(fld, filters, "AND", current_fld, where, tab, "", user_id);
-                        });
-
+                    lst.ForEach(fld =>
+                    {
+                        if (filters.filters.Any(x => x.field == ExtraFilterField))
+                            where = AppendFilter(fld, filters, "AND", (current_fld), where, tab, "", user_id);
+                        else
+                            where = AppendFilter(fld, filters, "AND", current_fld, where, tab, "", user_id);
+                    });
                 }
 
                 query = string.Format(query, select_cols, table_name, where, group_by, string.IsNullOrEmpty(aggregationFunction) ? "" : "GROUP BY " + group_by, join);
@@ -696,12 +765,12 @@ FROM {fromTable}
             {
                 connectionString = ConfigHelper.ResolveConnectionString(connectionName);
                 if (string.IsNullOrEmpty(connectionString))
-                    throw new Exception(string.Format("Connection '{0}' not found in web.config", connectionName));
+                    throw new InvalidOperationException(string.Format("Connection '{0}' not found in web.config", connectionName));
             }
 
             if (!isMetaDataQuery)
             {
-                bool connectionByUser = bool.Parse(ConfigHelper.GetSettingAsString("connectionByUser") ?? "false");
+                bool connectionByUser = bool.Parse(ConfigHelper.GetSettingAsString("connectionByUser") ?? FalseLiteral);
 
                 if (connectionByUser)
                 {
@@ -776,7 +845,7 @@ FROM {fromTable}
             if (isPlSqlBlock)
             {
                 connection.Execute(script);
-                try { onProgress?.Invoke(script.Length); } catch { }
+                try { onProgress?.Invoke(script.Length); } catch { /* callback progress best-effort: un errore del subscriber non deve abortire lo script */ }
                 return;
             }
 
@@ -1120,7 +1189,11 @@ END;");
                 var match = System.Text.RegularExpressions.Regex.Match(ex.Message ?? "", @"ORA-(\d{1,5})");
                 if (match.Success) return int.Parse(match.Groups[1].Value);
             }
-            catch { }
+            catch
+            {
+                // Estrazione best-effort del codice ORA via reflection/regex:
+                // qualunque errore qui equivale a "codice non determinabile" → 0.
+            }
             return 0;
         }
 
@@ -1130,7 +1203,7 @@ END;");
 
         public static string addReticularColumn(string route, string type, bool isReticular)
         {
-            using (metaModelRaw.metaRawModel mmd = new metaModelRaw.metaRawModel("mssql"))
+            using (metaModelRaw.metaRawModel mmd = new metaModelRaw.metaRawModel(MssqlDialect))
             {
                 _Metadati_Tabelle tab = mmd.GetMetadati_Tabelles(route).FirstOrDefault();
                 if (tab != null)
@@ -1139,14 +1212,14 @@ END;");
                     string db_col_type = "";
                     string mc_ui_column_type = "";
                     List<_Metadati_Colonne> cols = tab._Metadati_Colonnes.ToList();
-                    int text_col_count = cols.Where(x => x.mc_db_column_type == "varchar").Count();
-                    int numeric_col_count = cols.Where(x => x.mc_db_column_type == "decimal" || x.mc_db_column_type == "bit").Count();
+                    int text_col_count = cols.Count(x => x.mc_db_column_type == DbTypeVarchar);
+                    int numeric_col_count = cols.Count(x => x.mc_db_column_type == DbTypeDecimal || x.mc_db_column_type == "bit");
                     int total_col_count = cols.Count;
 
                     if (type == "1")
                     {
-                        col_name = string.Format("colonna_{0}_testo", (text_col_count + 1).ToString().PadLeft(3, '0'));
-                        db_col_type = "varchar";
+                        col_name = string.Format(TextColumnNameFormat, (text_col_count + 1).ToString().PadLeft(3, '0'));
+                        db_col_type = DbTypeVarchar;
                         mc_ui_column_type = "text";
 
                         _Metadati_Colonne reticularCol = new _Metadati_Colonne() { md_id = tab.md_id, mc_db_column_type = db_col_type, mc_logic_nullable = true, mc_logic_editable = true, mc_display_string_in_view = col_name, mc_display_string_in_edit = col_name, mc_grant_by_default = true, mc_nome_colonna = col_name, mc_ui_column_type = mc_ui_column_type, mc_ordine = total_col_count };
@@ -1162,20 +1235,20 @@ END;");
                         using (OracleConnection con = GetOpenConnection(true))
                         {
                             OracleCommand cmd = new OracleCommand(query, con) { BindByName = true };
-                            cmd.Parameters.Add(new OracleParameter("voa_class", 1));
-                            cmd.Parameters.Add(new OracleParameter("md_id", tab.md_id));
-                            cmd.Parameters.Add(new OracleParameter("mc_db_column_type", db_col_type));
-                            cmd.Parameters.Add(new OracleParameter("mc_display_string_in_edit", col_name));
-                            cmd.Parameters.Add(new OracleParameter("mc_display_string_in_view", col_name));
-                            cmd.Parameters.Add(new OracleParameter("mc_logic_editable", true));
-                            cmd.Parameters.Add(new OracleParameter("mc_logic_nullable", true));
-                            cmd.Parameters.Add(new OracleParameter("mc_nome_colonna", col_name));
-                            cmd.Parameters.Add(new OracleParameter("mc_ui_column_type", mc_ui_column_type));
-                            cmd.Parameters.Add(new OracleParameter("mccomputedformula", !isReticular ? "null" : ""));
-                            cmd.Parameters.Add(new OracleParameter("mciscomputed", !isReticular));
-                            cmd.Parameters.Add(new OracleParameter("mcgrantbydefault", true));
-                            cmd.Parameters.Add(new OracleParameter("mcordine", total_col_count));
-                            var pOut = new OracleParameter("p_new_id", OracleDbType.Decimal) { Direction = ParameterDirection.Output };
+                            cmd.Parameters.Add(new OracleParameter(ParamVoaClass, 1));
+                            cmd.Parameters.Add(new OracleParameter(ParamMdId, tab.md_id));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcDbColumnType, db_col_type));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcDisplayStringInEdit, col_name));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcDisplayStringInView, col_name));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcLogicEditable, true));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcLogicNullable, true));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcNomeColonna, col_name));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcUiColumnType, mc_ui_column_type));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcComputedFormula, !isReticular ? "null" : ""));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcIsComputed, !isReticular));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcGrantByDefault, true));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcOrdine, total_col_count));
+                            var pOut = new OracleParameter(ParamPNewId, OracleDbType.Decimal) { Direction = ParameterDirection.Output };
                             cmd.Parameters.Add(pOut);
                             cmd.ExecuteNonQuery();
                             return pOut.Value?.ToString() ?? "";
@@ -1185,8 +1258,8 @@ END;");
                     else if (type == "2")
                     {
 
-                        col_name = string.Format("colonna_{0}_testo", (text_col_count + 1).ToString().PadLeft(3, '0'));
-                        db_col_type = "varchar";
+                        col_name = string.Format(TextColumnNameFormat, (text_col_count + 1).ToString().PadLeft(3, '0'));
+                        db_col_type = DbTypeVarchar;
                         mc_ui_column_type = "date";
 
                         string display_name = col_name.Replace("_testo", "_date");
@@ -1204,20 +1277,20 @@ END;");
                         using (OracleConnection con = GetOpenConnection(true))
                         {
                             OracleCommand cmd = new OracleCommand(query, con) { BindByName = true };
-                            cmd.Parameters.Add(new OracleParameter("voa_class", 1));
-                            cmd.Parameters.Add(new OracleParameter("md_id", tab.md_id));
-                            cmd.Parameters.Add(new OracleParameter("mc_db_column_type", db_col_type));
-                            cmd.Parameters.Add(new OracleParameter("mc_display_string_in_edit", col_name));
-                            cmd.Parameters.Add(new OracleParameter("mc_display_string_in_view", col_name));
-                            cmd.Parameters.Add(new OracleParameter("mc_logic_editable", true));
-                            cmd.Parameters.Add(new OracleParameter("mc_logic_nullable", true));
-                            cmd.Parameters.Add(new OracleParameter("mc_nome_colonna", col_name));
-                            cmd.Parameters.Add(new OracleParameter("mc_ui_column_type", mc_ui_column_type));
-                            cmd.Parameters.Add(new OracleParameter("mccomputedformula", !isReticular ? "null" : ""));
-                            cmd.Parameters.Add(new OracleParameter("mciscomputed", !isReticular));
-                            cmd.Parameters.Add(new OracleParameter("mcgrantbydefault", true));
-                            cmd.Parameters.Add(new OracleParameter("mcordine", total_col_count));
-                            var pOut = new OracleParameter("p_new_id", OracleDbType.Decimal) { Direction = ParameterDirection.Output };
+                            cmd.Parameters.Add(new OracleParameter(ParamVoaClass, 1));
+                            cmd.Parameters.Add(new OracleParameter(ParamMdId, tab.md_id));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcDbColumnType, db_col_type));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcDisplayStringInEdit, col_name));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcDisplayStringInView, col_name));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcLogicEditable, true));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcLogicNullable, true));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcNomeColonna, col_name));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcUiColumnType, mc_ui_column_type));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcComputedFormula, !isReticular ? "null" : ""));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcIsComputed, !isReticular));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcGrantByDefault, true));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcOrdine, total_col_count));
+                            var pOut = new OracleParameter(ParamPNewId, OracleDbType.Decimal) { Direction = ParameterDirection.Output };
                             cmd.Parameters.Add(pOut);
                             cmd.ExecuteNonQuery();
                             return pOut.Value?.ToString() ?? "";
@@ -1229,28 +1302,28 @@ END;");
                     else if (type == "3")
                     {
                         col_name = string.Format("colonna_{0}_numero", (numeric_col_count + 1).ToString().PadLeft(3, '0'));
-                        db_col_type = "decimal";
-                        mc_ui_column_type = "number";
+                        db_col_type = DbTypeDecimal;
+                        mc_ui_column_type = UiTypeNumber;
 
                         // Oracle-native (port da mysql/metaQueryMySql.cs:931): bare lowercase + :param + RETURNING mc_id INTO out-param.
                         string query = "INSERT INTO _metadati__colonne (voa_class, md_id, mc_db_column_type, mc_display_string_in_edit, mc_display_string_in_view, mc_logic_editable, mc_logic_nullable, mc_nome_colonna, mc_ui_column_type, mccomputedformula, mciscomputed, mcgrantbydefault, mcordine) VALUES (:voa_class, :md_id, :mc_db_column_type, :mc_display_string_in_edit, :mc_display_string_in_view, :mc_logic_editable, :mc_logic_nullable, :mc_nome_colonna, :mc_ui_column_type, :mccomputedformula, :mciscomputed, :mcgrantbydefault, :mcordine) RETURNING mc_id INTO :p_new_id";
                         using (OracleConnection con = GetOpenConnection(true))
                         {
                             OracleCommand cmd = new OracleCommand(query, con) { BindByName = true };
-                            cmd.Parameters.Add(new OracleParameter("voa_class", 3));
-                            cmd.Parameters.Add(new OracleParameter("md_id", tab.md_id));
-                            cmd.Parameters.Add(new OracleParameter("mc_db_column_type", db_col_type));
-                            cmd.Parameters.Add(new OracleParameter("mc_display_string_in_edit", col_name));
-                            cmd.Parameters.Add(new OracleParameter("mc_display_string_in_view", col_name));
-                            cmd.Parameters.Add(new OracleParameter("mc_logic_editable", true));
-                            cmd.Parameters.Add(new OracleParameter("mc_logic_nullable", true));
-                            cmd.Parameters.Add(new OracleParameter("mc_nome_colonna", col_name));
-                            cmd.Parameters.Add(new OracleParameter("mc_ui_column_type", mc_ui_column_type));
-                            cmd.Parameters.Add(new OracleParameter("mccomputedformula", !isReticular ? "null" : ""));
-                            cmd.Parameters.Add(new OracleParameter("mciscomputed", !isReticular));
-                            cmd.Parameters.Add(new OracleParameter("mcgrantbydefault", true));
-                            cmd.Parameters.Add(new OracleParameter("mcordine", total_col_count));
-                            var pOut = new OracleParameter("p_new_id", OracleDbType.Decimal) { Direction = ParameterDirection.Output };
+                            cmd.Parameters.Add(new OracleParameter(ParamVoaClass, 3));
+                            cmd.Parameters.Add(new OracleParameter(ParamMdId, tab.md_id));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcDbColumnType, db_col_type));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcDisplayStringInEdit, col_name));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcDisplayStringInView, col_name));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcLogicEditable, true));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcLogicNullable, true));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcNomeColonna, col_name));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcUiColumnType, mc_ui_column_type));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcComputedFormula, !isReticular ? "null" : ""));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcIsComputed, !isReticular));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcGrantByDefault, true));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcOrdine, total_col_count));
+                            var pOut = new OracleParameter(ParamPNewId, OracleDbType.Decimal) { Direction = ParameterDirection.Output };
                             cmd.Parameters.Add(pOut);
                             cmd.ExecuteNonQuery();
                             return pOut.Value?.ToString() ?? "";
@@ -1261,7 +1334,7 @@ END;");
                     {
                         col_name = string.Format("colonna_{0}_numero", (numeric_col_count + 1).ToString().PadLeft(3, '0'));
                         db_col_type = "bit";
-                        mc_ui_column_type = "boolean";
+                        mc_ui_column_type = UiTypeBoolean;
 
                         string display_name = col_name.Replace("_numero", "_bit");
 
@@ -1270,20 +1343,20 @@ END;");
                         using (OracleConnection con = GetOpenConnection(true))
                         {
                             OracleCommand cmd = new OracleCommand(query, con) { BindByName = true };
-                            cmd.Parameters.Add(new OracleParameter("voa_class", 3));
-                            cmd.Parameters.Add(new OracleParameter("md_id", tab.md_id));
-                            cmd.Parameters.Add(new OracleParameter("mc_db_column_type", db_col_type));
-                            cmd.Parameters.Add(new OracleParameter("mc_display_string_in_edit", display_name));
-                            cmd.Parameters.Add(new OracleParameter("mc_display_string_in_view", display_name));
-                            cmd.Parameters.Add(new OracleParameter("mc_logic_editable", true));
-                            cmd.Parameters.Add(new OracleParameter("mc_logic_nullable", true));
-                            cmd.Parameters.Add(new OracleParameter("mc_nome_colonna", col_name));
-                            cmd.Parameters.Add(new OracleParameter("mc_ui_column_type", mc_ui_column_type));
-                            cmd.Parameters.Add(new OracleParameter("mccomputedformula", !isReticular ? "null" : ""));
-                            cmd.Parameters.Add(new OracleParameter("mciscomputed", !isReticular));
-                            cmd.Parameters.Add(new OracleParameter("mcgrantbydefault", true));
-                            cmd.Parameters.Add(new OracleParameter("mcordine", total_col_count));
-                            var pOut = new OracleParameter("p_new_id", OracleDbType.Decimal) { Direction = ParameterDirection.Output };
+                            cmd.Parameters.Add(new OracleParameter(ParamVoaClass, 3));
+                            cmd.Parameters.Add(new OracleParameter(ParamMdId, tab.md_id));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcDbColumnType, db_col_type));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcDisplayStringInEdit, display_name));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcDisplayStringInView, display_name));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcLogicEditable, true));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcLogicNullable, true));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcNomeColonna, col_name));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcUiColumnType, mc_ui_column_type));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcComputedFormula, !isReticular ? "null" : ""));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcIsComputed, !isReticular));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcGrantByDefault, true));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcOrdine, total_col_count));
+                            var pOut = new OracleParameter(ParamPNewId, OracleDbType.Decimal) { Direction = ParameterDirection.Output };
                             cmd.Parameters.Add(pOut);
                             cmd.ExecuteNonQuery();
                             return pOut.Value?.ToString() ?? "";
@@ -1303,20 +1376,20 @@ END;");
                         using (OracleConnection con = GetOpenConnection(true))
                         {
                             OracleCommand cmd = new OracleCommand(query, con) { BindByName = true };
-                            cmd.Parameters.Add(new OracleParameter("voa_class", 2));
-                            cmd.Parameters.Add(new OracleParameter("md_id", tab.md_id));
-                            cmd.Parameters.Add(new OracleParameter("mc_db_column_type", db_col_type));
-                            cmd.Parameters.Add(new OracleParameter("mc_display_string_in_edit", display_name));
-                            cmd.Parameters.Add(new OracleParameter("mc_display_string_in_view", display_name));
-                            cmd.Parameters.Add(new OracleParameter("mc_logic_editable", true));
-                            cmd.Parameters.Add(new OracleParameter("mc_logic_nullable", true));
-                            cmd.Parameters.Add(new OracleParameter("mc_nome_colonna", col_name));
-                            cmd.Parameters.Add(new OracleParameter("mc_ui_column_type", mc_ui_column_type));
-                            cmd.Parameters.Add(new OracleParameter("mccomputedformula", !isReticular ? "null" : ""));
-                            cmd.Parameters.Add(new OracleParameter("mciscomputed", !isReticular));
-                            cmd.Parameters.Add(new OracleParameter("mcgrantbydefault", true));
-                            cmd.Parameters.Add(new OracleParameter("mcordine", total_col_count));
-                            var pOut = new OracleParameter("p_new_id", OracleDbType.Decimal) { Direction = ParameterDirection.Output };
+                            cmd.Parameters.Add(new OracleParameter(ParamVoaClass, 2));
+                            cmd.Parameters.Add(new OracleParameter(ParamMdId, tab.md_id));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcDbColumnType, db_col_type));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcDisplayStringInEdit, display_name));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcDisplayStringInView, display_name));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcLogicEditable, true));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcLogicNullable, true));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcNomeColonna, col_name));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcUiColumnType, mc_ui_column_type));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcComputedFormula, !isReticular ? "null" : ""));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcIsComputed, !isReticular));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcGrantByDefault, true));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcOrdine, total_col_count));
+                            var pOut = new OracleParameter(ParamPNewId, OracleDbType.Decimal) { Direction = ParameterDirection.Output };
                             cmd.Parameters.Add(pOut);
                             cmd.ExecuteNonQuery();
                             return pOut.Value?.ToString() ?? "";
@@ -1325,8 +1398,8 @@ END;");
                     }
                     else if (type == "6")
                     {
-                        col_name = string.Format("colonna_{0}_testo", (text_col_count + 1).ToString().PadLeft(3, '0'));
-                        db_col_type = "varchar";
+                        col_name = string.Format(TextColumnNameFormat, (text_col_count + 1).ToString().PadLeft(3, '0'));
+                        db_col_type = DbTypeVarchar;
                         mc_ui_column_type = "button";
 
                         string display_name = col_name.Replace("_testo", "_button");
@@ -1336,22 +1409,22 @@ END;");
                         using (OracleConnection con = GetOpenConnection(true))
                         {
                             OracleCommand cmd = new OracleCommand(query, con) { BindByName = true };
-                            cmd.Parameters.Add(new OracleParameter("voa_class", 6));
-                            cmd.Parameters.Add(new OracleParameter("md_id", tab.md_id));
-                            cmd.Parameters.Add(new OracleParameter("mc_db_column_type", db_col_type));
-                            cmd.Parameters.Add(new OracleParameter("mc_display_string_in_edit", display_name));
-                            cmd.Parameters.Add(new OracleParameter("mc_display_string_in_view", display_name));
-                            cmd.Parameters.Add(new OracleParameter("mc_logic_editable", false));
-                            cmd.Parameters.Add(new OracleParameter("mc_logic_nullable", true));
-                            cmd.Parameters.Add(new OracleParameter("mc_nome_colonna", col_name));
-                            cmd.Parameters.Add(new OracleParameter("mc_ui_column_type", mc_ui_column_type));
-                            cmd.Parameters.Add(new OracleParameter("mccomputedformula", !isReticular ? "''" : ""));
-                            cmd.Parameters.Add(new OracleParameter("mciscomputed", !isReticular));
-                            cmd.Parameters.Add(new OracleParameter("mcgrantbydefault", true));
-                            cmd.Parameters.Add(new OracleParameter("mcordine", total_col_count));
+                            cmd.Parameters.Add(new OracleParameter(ParamVoaClass, 6));
+                            cmd.Parameters.Add(new OracleParameter(ParamMdId, tab.md_id));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcDbColumnType, db_col_type));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcDisplayStringInEdit, display_name));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcDisplayStringInView, display_name));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcLogicEditable, false));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcLogicNullable, true));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcNomeColonna, col_name));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcUiColumnType, mc_ui_column_type));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcComputedFormula, !isReticular ? "''" : ""));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcIsComputed, !isReticular));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcGrantByDefault, true));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcOrdine, total_col_count));
                             cmd.Parameters.Add(new OracleParameter("mchideinedit", true));
                             cmd.Parameters.Add(new OracleParameter("mcisdbcomputed", false));
-                            var pOut = new OracleParameter("p_new_id", OracleDbType.Decimal) { Direction = ParameterDirection.Output };
+                            var pOut = new OracleParameter(ParamPNewId, OracleDbType.Decimal) { Direction = ParameterDirection.Output };
                             cmd.Parameters.Add(pOut);
                             cmd.ExecuteNonQuery();
                             return pOut.Value?.ToString() ?? "";
@@ -1360,9 +1433,9 @@ END;");
                     }
                     else if (type == "7")
                     {
-                        col_name = string.Format("colonna_{0}_testo", (text_col_count + 1).ToString().PadLeft(3, '0'));
-                        db_col_type = "varchar";
-                        mc_ui_column_type = "multiple_check";
+                        col_name = string.Format(TextColumnNameFormat, (text_col_count + 1).ToString().PadLeft(3, '0'));
+                        db_col_type = DbTypeVarchar;
+                        mc_ui_column_type = UiTypeMultipleCheck;
 
                         string display_name = col_name.Replace("_testo", "_multiple_check");
 
@@ -1371,20 +1444,20 @@ END;");
                         using (OracleConnection con = GetOpenConnection(true))
                         {
                             OracleCommand cmd = new OracleCommand(query, con) { BindByName = true };
-                            cmd.Parameters.Add(new OracleParameter("voa_class", 4));
-                            cmd.Parameters.Add(new OracleParameter("md_id", tab.md_id));
-                            cmd.Parameters.Add(new OracleParameter("mc_db_column_type", db_col_type));
-                            cmd.Parameters.Add(new OracleParameter("mc_display_string_in_edit", display_name));
-                            cmd.Parameters.Add(new OracleParameter("mc_display_string_in_view", display_name));
-                            cmd.Parameters.Add(new OracleParameter("mc_logic_editable", true));
-                            cmd.Parameters.Add(new OracleParameter("mc_logic_nullable", true));
-                            cmd.Parameters.Add(new OracleParameter("mc_nome_colonna", col_name));
-                            cmd.Parameters.Add(new OracleParameter("mc_ui_column_type", mc_ui_column_type));
-                            cmd.Parameters.Add(new OracleParameter("mcgrantbydefault", true));
-                            cmd.Parameters.Add(new OracleParameter("mcordine", total_col_count));
-                            cmd.Parameters.Add(new OracleParameter("mccomputedformula", "''"));
-                            cmd.Parameters.Add(new OracleParameter("mciscomputed", true));
-                            var pOut = new OracleParameter("p_new_id", OracleDbType.Decimal) { Direction = ParameterDirection.Output };
+                            cmd.Parameters.Add(new OracleParameter(ParamVoaClass, 4));
+                            cmd.Parameters.Add(new OracleParameter(ParamMdId, tab.md_id));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcDbColumnType, db_col_type));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcDisplayStringInEdit, display_name));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcDisplayStringInView, display_name));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcLogicEditable, true));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcLogicNullable, true));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcNomeColonna, col_name));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcUiColumnType, mc_ui_column_type));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcGrantByDefault, true));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcOrdine, total_col_count));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcComputedFormula, "''"));
+                            cmd.Parameters.Add(new OracleParameter(ParamMcIsComputed, true));
+                            var pOut = new OracleParameter(ParamPNewId, OracleDbType.Decimal) { Direction = ParameterDirection.Output };
                             cmd.Parameters.Add(pOut);
                             cmd.ExecuteNonQuery();
                             return pOut.Value?.ToString() ?? "";
@@ -1445,12 +1518,12 @@ END;");
         {
             if (user.getUserByName(user_name) != null)
             {
-                return "-1"; // throw new ValidationException(string.Format("User name '{0}' già utilizzato", user_name));
+                return "-1";
             }
 
             if (user.getUserByEMail(email) != null)
             {
-                return "-2";  //throw new ValidationException(string.Format("E-mail '{0}' già utilizzata", email));
+                return "-2";
             }
 
             string query = "select * from cms.register_requests where username=:username";
@@ -1461,7 +1534,7 @@ END;");
             adpt.Fill(dt);
 
             if (dt.Rows.Count > 0)
-                return "-1"; //throw new ValidationException(string.Format("User name '{0}' già utilizzato", user_name));
+                return "-1";
 
             query = "select * from cms.register_requests where email=:email";
             cmd = new OracleCommand(query, connection);
@@ -1471,7 +1544,7 @@ END;");
             adpt.Fill(dt);
 
             if (dt.Rows.Count > 0)
-                return "-2";  //throw new ValidationException(string.Format("E-mail '{0}' già utilizzata", email));
+                return "-2";
 
             return user_name;
         }
@@ -1531,7 +1604,7 @@ END;");
         {
             using (OracleConnection connection = string.IsNullOrEmpty(infos.user_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.user_db_name))
             {
-                bool isPwdEncripted = bool.Parse(ConfigHelper.GetSettingAsString("IsPwdEncripted") ?? "false");
+                bool isPwdEncripted = bool.Parse(ConfigHelper.GetSettingAsString("IsPwdEncripted") ?? FalseLiteral);
                 string encriptionMethod = ConfigHelper.GetSettingAsString("encriptionMethod") ?? "SHA1";
 
                 Dapper.SqlMapper.FastExpando user = ((List<Dapper.SqlMapper.FastExpando>)connection.Query(string.Format("SELECT id_utente, username, isAdmin, id_ruolo, userdescription, email, token, ip, language, {0} as pwd_hash FROM {1} WHERE {2} = '{3}' and coalesce(cancellato,0)=0", infos.password_column_name, infos.user_table_name, infos.username_column_name, EscapeValue(user_name)))).FirstOrDefault();
@@ -1580,16 +1653,16 @@ END;");
         {
             // Oracle: column case-folded a UPPER (rename canonico). `infos.*_column_name` da
             // sys_info può essere lowercase → confronto case-insensitive.
-            string userid = user.Where(x => string.Equals(x.Key, infos.user_id_column_name, StringComparison.OrdinalIgnoreCase)).First().Value.ToString();
+            string userid = user.First(x => string.Equals(x.Key, infos.user_id_column_name, StringComparison.OrdinalIgnoreCase)).Value.ToString();
 
-            string display = user.Where(x => string.Equals(x.Key, infos.user_description_column_name, StringComparison.OrdinalIgnoreCase)).First().Value.ToString();
+            string display = user.First(x => string.Equals(x.Key, infos.user_description_column_name, StringComparison.OrdinalIgnoreCase)).Value.ToString();
             // Oracle: bool stored come NUMBER(1) → arriva come Int16/decimal, not bool. Normalize via Convert.ToBoolean.
-            object isAdminVal = user.Where(x => string.Equals(x.Key, infos.isAdmin_column_name, StringComparison.OrdinalIgnoreCase)).First().Value;
+            object isAdminVal = user.First(x => string.Equals(x.Key, infos.isAdmin_column_name, StringComparison.OrdinalIgnoreCase)).Value;
             bool isAdmin = isAdminVal != null && isAdminVal != DBNull.Value && Convert.ToBoolean(Convert.ToInt32(isAdminVal));
             role myRole = getRoleByUserID(userid);
             string roleName = myRole?.role_name;
-            string role_id = user.Where(x => string.Equals(x.Key, infos.role_id_column_name, StringComparison.OrdinalIgnoreCase)).First().Value.ToString();
-            string uName = user.Where(x => string.Equals(x.Key, infos.username_column_name, StringComparison.OrdinalIgnoreCase)).First().Value.ToString();
+            string role_id = user.First(x => string.Equals(x.Key, infos.role_id_column_name, StringComparison.OrdinalIgnoreCase)).Value.ToString();
+            string uName = user.First(x => string.Equals(x.Key, infos.username_column_name, StringComparison.OrdinalIgnoreCase)).Value.ToString();
             List<role> roles = getMultipleRoleRoleByUserID(userid);
 
             // isSuperAdmin: from ruoli.superadmin via mapRoleFields. Mirror mysql/metaQueryMySql.cs:1371.
@@ -1629,7 +1702,7 @@ END;");
             //     u.extra_keys.Add(extra_field, user_param != null ? user_param.ToString() : "");
             // }
 
-            KeyValuePair<string, object>? az_field = user.Where(x => string.Equals(x.Key, infos.azienda_id_column_name, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
+            KeyValuePair<string, object>? az_field = user.FirstOrDefault(x => string.Equals(x.Key, infos.azienda_id_column_name, StringComparison.OrdinalIgnoreCase));
             if (az_field != null)
             {
                 object id_azienda = az_field.Value.Value;
@@ -1659,8 +1732,8 @@ END;");
 
             return new role()
             {
-                role_name = role.Where(x => string.Equals(x.Key, infos.role_description_column_name, StringComparison.OrdinalIgnoreCase)).First().Value.ToString(),
-                role_id = role.Where(x => string.Equals(x.Key, infos.role_id_column_name, StringComparison.OrdinalIgnoreCase)).First().Value.ToString(),
+                role_name = role.First(x => string.Equals(x.Key, infos.role_description_column_name, StringComparison.OrdinalIgnoreCase)).Value.ToString(),
+                role_id = role.First(x => string.Equals(x.Key, infos.role_id_column_name, StringComparison.OrdinalIgnoreCase)).Value.ToString(),
                 superadmin = superadminVal,
                 admin = adminVal,
             };
@@ -1673,7 +1746,7 @@ END;");
                 SysInfo infos = metaRawModel.GetSysInfos();
 
                 if (infos == null)
-                    return null;
+                    return new List<user>(); // S1168: sys_info assente → lista vuota (i caller iterano soltanto)
 
                 using (OracleConnection connection = string.IsNullOrEmpty(infos.user_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.user_db_name))
                 {
@@ -1696,7 +1769,7 @@ END;");
                 SysInfo infos = metaRawModel.GetSysInfos();
 
                 if (infos == null)
-                    return null;
+                    return new List<role>(); // S1168: sys_info assente → lista vuota (i caller iterano soltanto)
 
                 using (OracleConnection connection = string.IsNullOrEmpty(infos.role_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.role_db_name))
                 {
@@ -1745,7 +1818,7 @@ END;");
                 using (OracleConnection connection = string.IsNullOrEmpty(infos.role_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.role_db_name))
                 {
                     // SELECT * so mapRoleFields can read `superadmin` + `admin` columns. Mirror MySQL pattern.
-                    Dapper.SqlMapper.FastExpando role = ((List<Dapper.SqlMapper.FastExpando>)connection.Query(string.Format("SELECT {2}.* FROM {2} inner join {5} ON {2}.{6}={5}.{7} WHERE {3}='{4}'", infos.role_id_column_name, infos.role_description_column_name, infos.role_table_name, infos.user_id_column_name, user_id, infos.user_table_name, infos.role_id_column_name, infos.role_user_table_fk_name))).FirstOrDefault();
+                    Dapper.SqlMapper.FastExpando role = ((List<Dapper.SqlMapper.FastExpando>)connection.Query(string.Format("SELECT {0}.* FROM {0} inner join {3} ON {0}.{4}={3}.{5} WHERE {1}='{2}'", infos.role_table_name, infos.user_id_column_name, user_id, infos.user_table_name, infos.role_id_column_name, infos.role_user_table_fk_name))).FirstOrDefault();
                     if (role != null)
                     {
                         return mapRoleFields(infos, role);
@@ -1762,7 +1835,7 @@ END;");
                 SysInfo infos = metaRawModel.GetSysInfos();
 
                 if (infos == null)
-                    return null;
+                    return new List<role>(); // S1168: sys_info assente → lista vuota (i caller iterano soltanto)
 
                 using (OracleConnection connection = string.IsNullOrEmpty(infos.role_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.role_db_name))
                 {
@@ -1913,7 +1986,7 @@ END;");
                         catch (SqlException ex1)
                         {
                             if (ex1.Number != 421)
-                                throw new Exception(ex1.Message + "****EXECUTED QUERY:****" + query);
+                                throw new InvalidOperationException(ex1.Message + "****EXECUTED QUERY:****" + query, ex1);
                             else
                             {
                                 return new rawPagedResult() { results = new List<Dapper.SqlMapper.FastExpando>(), TotalRecords = 0, Agg = null };
@@ -1921,7 +1994,7 @@ END;");
                         }
                         catch (Exception EX)
                         {
-                            throw new Exception(EX.Message + "****EXECUTED QUERY:****" + query);
+                            throw new InvalidOperationException(EX.Message + "****EXECUTED QUERY:****" + query, EX);
                         }
 
                     }
@@ -1949,7 +2022,7 @@ END;");
                 string query = "";
                 long totalRecords;
                 List<AggregationResult> aggregateValues;
-                _Metadati_Tabelle tab = lst.First()._Metadati_Tabelle;
+                _Metadati_Tabelle tab = lst[0]._Metadati_Tabelle;
 
                 using (OracleConnection connection = GetOpenConnection(RawHelpers.checkIsMetaData(route), tab.md_conn_name))
                 {
@@ -1963,7 +2036,7 @@ END;");
                     }
                     catch (Exception qex)
                     {
-                        throw new Exception(qex.Message + " | DATA_SELECT_QUERY: " + (query?.Length > 1500 ? query.Substring(0, 1500) + "..." : query), qex);
+                        throw new InvalidOperationException(qex.Message + " | DATA_SELECT_QUERY: " + (query?.Length > 1500 ? query.Substring(0, 1500) + "..." : query), qex);
                     }
 
                     if (totalRecords == 0)
@@ -2039,7 +2112,7 @@ END;");
 
                     using (OracleConnection connection = metaQueryOracleSql.GetOpenConnection(false, metaStored.md_conn_name))
                     {
-                        stored = RawHelpers.getStorePrefix(metaStored, "oracle") + RawHelpers.getDBEntityQuoteSymbol("oracle") + metaStored.md_nome_tabella + RawHelpers.getDBEntityQuoteSymbol("oracle", false);
+                        stored = RawHelpers.getStorePrefix(metaStored, OracleDialect) + RawHelpers.getDBEntityQuoteSymbol(OracleDialect) + metaStored.md_nome_tabella + RawHelpers.getDBEntityQuoteSymbol(OracleDialect, false);
 
                         OracleCommand cmd = new OracleCommand(stored, connection);
 
@@ -2098,7 +2171,7 @@ END;");
                         // BUG fix: era "mssql" (`[name]` brackets) → PLS-00103 su parse Oracle.
                         // Usa "oracle" dialect → identifier safe (quoting solo per leading-_ /
                         // reserved keywords, altrimenti unquoted con case-fold UPPER).
-                        stored = RawHelpers.getStoreTableName(metaStored, "oracle");
+                        stored = RawHelpers.getStoreTableName(metaStored, OracleDialect);
 
                         var dbArgs = new DynamicParameters();
                         if (parameterDefinition == null) parameterDefinition = new Newtonsoft.Json.Linq.JArray();
@@ -2112,7 +2185,7 @@ END;");
                                     dbArgs.Add(":pageIndex__", (__pageIndex == 0 ? 1 : __pageIndex));
                                 else if (pair.field == "pageSize__")
                                     dbArgs.Add("pageSize__", (__pageSize == 0 ? int.MaxValue : __pageSize));
-                                else if (pair.field == "count__")
+                                else if (pair.field == CountParamName)
                                     dbArgs.Add(":count__", direction: ParameterDirection.Output, size: 32);
                                 else if (pair.field == "sortField__")
                                     dbArgs.Add(":sortField__", __sortField);
@@ -2142,7 +2215,7 @@ END;");
                                         {
                                             string rawStr = pair.value.ToString();
                                             string declaredType = (pair.Type ?? string.Empty).ToLowerInvariant();
-                                            if (declaredType == "number" || declaredType == "int" || declaredType == "integer")
+                                            if (declaredType == UiTypeNumber || declaredType == "int" || declaredType == "integer")
                                             {
                                                 if (int.TryParse(rawStr, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int iv)) boundValue = iv;
                                                 else if (long.TryParse(rawStr, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out long lv)) boundValue = lv;
@@ -2154,19 +2227,19 @@ END;");
                                                 if (long.TryParse(rawStr, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out long lv)) boundValue = lv;
                                                 else boundValue = rawStr;
                                             }
-                                            else if (declaredType == "decimal" || declaredType == "numeric" || declaredType == "float" || declaredType == "double")
+                                            else if (declaredType == DbTypeDecimal || declaredType == "numeric" || declaredType == DbTypeFloat || declaredType == "double")
                                             {
                                                 if (decimal.TryParse(rawStr, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out decimal dv)) boundValue = dv;
                                                 else boundValue = rawStr;
                                             }
-                                            else if (declaredType == "boolean" || declaredType == "bool")
+                                            else if (declaredType == UiTypeBoolean || declaredType == "bool")
                                             {
                                                 if (bool.TryParse(rawStr, out bool bv)) boundValue = bv;
                                                 else if (rawStr == "1" || rawStr.Equals("true", StringComparison.OrdinalIgnoreCase)) boundValue = true;
-                                                else if (rawStr == "0" || rawStr.Equals("false", StringComparison.OrdinalIgnoreCase)) boundValue = false;
+                                                else if (rawStr == "0" || rawStr.Equals(FalseLiteral, StringComparison.OrdinalIgnoreCase)) boundValue = false;
                                                 else boundValue = rawStr;
                                             }
-                                            else if (declaredType == "date" || declaredType == "datetime" || declaredType == "timestamp")
+                                            else if (declaredType == "date" || declaredType == UiTypeDatetime || declaredType == "timestamp")
                                             {
                                                 if (DateTime.TryParse(rawStr, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out DateTime dt)) boundValue = dt;
                                                 else boundValue = rawStr;
@@ -2228,7 +2301,7 @@ END;");
                             var inputParamNames = parameterDefinition
                                 .Where(jt => jt["Name"] != null)
                                 .Select(jt => jt["Name"].ToString().TrimStart('@', ':'))
-                                .Where(n => n != "count__" && n != "sortField__" && n != "sortDir__"
+                                .Where(n => n != CountParamName && n != "sortField__" && n != "sortDir__"
                                          && n != "pageIndex__" && n != "pageSize__")
                                 .ToList();
                             string argList = string.Join(", ", inputParamNames.Select(n => ":" + n));
@@ -2331,17 +2404,17 @@ END;");
                             rows[0].data.Remove("");
                         }
 
-                        if (dbArgs.ParameterNames.Any(x => x == "count__"))
-                            conto = long.Parse(dbArgs.Get<string>("count__"));
+                        if (dbArgs.ParameterNames.Any(x => x == CountParamName))
+                            conto = long.Parse(dbArgs.Get<string>(CountParamName));
 
-                        foreach (var pair in parameters.Where(x => x.isOut))
+                        foreach (var outField in parameters.Where(x => x.isOut).Select(pair => pair.field))
                         {
-                            if (pair.field != "count__")
+                            if (outField != CountParamName)
                             {
                                 if (rows.Count == 0)
                                     rows.Add(new SqlMapper.FastExpando() { data = new Dictionary<string, object>() });
 
-                                rows[0].data.Add(pair.field, dbArgs.Get<object>(pair.field));
+                                rows[0].data.Add(outField, dbArgs.Get<object>(outField));
                             }
                         }
 
@@ -2363,7 +2436,7 @@ END;");
                 }
                 catch (Exception EX)
                 {
-                    throw new Exception(EX.Message + "****EXECUTED QUERY:****" + query);
+                    throw new InvalidOperationException(EX.Message + "****EXECUTED QUERY:****" + query, EX);
                 }
             }
         }
@@ -2377,7 +2450,7 @@ END;");
 
                 bool isMeta = RawHelpers.checkIsMetaData(route);
                 List<_Metadati_Colonne> metadata = _Metadati_Colonne.getColonneByUserID(route, 0, userId, dataMode.edit, null);
-                _Metadati_Tabelle tab = metadata.First()._Metadati_Tabelle;
+                _Metadati_Tabelle tab = metadata[0]._Metadati_Tabelle;
 
                 using (OracleConnection connection = GetOpenConnection(isMeta, tab.md_conn_name))
                 {
@@ -2456,8 +2529,8 @@ END;");
                         {
                             if (subEntity == null) continue;
 
-                            bool isAdded = subEntity.ContainsKey("___added") && subEntity["___added"] != null && (bool)subEntity["___added"];
-                            bool isDeleted = subEntity.ContainsKey("___deleted") && subEntity["___deleted"] != null && (bool)subEntity["___deleted"];
+                            bool isAdded = subEntity.ContainsKey(EntityAddedKey) && subEntity[EntityAddedKey] != null && (bool)subEntity[EntityAddedKey];
+                            bool isDeleted = subEntity.ContainsKey(EntityDeletedKey) && subEntity[EntityDeletedKey] != null && (bool)subEntity[EntityDeletedKey];
 
                             if (isAdded)
                             {
@@ -2469,7 +2542,7 @@ END;");
                             }
                             else if (isDeleted)
                             {
-                                bool wasSelected = subEntity.ContainsKey("___selected") && subEntity["___selected"] != null && (bool)subEntity["___selected"];
+                                bool wasSelected = subEntity.ContainsKey(EntitySelectedKey) && subEntity[EntitySelectedKey] != null && (bool)subEntity[EntitySelectedKey];
                                 if (wasSelected)
                                 {
                                     Dictionary<string, object> MMEntityToDelete = new Dictionary<string, object>();
@@ -2491,10 +2564,15 @@ END;");
                         if (!entity.ContainsKey(upload_fix.mc_nome_colonna) || entity[upload_fix.mc_nome_colonna] == null) return;
                         if (!upload_fix.UseRecordIDAsSubfolder) return;
 
-                        string __id_src = entity.ContainsKey("__guid") ? entity["__guid"]?.ToString() :
-                                          entity.ContainsKey("__id") ? entity["__id"]?.ToString() :
-                                          entity.ContainsKey("uid") ? entity["uid"]?.ToString() :
-                                          entity[metadata.First(x => x.mc_is_primary_key).mc_nome_colonna]?.ToString();
+                        string __id_src;
+                        if (entity.ContainsKey(EntityGuidKey))
+                            __id_src = entity[EntityGuidKey]?.ToString();
+                        else if (entity.ContainsKey("__id"))
+                            __id_src = entity["__id"]?.ToString();
+                        else if (entity.ContainsKey("uid"))
+                            __id_src = entity["uid"]?.ToString();
+                        else
+                            __id_src = entity[metadata.First(x => x.mc_is_primary_key).mc_nome_colonna]?.ToString();
                         string __id_dst = entity[metadata.First(x => x.mc_is_primary_key).mc_nome_colonna]?.ToString();
 
                         string rootPath = upload_fix.DefaultUploadRootPath;
@@ -2504,7 +2582,7 @@ END;");
                             rootPath = "/upload";
 
                         string normalizedRootPath = (rootPath ?? string.Empty).Trim().Trim('\'', '"');
-                        if (normalizedRootPath.StartsWith("/") && normalizedRootPath.Length > 2 && normalizedRootPath[2] == ':')
+                        if (normalizedRootPath.StartsWith('/') && normalizedRootPath.Length > 2 && normalizedRootPath[2] == ':')
                             normalizedRootPath = normalizedRootPath.TrimStart('/');
 
                         string rootPhysicalPath = System.IO.Path.IsPathRooted(normalizedRootPath)
@@ -2576,7 +2654,7 @@ END;");
             catch (Exception ex)
             {
                 RawHelpers.logError(ex, "updateFlatData", query);
-                throw ex;
+                throw;
             }
 
         }
@@ -2584,7 +2662,7 @@ END;");
         public static string DeleteflatDataByID(int id, string route, string userId)
         {
             List<_Metadati_Colonne> metadata = _Metadati_Colonne.getColonneByUserID(route, 0, userId, dataMode.insert, null);
-            _Metadati_Tabelle tab = metadata.First()._Metadati_Tabelle;
+            _Metadati_Tabelle tab = metadata[0]._Metadati_Tabelle;
 
             using (OracleConnection connection = GetOpenConnection(RawHelpers.checkIsMetaData(route), tab.md_conn_name))
             {
@@ -2612,9 +2690,10 @@ END;");
                     return deleteResult;
 
                 }
-                catch (ValidationException e1)
+                catch (ValidationException)
                 {
-                    throw e1;
+                    // Rethrow senza log: le ValidationException sono errori attesi lato client.
+                    throw;
                 }
                 catch (SqlException e2)
                 {
@@ -2623,13 +2702,13 @@ END;");
                     else
                     {
                         RawHelpers.logError(e2, "deleteFlatDataByID", query);
-                        throw e2;
+                        throw;
                     }
                 }
                 catch (Exception e3)
                 {
                     RawHelpers.logError(e3, "deleteFlatDataByID", query);
-                    throw e3;
+                    throw;
                 }
             }
         }
@@ -2641,7 +2720,7 @@ END;");
             try
             {
                 List<_Metadati_Colonne> metadata = _Metadati_Colonne.getColonneByUserID(route, 0, user_id, dataMode.insert, null);
-                _Metadati_Tabelle tab = metadata.First()._Metadati_Tabelle;
+                _Metadati_Tabelle tab = metadata[0]._Metadati_Tabelle;
 
                 using (OracleConnection connection = GetOpenConnection(RawHelpers.checkIsMetaData(route), tab.md_conn_name))
                 {
@@ -2665,9 +2744,10 @@ END;");
                     return deleteResult;
                 }
             }
-            catch (ValidationException e1)
+            catch (ValidationException)
             {
-                throw e1;
+                // Rethrow senza log: le ValidationException sono errori attesi lato client.
+                throw;
             }
             catch (SqlException e2)
             {
@@ -2676,13 +2756,13 @@ END;");
                 else
                 {
                     RawHelpers.logError(e2, "deleteFlatData", query);
-                    throw e2;
+                    throw;
                 }
             }
             catch (Exception e3)
             {
                 RawHelpers.logError(e3, "deleteFlatData", query);
-                throw e3;
+                throw;
             }
 
         }
@@ -2701,7 +2781,8 @@ END;");
                     {
                         if (sameLevel)
                         {
-
+                            // Nuovo record allo stesso livello di un nodo root:
+                            // nessun parent key da impostare (resta NULL).
                         }
                         else
                         {
@@ -2731,9 +2812,9 @@ END;");
                     {
                         if (col.mc_validation_required == true)
                         {
-                            if (col as _Metadati_Colonne_Slider != null)
+                            if (col is _Metadati_Colonne_Slider)
                                 entity.Add(col.mc_nome_colonna, 0);
-                            else if (col as _Metadati_Colonne_Lookup == null)
+                            else if (!(col is _Metadati_Colonne_Lookup))
                                 entity.Add(col.mc_nome_colonna, "<" + col.mc_nome_colonna + ">");
                         }
                         else
@@ -2754,7 +2835,7 @@ END;");
             try
             {
                 List<_Metadati_Colonne> metadata = _Metadati_Colonne.getColonneByUserID(route, 0, userId, dataMode.insert, null);
-                _Metadati_Tabelle tab = metadata.First()._Metadati_Tabelle;
+                _Metadati_Tabelle tab = metadata[0]._Metadati_Tabelle;
 
                 using (OracleConnection connection = GetOpenConnection(RawHelpers.checkIsMetaData(route), tab.md_conn_name))
                 {
@@ -2845,12 +2926,11 @@ END;");
                     {
                         string subRoute = colGrid.mc_ui_grid_manytomany_route;
                         _Metadati_Tabelle subTable;
-                        List<_Metadati_Colonne> subColumns;
                         using (metaRawModel mmd = new metaRawModel())
                         {
                             subTable = mmd.GetMetadati_Tabelles(subRoute).FirstOrDefault();
                             if (subTable != null)
-                                subColumns = subTable._Metadati_Colonnes.ToList();
+                                _ = subTable._Metadati_Colonnes.ToList();
                         }
                         // Newtonsoft deserializza il payload m2m come List<object> o
                         // JArray<JObject>, NON come object[]. Il cast diretto
@@ -2862,8 +2942,8 @@ END;");
                         foreach (Dictionary<string, object> subEntity in collection)
                         {
                             if (subEntity == null) continue;
-                            bool isAdded = subEntity.ContainsKey("___added") && subEntity["___added"] != null && (bool)subEntity["___added"];
-                            bool isDeleted = subEntity.ContainsKey("___deleted") && subEntity["___deleted"] != null && (bool)subEntity["___deleted"];
+                            bool isAdded = subEntity.ContainsKey(EntityAddedKey) && subEntity[EntityAddedKey] != null && (bool)subEntity[EntityAddedKey];
+                            bool isDeleted = subEntity.ContainsKey(EntityDeletedKey) && subEntity[EntityDeletedKey] != null && (bool)subEntity[EntityDeletedKey];
 
                             if (isAdded)
                             {
@@ -2878,7 +2958,7 @@ END;");
                             }
                             else if (isDeleted)
                             {
-                                bool wasSelected = subEntity.ContainsKey("___selected") && subEntity["___selected"] != null && (bool)subEntity["___selected"];
+                                bool wasSelected = subEntity.ContainsKey(EntitySelectedKey) && subEntity[EntitySelectedKey] != null && (bool)subEntity[EntitySelectedKey];
                                 if (wasSelected)
                                 {
                                     Dictionary<string, object> MMEntityToDelete = new Dictionary<string, object>();
@@ -2900,15 +2980,13 @@ END;");
                     // senza i file FS-upload.
                     upload_fixes.ForEach(upload_fix =>
                     {
-                        if (upload_fix != null)
+                        if (upload_fix != null
+                            && entity.ContainsKey(upload_fix.mc_nome_colonna) && entity[upload_fix.mc_nome_colonna] != null && upload_fix.UseRecordIDAsSubfolder)
                         {
-
-                            if (entity.ContainsKey(upload_fix.mc_nome_colonna) && entity[upload_fix.mc_nome_colonna] != null && upload_fix.UseRecordIDAsSubfolder)
-                            {
                                 string __id = "";
 
-                                if (entity.ContainsKey("__guid"))
-                                    __id = entity["__guid"].ToString();
+                                if (entity.ContainsKey(EntityGuidKey))
+                                    __id = entity[EntityGuidKey].ToString();
                                 else if (entity.ContainsKey("__id"))
                                     __id = entity["__id"].ToString();
                                 else if (entity.ContainsKey("uid"))
@@ -2920,7 +2998,7 @@ END;");
                                     rootPath = "/" + (ConfigHelper.GetSettingAsString("uploadFolder") ?? "/upload/");
 
                                 string normalizedRootPath = (rootPath ?? string.Empty).Trim().Trim('\'', '"');
-                                if (normalizedRootPath.StartsWith("/") && normalizedRootPath.Length > 2 && normalizedRootPath[2] == ':')
+                                if (normalizedRootPath.StartsWith('/') && normalizedRootPath.Length > 2 && normalizedRootPath[2] == ':')
                                     normalizedRootPath = normalizedRootPath.TrimStart('/');
 
                                 string rootPhysicalPath = System.IO.Path.IsPathRooted(normalizedRootPath)
@@ -3000,14 +3078,13 @@ END;");
                                         System.IO.Directory.Delete(pth, true);
                                     }
                                 }
-                            }
                         }
                     });
 
 
-                    if (!string.IsNullOrEmpty(metadata.First()._Metadati_Tabelle.md_after_save_server_method_name))
+                    if (!string.IsNullOrEmpty(metadata[0]._Metadati_Tabelle.md_after_save_server_method_name))
                     {
-                        RawHelpers.executeCustomCommand(new object[] { userId, entity, dataMode.insert }, metadata.First()._Metadati_Tabelle.md_after_save_server_method_name, metadata.First()._Metadati_Tabelle.md_after_server_save_method_class);
+                        RawHelpers.executeCustomCommand(new object[] { userId, entity, dataMode.insert }, metadata[0]._Metadati_Tabelle.md_after_save_server_method_name, metadata[0]._Metadati_Tabelle.md_after_server_save_method_class);
                     }
 
                     return result;
@@ -3017,7 +3094,7 @@ END;");
             catch (Exception ex)
             {
                 RawHelpers.logError(ex, "insertFlatData", query);
-                throw ex;
+                throw;
             }
 
         }
@@ -3050,13 +3127,13 @@ END;");
                 case "neq":
                     return "!=";
 
-                case "contains":
+                case OpContains:
                     return "like";
 
-                case "startswith":
+                case OpStartsWith:
                     return "like";
 
-                case "endswith":
+                case OpEndsWith:
                     return "like";
 
                 case "isnull":
@@ -3294,12 +3371,13 @@ END;");
             string current_fld = GetTableName(tab) + "." + safeColumnName;
 
             if (fld.mc_db_column_type == "binary")
-                current_fld = string.Format("null", safeAlias);
+                current_fld = "null";
 
             _Metadati_Colonne_Lookup col = fld as _Metadati_Colonne_Lookup;
             if (col != null)
             {
-
+                // Lookup column: il field string resta quello base (tabella.colonna);
+                // la risoluzione display/join del lookup avviene altrove.
             }
             else if (fld.mc_is_computed.HasValue && fld.mc_is_computed.Value)
             {
@@ -3326,15 +3404,15 @@ END;");
             //   • WUIC_WKB_TO_POINTJSON → JSON {"lat":..,"lng":..} (mc_ui_column_type=point)
             //   • WUIC_WKB_TO_WKT      → WKT POLYGON/MULTIPOLYGON (mc_ui_column_type=polygon|geometry)
             // Mirror del dispatch PG sqlPointToString (cf. Helpers.cs:3823).
-            if (fld.mc_ui_column_type == "point"
-                || (fld.mc_db_column_type == "point"
-                    && fld.mc_ui_column_type != "geometry"
+            if (fld.mc_ui_column_type == DbTypePoint
+                || (fld.mc_db_column_type == DbTypePoint
+                    && fld.mc_ui_column_type != DbTypeGeometry
                     && fld.mc_ui_column_type != "polygon"))
             {
                 current_fld = " WUIC_WKB_TO_POINTJSON(" + current_fld + ") ";
             }
-            else if (fld.mc_db_column_type == "geometry"
-                  || fld.mc_ui_column_type == "geometry"
+            else if (fld.mc_db_column_type == DbTypeGeometry
+                  || fld.mc_ui_column_type == DbTypeGeometry
                   || fld.mc_ui_column_type == "polygon")
             {
                 current_fld = " WUIC_WKB_TO_WKT(" + current_fld + ") ";
@@ -3379,7 +3457,7 @@ END;");
 
             using (metaRawModel mmd = new metaRawModel())
             {
-                _Metadati_Tabelle tab = lst.First()._Metadati_Tabelle;
+                _Metadati_Tabelle tab = lst[0]._Metadati_Tabelle;
                 _Metadati_Colonne pKey = lst.FirstOrDefault(x => x.mc_is_primary_key);
                 string safetableName = GetSafeTableName(tab);
                 _Metadati_Colonne_Lookup lookuprelatedCol = null;
@@ -3427,12 +3505,12 @@ END;");
 
                 string where = BuildDynamicWhere(clonedfilters, PageInfo, mmd, lst, tab, pKey, logicOperator, distinct, joins, formulaLookup, userId);
 
-                where = ManageRelatedLookup(filterInfo, tab, mmd, logicOperator, fieldList, join, where, orderBy, lookuprelatedCol, pKey, userId);
+                where = ManageRelatedLookup(filterInfo, tab, mmd, logicOperator, where, lookuprelatedCol, pKey, userId);
 
                 string countQry = "";
                 string finalQry = "";
                 string customSelectClause = (lookuprelatedCol == null ? "" : lookuprelatedCol.mc_custom_select_clause);
-                string autocompleteFilterValue = (string.IsNullOrEmpty(distinct) ? "" : filterInfo.filters.First().value);
+                string autocompleteFilterValue = (string.IsNullOrEmpty(distinct) ? "" : filterInfo.filters[0].value);
 
                 if (string.IsNullOrEmpty(distinct) && hasServerOperation)
                 {
@@ -3447,7 +3525,7 @@ END;");
                     }
                     catch (Exception ex)
                     {
-                        throw new Exception(ex.Message + " " + countQry);
+                        throw new InvalidOperationException(ex.Message + " " + countQry, ex);
                     }
 
                     ManageAggregates(aggregates, where, connection, aggregateValues, safetableName, join);
@@ -3583,7 +3661,7 @@ END;");
                     else //custom select
                     {
                         finalQry = "";
-                        finalQry = ParseCustomSelectClause(customSelectClause, where, finalQry);
+                        finalQry = ParseCustomSelectClause(customSelectClause, where);
                     }
                 }
                 else
@@ -3596,7 +3674,7 @@ END;");
                         else
                         {
                             finalQry = "";
-                            finalQry = ParseCustomSelectClause(customSelectClause, where, finalQry);
+                            finalQry = ParseCustomSelectClause(customSelectClause, where);
 
                         }
                     }
@@ -3729,7 +3807,7 @@ END;");
             }
             catch (Exception ex)
             {
-                throw new Exception(ex.Message + " " + countGroupQry);
+                throw new InvalidOperationException(ex.Message + " " + countGroupQry, ex);
             }
 
             return "WITH t AS" +
@@ -3746,56 +3824,61 @@ END;");
                        "order by " + orderListT;
         }
 
-        private static string ManageRelatedLookup(FilterInfos filterInfo, _Metadati_Tabelle tab, metaRawModel mmd, string logicOperator, string fieldList, string join, string where, string orderBy, _Metadati_Colonne_Lookup lookuprelatedCol, _Metadati_Colonne pKey, string user_id)
+        private static string ManageRelatedLookup(FilterInfos filterInfo, _Metadati_Tabelle tab, metaRawModel mmd, string logicOperator, string where, _Metadati_Colonne_Lookup lookuprelatedCol, _Metadati_Colonne pKey, string user_id)
         {
             string innerWhere = "";
 
-            if (lookuprelatedCol != null)
+            if (lookuprelatedCol != null && !string.IsNullOrEmpty(lookuprelatedCol.mc_ui_lookup_default_filter))
             {
-                if (!string.IsNullOrEmpty(lookuprelatedCol.mc_ui_lookup_default_filter))
+                string[] filterDefs = lookuprelatedCol.mc_ui_lookup_default_filter.Split('\\');
+                Regex userFieldRgxp = new Regex(@"\{user\.(.[^}]+)\}");
+                user u = user.getUserByID(user_id);
+                foreach (string filterDef in filterDefs)
                 {
-                    string[] filterDefs = lookuprelatedCol.mc_ui_lookup_default_filter.Split('\\');
-                    Regex userFieldRgxp = new Regex(@"\{user\.(.[^}]+)\}");
-                    user u = user.getUserByID(user_id);
-                    foreach (string filterDef in filterDefs)
+                    string[] filterPart = filterDef.Split(new[] { "||" }, StringSplitOptions.None);
+                    string filter_value = filterPart[2];
+                    Match userField = userFieldRgxp.Match(filter_value);
+                    if (userField.Success)
                     {
-                        string[] filterPart = filterDef.Split(new[] { "||" }, StringSplitOptions.None);
-                        string filter_value = filterPart[2];
-                        Match userField = userFieldRgxp.Match(filter_value);
-                        if (userField.Success)
-                        {
-                            if (u.extra_keys.ContainsKey(userField.Groups[1].Value))
-                                filter_value = u.extra_keys[userField.Groups[1].Value]?.ToString();
-                            else
-                                throw new Exception(string.Format("Default-Filter user parameter '{0}' not found.", userField.Groups[1].Value));
-                        }
-
-                        filterInfo.filters.Add(new filterElement()
-                        {
-                            field = filterPart[0],
-                            operatore = filterPart[1],
-                            value = filter_value
-                        });
-                        _Metadati_Colonne filteringCol = mmd.GetMetadati_Colonnes("", tab.md_id.ToString(), "", filterPart[0]).FirstOrDefault();
-                        if (filteringCol == null)
-                            throw new Exception(string.Format("Colonna '{0}' non trovata. Default lookup filter definition '{1}'", filterPart[0], lookuprelatedCol.mc_display_string_in_view));
-
-                        _Metadati_Tabelle currentFldLUpTabel = filteringCol._Metadati_Tabelle;
-                        string currentFldLUp = EscapeDBObjectName(currentFldLUpTabel.md_nome_tabella) + "." + EscapeDBObjectName(RawHelpers.getStoreColumnName(filteringCol));
-                        innerWhere = AppendFilter(filteringCol, filterInfo, logicOperator, currentFldLUp, innerWhere, tab, "", user_id);
+                        if (u.extra_keys.ContainsKey(userField.Groups[1].Value))
+                            filter_value = u.extra_keys[userField.Groups[1].Value]?.ToString();
+                        else
+                            throw new InvalidOperationException(string.Format("Default-Filter user parameter '{0}' not found.", userField.Groups[1].Value));
                     }
+
+                    filterInfo.filters.Add(new filterElement()
+                    {
+                        field = filterPart[0],
+                        operatore = filterPart[1],
+                        value = filter_value
+                    });
+                    _Metadati_Colonne filteringCol = mmd.GetMetadati_Colonnes("", tab.md_id.ToString(), "", filterPart[0]).FirstOrDefault();
+                    if (filteringCol == null)
+                        throw new InvalidOperationException(string.Format("Colonna '{0}' non trovata. Default lookup filter definition '{1}'", filterPart[0], lookuprelatedCol.mc_display_string_in_view));
+
+                    _Metadati_Tabelle currentFldLUpTabel = filteringCol._Metadati_Tabelle;
+                    string currentFldLUp = EscapeDBObjectName(currentFldLUpTabel.md_nome_tabella) + "." + EscapeDBObjectName(RawHelpers.getStoreColumnName(filteringCol));
+                    innerWhere = AppendFilter(filteringCol, filterInfo, logicOperator, currentFldLUp, innerWhere, tab, "", user_id);
                 }
             }
 
             if (pKey != null)
             {
-                if (filterInfo != null && filterInfo.filters.FirstOrDefault(x => x.field == "__extra") != null)
+                if (filterInfo != null && filterInfo.filters.FirstOrDefault(x => x.field == ExtraFilterField) != null)
                 {
-
+                    // Filtro __extra presente: la where del default-filter non va
+                    // appesa (il filtro extra la sostituisce integralmente).
                 }
                 else
                 {
-                    where = where + string.Format("{0}", innerWhere == "" ? "" : (where == "" ? innerWhere : " AND (" + innerWhere.Substring(6) + ")"));
+                    string innerWhereAppend;
+                    if (innerWhere == "")
+                        innerWhereAppend = "";
+                    else if (where == "")
+                        innerWhereAppend = innerWhere;
+                    else
+                        innerWhereAppend = " AND (" + innerWhere.Substring(6) + ")";
+                    where = where + string.Format("{0}", innerWhereAppend);
                 }
             }
 
@@ -3891,7 +3974,7 @@ END;");
                     var split = filter.Split(new string[] { "||" }, StringSplitOptions.None);
                     if (split.Length < 2)
                     {
-                        throw new Exception(string.Format("Default filter definition '{0}' invalid", tab.md_default_filter));
+                        throw new InvalidOperationException(string.Format("Default filter definition '{0}' invalid", tab.md_default_filter));
                     }
 
                     string filter_value = split.Length > 2 ? split[2] : "";
@@ -3901,7 +3984,7 @@ END;");
                         if (u.extra_keys.ContainsKey(userField.Groups[1].Value))
                             filter_value = u.extra_keys[userField.Groups[1].Value]?.ToString();
                         else
-                            throw new Exception(string.Format("Default-Filter user parameter '{0}' not found.", userField.Groups[1].Value));
+                            throw new InvalidOperationException(string.Format("Default-Filter user parameter '{0}' not found.", userField.Groups[1].Value));
                     }
 
                     if (filterInfo == null)
@@ -3932,13 +4015,23 @@ END;");
             {
                 string currentFld = GetCurrentFieldString(tab, fld);
 
-                if (filterInfo != null)
+                if (filterInfo != null && filterInfo.filters.Count > 0)
                 {
-                    if (filterInfo.filters.Count > 0)
-                        if (filterInfo.filters.Any(x => x.field == "__extra"))
-                            where = AppendFilter(fld, filterInfo, logicOperator, (currentFld), where, tab, formulaLookup, userId);
+                    if (filterInfo.filters.Any(x => x.field == ExtraFilterField))
+                    {
+                        where = AppendFilter(fld, filterInfo, logicOperator, (currentFld), where, tab, formulaLookup, userId);
+                    }
+                    else
+                    {
+                        string filterFieldExpr;
+                        if (!String.IsNullOrEmpty(formulaLookup))
+                            filterFieldExpr = formulaLookup;
+                        else if (!fld.mc_is_computed.HasValue || !fld.mc_is_computed.Value)
+                            filterFieldExpr = currentFld;
                         else
-                            where = AppendFilter(fld, filterInfo, logicOperator, (String.IsNullOrEmpty(formulaLookup) ? (!fld.mc_is_computed.HasValue || !fld.mc_is_computed.Value ? currentFld : fld.mc_nome_colonna) : formulaLookup), where, tab, formulaLookup, userId);
+                            filterFieldExpr = fld.mc_nome_colonna;
+                        where = AppendFilter(fld, filterInfo, logicOperator, filterFieldExpr, where, tab, formulaLookup, userId);
+                    }
                 }
             });
 
@@ -3992,7 +4085,7 @@ END;");
                 // Oracle case-folda il bare `id` -> `ID` e ORA-00904 perche' la colonna fisica e' `"id"`.
                 // Pattern: `"_e2e_datetime_locale_demo".id ASC` (rotto) -> `"_e2e_datetime_locale_demo"."id" ASC` (corretto).
                 string pkOrder = string.Format("{0}.{1} ASC", safetableName, EscapeDBObjectName(RawHelpers.getStoreColumnName(pKey)));
-                if (clonedfilters.filters.FirstOrDefault(x => x.field == "__extra") != null)
+                if (clonedfilters.filters.FirstOrDefault(x => x.field == ExtraFilterField) != null)
                 {
                     var flr = clonedfilters.filters.FirstOrDefault(x => x.field == pKey.mc_nome_colonna);
                     string pkeyFilterValue = "";
@@ -4001,7 +4094,7 @@ END;");
 
                     if (flr == null)
                     {
-                        flr = clonedfilters.filters.FirstOrDefault(x => x.field != "__extra") ?? clonedfilters.filters.First();
+                        flr = clonedfilters.filters.FirstOrDefault(x => x.field != ExtraFilterField) ?? clonedfilters.filters[0];
                         pkeyFilterValue = flr.value;
                         overSortCol = tab._Metadati_Colonnes.FirstOrDefault(x => x.mc_nome_colonna == flr.field || x.mc_real_column_name == flr.field) ?? pKey;
                         int ou;
@@ -4047,9 +4140,9 @@ END;");
                 {
                     string t = (c.mc_db_column_type ?? string.Empty).Trim().ToLowerInvariant();
                     return t != "blob" && t != "clob" && t != "nclob" && t != "long" && t != "long raw"
-                        && t != "geometry" && t != "sdo_geometry" && t != "xmltype" && t != "xml"
+                        && t != DbTypeGeometry && t != "sdo_geometry" && t != "xmltype" && t != "xml"
                         && t != "image" && t != "varbinary"  // MSSQL-flavor che potrebbe leakare da migrate
-                        && (c.mc_ui_column_type != "point" && c.mc_ui_column_type != "polygon" && c.mc_ui_column_type != "geometry");
+                        && (c.mc_ui_column_type != DbTypePoint && c.mc_ui_column_type != "polygon" && c.mc_ui_column_type != DbTypeGeometry);
                 }
                 _Metadati_Colonne fallbackSort = lst.FirstOrDefault(x => (!x.mc_is_computed.HasValue || !x.mc_is_computed.Value) && IsSortableType(x))
                                               ?? lst.First(x => !x.mc_is_computed.HasValue || !x.mc_is_computed.Value);
@@ -4212,7 +4305,7 @@ END;");
 
             aliasPair ap = joins.Keys.FirstOrDefault(x => x.table_name == col.mc_ui_lookup_entity_name && x.fk_name != col.mc_ui_lookup_dataValueField);
 
-            if (col.mc_ui_lookup_dataValueField != "mc_nome_colonna")
+            if (col.mc_ui_lookup_dataValueField != ParamMcNomeColonna)
             {
                 if (ap == null)
                 {
@@ -4248,10 +4341,8 @@ END;");
                                 if (joins.ContainsKey(apX))
                                 {
                                     aliasPair apY = joins.Keys.FirstOrDefault(a => a.table_name == y.mc_ui_lookup_entity_name);
-                                    if (apY != null)
+                                    if (apY != null && joins.ContainsKey(apY))
                                     {
-                                        if (joins.ContainsKey(apY))
-                                        {
                                             // Oracle: usa il PHYSICAL real_column_name (Oracle case-fold default UPPER
                                             // su unquoted; lowercase quoted è case-preserved). `x.mc_nome_colonna` è
                                             // il friendly C# CamelCase (es. "LastEditedBy") — con EscapeDBObjectName
@@ -4272,7 +4363,6 @@ END;");
                                                 joinn += joinPart;
                                                 joins[currentAP] = joinn;
                                             }
-                                        }
                                     }
                                 }
                             }
@@ -4292,7 +4382,7 @@ END;");
             else
                 comboTxtValue = ((!string.IsNullOrEmpty(calculatedText)) ? calculatedText : ap.alias_name + "." + safeTextField);
 
-            if (col.mc_ui_lookup_dataValueField == "mc_nome_colonna")
+            if (col.mc_ui_lookup_dataValueField == ParamMcNomeColonna)
                 comboTxtValue = "''";
 
             fieldList += (fieldList == "" ? "" : ", ") + string.Format(" {0} AS {1}", comboTxtValue, safeappend);
@@ -4305,20 +4395,18 @@ END;");
 
             if (string.IsNullOrEmpty(tab.md_join_override))
             {
-                joinList = CreateJoinString(joins, joinList);
+                StringBuilder joinListBuilder = new StringBuilder(CreateJoinString(joins, joinList));
                 foreach (string jj in joinsAppend)
                 {
-                    if (!string.IsNullOrWhiteSpace(jj))
+                    if (!string.IsNullOrWhiteSpace(jj) && !joinListBuilder.ToString().Contains(jj.Trim()))
                     {
-                        if (!joinList.Contains(jj.Trim()))
-                        {
-                            if (jj.Trim().StartsWith("AND "))
-                                joinList += string.Format(" {0} ", jj.Trim());
-                            else
-                                joinList += string.Format(" LEFT JOIN {0} ", jj.Trim());
-                        }
+                        if (jj.Trim().StartsWith("AND "))
+                            joinListBuilder.Append(string.Format(" {0} ", jj.Trim()));
+                        else
+                            joinListBuilder.Append(string.Format(" LEFT JOIN {0} ", jj.Trim()));
                     }
                 }
+                joinList = joinListBuilder.ToString();
             }
             else
             {
@@ -4330,10 +4418,10 @@ END;");
 
         private static string CreateJoinString(Dictionary<aliasPair, string> joins, string joinList)
         {
-            string joinString = " ";
+            StringBuilder joinString = new StringBuilder(" ");
             foreach (aliasPair j in joins.Keys)
-                joinString += joins[j] + " ";
-            return joinString + " " + joinList;
+                joinString.Append(joins[j]).Append(" ");
+            return joinString.ToString() + " " + joinList;
         }
 
         private static string AppendFilter(_Metadati_Colonne fld, FilterInfos filterInfo, string logicOperator, string currentFld, string where, _Metadati_Tabelle tabel, string formulaLookup = "", string userId = "", bool isNested = false)
@@ -4341,15 +4429,15 @@ END;");
 
             // Oracle: match il `field` del filter sia contro `mc_nome_colonna` (C# property
             // name) sia contro `mc_real_column_name` (DB column name). Mirror task #70 PG.
-            filterInfo.filters.Where(x => (fld == null && x.nestedFilters != null) || (x.field != null && (x.field.ToLower() == fld.mc_nome_colonna.ToLower() || (!string.IsNullOrEmpty(fld.mc_real_column_name) && x.field.ToLower() == fld.mc_real_column_name.ToLower())) && x.field != "__extra" && !x.isHaving)).ToList().ForEach((f) =>
+            filterInfo.filters.Where(x => (fld == null && x.nestedFilters != null) || (x.field != null && (x.field.ToLower() == fld.mc_nome_colonna.ToLower() || (!string.IsNullOrEmpty(fld.mc_real_column_name) && x.field.ToLower() == fld.mc_real_column_name.ToLower())) && x.field != ExtraFilterField && !x.isHaving)).ToList().ForEach((f) =>
             {
                 if (f.nestedFilters != null && f.nestedFilters.filters.Count > 0)
                 {
                     where += ((where == "") ? " where ( " : logicOperator + " ( ");
                     bool isFirstNested = true;
-                    foreach (var nestedFld in f.nestedFilters.filters)
+                    foreach (var nestedField in f.nestedFilters.filters.Select(nestedFld => nestedFld.field))
                     {
-                        fld = tabel._Metadati_Colonnes.FirstOrDefault(x => x.mc_nome_colonna == nestedFld.field);
+                        fld = tabel._Metadati_Colonnes.FirstOrDefault(x => x.mc_nome_colonna == nestedField);
 
                         string safeColumnName;
 
@@ -4363,7 +4451,7 @@ END;");
                         }
                         else
                         {
-                            throw new Exception("Campo filtro '" + nestedFld.field + "' non trovato in route '" + tabel.md_route_name + "'");
+                            throw new InvalidOperationException("Campo filtro '" + nestedField + "' non trovato in route '" + tabel.md_route_name + "'");
                         }
 
                     }
@@ -4374,7 +4462,7 @@ END;");
                 var realOperator = GetRealOperator(f.operatore);
                 string quote = RawHelpers.getQuoteFromColumn(fld);
 
-                if (fld.mc_ui_column_type == "multiple_check")
+                if (fld.mc_ui_column_type == UiTypeMultipleCheck)
                 {
                     _Metadati_Colonne_Grid mm = fld as _Metadati_Colonne_Grid;
                     string nestedWhere = "";
@@ -4387,8 +4475,8 @@ END;");
                         List<AggregationResult> ar;
 
 
-                        string safeTableName = RawHelpers.getStoreTableName(mmTable, "mssql");
-                        string localTableName = RawHelpers.getStoreTableName(tabel, "mssql");
+                        string safeTableName = RawHelpers.getStoreTableName(mmTable, MssqlDialect);
+                        string localTableName = RawHelpers.getStoreTableName(tabel, MssqlDialect);
 
                         if (realOperator == "eqor")
                         {
@@ -4487,11 +4575,6 @@ END;");
 
                     _ = RawHelpers.deserialize(fld.mc_props_bag, null);
                     dynamic mapProps = null;
-                    // {
-                    //     mapProps = extraProps.mapProperties;
-                    // }
-
-
 
                     bool singleGeography = false;
 
@@ -4513,7 +4596,7 @@ END;");
                     }
                     else if (mapProps != null)
                     {
-                        if (mapProps.map_type == "point")
+                        if (mapProps.map_type == DbTypePoint)
                         {
                             lat_field = string.Format("{0}.Long", fld.mc_nome_colonna);
                             lon_field = string.Format("{0}.Lat", fld.mc_nome_colonna);
@@ -4532,7 +4615,7 @@ END;");
                             return;
                         }
                         else
-                            throw new Exception("Please specify spatial field.");
+                            throw new ArgumentException("Please specify spatial field.");
                     }
 
                     string geoWhere;
@@ -4551,9 +4634,6 @@ END;");
                 {
                     _ = RawHelpers.deserialize(fld.mc_props_bag, null);
                     dynamic mapProps = null;
-                    // {
-                    //     mapProps = extraProps.mapProperties;
-                    // }
 
                     string lat = "";
                     string lng = "";
@@ -4579,7 +4659,7 @@ END;");
                                 lon_field = string.Format("cast({0} as decimal(18,12))", mapProps.longitude_field);
                             }
 
-                            _Metadati_Colonne pointField = tabel._Metadati_Colonnes.FirstOrDefault(x => x.mc_db_column_type == "point");
+                            _Metadati_Colonne pointField = tabel._Metadati_Colonnes.FirstOrDefault(x => x.mc_db_column_type == DbTypePoint);
 
                             if ((string.IsNullOrEmpty(lat_field) || string.IsNullOrEmpty(lon_field)) && pointField != null)
                             {
@@ -4594,7 +4674,7 @@ END;");
                         }
                         else if (mapProps != null)
                         {
-                            if (mapProps.map_type == "point")
+                            if (mapProps.map_type == DbTypePoint)
                             {
                                 lat_field = string.Format("{0}.Lat", fld.mc_nome_colonna);
                                 lon_field = string.Format("{0}.Long", fld.mc_nome_colonna);
@@ -4603,16 +4683,16 @@ END;");
 
                         if (string.IsNullOrEmpty(lat_field) || string.IsNullOrEmpty(lon_field))
                         {
-                            throw new Exception("Please specify spatial field.");
+                            throw new ArgumentException("Please specify spatial field.");
                         }
 
-                        lat = mc.First().Groups[1].Value.ToString().Split(' ')[0];
-                        lng = mc.First().Groups[1].Value.ToString().Split(' ')[1];
-                        radius = mc.First().Groups[2].Value.ToString();
+                        lat = mc[0].Groups[1].Value.ToString().Split(' ')[0];
+                        lng = mc[0].Groups[1].Value.ToString().Split(' ')[1];
+                        radius = mc[0].Groups[2].Value.ToString();
 
                         if (string.IsNullOrEmpty(lat) || string.IsNullOrEmpty(lng) || string.IsNullOrEmpty(radius))
                         {
-                            throw new Exception("Please specify point of origin and radius");
+                            throw new ArgumentException("Please specify point of origin and radius");
                         }
 
                         string lat1 = lat + " - " + radius + " / 69";
@@ -4648,17 +4728,17 @@ END;");
                     // `column LIKE %%` (no apici) o `column LIKE %abc%` senza quote → ORA-00936/00904.
                     // Forziamo quote='\'' qui e cast a VARCHAR2 (via TO_CHAR) sotto.
                     string likeQuote = "'";
-                    if (f.operatore == "contains")
+                    if (f.operatore == OpContains)
                     {
                         leftExtraOperator = likeQuote + "%";
                         rightExtraOperator = "%" + likeQuote;
                     }
-                    else if (f.operatore == "startswith")
+                    else if (f.operatore == OpStartsWith)
                     {
                         leftExtraOperator = likeQuote;
                         rightExtraOperator = "%" + likeQuote;
                     }
-                    else if (f.operatore == "endswith")
+                    else if (f.operatore == OpEndsWith)
                     {
                         leftExtraOperator = likeQuote + "%";
                         rightExtraOperator = likeQuote;
@@ -4696,12 +4776,12 @@ END;");
                     return;
                 }
 
-                if (fld.mc_ui_column_type == "datetime" && f.value != null && f.value != "")
+                if (fld.mc_ui_column_type == UiTypeDatetime && f.value != null && f.value != "")
                 {
                     //se f.value è del format YYYY-MM-ddTHH:mm:ssZ -> il DateTime.Parse applica UTC time. 
                     string parsed = f.value.ToString().Replace(@"""", "");
                     DateTime d = DateTime.Parse(parsed);
-                    f.value = d.ToString("yyyy-MM-dd HH:mm:ss");
+                    f.value = d.ToString(IsoDateTimeFormat);
 
                     where += ((where == "") ? " where " : " " + logicOperator + " ") + "( (" + "DATEADD(ms, -DATEPART(ms, " + currentFld + "), " + currentFld + ")" + ")" + realOperator + string.Format(" {0}{1}{2} {3} )", leftExtraOperator, f.value, rightExtraOperator, async_extra_condition);
                     if (!isNested)
@@ -4722,7 +4802,7 @@ END;");
                             d = d.AddHours(1);
                     }
 
-                    f.value = d.ToString("yyyyMMdd");
+                    f.value = d.ToString(CompactDateFormat);
 
                     // FIX 2026-05-22: Oracle NON ha `DateAdd(day, datediff(day,0, X), 0)`
                     // (sintassi MSSQL). Oracle equivalente per troncare a giorno: TRUNC(X).
@@ -4738,9 +4818,9 @@ END;");
                     return;
                     //
                 }
-                else if (fld.mc_ui_column_type == "number_boolean" && f.value != null && f.value != "")
+                else if (fld.mc_ui_column_type == UiTypeNumberBoolean && f.value != null && f.value != "")
                 {
-                    if (f.value.ToString().ToLower() == "false" || f.value.ToString().ToLower() == "0")
+                    if (f.value.ToString().ToLower() == FalseLiteral || f.value.ToString().ToLower() == "0")
                         f.value = "0";
                     else
                         f.value = "1";
@@ -4809,9 +4889,7 @@ END;");
                     orderSafetableName = EscapeDBObjectName(look.mc_nome_colonna + "_" + look.mc_ui_lookup_entity_name);
 
 
-                    string safename; _ = EscapeDBObjectName(look.mc_ui_lookup_entity_name) + "." + EscapeDBObjectName(look.mc_ui_lookup_dataTextField);
-                    if (look.mc_is_computed.HasValue && look.mc_is_computed.Value)
-                        safename = "(" + look.mc_computed_formula + ")";
+                    _ = EscapeDBObjectName(look.mc_ui_lookup_entity_name) + "." + EscapeDBObjectName(look.mc_ui_lookup_dataTextField);
                     sort += ((sort == "") ? " ORDER BY " : ", ") + orderSafetableName + "." + look.mc_ui_lookup_dataValueField + " " + sortDir;
                 }
                 else
@@ -4821,8 +4899,11 @@ END;");
             }
         }
 
-        private static string ParseCustomSelectClause(string customSelectClause, string where, string query)
+        private static string ParseCustomSelectClause(string customSelectClause, string where)
         {
+            // S1172: 'query' era un parametro il cui valore in ingresso veniva sempre
+            // sovrascritto prima dell'uso — declassato a variabile locale.
+            string query;
             if (customSelectClause.ToLower().Contains("where"))
             {
                 if (string.IsNullOrEmpty(where))
@@ -4878,7 +4959,7 @@ END;");
             using (metaRawModel context = new metaRawModel())
             {
                 List<_Metadati_Utenti_Autorizzazioni_Tabelle> auth = metaRawModel.GetMetadati_Utenti_Autorizzazioni_Tabelles(predicate, ute.role_id, userId, ute.azienda_id, tab.md_id).ToList();
-                if (auth.Count > 0 && auth.First().muat_override_record_restriction)
+                if (auth.Count > 0 && auth[0].muat_override_record_restriction)
                 {
                     return;
                 }
@@ -4887,7 +4968,7 @@ END;");
             if (tab.md_record_restriction_key_user_field_list == sys.user_id_column_name)
             {
                 if (string.IsNullOrEmpty(tab.md_logging_insert_user_field_name))
-                    throw new Exception("Specifica insert user field");
+                    throw new InvalidOperationException("Specifica insert user field");
 
                 if (tab.md_logging_insert_user_field_name.Contains("*"))
                 {
@@ -4920,9 +5001,9 @@ END;");
             }
         }
 
-        private static string AppendHaving(_Metadati_Colonne fld, FilterInfos filterInfo, string logicOperator, string currentFld, string having, _Metadati_Tabelle tabel, Definizione_Universi def)
+        private static string AppendHaving(_Metadati_Colonne fld, FilterInfos filterInfo, string logicOperator, string currentFld, string having, Definizione_Universi def)
         {
-            filterInfo.filters.Where(x => x.field != "__extra" && x.isHaving).ToList().ForEach((f) =>
+            filterInfo.filters.Where(x => x.field != ExtraFilterField && x.isHaving).ToList().ForEach((f) =>
             {
                 _ = f.havingAggregation + "_" + fld.mc_nome_colonna + "_" + def.id;
 
@@ -4951,17 +5032,17 @@ END;");
                 string rightExtraOperator = leftExtraOperator;
                 if (realOperator == "like")
                 {
-                    if (f.operatore == "contains")
+                    if (f.operatore == OpContains)
                     {
                         leftExtraOperator = quote + "%";
                         rightExtraOperator = "%" + quote;
                     }
-                    if (f.operatore == "startswith")
+                    if (f.operatore == OpStartsWith)
                     {
                         leftExtraOperator = quote;
                         rightExtraOperator = "%" + quote;
                     }
-                    if (f.operatore == "endswith")
+                    if (f.operatore == OpEndsWith)
                     {
                         leftExtraOperator = quote + "%";
                         rightExtraOperator = quote;
@@ -4972,12 +5053,12 @@ END;");
 
                 f.value = EscapeValue(f.value).ToString();
 
-                if (fld.mc_ui_column_type == "datetime" && f.value != null && f.value != "")
+                if (fld.mc_ui_column_type == UiTypeDatetime && f.value != null && f.value != "")
                 {
                     //FIX UTC TIME ISSUE 
                     string parsed = f.value.ToString().Replace(@"""", "");
                     DateTime d = DateTime.Parse(parsed);
-                    f.value = d.AddHours(-1).ToString("yyyy-MM-dd HH:mm:ss");
+                    f.value = d.AddHours(-1).ToString(IsoDateTimeFormat);
 
                     having += ((having == "") ? " where " : " " + logicOperator + " ") + string.Format("( {0}(", f.havingAggregation) + "DATEADD(ms, -DATEPART(ms, " + currentFld + "), " + currentFld + ")" + ")" + realOperator + string.Format(" {0}{1}{2} {3} )", leftExtraOperator, f.value, rightExtraOperator, async_extra_condition);
                     filterInfo.filters.Remove(f);
@@ -4997,7 +5078,7 @@ END;");
                             d = d.AddHours(1);
                     }
 
-                    f.value = d.ToString("yyyyMMdd");
+                    f.value = d.ToString(CompactDateFormat);
 
                     // FIX 2026-05-22: stesso fix di sopra, ma per HAVING clause (aggregations).
                     having += ((having == "") ? " having " : " " + logicOperator + " ") + string.Format("( {0}(", f.havingAggregation) + "TRUNC(" + currentFld + "))" + realOperator + string.Format(" TO_DATE({0}{1}{2},'YYYYMMDD') {3} )", leftExtraOperator, f.value, rightExtraOperator, async_extra_condition);
@@ -5006,9 +5087,9 @@ END;");
                     return;
                     //
                 }
-                else if (fld.mc_ui_column_type == "number_boolean" && f.value != null && f.value != "")
+                else if (fld.mc_ui_column_type == UiTypeNumberBoolean && f.value != null && f.value != "")
                 {
-                    if (f.value.ToString().ToLower() == "false" || f.value.ToString().ToLower() == "0")
+                    if (f.value.ToString().ToLower() == FalseLiteral || f.value.ToString().ToLower() == "0")
                         f.value = "0";
                     else
                         f.value = "1";
@@ -5027,18 +5108,22 @@ END;");
             {
                 if (tabel.md_logging_insert_date_field_name.Contains(","))
                 {
+                    StringBuilder fieldListSb = new StringBuilder(fieldList);
+                    StringBuilder valueListSb = new StringBuilder(valueList);
                     foreach (string fld in tabel.md_logging_insert_date_field_name.Split(','))
                     {
-                        fieldList += (fieldList == "" ? "" : ", ") + fld;
-                        valueList += (valueList == "" ? "" : ", ") + "TO_DATE('" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "','YYYY-MM-DD HH24:MI:SS')";
-                        entity[fld] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                        fieldListSb.Append(fieldListSb.Length == 0 ? "" : ", ").Append(fld);
+                        valueListSb.Append(valueListSb.Length == 0 ? "" : ", ").Append("TO_DATE('" + DateTime.Now.ToString(IsoDateTimeFormat) + "','YYYY-MM-DD HH24:MI:SS')");
+                        entity[fld] = DateTime.Now.ToString(IsoDateTimeFormat);
                     }
+                    fieldList = fieldListSb.ToString();
+                    valueList = valueListSb.ToString();
                 }
                 else
                 {
                     fieldList += (fieldList == "" ? "" : ", ") + tabel.md_logging_insert_date_field_name;
-                    valueList += (valueList == "" ? "" : ", ") + "TO_DATE('" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "','YYYY-MM-DD HH24:MI:SS')";
-                    entity[tabel.md_logging_insert_date_field_name] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                    valueList += (valueList == "" ? "" : ", ") + "TO_DATE('" + DateTime.Now.ToString(IsoDateTimeFormat) + "','YYYY-MM-DD HH24:MI:SS')";
+                    entity[tabel.md_logging_insert_date_field_name] = DateTime.Now.ToString(IsoDateTimeFormat);
                 }
             }
 
@@ -5046,18 +5131,22 @@ END;");
             {
                 if (tabel.md_logging_last_mod_date_field_name.Contains(","))
                 {
+                    StringBuilder fieldListSb = new StringBuilder(fieldList);
+                    StringBuilder valueListSb = new StringBuilder(valueList);
                     foreach (string fld in tabel.md_logging_last_mod_date_field_name.Split(','))
                     {
-                        fieldList += (fieldList == "" ? "" : ", ") + fld;
-                        valueList += (valueList == "" ? "" : ", ") + "TO_DATE('" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "','YYYY-MM-DD HH24:MI:SS')";
-                        entity[fld] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                        fieldListSb.Append(fieldListSb.Length == 0 ? "" : ", ").Append(fld);
+                        valueListSb.Append(valueListSb.Length == 0 ? "" : ", ").Append("TO_DATE('" + DateTime.Now.ToString(IsoDateTimeFormat) + "','YYYY-MM-DD HH24:MI:SS')");
+                        entity[fld] = DateTime.Now.ToString(IsoDateTimeFormat);
                     }
+                    fieldList = fieldListSb.ToString();
+                    valueList = valueListSb.ToString();
                 }
                 else
                 {
                     fieldList += (fieldList == "" ? "" : ", ") + tabel.md_logging_last_mod_date_field_name;
-                    valueList += (valueList == "" ? "" : ", ") + "TO_DATE('" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "','YYYY-MM-DD HH24:MI:SS')";
-                    entity[tabel.md_logging_last_mod_date_field_name] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                    valueList += (valueList == "" ? "" : ", ") + "TO_DATE('" + DateTime.Now.ToString(IsoDateTimeFormat) + "','YYYY-MM-DD HH24:MI:SS')";
+                    entity[tabel.md_logging_last_mod_date_field_name] = DateTime.Now.ToString(IsoDateTimeFormat);
                 }
             }
 
@@ -5095,16 +5184,18 @@ END;");
             {
                 if (tabel.md_logging_last_mod_date_field_name.Contains(","))
                 {
+                    StringBuilder fieldValueListSb = new StringBuilder(fieldValueList);
                     foreach (string fld in tabel.md_logging_last_mod_date_field_name.Split(','))
                     {
-                        fieldValueList += (fieldValueList == "" ? "" : ", ") + fld + "=" + string.Format("TO_DATE('{0}','YYYY-MM-DD HH24:MI:SS')", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-                        entity["fld"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                        fieldValueListSb.Append(fieldValueListSb.Length == 0 ? "" : ", ").Append(fld + "=" + string.Format("TO_DATE('{0}','YYYY-MM-DD HH24:MI:SS')", DateTime.Now.ToString(IsoDateTimeFormat)));
+                        entity["fld"] = DateTime.Now.ToString(IsoDateTimeFormat);
                     }
+                    fieldValueList = fieldValueListSb.ToString();
                 }
                 else
                 {
-                    fieldValueList += (fieldValueList == "" ? "" : ", ") + tabel.md_logging_last_mod_date_field_name + "=" + string.Format("TO_DATE('{0}','YYYY-MM-DD HH24:MI:SS')", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-                    entity[tabel.md_logging_last_mod_date_field_name] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                    fieldValueList += (fieldValueList == "" ? "" : ", ") + tabel.md_logging_last_mod_date_field_name + "=" + string.Format("TO_DATE('{0}','YYYY-MM-DD HH24:MI:SS')", DateTime.Now.ToString(IsoDateTimeFormat));
+                    entity[tabel.md_logging_last_mod_date_field_name] = DateTime.Now.ToString(IsoDateTimeFormat);
                 }
 
             }
@@ -5119,8 +5210,8 @@ END;");
         {
             if (!string.IsNullOrEmpty(tabel.md_loggingdelete_date_field_name))
             {
-                deleteLog += (deleteLog == "" ? "" : ", ") + tabel.md_loggingdelete_date_field_name + "=" + string.Format("TO_DATE('{0}','YYYY-MM-DD HH24:MI:SS')", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-                entity[tabel.md_loggingdelete_date_field_name] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                deleteLog += (deleteLog == "" ? "" : ", ") + tabel.md_loggingdelete_date_field_name + "=" + string.Format("TO_DATE('{0}','YYYY-MM-DD HH24:MI:SS')", DateTime.Now.ToString(IsoDateTimeFormat));
+                entity[tabel.md_loggingdelete_date_field_name] = DateTime.Now.ToString(IsoDateTimeFormat);
             }
             if (!string.IsNullOrEmpty(tabel.md_logging_delete_user_field_name))
             {
@@ -5147,9 +5238,9 @@ END;");
             {
                 foreach (Dapper.SqlMapper.FastExpando rd in data.results)
                 {
-                    rd.data["___selected"] = false;
-                    rd.data["___added"] = false;
-                    rd.data["___deleted"] = false;
+                    rd.data[EntitySelectedKey] = false;
+                    rd.data[EntityAddedKey] = false;
+                    rd.data[EntityDeletedKey] = false;
                 }
             }
             return data;
@@ -5162,7 +5253,7 @@ END;");
             List<_Metadati_Colonne_Grid> grid_cols = lst.OfType<_Metadati_Colonne_Grid>().Where(x => x.mc_ui_grid_is_multiple_check).ToList();
 
             if (grid_cols.Count > 0 && pkey == null)
-                throw new Exception("Missing primary key on current route.");
+                throw new InvalidOperationException("Missing primary key on current route.");
 
             List<_Metadati_Colonne> pkeys = lst.Where(x => x.mc_is_primary_key).ToList();
 
@@ -5174,12 +5265,12 @@ END;");
                 {
                     foreach (_Metadati_Colonne_Slider chartCol in chartCols)
                     {
-                        foreach (Dapper.SqlMapper.FastExpando row in rows)
+                        foreach (var rowData in rows.Select(row => row.data))
                         {
                             var dbArgs = new DynamicParameters();
-                            foreach (_Metadati_Colonne pk in pkeys)
+                            foreach (string pkName in pkeys.Select(pk => pk.mc_nome_colonna))
                             {
-                                dbArgs.Add("" + pk.mc_nome_colonna, row.data[pk.mc_nome_colonna].ToString());
+                                dbArgs.Add("" + pkName, rowData[pkName].ToString());
                             }
                             List<Dapper.SqlMapper.FastExpando> chartRows = (List<Dapper.SqlMapper.FastExpando>)con.Query(chartCol.mc_chart_select, dbArgs);
 
@@ -5189,7 +5280,7 @@ END;");
                                 charts.Add((Dictionary<string, object>)cr.data);
                             });
 
-                            row.data["__chartData"] = charts;
+                            rowData["__chartData"] = charts;
                         }
                     }
                 }
@@ -5238,9 +5329,9 @@ END;");
         {
             if (data == null || key == null) return null;
             if (data.TryGetValue(key, out object v)) return v;
-            foreach (var kv in data)
+            foreach (var kv in data.Where(kv => string.Equals(kv.Key, key, StringComparison.OrdinalIgnoreCase)))
             {
-                if (string.Equals(kv.Key, key, StringComparison.OrdinalIgnoreCase)) return kv.Value;
+                return kv.Value;
             }
             return null;
         }
@@ -5249,8 +5340,10 @@ END;");
         // via Newtonsoft (no auto-cast a Dictionary). Normalizziamo a List<Dict>.
         private static List<Dictionary<string, object>> GetDictionaryListValue(Dictionary<string, object> source, string key)
         {
+            // S1168: lista vuota al posto di null — i caller iterano solo gli item
+            // flag-marcati (___added/___deleted), quindi vuoto == assente.
             if (source == null || string.IsNullOrEmpty(key) || !source.TryGetValue(key, out object raw) || raw == null)
-                return null;
+                return new List<Dictionary<string, object>>();
             if (raw is List<Dictionary<string, object>> typed) return typed;
             if (raw is IEnumerable<Dictionary<string, object>> typedEnum) return typedEnum.ToList();
             if (raw is System.Collections.IEnumerable enumerable && !(raw is string))
@@ -5263,7 +5356,7 @@ END;");
                 }
                 return result;
             }
-            return null;
+            return new List<Dictionary<string, object>>();
         }
 
         // NormalizeToDictionary già definito altrove in questo file (caso JObject
@@ -5303,13 +5396,13 @@ END;");
                     if (selected != null)
                     {
                         cloned[manyToManyKey.mc_nome_colonna] = GetCI(selected.data, manyToManyKey.mc_nome_colonna);
-                        cloned["___selected"] = true;
+                        cloned[EntitySelectedKey] = true;
                     }
                     else
-                        cloned["___selected"] = false;
+                        cloned[EntitySelectedKey] = false;
 
-                    cloned["___added"] = false;
-                    cloned["___deleted"] = false;
+                    cloned[EntityAddedKey] = false;
+                    cloned[EntityDeletedKey] = false;
 
                     relatedFullDataClone.Add(cloned);
                 }
@@ -5338,9 +5431,9 @@ END;");
             // Allineato a MySQL/PG: tollera mancanza di "__original" (importing=true o
             // chiamate batch-restore che non popolano lo snapshot). Senza questo fallback
             // KeyNotFoundException blocca update legittimi (session-restore, batch ops).
-            Dictionary<string, object> original = (importing || !entity.ContainsKey("__original") || entity["__original"] == null)
+            Dictionary<string, object> original = (importing || !entity.ContainsKey(OriginalEntityKey) || entity[OriginalEntityKey] == null)
                 ? new Dictionary<string, object>()
-                : (entity["__original"] as Dictionary<string, object>) ?? new Dictionary<string, object>();
+                : (entity[OriginalEntityKey] as Dictionary<string, object>) ?? new Dictionary<string, object>();
 
             _Metadati_Tabelle tabel = metadata[0]._Metadati_Tabelle;
             string table_name = tabel.md_nome_tabella;
@@ -5354,44 +5447,44 @@ END;");
             if (!tabel.md_editable)
                 throw new ValidationException("Modifica disabilitata");
 
-            if (table_name == "_metadati__colonne" && entity.ContainsKey("mc_ui_column_type") && entity["mc_ui_column_type"] != null)
+            if (table_name == "_metadati__colonne" && entity.ContainsKey(ParamMcUiColumnType) && entity[ParamMcUiColumnType] != null)
             {
-                string widget = entity["mc_ui_column_type"].ToString();
+                string widget = entity[ParamMcUiColumnType].ToString();
                 switch (widget)
                 {
                     case "lookupByID":
-                        entity["voa_class"] = 2;
+                        entity[ParamVoaClass] = 2;
 
                         break;
 
-                    case "number_slider":
-                    case "number":
-                        entity["voa_class"] = 3;
+                    case UiTypeNumberSlider:
+                    case UiTypeNumber:
+                        entity[ParamVoaClass] = 3;
 
                         break;
 
                     case "upload":
-                        entity["voa_class"] = 5;
+                        entity[ParamVoaClass] = 5;
 
                         break;
 
                     case "button":
-                        entity["voa_class"] = 6;
+                        entity[ParamVoaClass] = 6;
 
                         break;
 
-                    case "multiple_check":
-                        entity["voa_class"] = 4;
+                    case UiTypeMultipleCheck:
+                        entity[ParamVoaClass] = 4;
 
                         break;
 
                     case "html_area":
-                        entity["voa_class"] = 7;
+                        entity[ParamVoaClass] = 7;
 
                         break;
 
                     default:
-                        entity["voa_class"] = 1;
+                        entity[ParamVoaClass] = 1;
 
                         break;
                 }
@@ -5407,15 +5500,13 @@ END;");
                 if (deltaMode && !(fld.mc_is_primary_key) && !changedFields.Contains(fld.mc_nome_colonna))
                     return;
 
-                if (tabel.md_logging_enable)
+                if (tabel.md_logging_enable
+                    && (fld.mc_nome_colonna == tabel.md_logging_last_mod_date_field_name || fld.mc_nome_colonna == tabel.md_logging_last_mod_user_field_name))
                 {
-                    if (fld.mc_nome_colonna == tabel.md_logging_last_mod_date_field_name || fld.mc_nome_colonna == tabel.md_logging_last_mod_user_field_name)
-                    {
-                        return;
-                    }
+                    return;
                 }
 
-                if ((!fld.mc_logic_editable.HasValue || !fld.mc_logic_editable.Value) && !fld.mc_is_primary_key && fld.mc_nome_colonna != "voa_class")
+                if ((!fld.mc_logic_editable.HasValue || !fld.mc_logic_editable.Value) && !fld.mc_is_primary_key && fld.mc_nome_colonna != ParamVoaClass)
                 {
                     return;
                 }
@@ -5434,7 +5525,7 @@ END;");
                 if (entity[fld.mc_nome_colonna] != null)
                     valore = entity[fld.mc_nome_colonna];
 
-                if (fld.mc_validation_has.HasValue && fld.mc_validation_has.Value && fld.mc_validation_required.HasValue && fld.mc_validation_required.Value && valore == null && fld.mc_ui_column_type != "boolean" && fld.mc_ui_column_type != "number_boolean")
+                if (fld.mc_validation_has.HasValue && fld.mc_validation_has.Value && fld.mc_validation_required.HasValue && fld.mc_validation_required.Value && valore == null && fld.mc_ui_column_type != UiTypeBoolean && fld.mc_ui_column_type != UiTypeNumberBoolean)
                     throw new ValidationException(string.Format("{0} non può essere null", fld.mc_display_string_in_view));
 
                 // Oracle ORA-01722 guard: JSON.NET deserializza numeri JSON come decimal/double.
@@ -5459,7 +5550,7 @@ END;");
 
                 valore = EscapeValue(valore);
 
-                if (fld.mc_ui_column_type == "datetime" && valore != null && valore.ToString() != "")
+                if (fld.mc_ui_column_type == UiTypeDatetime && valore != null && valore.ToString() != "")
                 {
                     if (valore.ToString().IndexOf("@") != 0)
                     {
@@ -5477,7 +5568,7 @@ END;");
                             if (!DateTime.TryParse(parsed, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out d))
                                 d = DateTime.Parse(parsed, System.Globalization.CultureInfo.CurrentCulture);
                         }
-                        valore = "@TO_TIMESTAMP('" + d.ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture) + "','YYYY-MM-DD HH24:MI:SS')";
+                        valore = "@TO_TIMESTAMP('" + d.ToString(IsoDateTimeFormat, System.Globalization.CultureInfo.InvariantCulture) + "','YYYY-MM-DD HH24:MI:SS')";
                     }
                 }
                 else if (fld.mc_ui_column_type == "date" && valore != null && valore.ToString() != "")
@@ -5501,11 +5592,11 @@ END;");
                             if (!DateTime.TryParse(parsedRaw, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out d))
                                 d = DateTime.Parse(parsedRaw, System.Globalization.CultureInfo.CurrentCulture);
                         }
-                        valore = "@TO_DATE('" + d.ToString("yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture) + "','YYYYMMDD')";
+                        valore = "@TO_DATE('" + d.ToString(CompactDateFormat, System.Globalization.CultureInfo.InvariantCulture) + "','YYYYMMDD')";
                     }
 
                 }
-                else if (fld.mc_ui_column_type == "number" || fld.mc_ui_column_type == "number_slider")
+                else if (fld.mc_ui_column_type == UiTypeNumber || fld.mc_ui_column_type == UiTypeNumberSlider)
                 {
                     if (valore != null)
                     {
@@ -5515,7 +5606,7 @@ END;");
                     }
 
                 }
-                else if (fld.mc_ui_column_type == "boolean" && tabel.md_is_reticular)
+                else if (fld.mc_ui_column_type == UiTypeBoolean && tabel.md_is_reticular)
                 {
                     if (valore != null)
                     {
@@ -5523,7 +5614,7 @@ END;");
                         {
                             valore = 1;
                         }
-                        else if (valore.ToString().ToLower() == "false")
+                        else if (valore.ToString().ToLower() == FalseLiteral)
                         {
                             valore = 0;
                         }
@@ -5536,7 +5627,7 @@ END;");
                         }
                     }
                 }
-                else if (fld.mc_ui_column_type == "number_boolean")
+                else if (fld.mc_ui_column_type == UiTypeNumberBoolean)
                 {
                     if (valore != null)
                     {
@@ -5553,13 +5644,13 @@ END;");
                             {
                                 valore = 1;
                             }
-                            else if (valore.ToString().ToLower() == "false")
+                            else if (valore.ToString().ToLower() == FalseLiteral)
                             {
                                 valore = 0;
                             }
                             else if (valore.ToString().ToLower() == "1" || valore.ToString().ToLower() == "0")
                             {
-
+                                // Valore gia' normalizzato a 0/1: nessuna conversione necessaria.
                             }
                             else
                                 valore = 0;
@@ -5579,20 +5670,17 @@ END;");
                         });
                     }
                 }
-                else if (fld.mc_db_column_type == "point")
+                else if (fld.mc_db_column_type == DbTypePoint)
                 {
                     if (valore != null)
                     {
-                        Pair point = RawHelpers.pointStringToPoint(valore.ToString(), "mssql");
+                        Pair point = RawHelpers.pointStringToPoint(valore.ToString(), MssqlDialect);
                         valore = string.Format("geography::STGeomFromText('POINT({0} {1})', 8307)", point.First.ToString(), point.Second.ToString());
                     }
                 }
-                else if (fld.mc_db_column_type == "geometry")
+                else if (fld.mc_db_column_type == DbTypeGeometry && valore != null)
                 {
-                    if (valore != null)
-                    {
-                        valore = string.Format("geography::STGeomFromText('{0}', 8307)", valore);
-                    }
+                    valore = string.Format("geography::STGeomFromText('{0}', 8307)", valore);
                 }
 
                 _Metadati_Colonne_Grid colGrid = fld as _Metadati_Colonne_Grid;
@@ -5600,12 +5688,11 @@ END;");
                 {
                     string subRoute = colGrid.mc_ui_grid_manytomany_route;
                     _Metadati_Tabelle subTable;
-                    List<_Metadati_Colonne> subColumns;
                     using (metaRawModel mmd = new metaRawModel())
                     {
                         subTable = mmd.GetMetadati_Tabelles(subRoute).FirstOrDefault();
                         if (subTable != null)
-                            subColumns = subTable._Metadati_Colonnes.ToList();
+                            _ = subTable._Metadati_Colonnes.ToList();
                     }
 
                     object[] collection = entity[colGrid.mc_nome_colonna] as object[];
@@ -5616,14 +5703,13 @@ END;");
                         {
                             Dictionary<string, object> subEntity = (Dictionary<string, object>)item;
 
-                            if (subEntity.ContainsKey("___added") && (bool)subEntity["___added"])
+                            if (subEntity.ContainsKey(EntityAddedKey) && (bool)subEntity[EntityAddedKey])
                             {
-                                if (subEntity.ContainsKey("___deleted"))
+                                if (subEntity.ContainsKey(EntityDeletedKey))
                                 {
-                                    object deleted = subEntity["___deleted"];
-                                    if (deleted != null)
-                                        if ((bool)deleted)
-                                            continue;
+                                    object deleted = subEntity[EntityDeletedKey];
+                                    if (deleted != null && (bool)deleted)
+                                        continue;
                                 }
 
                                 subEntity[colGrid.mc_ui_grid_manytomany_related_id_field] = subEntity[colGrid.mc_ui_grid_related_id_field];
@@ -5635,7 +5721,7 @@ END;");
                                 _ = InsertflatData(subEntity, subRoute, userId);
 
                             }
-                            else if (subEntity.ContainsKey("___deleted") && subEntity["___deleted"] != null && (bool)subEntity["___deleted"])
+                            else if (subEntity.ContainsKey(EntityDeletedKey) && subEntity[EntityDeletedKey] != null && (bool)subEntity[EntityDeletedKey])
                             {
                                 subEntity[colGrid.mc_ui_grid_manytomany_related_id_field] = subEntity[colGrid.mc_ui_grid_related_id_field];
                                 subEntity[colGrid.mc_ui_grid_manytomany_local_id_field] = entity[colGrid.mc_ui_grid_local_id_field];
@@ -5671,7 +5757,7 @@ END;");
                     if (string.IsNullOrEmpty(tabel.md_primary_key_type) || tabel.md_primary_key_type == "GUID")
                         quote = "'";
 
-                    if (original.ContainsKey(fld.mc_nome_colonna) && tabel.md_primary_key_type != "IDENTITY")
+                    if (original.ContainsKey(fld.mc_nome_colonna) && tabel.md_primary_key_type != PkTypeIdentity)
                     {
                         if (original[fld.mc_nome_colonna].ToString() != valore)
                             field_value_list += (field_value_list == "" ? "" : ", ") + current_fld + "=" + string.Format("{0}{1}{0}", quote, ((valore.ToString() == "") ? "null" : valore.ToString()));
@@ -5686,14 +5772,12 @@ END;");
                 }
                 else
                 {
-                    if (valore.ToString() != "")
+                    if (valore.ToString() != ""
+                        && fld.mc_ui_is_password.HasValue && fld.mc_ui_is_password.Value && ConfigHelper.GetSettingAsString("IsPwdEncripted") == "true")
                     {
-                        if (fld.mc_ui_is_password.HasValue && fld.mc_ui_is_password.Value && ConfigHelper.GetSettingAsString("IsPwdEncripted") == "true")
-                        {
-                            if (Global.isPbkdf2Hash(valore.ToString()))
-                                return;
-                            valore = Global.pbkdf2Hash(valore.ToString());
-                        }
+                        if (Global.isPbkdf2Hash(valore.ToString()))
+                            return;
+                        valore = Global.pbkdf2Hash(valore.ToString());
                     }
 
                     // FIX 2026-05-22: sentinel "@" prefix marca SQL expressions gia'
@@ -5704,15 +5788,27 @@ END;");
                     // I numeric (decimal/float/double/numeric/number/number_slider) devono
                     // essere emessi UNQUOTED in Oracle SQL per evitare implicit string→number
                     // conversion che dipende da NLS_NUMERIC_CHARACTERS della sessione.
-                    string _updFinalQuote = _isSqlExprUpd ? "" : ((fld.mc_db_column_type == "int"
-                        || fld.mc_db_column_type == "decimal"
-                        || fld.mc_db_column_type == "float"
+                    string _updFinalQuote;
+                    if (_isSqlExprUpd)
+                        _updFinalQuote = "";
+                    else if (fld.mc_db_column_type == "int"
+                        || fld.mc_db_column_type == DbTypeDecimal
+                        || fld.mc_db_column_type == DbTypeFloat
                         || fld.mc_db_column_type == "double"
                         || fld.mc_db_column_type == "numeric"
-                        || fld.mc_ui_column_type == "number"
-                        || fld.mc_ui_column_type == "number_slider"
-                        || fld.mc_db_column_type == "point" || fld.mc_db_column_type == "geometry" || valore.ToString() == "") ? "" : "'");
-                    string _updFinalVal = _isSqlExprUpd ? valore.ToString().Substring(1) : ((valore.ToString() == "") ? (string.IsNullOrEmpty(fld.convert_null_to_string) ? "null" : "'" + valore.ToString() + "'") : valore.ToString());
+                        || fld.mc_ui_column_type == UiTypeNumber
+                        || fld.mc_ui_column_type == UiTypeNumberSlider
+                        || fld.mc_db_column_type == DbTypePoint || fld.mc_db_column_type == DbTypeGeometry || valore.ToString() == "")
+                        _updFinalQuote = "";
+                    else
+                        _updFinalQuote = "'";
+                    string _updFinalVal;
+                    if (_isSqlExprUpd)
+                        _updFinalVal = valore.ToString().Substring(1);
+                    else if (valore.ToString() == "")
+                        _updFinalVal = string.IsNullOrEmpty(fld.convert_null_to_string) ? "null" : "'" + valore.ToString() + "'";
+                    else
+                        _updFinalVal = valore.ToString();
                     field_value_list += (field_value_list == "" ? "" : ", ") + current_fld + "=" + string.Format("{0}{1}{0}", _updFinalQuote, _updFinalVal);
 
                     if (fld.mc_ui_column_type == "upload")
@@ -5759,7 +5855,7 @@ END;");
 
             _Metadati_Tabelle tabel = metadata[0]._Metadati_Tabelle;
             // Oracle: use "oracle" dialect, NOT "mysql" (which emits MySQL backticks → ORA-00911).
-            string table_name = RawHelpers.getStoreTableName(tabel, "oracle");
+            string table_name = RawHelpers.getStoreTableName(tabel, OracleDialect);
             string safetable_name = table_name;
 
             if (!tabel.md_deletable)
@@ -5768,7 +5864,7 @@ END;");
             if (tabel.md_is_reticular)
             {
                 table_name = "tabella_reticolare";
-                safetable_name = RawHelpers.escapeDBObjectName(table_name, "oracle");
+                safetable_name = RawHelpers.escapeDBObjectName(table_name, OracleDialect);
             }
 
             // PK presenti in entity → WHERE su PK. Lookup case-insensitive: mc_nome_colonna
@@ -5832,11 +5928,6 @@ END;");
                     string delete_log = "";
                     if (tabel.md_logging_enable)
                     {
-                        //{
-                        //    user_id = Utility.id_extraClient(ref user_id);
-
-                        //}
-
                         AppendLoggingDeleteFields(ref delete_log, tabel, user_id, entity);
                     }
                     // Oracle UPDATE non accetta tableName.col in SET (ORA-00911). Bare column only.
@@ -5854,7 +5945,7 @@ END;");
                         query = string.Format("UPDATE {0} SET {1} = 1 {3} {2}", safetable_name, EscapeDBObjectName("cancellato"), where, string.IsNullOrEmpty(delete_log) ? "" : ", " + delete_log);
                     }
                     else
-                        throw new Exception("Missing logic delete key field.");
+                        throw new InvalidOperationException("Missing logic delete key field.");
                 }
             }
             else if (!string.IsNullOrEmpty(RawHelpers.ParseNull(ConfigHelper.GetSettingAsString("logicDeleteField"))))
@@ -5870,10 +5961,6 @@ END;");
                         string delete_log = "";
                         if (tabel.md_logging_enable)
                         {
-                            //{
-                            //    user_id = Utility.id_extraClient(ref user_id);
-                            //}
-
                             AppendLoggingDeleteFields(ref delete_log, tabel, user_id, entity);
                         }
                         // Oracle: bare column in SET (no table-qualified prefix).
@@ -5899,18 +5986,18 @@ END;");
             bool isMeta = RawHelpers.checkIsMetaData(route);
 
             if (isMeta) return true;
-            _Metadati_Tabelle tab = metadata.First()._Metadati_Tabelle;
+            _Metadati_Tabelle tab = metadata[0]._Metadati_Tabelle;
 
             using (OracleConnection connection = GetOpenConnection(isMeta, tab.md_conn_name))
             {
                 string fltr = "";
-                string safetable_name = RawHelpers.getStoreTableName(tab, "oracle");
+                string safetable_name = RawHelpers.getStoreTableName(tab, OracleDialect);
 
-                if (!entity.ContainsKey("__original"))
+                if (!entity.ContainsKey(OriginalEntityKey))
                     return true;
 
-                Dictionary<string, object> original = NormalizeOriginalPayload(entity["__original"]);
-                entity["__original"] = original;
+                Dictionary<string, object> original = NormalizeOriginalPayload(entity[OriginalEntityKey]);
+                entity[OriginalEntityKey] = original;
                 HashSet<string> changedFields = GetChangedFieldSet(entity);
                 HashSet<string> optimisticKeys = GetOptimisticKeys(original, metadata, changedFields);
 
@@ -5925,7 +6012,7 @@ END;");
                     if (col == null)
                         continue;
 
-                    if (string.Equals(col.mc_ui_column_type, "multiple_check", StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals(col.mc_ui_column_type, UiTypeMultipleCheck, StringComparison.OrdinalIgnoreCase))
                     {
                         _Metadati_Colonne_Grid manyToManyColumn = col as _Metadati_Colonne_Grid;
                         if (!OptimisticCheckManyToMany(connection, entity, original, metadata, manyToManyColumn))
@@ -5947,9 +6034,9 @@ END;");
                     bool isLobType = dbType.Contains("text") || dbType == "clob" || dbType == "nclob" || dbType == "blob"
                         || dbType == "ntext" || dbType == "varchar(max)" || dbType == "nvarchar(max)";
 
-                    if (col.mc_db_column_type != "varbinary" && col.mc_db_column_type != "binary" && (!col.mc_is_db_computed.HasValue || !col.mc_is_db_computed.Value) && (!col.mc_is_computed.HasValue || !col.mc_is_computed.Value) && col.mc_db_column_type != "float" && col.mc_db_column_type != "point" && col.mc_db_column_type != "geometry" && !isLobType)
+                    if (col.mc_db_column_type != "varbinary" && col.mc_db_column_type != "binary" && (!col.mc_is_db_computed.HasValue || !col.mc_is_db_computed.Value) && (!col.mc_is_computed.HasValue || !col.mc_is_computed.Value) && col.mc_db_column_type != DbTypeFloat && col.mc_db_column_type != DbTypePoint && col.mc_db_column_type != DbTypeGeometry && !isLobType)
                     {
-                        string currentFld = RawHelpers.escapeDBObjectName(RawHelpers.getStoreColumnName(col), "oracle");
+                        string currentFld = RawHelpers.escapeDBObjectName(RawHelpers.getStoreColumnName(col), OracleDialect);
                         AppendOptimisticPredicate(col, currentFld, originalValue, ref fltr);
                     }
                 }
@@ -5968,7 +6055,7 @@ END;");
                     catch (Exception ex)
                     {
                         RawHelpers.logError(ex, "optimisticCheck", optQry);
-                        throw ex;
+                        throw;
                     }
                 }
                 else
@@ -6010,9 +6097,9 @@ END;");
                 var original = new Dictionary<string, object>();
                 for (int i = 1; i < propsValues.Length; i++)
                 {
-                    var value = propsValues[i].LastChild.Name == "Value"
-                        ? (propsValues[i].LastChild.FirstChild == null ? null : propsValues[i].LastChild.FirstChild.Value)
-                        : null;
+                    string value = null;
+                    if (propsValues[i].LastChild.Name == "Value")
+                        value = propsValues[i].LastChild.FirstChild == null ? null : propsValues[i].LastChild.FirstChild.Value;
                     original.Add(propsValues[i].FirstChild.FirstChild.Value.ToString(), value);
                 }
 
@@ -6040,15 +6127,15 @@ END;");
             {
                 foreach (object entry in enumerableChanges)
                 {
-                    if (entry is IDictionary<string, object> dict && dict.ContainsKey("field") && dict["field"] != null)
+                    if (entry is IDictionary<string, object> dict && dict.ContainsKey(FieldKey) && dict[FieldKey] != null)
                     {
-                        string fieldName = RawHelpers.ParseNull(dict["field"]).Trim();
+                        string fieldName = RawHelpers.ParseNull(dict[FieldKey]).Trim();
                         if (!string.IsNullOrEmpty(fieldName))
                             result.Add(fieldName);
                     }
-                    else if (entry is JObject jObj && jObj["field"] != null)
+                    else if (entry is JObject jObj && jObj[FieldKey] != null)
                     {
-                        string fieldName = RawHelpers.ParseNull(jObj["field"]).Trim();
+                        string fieldName = RawHelpers.ParseNull(jObj[FieldKey]).Trim();
                         if (!string.IsNullOrEmpty(fieldName))
                             result.Add(fieldName);
                     }
@@ -6145,16 +6232,15 @@ END;");
                 return keys;
             }
 
-            foreach (string key in original.Keys)
+            foreach (string key in original.Keys.Where(changedFields.Contains))
             {
-                if (changedFields.Contains(key))
-                    keys.Add(key);
+                keys.Add(key);
             }
 
-            foreach (var pk in (metadata ?? new List<_Metadati_Colonne>()).Where(x => x.mc_is_primary_key))
+            foreach (var pk in (metadata ?? new List<_Metadati_Colonne>())
+                .Where(x => x.mc_is_primary_key && !string.IsNullOrEmpty(x?.mc_nome_colonna) && original.ContainsKey(x.mc_nome_colonna)))
             {
-                if (!string.IsNullOrEmpty(pk?.mc_nome_colonna) && original.ContainsKey(pk.mc_nome_colonna))
-                    keys.Add(pk.mc_nome_colonna);
+                keys.Add(pk.mc_nome_colonna);
             }
 
             return keys;
@@ -6174,9 +6260,9 @@ END;");
             string quote = RawHelpers.getQuoteFromColumn(col);
             string value = originalValue.ToString();
 
-            if (col.mc_ui_column_type == "number" || col.mc_ui_column_type == "number_slider")
+            if (col.mc_ui_column_type == UiTypeNumber || col.mc_ui_column_type == UiTypeNumberSlider)
                 value = value.Replace(",", ".");
-            else if (col.mc_ui_column_type == "boolean" || col.mc_ui_column_type == "number_boolean")
+            else if (col.mc_ui_column_type == UiTypeBoolean || col.mc_ui_column_type == UiTypeNumberBoolean)
             {
                 if (bool.TryParse(value, out bool parsedBool))
                     value = parsedBool ? "1" : "0";
@@ -6191,9 +6277,9 @@ END;");
                 // date/time/timestamp (case-insensitive).
                 string uiType = (col.mc_ui_column_type ?? string.Empty).ToLowerInvariant();
                 string dbType = (col.mc_db_column_type ?? string.Empty).ToLowerInvariant();
-                bool isDateLike = uiType == "date" || uiType == "datetime" || uiType == "time"
+                bool isDateLike = uiType == "date" || uiType == UiTypeDatetime || uiType == "time"
                                  || uiType.Contains("date") || uiType.Contains("time")
-                                 || dbType == "date" || dbType == "datetime" || dbType == "timestamp"
+                                 || dbType == "date" || dbType == UiTypeDatetime || dbType == "timestamp"
                                  || dbType.Contains("date") || dbType.Contains("timestamp");
 
                 if (isDateLike)
@@ -6203,7 +6289,7 @@ END;");
                     DateTime? parsed = TryParseAsDateTime(originalValue);
                     if (parsed.HasValue)
                     {
-                        string iso = parsed.Value.ToString("yyyy-MM-dd HH:mm:ss");
+                        string iso = parsed.Value.ToString(IsoDateTimeFormat);
                         fltr += (string.IsNullOrEmpty(fltr) ? "" : " AND ")
                             + currentFld + "=TO_DATE('" + iso + "','YYYY-MM-DD HH24:MI:SS')";
                         return;
@@ -6313,9 +6399,9 @@ END;");
             if (mmTable == null)
                 return true;
 
-            string safeMmTable = RawHelpers.getStoreTableName(mmTable, "oracle");
-            string localField = RawHelpers.escapeDBObjectName(manyToManyColumn.mc_ui_grid_manytomany_local_id_field, "oracle");
-            string relatedField = RawHelpers.escapeDBObjectName(manyToManyColumn.mc_ui_grid_manytomany_related_id_field, "oracle");
+            string safeMmTable = RawHelpers.getStoreTableName(mmTable, OracleDialect);
+            string localField = RawHelpers.escapeDBObjectName(manyToManyColumn.mc_ui_grid_manytomany_local_id_field, OracleDialect);
+            string relatedField = RawHelpers.escapeDBObjectName(manyToManyColumn.mc_ui_grid_manytomany_related_id_field, OracleDialect);
 
             _Metadati_Colonne localMetaColumn = mmTable._Metadati_Colonnes?.FirstOrDefault(x => x.mc_nome_colonna == manyToManyColumn.mc_ui_grid_manytomany_local_id_field);
             string quote = localMetaColumn != null ? RawHelpers.getQuoteFromColumn(localMetaColumn) : "'";
@@ -6399,7 +6485,7 @@ END;");
                 JToken token = null;
                 if (!string.IsNullOrEmpty(relatedIdField))
                     token = jObj[relatedIdField];
-                token = token ?? jObj["value"];
+                token = token ?? jObj[ValueKey];
                 if (token == null)
                     return null;
                 return NormalizeComparableId(token.Type == JTokenType.Null ? null : token.ToObject<object>());
@@ -6409,7 +6495,7 @@ END;");
             {
                 if (!string.IsNullOrEmpty(relatedIdField) && fastExpando.data.TryGetValue(relatedIdField, out object valByField))
                     return NormalizeComparableId(valByField);
-                if (fastExpando.data.TryGetValue("value", out object valByValue))
+                if (fastExpando.data.TryGetValue(ValueKey, out object valByValue))
                     return NormalizeComparableId(valByValue);
             }
 
@@ -6418,7 +6504,7 @@ END;");
             {
                 if (!string.IsNullOrEmpty(relatedIdField) && dict.TryGetValue(relatedIdField, out object valByField))
                     return NormalizeComparableId(valByField);
-                if (dict.TryGetValue("value", out object valByValue))
+                if (dict.TryGetValue(ValueKey, out object valByValue))
                     return NormalizeComparableId(valByValue);
                 return null;
             }
@@ -6498,7 +6584,7 @@ END;");
             string query = "";
             string local_generated_pkey = "";
             // Read once and reuse for every upload column (mirrors mysql/metaQueryMySql.cs e postgresql/metaQueryPostgreSql.cs).
-            bool base64Image = RawHelpers.ParseBool(ConfigHelper.GetSettingAsString("base64Image") ?? "false");
+            bool base64Image = RawHelpers.ParseBool(ConfigHelper.GetSettingAsString("base64Image") ?? FalseLiteral);
 
             _Metadati_Tabelle tabel = metadata[0]._Metadati_Tabelle;
             string table_name;
@@ -6520,12 +6606,10 @@ END;");
                 string safecolumn_name = EscapeDBObjectName(RawHelpers.getStoreColumnName(fld));
                 string current_fld = safetable_name + "." + safecolumn_name;
 
-                if (tabel.md_logging_enable)
+                if (tabel.md_logging_enable
+                    && (fld.mc_nome_colonna == tabel.md_logging_last_mod_date_field_name || fld.mc_nome_colonna == tabel.md_logging_last_mod_user_field_name || fld.mc_nome_colonna == tabel.md_logging_insert_date_field_name || fld.mc_nome_colonna == tabel.md_logging_insert_user_field_name))
                 {
-                    if (fld.mc_nome_colonna == tabel.md_logging_last_mod_date_field_name || fld.mc_nome_colonna == tabel.md_logging_last_mod_user_field_name || fld.mc_nome_colonna == tabel.md_logging_insert_date_field_name || fld.mc_nome_colonna == tabel.md_logging_insert_user_field_name)
-                    {
-                        return;
-                    }
+                    return;
                 }
 
                 if (!entity.ContainsKey(fld.mc_nome_colonna))
@@ -6543,11 +6627,11 @@ END;");
                 if (btnCol != null)
                     return;
 
-                if (fld.mc_validation_has.HasValue && fld.mc_validation_has.Value && fld.mc_validation_required.HasValue && fld.mc_validation_required.Value && (!entity.ContainsKey(fld.mc_nome_colonna) || entity[fld.mc_nome_colonna] == null) && fld.mc_ui_column_type != "boolean" && fld.mc_ui_column_type != "number_boolean" && string.IsNullOrEmpty(fld.mc_default_value))
+                if (fld.mc_validation_has.HasValue && fld.mc_validation_has.Value && fld.mc_validation_required.HasValue && fld.mc_validation_required.Value && (!entity.ContainsKey(fld.mc_nome_colonna) || entity[fld.mc_nome_colonna] == null) && fld.mc_ui_column_type != UiTypeBoolean && fld.mc_ui_column_type != UiTypeNumberBoolean && string.IsNullOrEmpty(fld.mc_default_value))
                 {
                     if (fld.mc_is_primary_key)
                     {
-                        if (tabel.md_primary_key_type == "GUID" || tabel.md_primary_key_type == "IDENTITY" || tabel.md_primary_key_type == "MAX")
+                        if (tabel.md_primary_key_type == "GUID" || tabel.md_primary_key_type == PkTypeIdentity || tabel.md_primary_key_type == "MAX")
                         {
                             //autogenerated
                         }
@@ -6577,7 +6661,7 @@ END;");
 
                     valore = EscapeValue(valore);
 
-                    if (fld.mc_ui_column_type == "datetime" && valore != null && valore.ToString() != "")
+                    if (fld.mc_ui_column_type == UiTypeDatetime && valore != null && valore.ToString() != "")
                     {
                         if (valore.ToString().IndexOf("@") != 0)
                         {
@@ -6606,7 +6690,7 @@ END;");
                                 if (!DateTime.TryParse(parsed, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out d))
                                     d = DateTime.Parse(parsed, System.Globalization.CultureInfo.CurrentCulture);
                             }
-                            valore = "@TO_TIMESTAMP('" + d.ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture) + "','YYYY-MM-DD HH24:MI:SS')";
+                            valore = "@TO_TIMESTAMP('" + d.ToString(IsoDateTimeFormat, System.Globalization.CultureInfo.InvariantCulture) + "','YYYY-MM-DD HH24:MI:SS')";
                         }
                     }
                     else if (fld.mc_ui_column_type == "date" && valore != null && valore.ToString() != "")
@@ -6625,10 +6709,10 @@ END;");
                                 if (!DateTime.TryParse(parsed, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out d))
                                     d = DateTime.Parse(parsed, System.Globalization.CultureInfo.CurrentCulture);
                             }
-                            valore = "@TO_DATE('" + d.ToString("yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture) + "','YYYYMMDD')";
+                            valore = "@TO_DATE('" + d.ToString(CompactDateFormat, System.Globalization.CultureInfo.InvariantCulture) + "','YYYYMMDD')";
                         }
                     }
-                    else if (fld.mc_ui_column_type == "number" || fld.mc_ui_column_type == "number_slider")
+                    else if (fld.mc_ui_column_type == UiTypeNumber || fld.mc_ui_column_type == UiTypeNumberSlider)
                     {
                         if (valore != null)
                         {
@@ -6637,7 +6721,7 @@ END;");
                                 valore = null;
                         }
                     }
-                    else if (fld.mc_ui_column_type == "boolean" && tabel.md_is_reticular)
+                    else if (fld.mc_ui_column_type == UiTypeBoolean && tabel.md_is_reticular)
                     {
                         if (valore != null)
                         {
@@ -6645,7 +6729,7 @@ END;");
                             {
                                 valore = 1;
                             }
-                            else if (valore.ToString().ToLower() == "false")
+                            else if (valore.ToString().ToLower() == FalseLiteral)
                             {
                                 valore = 0;
                             }
@@ -6658,17 +6742,14 @@ END;");
                             }
                         }
                     }
-                    else if (fld.mc_ui_column_type == "boolean")
+                    else if (fld.mc_ui_column_type == UiTypeBoolean)
                     {
-                        if (valore == null)
+                        if (valore == null && fld.mc_validation_has.HasValue && fld.mc_validation_has.Value && fld.mc_validation_required.HasValue && fld.mc_validation_required.Value)
                         {
-                            if (fld.mc_validation_has.HasValue && fld.mc_validation_has.Value && fld.mc_validation_required.HasValue && fld.mc_validation_required.Value)
-                            {
-                                valore = 0;
-                            }
+                            valore = 0;
                         }
                     }
-                    else if (fld.mc_ui_column_type == "number_boolean")
+                    else if (fld.mc_ui_column_type == UiTypeNumberBoolean)
                     {
                         if (valore != null)
                         {
@@ -6685,13 +6766,13 @@ END;");
                                 {
                                     valore = 1;
                                 }
-                                else if (valore.ToString().ToLower() == "false")
+                                else if (valore.ToString().ToLower() == FalseLiteral)
                                 {
                                     valore = 0;
                                 }
                                 else if (valore.ToString().ToLower() == "1" || valore.ToString().ToLower() == "0")
                                 {
-
+                                    // Valore gia' normalizzato a 0/1: nessuna conversione necessaria.
                                 }
                                 else
                                 {
@@ -6716,20 +6797,17 @@ END;");
                             });
                         }
                     }
-                    else if (fld.mc_db_column_type == "point")
+                    else if (fld.mc_db_column_type == DbTypePoint)
                     {
                         if (valore != null)
                         {
-                            Pair point = RawHelpers.pointStringToPoint(valore.ToString(), "mssql");
+                            Pair point = RawHelpers.pointStringToPoint(valore.ToString(), MssqlDialect);
                             valore = string.Format("geography::STGeomFromText('POINT({0} {1})', 8307)", point.First.ToString(), point.Second.ToString());
                         }
                     }
-                    else if (fld.mc_db_column_type == "geometry")
+                    else if (fld.mc_db_column_type == DbTypeGeometry && valore != null)
                     {
-                        if (valore != null)
-                        {
-                            valore = string.Format("geography::STGeomFromText('{0}', 8307)", valore);
-                        }
+                        valore = string.Format("geography::STGeomFromText('{0}', 8307)", valore);
                     }
 
                     if (valore == null)
@@ -6743,28 +6821,18 @@ END;");
 
                     if (!string.IsNullOrEmpty(fld.mc_default_value))
                     {
-                        if (valore == null)
+                        // S1871: i due rami (null / stringa vuota) applicavano lo stesso default — merged.
+                        if (valore == null || string.IsNullOrEmpty(valore.ToString()))
                         {
                             valore = fld.mc_default_value;
                         }
-                        else
-                        {
-                            if (string.IsNullOrEmpty(valore.ToString()))
-                            {
-                                valore = fld.mc_default_value;
-                            }
-                        }
                     }
 
-                    if (valore != null)
+                    if (valore != null
+                        && !string.IsNullOrEmpty(valore.ToString())
+                        && fld.mc_ui_is_password.HasValue && fld.mc_ui_is_password.Value && ConfigHelper.GetSettingAsString("IsPwdEncripted") == "true")
                     {
-                        if (!string.IsNullOrEmpty(valore.ToString()))
-                        {
-                            if (fld.mc_ui_is_password.HasValue && fld.mc_ui_is_password.Value && ConfigHelper.GetSettingAsString("IsPwdEncripted") == "true")
-                            {
-                                valore = Global.pbkdf2Hash(valore.ToString());
-                            }
-                        }
+                        valore = Global.pbkdf2Hash(valore.ToString());
                     }
 
                     string fix_quote = "";
@@ -6786,13 +6854,13 @@ END;");
                     // SQL invece usano SEMPRE '.' come decimal point indipendentemente da NLS,
                     // quindi emettere "9876.4321" unquoted e' safe.
                     else if ((fld.mc_db_column_type == "int"
-                              || fld.mc_db_column_type == "decimal"
-                              || fld.mc_db_column_type == "float"
+                              || fld.mc_db_column_type == DbTypeDecimal
+                              || fld.mc_db_column_type == DbTypeFloat
                               || fld.mc_db_column_type == "double"
                               || fld.mc_db_column_type == "numeric"
-                              || fld.mc_ui_column_type == "number"
-                              || fld.mc_ui_column_type == "number_slider"
-                              || fld.mc_db_column_type == "point" || fld.mc_db_column_type == "geometry" || (fld.mc_is_primary_key && !string.IsNullOrEmpty(tabel.md_primary_key_type)) || valore == null))
+                              || fld.mc_ui_column_type == UiTypeNumber
+                              || fld.mc_ui_column_type == UiTypeNumberSlider
+                              || fld.mc_db_column_type == DbTypePoint || fld.mc_db_column_type == DbTypeGeometry || (fld.mc_is_primary_key && !string.IsNullOrEmpty(tabel.md_primary_key_type)) || valore == null))
                     {
                         fix_quote = "";
                     }
@@ -6807,7 +6875,7 @@ END;");
                     if (fld.mc_ui_column_type == "upload")
                     {
                         _Metadati_Colonne_Upload uploader = fld as _Metadati_Colonne_Upload;
-                        if (uploader.isDBUpload && (entity.ContainsKey("__guid") || entity.ContainsKey("__id")))
+                        if (uploader.isDBUpload && (entity.ContainsKey(EntityGuidKey) || entity.ContainsKey("__id")))
                         {
                             // Align to mysql/metaQueryMySql.cs:BuildDynamicInsertQuery e
                             // postgresql/metaQueryPostgreSql.cs:BuildDynamicInsertQuery — delegate
@@ -6898,7 +6966,7 @@ END;");
             // `;select SCOPE_IDENTITY()`; in Oracle dobbiamo usare bind output parameter perche'
             // INSERT non puo' restituire un risultato scalar diretto.
             var identityPk = metadata.FirstOrDefault(x => x.mc_is_primary_key
-                && (string.IsNullOrEmpty(tabel.md_primary_key_type) || tabel.md_primary_key_type == "IDENTITY"));
+                && (string.IsNullOrEmpty(tabel.md_primary_key_type) || tabel.md_primary_key_type == PkTypeIdentity));
             if (identityPk != null && string.IsNullOrEmpty(local_generated_pkey))
             {
                 query += " RETURNING " + EscapeDBObjectName(RawHelpers.getStoreColumnName(identityPk)) + " INTO :p_new_id_out";
@@ -6924,17 +6992,17 @@ END;");
 
                 string originalID = entity[pkeys[0].mc_nome_colonna].ToString();
 
-                if (tab.md_primary_key_type == "IDENTITY" || tab.md_primary_key_type == "GUID")
+                if (tab.md_primary_key_type == PkTypeIdentity || tab.md_primary_key_type == "GUID")
                 {
                     entity[pkeys[0].mc_nome_colonna] = null;
                 }
                 else if (tab.md_primary_key_type == "MAX")
                 {
-                    ManageMaxKeyType(tab, pkeys[0], pkeys, entity, RawHelpers.getStoreColumnName(pkeys[0]), RawHelpers.getStoreTableName(tab, "mssql"));
+                    ManageMaxKeyType(tab, pkeys[0], pkeys, entity, RawHelpers.getStoreColumnName(pkeys[0]), RawHelpers.getStoreTableName(tab, MssqlDialect));
                 }
                 else
                 {
-                    throw new Exception("Impossibile clonare il record. Il primary key type della tabella dovrebbe essere: 'IDENTITY', 'GUID' o 'MAX'");
+                    throw new NotSupportedException("Impossibile clonare il record. Il primary key type della tabella dovrebbe essere: 'IDENTITY', 'GUID' o 'MAX'");
                 }
 
                 string generated_pkey = "";
@@ -7069,10 +7137,10 @@ END;");
             // "_shadow_<route>" provoca ORA-00942 (table doesn't exist) — catch'ato sotto,
             // ma il throw stesso e' caro e fa pausare il debugger su "User-Unhandled".
             bool isSys = false;
-            try { isSys = RawHelpers.checkIsMetaData(route); } catch { }
+            try { isSys = RawHelpers.checkIsMetaData(route); } catch { /* route sconosciuta al metadata check → trattata come non-system, si prosegue col flush */ }
             if (isSys) return;
 
-            string shadowTableName = RawHelpers.escapeDBObjectName("_shadow_" + route, "oracle");
+            string shadowTableName = RawHelpers.escapeDBObjectName("_shadow_" + route, OracleDialect);
             using (OracleConnection connection = GetOpenConnection(false))
             {
                 var dbArgs = new DynamicParameters();
@@ -7103,7 +7171,7 @@ END;");
             {
                 _Metadati_Tabelle tabel = context.GetMetadati_TabellaByColID(column_id);
                 if (tabel == null)
-                    throw new Exception("Table not found!");
+                    throw new InvalidOperationException("Table not found!");
 
                 bool isMeta = RawHelpers.checkIsMetaData(tabel.md_route_name);
                 using (DbConnection connection = GetOpenConnection(isMeta, tabel.md_conn_name))
@@ -7192,7 +7260,7 @@ END;");
             using (OracleConnection con = GetOpenConnection(true))
             {
                 var dbArgs = new DynamicParameters();
-                dbArgs.Add("md_id", md_id);
+                dbArgs.Add(ParamMdId, md_id);
                 // Mirror MSSQL/MySQL/PG (commit 99dec88): flat-projection con LEFT JOIN su
                 // condition_item per popolare i campi CI_* sulla classe _Metadati_Condition_Group
                 // (che ha sia CG_* sia CI_* come proprieta'). Una row per ogni item, con i CG_*
@@ -7301,7 +7369,7 @@ END;");
                 // AttachedParam solo dentro AddParameters → Get<T> prima esplode con NRE.
                 object idValue;
                 string colType = (pkey.mc_db_column_type ?? string.Empty).ToLowerInvariant();
-                if ((colType == "int" || colType == "integer" || colType == "smallint" || colType == "bigint" || colType == "long" || colType == "number")
+                if ((colType == "int" || colType == "integer" || colType == "smallint" || colType == "bigint" || colType == "long" || colType == UiTypeNumber)
                     && long.TryParse(__id, out long parsedLong))
                 {
                     idValue = parsedLong;
@@ -7406,7 +7474,7 @@ END;");
                     else
                     {
                         // tipo inatteso: log per diagnostica
-                        try { RawHelpers.logError(new InvalidCastException($"getUploadedFile: unexpected scalar type {raw.GetType().FullName} for BLOB column"), "getUploadedFile", q); } catch {}
+                        try { RawHelpers.logError(new InvalidCastException($"getUploadedFile: unexpected scalar type {raw.GetType().FullName} for BLOB column"), "getUploadedFile", q); } catch { /* logging best-effort: un errore del logger non deve mascherare il fallback sul download */ }
                         file = null;
                     }
                 }
@@ -7451,7 +7519,7 @@ END;");
                             dt = RawHelpers.createDataTablefromCSV(theName, log, fileName, uploadOption, ref errorCount);
 
                         var columns = dt.Columns.Cast<DataColumn>();
-                        List<_Metadati_Colonne> pkeys = tabel._Metadati_Colonnes.Where(x => x.mc_is_primary_key is true).ToList();
+                        List<_Metadati_Colonne> pkeys = tabel._Metadati_Colonnes.Where(x => x.mc_is_primary_key).ToList();
 
                         bool returnValue;
                         if (RawHelpers.CheckImportColumns(columns, tabel, log, uploadOption, fileName, out returnValue, ref errorCount, pkeys))
@@ -7472,21 +7540,20 @@ END;");
                         foreach (Dictionary<string, object> record in dicts)
                         {
                             string pk = "";
-                            bool fkeyParsed = false;
 
                             recordCounter++;
 
                             if (uploadOption.import_type.Contains("U"))
                             {
-                                string table_name = RawHelpers.getStoreTableName(tabel, "oracle");
+                                string table_name = RawHelpers.getStoreTableName(tabel, OracleDialect);
 
                                 string query_check_from = string.Format("SELECT * FROM {0} ", table_name);
-                                string query_check_where = "";
+                                StringBuilder query_check_where = new StringBuilder();
                                 bool flg = true;
 
-                                foreach (_Metadati_Colonne pkey in pkeys)
+                                foreach (string pkeyName in pkeys.Select(pkey => pkey.mc_nome_colonna))
                                 {
-                                    object pkey_value = record[pkey.mc_nome_colonna];
+                                    object pkey_value = record[pkeyName];
                                     if (pkey_value == null || string.IsNullOrEmpty(pkey_value.ToString()))
                                     {
                                         flg = false;
@@ -7498,40 +7565,37 @@ END;");
                                         if (string.IsNullOrEmpty(tabel.md_primary_key_type) || tabel.md_primary_key_type == "GUID")
                                             quote = "'";
 
-                                        query_check_where += (string.IsNullOrEmpty(query_check_where) ? " WHERE " : " AND ")
-                                            + RawHelpers.getStoreTableName(tabel, "oracle") + "."
-                                            + RawHelpers.escapeDBObjectName(pkey.mc_nome_colonna, "oracle") + " = "
-                                            + quote + pkey_value + quote;
+                                        query_check_where.Append((query_check_where.Length == 0 ? " WHERE " : " AND ")
+                                            + RawHelpers.getStoreTableName(tabel, OracleDialect) + "."
+                                            + RawHelpers.escapeDBObjectName(pkeyName, OracleDialect) + " = "
+                                            + quote + pkey_value + quote);
                                     }
                                 }
 
                                 if (flg)
                                 {
-                                    List<Dapper.SqlMapper.FastExpando> entity = (List<Dapper.SqlMapper.FastExpando>)con.Query(query_check_from + query_check_where, null, myTrans);
+                                    List<Dapper.SqlMapper.FastExpando> entity = (List<Dapper.SqlMapper.FastExpando>)con.Query(query_check_from + query_check_where.ToString(), null, myTrans);
                                     if (entity.Count > 0)
                                     {
                                         if (!parseFKeyOracle(uploadOption, tabel, record, context, ref errorCount, log, fileName, recordCounter))
                                             return log.ToString();
 
-                                        fkeyParsed = true;
-
                                         string update_query = BuildDynamicUpdateQuery(record, tabel._Metadati_Colonnes.ToList(), uploadOption.user_id, true);
                                         // FIX ORA-01704: bind BLOB/CLOB se presenti (record con upload col).
                                         var updBlobParams = ExtractBlobParamsFromEntity(record);
-                                        string result;
                                         if (updBlobParams.Count > 0)
                                         {
-                                            using (var oraCmd = new global::Oracle.ManagedDataAccess.Client.OracleCommand(update_query, con as global::Oracle.ManagedDataAccess.Client.OracleConnection))
+                                            using (var oraCmd = new global::Oracle.ManagedDataAccess.Client.OracleCommand(update_query, con))
                                             {
-                                                oraCmd.Transaction = myTrans as global::Oracle.ManagedDataAccess.Client.OracleTransaction;
+                                                oraCmd.Transaction = myTrans;
                                                 oraCmd.BindByName = true;
                                                 foreach (var p in updBlobParams) oraCmd.Parameters.Add(p);
-                                                result = oraCmd.ExecuteNonQuery().ToString();
+                                                oraCmd.ExecuteNonQuery();
                                             }
                                         }
                                         else
                                         {
-                                            result = con.Execute(update_query, null, myTrans).ToString();
+                                            con.Execute(update_query, null, myTrans);
                                         }
 
                                         updatedRecord++;
@@ -7542,48 +7606,43 @@ END;");
 
                             if (uploadOption.import_type.Contains("I"))
                             {
-                                if (!fkeyParsed)
-                                {
-                                    if (!parseFKeyOracle(uploadOption, tabel, record, context, ref errorCount, log, fileName, recordCounter))
-                                        return log.ToString();
-                                }
+                                if (!parseFKeyOracle(uploadOption, tabel, record, context, ref errorCount, log, fileName, recordCounter))
+                                    return log.ToString();
 
                                 string insert_query = BuildDynamicInsertQuery(record, tabel._Metadati_Colonnes.ToList(), uploadOption.user_id, out pk, true);
                                 // Oracle: BuildDynamicInsertQuery appende `RETURNING <pk> INTO :p_new_id_out` per IDENTITY pk.
                                 // In ImportFile non ci serve il nuovo id (loop conta soltanto), quindi usiamo OracleCommand
                                 // con OracleParameter Output per soddisfare il bind. Dapper Execute non gestirebbe il bind.
                                 // FIX ORA-01704: bind BLOB/CLOB se presenti (record con upload col).
-                                string result;
                                 var insBlobParams = ExtractBlobParamsFromEntity(record);
                                 if (insert_query.IndexOf(":p_new_id_out", StringComparison.OrdinalIgnoreCase) >= 0)
                                 {
-                                    using (var oraCmd = new global::Oracle.ManagedDataAccess.Client.OracleCommand(insert_query, con as global::Oracle.ManagedDataAccess.Client.OracleConnection))
+                                    using (var oraCmd = new global::Oracle.ManagedDataAccess.Client.OracleCommand(insert_query, con))
                                     {
-                                        oraCmd.Transaction = myTrans as global::Oracle.ManagedDataAccess.Client.OracleTransaction;
+                                        oraCmd.Transaction = myTrans;
                                         oraCmd.BindByName = true;
                                         foreach (var p in insBlobParams) oraCmd.Parameters.Add(p);
                                         var outP = new global::Oracle.ManagedDataAccess.Client.OracleParameter("p_new_id_out", global::Oracle.ManagedDataAccess.Client.OracleDbType.Decimal);
                                         outP.Direction = System.Data.ParameterDirection.Output;
                                         oraCmd.Parameters.Add(outP);
-                                        result = oraCmd.ExecuteNonQuery().ToString();
+                                        oraCmd.ExecuteNonQuery();
                                     }
                                 }
                                 else if (insBlobParams.Count > 0)
                                 {
-                                    using (var oraCmd = new global::Oracle.ManagedDataAccess.Client.OracleCommand(insert_query, con as global::Oracle.ManagedDataAccess.Client.OracleConnection))
+                                    using (var oraCmd = new global::Oracle.ManagedDataAccess.Client.OracleCommand(insert_query, con))
                                     {
-                                        oraCmd.Transaction = myTrans as global::Oracle.ManagedDataAccess.Client.OracleTransaction;
+                                        oraCmd.Transaction = myTrans;
                                         oraCmd.BindByName = true;
                                         foreach (var p in insBlobParams) oraCmd.Parameters.Add(p);
-                                        result = oraCmd.ExecuteNonQuery().ToString();
+                                        oraCmd.ExecuteNonQuery();
                                     }
                                 }
                                 else
                                 {
-                                    result = con.Execute(insert_query, null, myTrans).ToString();
+                                    con.Execute(insert_query, null, myTrans);
                                 }
                                 insertedRecord++;
-                                continue;
                             }
                         }
 
@@ -7624,7 +7683,7 @@ END;");
                         if (record[key] != null && !string.IsNullOrEmpty(record[key].ToString()))
                         {
                             _Metadati_Tabelle tabbe = context.GetMetadati_Tabelles(lc.mc_ui_lookup_entity_name).FirstOrDefault();
-                            _Metadati_Colonne pkey = tabbe._Metadati_Colonnes.FirstOrDefault(x => x.mc_is_primary_key is true);
+                            _Metadati_Colonne pkey = tabbe._Metadati_Colonnes.FirstOrDefault(x => x.mc_is_primary_key);
                             rawPagedResult match;
 
                             match = GetFlatData(uploadOption.user_id, tabbe.md_route_name, 0, null, null, null, RawHelpers.createStandardFilter(lc.mc_ui_lookup_dataTextField, record[key].ToString(), pkey), "AND", true, null, null);

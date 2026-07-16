@@ -19,6 +19,15 @@ public class oracleDataProvider : IMetaQuery
 {
     private const int UnlicensedMaxRecords = 20;
 
+    // Costanti non-SQL (S1192): chiavi JSON della viewDefinition / response dict
+    // e nomi bind parameter — le query SQL restano letterali per-provider.
+    private const string ColumnsKey = "columns";
+    private const string TableAliasKey = "tableAlias";
+    private const string RealNameKey = "realName";
+    private const string AliasKey = "alias";
+    private const string ErrorKey = "error";
+    private const string McIdParam = "mc_id";
+
     private static void ApplyUnlicensedRequestCap(PageInfo pageInfo)
     {
         if (pageInfo == null)
@@ -65,17 +74,17 @@ public class oracleDataProvider : IMetaQuery
 
     public user mapUserFields(SysInfo infos, Dapper.SqlMapper.FastExpando user)
     {
-        string userid = user.Where(x => x.Key == infos.user_id_column_name).First().Value.ToString();
-        string display = user.Where(x => x.Key == infos.user_description_column_name).First().Value.ToString();
-        bool isAdmin = (bool)user.Where(x => x.Key == infos.isAdmin_column_name).First().Value;
-        string roleId = user.Where(x => x.Key == infos.role_id_column_name).First().Value.ToString();
-        string userName = user.Where(x => x.Key == infos.username_column_name).First().Value.ToString();
+        string userid = user.First(x => x.Key == infos.user_id_column_name).Value.ToString();
+        string display = user.First(x => x.Key == infos.user_description_column_name).Value.ToString();
+        bool isAdmin = (bool)user.First(x => x.Key == infos.isAdmin_column_name).Value;
+        string roleId = user.First(x => x.Key == infos.role_id_column_name).Value.ToString();
+        string userName = user.First(x => x.Key == infos.username_column_name).Value.ToString();
 
         List<role> allRoles = GetRoleList();
         role myRole = allRoles?.FirstOrDefault(x => x.role_id == roleId);
         List<role> roles = GetMultipleRoleRoleByUserID(userid) ?? new List<role>();
 
-        var lastAct = user.Where(x => x.Key == "LastActivityDate").FirstOrDefault().Value;
+        var lastAct = user.FirstOrDefault(x => x.Key == "LastActivityDate").Value;
         DateTime lastActivity = DateTime.MinValue;
         if (lastAct != null)
             DateTime.TryParse(lastAct.ToString(), out lastActivity);
@@ -460,7 +469,7 @@ public class oracleDataProvider : IMetaQuery
                         var resultRows = new List<Dictionary<string, object>>();
                         if (rows.Count > 0) resultColumns.AddRange(rows[0].data.Keys);
                         foreach (var row in rows) resultRows.Add(new Dictionary<string, object>(row.data));
-                        response["columns"] = resultColumns;
+                        response[ColumnsKey] = resultColumns;
                         response["rows"] = resultRows;
                         response["rowCount"] = resultRows.Count;
                     }
@@ -494,14 +503,14 @@ FETCH FIRST 1 ROWS ONLY";
                 foreach (var tbl in tables)
                 {
                     string route = Convert.ToString(tbl["route"] ?? "").Trim();
-                    string alias = Convert.ToString(tbl["tableAlias"] ?? "").Trim();
-                    var cols = tbl["columns"] as JArray ?? new JArray();
+                    string alias = Convert.ToString(tbl[TableAliasKey] ?? "").Trim();
+                    var cols = tbl[ColumnsKey] as JArray ?? new JArray();
                     var selectedCols = new JArray(cols.Where(c => c["selected"]?.Value<bool>() == true));
                     if (string.IsNullOrWhiteSpace(route) || string.IsNullOrWhiteSpace(alias)) continue;
 
                     var meta = metaConn.Query(metaSql, new { route }).FirstOrDefault();
                     if (meta == null)
-                        throw new Exception($"Route '{route}' non trovata nei metadati.");
+                        throw new InvalidOperationException($"Route '{route}' non trovata nei metadati.");
 
                     tableInfos.Add((
                         alias,
@@ -525,10 +534,10 @@ FETCH FIRST 1 ROWS ONLY";
                     {
                         var dbCols = (List<Dapper.SqlMapper.FastExpando>)dataConnSchema.Query(colSql,
                             new { tableName = info.PhysicalName });
-                        foreach (var c in dbCols)
+                        foreach (var colData in dbCols.Select(c => c.data))
                         {
-                            string colName = Convert.ToString(c.data["COLUMN_NAME"]);
-                            string dataType = Convert.ToString(c.data["DATA_TYPE"]).ToLowerInvariant();
+                            string colName = Convert.ToString(colData["COLUMN_NAME"]);
+                            string dataType = Convert.ToString(colData["DATA_TYPE"]).ToLowerInvariant();
                             string key = $"{info.Alias}|{colName}";
                             physicalColumns.Add(key);
                             if (dataType == "sdo_geometry" || dataType == "geometry")
@@ -543,8 +552,8 @@ FETCH FIRST 1 ROWS ONLY";
                 {
                     foreach (var col in info.SelectedCols)
                     {
-                        string realName = Convert.ToString(col["realName"] ?? col["alias"] ?? "").Trim();
-                        string colLabel = Convert.ToString(col["label"] ?? col["alias"] ?? "").Trim();
+                        string realName = Convert.ToString(col[RealNameKey] ?? col[AliasKey] ?? "").Trim();
+                        string colLabel = Convert.ToString(col["label"] ?? col[AliasKey] ?? "").Trim();
                         string qualifiedAlias = $"{info.Alias}.{colLabel}";
                         string lookupKey = $"{info.Alias}|{realName}";
                         if (!string.IsNullOrWhiteSpace(realName) && physicalColumns.Contains(lookupKey))
@@ -592,14 +601,14 @@ FETCH FIRST 1 ROWS ONLY";
                 var realNameByAlias = new Dictionary<string, Dictionary<string, string>>(StringComparer.Ordinal);
                 foreach (var tbl in tables)
                 {
-                    string ta = Convert.ToString(tbl["tableAlias"] ?? "").Trim();
+                    string ta = Convert.ToString(tbl[TableAliasKey] ?? "").Trim();
                     if (string.IsNullOrWhiteSpace(ta)) continue;
-                    var allCols = tbl["columns"] as JArray ?? new JArray();
+                    var allCols = tbl[ColumnsKey] as JArray ?? new JArray();
                     var colMap = new Dictionary<string, string>(StringComparer.Ordinal);
                     foreach (var c in allCols)
                     {
-                        string friendly = Convert.ToString(c["alias"] ?? "").Trim();
-                        string real = Convert.ToString(c["realName"] ?? friendly).Trim();
+                        string friendly = Convert.ToString(c[AliasKey] ?? "").Trim();
+                        string real = Convert.ToString(c[RealNameKey] ?? friendly).Trim();
                         if (!string.IsNullOrWhiteSpace(friendly)) colMap[friendly] = real;
                     }
                     realNameByAlias[ta] = colMap;
@@ -632,7 +641,7 @@ FETCH FIRST 1 ROWS ONLY";
                         foreach (var tbl in tables)
                         {
                             string nid = Convert.ToString(tbl["nodeId"] ?? "");
-                            string ta = Convert.ToString(tbl["tableAlias"] ?? "");
+                            string ta = Convert.ToString(tbl[TableAliasKey] ?? "");
                             if (nid == srcNodeId) srcTblAlias = ta;
                             if (nid == tgtNodeId) tgtTblAlias = ta;
                         }
@@ -693,13 +702,10 @@ FETCH FIRST 1 ROWS ONLY";
                         joinedAliasSet.Add(newTableAlias);
                     }
                 }
-                foreach (var info in tableInfos)
+                foreach (var info in tableInfos.Where(info => !joinedAliasSet.Contains(info.Alias)))
                 {
-                    if (!joinedAliasSet.Contains(info.Alias))
-                    {
-                        fromSb.AppendLine();
-                        fromSb.Append($"  CROSS JOIN {FromOf(info)}");
-                    }
+                    fromSb.AppendLine();
+                    fromSb.Append($"  CROSS JOIN {FromOf(info)}");
                 }
 
                 string selectSql = string.Join(",\n  ", selectParts);
@@ -790,7 +796,7 @@ FETCH FIRST 1 ROWS ONLY";
                         var resultRows = new List<Dictionary<string, object>>();
                         if (rows.Count > 0) resultColumns.AddRange(rows[0].data.Keys);
                         foreach (var row in rows) resultRows.Add(new Dictionary<string, object>(row.data));
-                        response["columns"] = resultColumns;
+                        response[ColumnsKey] = resultColumns;
                         response["rows"] = resultRows;
                         response["rowCount"] = resultRows.Count;
                     }
@@ -800,7 +806,7 @@ FETCH FIRST 1 ROWS ONLY";
         catch (Exception ex)
         {
             response["ok"] = false;
-            response["error"] = ex.Message;
+            response[ErrorKey] = ex.Message;
         }
         return response;
     }
@@ -856,12 +862,12 @@ FETCH FIRST 1 ROWS ONLY";
                 foreach (var tbl in tables)
                 {
                     string route = Convert.ToString(tbl["route"] ?? "").Trim();
-                    string alias = Convert.ToString(tbl["tableAlias"] ?? "").Trim();
-                    var cols = tbl["columns"] as JArray ?? new JArray();
+                    string alias = Convert.ToString(tbl[TableAliasKey] ?? "").Trim();
+                    var cols = tbl[ColumnsKey] as JArray ?? new JArray();
                     var selectedCols = new JArray(cols.Where(c => c["selected"]?.Value<bool>() == true));
                     if (string.IsNullOrWhiteSpace(route) || string.IsNullOrWhiteSpace(alias)) continue;
                     var meta = metaConn.Query(metaSql, new { route }).FirstOrDefault();
-                    if (meta == null) throw new Exception($"Route '{route}' non trovata nei metadati.");
+                    if (meta == null) throw new InvalidOperationException($"Route '{route}' non trovata nei metadati.");
                     tableInfos.Add((alias, Convert.ToString(meta.table_name), Convert.ToString(meta.schema_name), Convert.ToString(meta.conn_name), selectedCols));
                 }
                 if (tableInfos.Count == 0) throw new ValidationException("No valid tables in viewDefinition.");
@@ -884,8 +890,8 @@ FETCH FIRST 1 ROWS ONLY";
                 {
                     foreach (var col in info.SelectedCols)
                     {
-                        string realName = Convert.ToString(col["realName"] ?? col["alias"] ?? "").Trim();
-                        string colLabel = Convert.ToString(col["label"] ?? col["alias"] ?? "").Trim();
+                        string realName = Convert.ToString(col[RealNameKey] ?? col[AliasKey] ?? "").Trim();
+                        string colLabel = Convert.ToString(col["label"] ?? col[AliasKey] ?? "").Trim();
                         string qualifiedAlias = $"{info.Alias}.{colLabel}";
                         string lookupKey = $"{info.Alias}|{realName}";
                         string formula = Convert.ToString(col["formula"] ?? "").Trim();
@@ -913,14 +919,14 @@ FETCH FIRST 1 ROWS ONLY";
                 var realNameByAliasCV = new Dictionary<string, Dictionary<string, string>>(StringComparer.Ordinal);
                 foreach (var tbl in tables)
                 {
-                    string ta2 = Convert.ToString(tbl["tableAlias"] ?? "").Trim();
+                    string ta2 = Convert.ToString(tbl[TableAliasKey] ?? "").Trim();
                     if (string.IsNullOrWhiteSpace(ta2)) continue;
-                    var allCols = tbl["columns"] as JArray ?? new JArray();
+                    var allCols = tbl[ColumnsKey] as JArray ?? new JArray();
                     var colMap = new Dictionary<string, string>(StringComparer.Ordinal);
                     foreach (var c in allCols)
                     {
-                        string friendly = Convert.ToString(c["alias"] ?? "").Trim();
-                        string real = Convert.ToString(c["realName"] ?? friendly).Trim();
+                        string friendly = Convert.ToString(c[AliasKey] ?? "").Trim();
+                        string real = Convert.ToString(c[RealNameKey] ?? friendly).Trim();
                         if (!string.IsNullOrWhiteSpace(friendly)) colMap[friendly] = real;
                     }
                     realNameByAliasCV[ta2] = colMap;
@@ -947,7 +953,7 @@ FETCH FIRST 1 ROWS ONLY";
                         foreach (var tbl in tables)
                         {
                             string nid = Convert.ToString(tbl["nodeId"] ?? "");
-                            string ta = Convert.ToString(tbl["tableAlias"] ?? "");
+                            string ta = Convert.ToString(tbl[TableAliasKey] ?? "");
                             if (nid == srcAlias) srcTblAlias = ta;
                             if (nid == tgtAlias) tgtTblAlias = ta;
                         }
@@ -960,9 +966,10 @@ FETCH FIRST 1 ROWS ONLY";
                         bool srcInFrom = joinedAliasesCV.Contains(srcTblAlias);
                         bool tgtInFrom = joinedAliasesCV.Contains(tgtTblAlias);
                         string newTblAlias, anchorAlias, newCol, anchorCol;
-                        if (srcInFrom && !tgtInFrom) { newTblAlias = tgtTblAlias; anchorAlias = srcTblAlias; newCol = tgtCol; anchorCol = srcCol; }
-                        else if (!srcInFrom && tgtInFrom) { newTblAlias = srcTblAlias; anchorAlias = tgtTblAlias; newCol = srcCol; anchorCol = tgtCol; }
-                        else if (!srcInFrom && !tgtInFrom) { newTblAlias = tgtTblAlias; anchorAlias = srcTblAlias; newCol = tgtCol; anchorCol = srcCol; }
+                        // S1871: i casi (src in FROM, tgt no) e (nessuno dei due in FROM)
+                        // trattano entrambi tgt come nuova tabella ancorata a src — merged.
+                        if (!tgtInFrom) { newTblAlias = tgtTblAlias; anchorAlias = srcTblAlias; newCol = tgtCol; anchorCol = srcCol; }
+                        else if (!srcInFrom) { newTblAlias = srcTblAlias; anchorAlias = tgtTblAlias; newCol = srcCol; anchorCol = tgtCol; }
                         else continue;
 
                         var newInfo = tableInfos.FirstOrDefault(t => t.Alias == newTblAlias);
@@ -1002,7 +1009,7 @@ FROM {fromSb}";
                     if (exists && !overwrite_if_exists)
                     {
                         response["ok"] = false;
-                        response["error"] = $"View '{qualifiedViewName}' already exists.";
+                        response[ErrorKey] = $"View '{qualifiedViewName}' already exists.";
                         response["errorCode"] = "VIEW_EXISTS";
                         response["qualifiedView"] = qualifiedViewName;
                         response["sql"] = createViewSql;
@@ -1023,7 +1030,7 @@ FROM {fromSb}";
         catch (Exception ex)
         {
             response["ok"] = false;
-            response["error"] = ex.Message;
+            response[ErrorKey] = ex.Message;
         }
         return response;
     }
@@ -1050,12 +1057,12 @@ WHERE c.mc_ui_column_type = 'lookupByID'
   AND NVL(t.mdroutename, '') != ''";
                 var rows = (List<Dapper.SqlMapper.FastExpando>)metaConn.Query(sql);
                 var fks = new List<Dictionary<string, string>>();
-                foreach (var r in rows)
+                foreach (var rowData in rows.Select(r => r.data))
                 {
                     fks.Add(new Dictionary<string, string>
                     {
-                        ["source"] = Convert.ToString(r.data["source_route"]),
-                        ["target"] = Convert.ToString(r.data["target_route"])
+                        ["source"] = Convert.ToString(rowData["source_route"]),
+                        ["target"] = Convert.ToString(rowData["target_route"])
                     });
                 }
                 response["ok"] = true;
@@ -1065,7 +1072,7 @@ WHERE c.mc_ui_column_type = 'lookupByID'
         catch (Exception ex)
         {
             response["ok"] = false;
-            response["error"] = ex.Message;
+            response[ErrorKey] = ex.Message;
         }
         return response;
     }
@@ -1095,7 +1102,7 @@ WHERE c.mc_ui_column_type = 'lookupByID'
                 return response;
             }
 
-            var blockedFields = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "mc_id", "md_id" };
+            var blockedFields = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { McIdParam, "md_id" };
 
             int updated = 0;
             using (var metaConn = metaQueryOracleSql.GetOpenConnection(true))
@@ -1115,13 +1122,13 @@ WHERE c.mc_ui_column_type = 'lookupByID'
                 foreach (JToken patchTok in arr)
                 {
                     if (!(patchTok is JObject patchObj)) continue;
-                    if (patchObj["mc_id"] == null) continue;
-                    if (!long.TryParse(Convert.ToString(patchObj["mc_id"]), out long mcId)) continue;
+                    if (patchObj[McIdParam] == null) continue;
+                    if (!long.TryParse(Convert.ToString(patchObj[McIdParam]), out long mcId)) continue;
                     JObject realPatch = patchObj["patch"] is JObject inner ? inner : patchObj;
 
                     var sets = new List<string>();
                     var p = new DynamicParameters();
-                    p.Add("mc_id", mcId);
+                    p.Add(McIdParam, mcId);
                     int paramIdx = 0;
                     foreach (var prop in realPatch.Properties())
                     {
@@ -1149,7 +1156,7 @@ WHERE c.mc_ui_column_type = 'lookupByID'
         catch (Exception ex)
         {
             response["ok"] = false;
-            response["error"] = ex.Message;
+            response[ErrorKey] = ex.Message;
             throw;
         }
     }
@@ -1172,7 +1179,7 @@ WHERE c.mc_ui_column_type = 'lookupByID'
                 {
                     string json = System.IO.File.ReadAllText(mappingPath);
                     var root = JObject.Parse(json);
-                    var cols = root["MetadatiColonne"]?["columns"] as JArray;
+                    var cols = root["MetadatiColonne"]?[ColumnsKey] as JArray;
                     if (cols != null)
                     {
                         foreach (JToken col in cols)
@@ -1185,7 +1192,11 @@ WHERE c.mc_ui_column_type = 'lookupByID'
                         }
                     }
                 }
-                catch { }
+                catch
+                {
+                    // Best-effort: mapping file assente/malformato → si prosegue con
+                    // dict vuoto (nessun campo patchabile) invece di bloccare il provider.
+                }
             }
             _metadatiColonneCsToSqlCacheOracle = dict;
             return _metadatiColonneCsToSqlCacheOracle;
@@ -1228,7 +1239,7 @@ WHERE c.mc_ui_column_type = 'lookupByID'
         if (string.IsNullOrWhiteSpace(name))
             return false;
 
-        using (var conn = (OracleConnection)metaQueryOracleSql.GetOpenConnection(true))
+        using (var conn = metaQueryOracleSql.GetOpenConnection(true))
         {
             using (var cmd = conn.CreateCommand())
             {
@@ -1291,7 +1302,7 @@ SELECT md_id, md_nome_tabella
 
                 if (metaRow != null)
                 {
-                    var rowDict = (System.Collections.Generic.IDictionary<string, object>)((Dapper.SqlMapper.FastExpando)metaRow).data;
+                    var rowDict = ((Dapper.SqlMapper.FastExpando)metaRow).data;
                     if (RawHelpers.CiTryGet(rowDict, "md_id", out var mdIdObj) && mdIdObj != null)
                         removedMdId = Convert.ToInt32(mdIdObj);
                     if (RawHelpers.CiTryGet(rowDict, "md_nome_tabella", out var tnObj) && tnObj != null)
@@ -1390,7 +1401,7 @@ SELECT md_id, md_nome_tabella
         catch (Exception ex)
         {
             result["ok"] = false;
-            result["error"] = ex.Message;
+            result[ErrorKey] = ex.Message;
             result["view_route"] = view_route;
             return RawHelpers.serialize(result, null);
         }
