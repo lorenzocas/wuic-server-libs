@@ -3106,7 +3106,6 @@ FROM {fromTable}
                     }
                     else //custom select
                     {
-                        finalQry = "";
                         finalQry = ParseCustomSelectClause(customSelectClause, where);
                     }
                 }
@@ -3119,9 +3118,7 @@ FROM {fromTable}
                             finalQry = string.Format("SELECT {0} FROM {1} {2} {3} {4} ", fieldList, safetableName, join, where, orderBy);
                         else
                         {
-                            finalQry = "";
                             finalQry = ParseCustomSelectClause(customSelectClause, where);
-
                         }
                     }
                     #endregion
