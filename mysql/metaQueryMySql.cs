@@ -4306,7 +4306,6 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                     }
                     else //custom select
                     {
-                        finalQry = "";
                         finalQry = ParseCustomSelectClause(customSelectClause, where);
                     }
                 }
@@ -4325,9 +4324,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                         }
                         else
                         {
-                            finalQry = "";
                             finalQry = ParseCustomSelectClause(customSelectClause, where);
-
                         }
                     }
                     #endregion
