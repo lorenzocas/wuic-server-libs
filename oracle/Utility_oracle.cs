@@ -392,7 +392,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
             }
         }
 
-        public static void customizewhereNotGroupBy(ref string selectFields, ref string whereclause, user utente, _Metadati_Tabelle table_metadata) { }
+        public static void customizewhereNotGroupBy(ref string selectFields, ref string whereclause, user utente, _Metadati_Tabelle table_metadata) { /* hook di personalizzazione per-provider: intenzionalmente vuoto */ }
 
         public static void customizeSelect(ref string selectFields, ref string joinClause, ref string whereclause, ref string orderByClause, user utente, _Metadati_Tabelle table_metadata, ref string customSelectClause, string parentRoute = "", SerializableDictionary<string, object> currentRecord = null, FilterInfos filterInfo = null, List<SortInfo> SortInfo = null, PageInfo PageInfo = null)
         {

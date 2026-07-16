@@ -4821,7 +4821,7 @@ FROM {fromTable}
                     }
                 }
 
-                if (!fld.mc_logic_editable.Value && !fld.mc_is_primary_key & fld.mc_nome_colonna != "voa_class")
+                if (!fld.mc_logic_editable.Value && !fld.mc_is_primary_key && fld.mc_nome_colonna != "voa_class")
                 {
                     return;
                 }
@@ -5733,7 +5733,7 @@ FROM {fromTable}
                 if (!entity.ContainsKey(fld.mc_nome_colonna))
                     return;
 
-                if ((!fld.mc_logic_editable.HasValue || !fld.mc_logic_editable.Value) && !fld.mc_is_primary_key & string.IsNullOrEmpty(fld.mc_default_value))
+                if ((!fld.mc_logic_editable.HasValue || !fld.mc_logic_editable.Value) && !fld.mc_is_primary_key && string.IsNullOrEmpty(fld.mc_default_value))
                 {
                     return;
                 }
@@ -6215,9 +6215,7 @@ FROM {fromTable}
             return null;
         }
 
-        public static void ClearLastCrudSqlQuery()
-        {
-        }
+        public static void ClearLastCrudSqlQuery() { /* no-op: capture query CRUD non attiva su questo provider */ }
 
         public static void FlushCache(string route)
         {

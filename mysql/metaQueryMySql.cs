@@ -6324,7 +6324,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                     return;
                 }
 
-                if (!fld.mc_logic_editable.Value && !fld.mc_is_primary_key & fld.mc_nome_colonna != "voa_class")
+                if (!fld.mc_logic_editable.Value && !fld.mc_is_primary_key && fld.mc_nome_colonna != "voa_class")
                 {
                     return;
                 }
@@ -7322,7 +7322,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                 if (!entity.ContainsKey(fld.mc_nome_colonna) && !fld.mc_is_primary_key)
                     return;
 
-                if ((!fld.mc_logic_editable.HasValue || !fld.mc_logic_editable.Value) && !fld.mc_is_primary_key & string.IsNullOrEmpty(fld.mc_default_value) & string.IsNullOrEmpty(fld.mc_default_value_callback))
+                if ((!fld.mc_logic_editable.HasValue || !fld.mc_logic_editable.Value) && !fld.mc_is_primary_key && string.IsNullOrEmpty(fld.mc_default_value) & string.IsNullOrEmpty(fld.mc_default_value_callback))
                 {
                     return;
                 }
