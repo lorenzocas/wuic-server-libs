@@ -627,11 +627,13 @@ namespace System.WebCore
                 return true;
             }
 
-            foreach (JsonProperty p in element.EnumerateObject()
-                                              .Where(x => string.Equals(x.Name, propertyName, StringComparison.OrdinalIgnoreCase)))
+            foreach (JsonProperty p in element.EnumerateObject())
             {
-                property = p.Value;
-                return true;
+                if (string.Equals(p.Name, propertyName, StringComparison.OrdinalIgnoreCase))
+                {
+                    property = p.Value;
+                    return true;
+                }
             }
 
             property = default;
@@ -645,11 +647,13 @@ namespace System.WebCore
                 return true;
             }
 
-            foreach (KeyValuePair<string, object> pair in dict
-                         .Where(p => string.Equals(p.Key, key, StringComparison.OrdinalIgnoreCase)))
+            foreach (KeyValuePair<string, object> pair in dict)
             {
-                value = pair.Value;
-                return true;
+                if (string.Equals(pair.Key, key, StringComparison.OrdinalIgnoreCase))
+                {
+                    value = pair.Value;
+                    return true;
+                }
             }
 
             value = null;
