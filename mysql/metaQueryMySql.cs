@@ -1294,7 +1294,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
             {
                 using (metaRawModel context = new metaRawModel())
                 {
-                    SysInfo infos = context.GetSysInfos();
+                    SysInfo infos = metaRawModel.GetSysInfos();
                     using (MySqlConnection connection = string.IsNullOrEmpty(infos.user_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.user_db_name))
                     {
                         // MySQL-native (port da MSSQL): NOW() invece di getdate() (funzione
@@ -1541,7 +1541,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
         {
             using (metaRawModel context = new metaRawModel())
             {
-                SysInfo infos = context.GetSysInfos();
+                SysInfo infos = metaRawModel.GetSysInfos();
 
                 if (infos == null)
                     return null;
@@ -1571,7 +1571,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
         {
             using (metaRawModel context = new metaRawModel())
             {
-                SysInfo infos = context.GetSysInfos();
+                SysInfo infos = metaRawModel.GetSysInfos();
 
                 if (infos == null)
                     return null;
@@ -1601,7 +1601,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
         {
             using (metaRawModel context = new metaRawModel())
             {
-                _ = context.GetSysInfos();
+                _ = metaRawModel.GetSysInfos();
 
 
                 using (MySqlConnection connection = GetOpenConnection(true))
@@ -1617,7 +1617,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
         {
             using (metaRawModel context = new metaRawModel())
             {
-                SysInfo infos = context.GetSysInfos();
+                SysInfo infos = metaRawModel.GetSysInfos();
 
                 if (infos == null)
                     return null;
@@ -1639,7 +1639,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
         {
             using (metaRawModel context = new metaRawModel())
             {
-                SysInfo infos = context.GetSysInfos();
+                SysInfo infos = metaRawModel.GetSysInfos();
 
                 if (infos == null)
                     return null;
@@ -1690,7 +1690,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
         {
             using (metaRawModel context = new metaRawModel())
             {
-                SysInfo infos = context.GetSysInfos();
+                SysInfo infos = metaRawModel.GetSysInfos();
 
                 if (infos == null)
                     return null;
@@ -1706,7 +1706,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
         {
             using (metaRawModel context = new metaRawModel())
             {
-                SysInfo infos = context.GetSysInfos();
+                SysInfo infos = metaRawModel.GetSysInfos();
 
                 if (infos == null)
                     return null;
@@ -1723,7 +1723,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
         {
             using (metaRawModel context = new metaRawModel())
             {
-                SysInfo infos = context.GetSysInfos();
+                SysInfo infos = metaRawModel.GetSysInfos();
 
                 if (infos == null)
                     return null;
@@ -5256,7 +5256,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
             if (!string.IsNullOrEmpty(tab.md_record_restriction_key_user_field_list))
             {
-                SysInfo sys = mmd.GetSysInfos();
+                SysInfo sys = metaRawModel.GetSysInfos();
                 if (sys != null)
                 {
                     string keyvalue = userId;
@@ -5844,7 +5844,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
             predicate = string.Format("(utenteid=@user_id or ruoloid=@role_id {0} or aziendaid=@azienda_id) and md_id=@md_id", innerRolePredicate);
             using (metaRawModel context = new metaRawModel())
             {
-                List<_Metadati_Utenti_Autorizzazioni_Tabelle> auth = context.GetMetadati_Utenti_Autorizzazioni_Tabelles(predicate, ute.role_id, userId, ute.azienda_id, tab.md_id).ToList();
+                List<_Metadati_Utenti_Autorizzazioni_Tabelle> auth = metaRawModel.GetMetadati_Utenti_Autorizzazioni_Tabelles(predicate, ute.role_id, userId, ute.azienda_id, tab.md_id).ToList();
                 if (auth.Count > 0 && auth.First().muat_override_record_restriction)
                 {
                     return;
@@ -8055,7 +8055,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
         {
             using (metaRawModel context = new metaRawModel())
             {
-                List<domBoard> boards = context.GetdomBoards(dashRoute).ToList();
+                List<domBoard> boards = metaRawModel.GetdomBoards(dashRoute).ToList();
                 boards.ForEach(b =>
                {
                    b.skipChilds = false;
@@ -8086,7 +8086,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .ToList();
 
-                domBoard board = context.GetdomBoards(dashRoute).FirstOrDefault();
+                domBoard board = metaRawModel.GetdomBoards(dashRoute).FirstOrDefault();
                 if (board != null)
                 {
 
@@ -8095,14 +8095,14 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                     board.jsController = "";
                     board.boardcontent = boardcontent;
 
-                    context.UpdateDomBoard(board);
+                    metaRawModel.UpdateDomBoard(board);
 
 
                 }
                 else
                 {
                     board = new domBoard() { board_route = dashRoute, boardcontent = boardcontent, board_des = desc, boardType = designMode, pwd = pwd };
-                    context.AddDomBoard(board);
+                    metaRawModel.AddDomBoard(board);
                 }
 
 
@@ -8115,7 +8115,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
                 sheetPaths.ForEach(x =>
                 {
-                    context.AddDomBoardSheets(new domBoardSheet() { domBoard_id = board.id, sheetPath = x });
+                    metaRawModel.AddDomBoardSheets(new domBoardSheet() { domBoard_id = board.id, sheetPath = x });
                 });
 
                 context.setMetadataVersion();

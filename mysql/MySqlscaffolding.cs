@@ -48,7 +48,7 @@ namespace metaModelRaw
                 if (mt == null)
                     return 0;
 
-                return md.AddMySqlColumn(md, mt, route, mc_ui_column_type, mc_nome_colonna, alias, nullable, scale, precision, maxLength, defaultValue);
+                return metaRawModel.AddMySqlColumn(md, mt, route, mc_ui_column_type, mc_nome_colonna, alias, nullable, scale, precision, maxLength, defaultValue);
             }
         }
 
@@ -59,7 +59,7 @@ namespace metaModelRaw
 
             using (metaRawModel md = new metaRawModel())
             {
-                md.RemoveColonna(table, mc_nome_colonna, mc_id);
+                metaRawModel.RemoveColonna(table, mc_nome_colonna, mc_id);
             }
         }
 
@@ -90,19 +90,19 @@ namespace metaModelRaw
 
                 string effectiveDb = string.IsNullOrWhiteSpace(schema) ? db : schema;
 
-                var tables = ctx.getTableDTMySql(connection, effectiveDb);
+                var tables = metaRawModel.getTableDTMySql(connection, effectiveDb);
                 foreach (string tb in tables.OrderBy(x => x))
                 {
                     tblList.Add(new bind_list() { valore = tb, text = tb });
                 }
 
-                var views = ctx.getViewVWMySql(connection, effectiveDb);
+                var views = metaRawModel.getViewVWMySql(connection, effectiveDb);
                 foreach (string vw in views.OrderBy(x => x))
                 {
                     tblList.Add(new bind_list() { valore = vw, text = vw + " [VISTA]" });
                 }
 
-                var storeds = ctx.getStoredSPMySql(connection, effectiveDb);
+                var storeds = metaRawModel.getStoredSPMySql(connection, effectiveDb);
                 foreach (string sp in storeds.OrderBy(x => x))
                 {
                     tblList.Add(new bind_list() { valore = sp, text = sp + " [STORED]", isStored = true });
@@ -330,7 +330,7 @@ WHERE t.mddbname = @db OR (@db = '' AND IFNULL(t.mddbname, '') = '');";
                     }
 
                     if (updated)
-                        context.UpdateColonna(uicCol);
+                        metaRawModel.UpdateColonna(uicCol);
                 }
 
                 RawHelpers.setMetadataVersion();
@@ -350,9 +350,9 @@ WHERE t.mddbname = @db OR (@db = '' AND IFNULL(t.mddbname, '') = '');";
 
             using (metaRawModel mmd = new metaRawModel())
             {
-                List<string> tables = mmd.getTableDTMySql(connection, db);
-                List<string> views = mmd.getViewVWMySql(connection, db);
-                List<string> storeds = mmd.getStoredSPMySql(connection, db);
+                List<string> tables = metaRawModel.getTableDTMySql(connection, db);
+                List<string> views = metaRawModel.getViewVWMySql(connection, db);
+                List<string> storeds = metaRawModel.getStoredSPMySql(connection, db);
 
                 str.AppendLine(string.Format("Scaffolding {0} tables<br />", tables.Count));
 
@@ -399,7 +399,7 @@ WHERE t.mddbname = @db OR (@db = '' AND IFNULL(t.mddbname, '') = '');";
                     if (vw.Equals("information_schema", StringComparison.OrdinalIgnoreCase))
                         continue;
 
-                    List<columnDefinition> columns = mmd.getColumnsVWMySql(connection, db, vw, str);
+                    List<columnDefinition> columns = metaRawModel.getColumnsVWMySql(connection, db, vw, str);
                     foreach (columnDefinition col in columns)
                     {
                         mmd.scaffoldOfColumnMySql(connection, connName, mmd, vw, db, col, str, ref createMenu, columns.Count);
@@ -502,10 +502,10 @@ WHERE t.mddbname = @db OR (@db = '' AND IFNULL(t.mddbname, '') = '');";
 
             using (metaRawModel mmd = new metaRawModel())
             {
-                string viewT = mmd.getViewVWMySql(connection, db).FirstOrDefault(x => x == view);
+                string viewT = metaRawModel.getViewVWMySql(connection, db).FirstOrDefault(x => x == view);
                 if (!string.IsNullOrEmpty(viewT))
                 {
-                    List<columnDefinition> columns = mmd.getColumnsVWMySql(connection, db, viewT, log);
+                    List<columnDefinition> columns = metaRawModel.getColumnsVWMySql(connection, db, viewT, log);
                     currentMT = mmd.scaffoldOfViewMySql(connection, connName, viewT, mmd, log, db, createMenu);
 
                     foreach (columnDefinition col in columns)

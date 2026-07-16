@@ -1202,7 +1202,7 @@ FROM {fromTable}
             {
                 using (metaRawModel context = new metaRawModel())
                 {
-                    SysInfo infos = context.GetSysInfos();
+                    SysInfo infos = metaRawModel.GetSysInfos();
                     using (NpgsqlConnection connection = string.IsNullOrEmpty(infos.user_db_name) ? GetOpenConnection(true) : getSpecificConnection(infos.user_db_name))
                     {
                         // PG-native (port da mysql/metaQueryMySql.cs): NOW() invece di MSSQL getdate(); colonne `utenti` migrate a lowercase 2026-05-18 → bare ref (PG case-fold idem).
@@ -1406,7 +1406,7 @@ FROM {fromTable}
         {
             using (metaRawModel context = new metaRawModel())
             {
-                SysInfo infos = context.GetSysInfos();
+                SysInfo infos = metaRawModel.GetSysInfos();
 
                 if (infos == null)
                     return null;
@@ -1429,7 +1429,7 @@ FROM {fromTable}
         {
             using (metaRawModel context = new metaRawModel())
             {
-                SysInfo infos = context.GetSysInfos();
+                SysInfo infos = metaRawModel.GetSysInfos();
 
                 if (infos == null)
                     return null;
@@ -1452,7 +1452,7 @@ FROM {fromTable}
         {
             using (metaRawModel context = new metaRawModel())
             {
-                _ = context.GetSysInfos();
+                _ = metaRawModel.GetSysInfos();
 
 
                 using (NpgsqlConnection connection = GetOpenConnection(true))
@@ -1473,7 +1473,7 @@ FROM {fromTable}
         {
             using (metaRawModel context = new metaRawModel())
             {
-                SysInfo infos = context.GetSysInfos();
+                SysInfo infos = metaRawModel.GetSysInfos();
 
                 if (infos == null)
                     return null;
@@ -1497,7 +1497,7 @@ FROM {fromTable}
         {
             using (metaRawModel context = new metaRawModel())
             {
-                SysInfo infos = context.GetSysInfos();
+                SysInfo infos = metaRawModel.GetSysInfos();
 
                 if (infos == null)
                     return null;
@@ -1529,7 +1529,7 @@ FROM {fromTable}
         {
             using (metaRawModel context = new metaRawModel())
             {
-                SysInfo infos = context.GetSysInfos();
+                SysInfo infos = metaRawModel.GetSysInfos();
 
                 if (infos == null)
                     return null;
@@ -1556,7 +1556,7 @@ FROM {fromTable}
         {
             using (metaRawModel context = new metaRawModel())
             {
-                SysInfo infos = context.GetSysInfos();
+                SysInfo infos = metaRawModel.GetSysInfos();
 
                 if (infos == null)
                     return null;
@@ -1582,7 +1582,7 @@ FROM {fromTable}
         {
             using (metaRawModel context = new metaRawModel())
             {
-                SysInfo infos = context.GetSysInfos();
+                SysInfo infos = metaRawModel.GetSysInfos();
 
                 if (infos == null)
                     return null;
@@ -3364,7 +3364,7 @@ FROM {fromTable}
 
             if (!string.IsNullOrEmpty(tab.md_record_restriction_key_user_field_list))
             {
-                SysInfo sys = mmd.GetSysInfos();
+                SysInfo sys = metaRawModel.GetSysInfos();
                 if (sys != null)
                 {
                     string keyvalue = userId;
@@ -4300,7 +4300,7 @@ FROM {fromTable}
             predicate = string.Format("(utenteid=@user_id or ruoloid=@role_id {0} or aziendaid=@azienda_id) and md_id=@md_id", innerRolePredicate);
             using (metaRawModel context = new metaRawModel())
             {
-                List<_Metadati_Utenti_Autorizzazioni_Tabelle> auth = context.GetMetadati_Utenti_Autorizzazioni_Tabelles(predicate, ute.role_id, userId, ute.azienda_id, tab.md_id).ToList();
+                List<_Metadati_Utenti_Autorizzazioni_Tabelle> auth = metaRawModel.GetMetadati_Utenti_Autorizzazioni_Tabelles(predicate, ute.role_id, userId, ute.azienda_id, tab.md_id).ToList();
                 if (auth.Count > 0 && auth.First().muat_override_record_restriction)
                 {
                     return;
@@ -6288,7 +6288,7 @@ FROM {fromTable}
         {
             using (metaRawModel context = new metaRawModel())
             {
-                List<domBoard> boards = context.GetdomBoards(dashRoute).ToList();
+                List<domBoard> boards = metaRawModel.GetdomBoards(dashRoute).ToList();
                 boards.ForEach(b => { b.skipChilds = false; var _ = b.domBoardSheets; });
                 return boards;
             }

@@ -751,7 +751,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
             {
                 using (metaModelRaw.metaRawModel context = new metaModelRaw.metaRawModel())
                 {
-                    metaModelRaw.SysInfo infos = context.GetSysInfos();
+                    metaModelRaw.SysInfo infos = metaRawModel.GetSysInfos();
 
                     using (DbConnection connection = string.IsNullOrEmpty(infos.user_db_name) ? OracleProviderGateway.GetOpenConnection(true) : OracleProviderGateway.getSpecificConnection(infos.user_db_name))
                     {
@@ -801,7 +801,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziOracle
         {
             using (metaRawModel context = new metaRawModel())
             {
-                SysInfo infos = context.GetSysInfos();
+                SysInfo infos = metaRawModel.GetSysInfos();
 
                 if (infos != null)
                 {

@@ -725,7 +725,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
             {
                 using (metaModelRaw.metaRawModel context = new metaModelRaw.metaRawModel())
                 {
-                    metaModelRaw.SysInfo infos = context.GetSysInfos();
+                    metaModelRaw.SysInfo infos = metaRawModel.GetSysInfos();
 
                     using (DbConnection connection = string.IsNullOrEmpty(infos.user_db_name) ? MySqlProviderGateway.GetOpenConnection(true) : MySqlProviderGateway.getSpecificConnection(infos.user_db_name))
                     {
@@ -774,7 +774,7 @@ namespace WEB_UI_CRAFTER.ProjectData.ServiziMySql
         {
             using (metaRawModel context = new metaRawModel())
             {
-                SysInfo infos = context.GetSysInfos();
+                SysInfo infos = metaRawModel.GetSysInfos();
 
                 if (infos != null)
                 {

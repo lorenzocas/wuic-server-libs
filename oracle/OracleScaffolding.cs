@@ -192,7 +192,7 @@ namespace metaModelRaw
                 if (mt == null)
                     return 0;
 
-                return md.AddMySqlColumn(md, mt, route, mc_ui_column_type, mc_nome_colonna, alias, nullable, scale, precision, maxLength, defaultValue);
+                return metaRawModel.AddMySqlColumn(md, mt, route, mc_ui_column_type, mc_nome_colonna, alias, nullable, scale, precision, maxLength, defaultValue);
             }
         }
 
@@ -203,7 +203,7 @@ namespace metaModelRaw
 
             using (metaRawModel md = new metaRawModel())
             {
-                md.RemoveColonna(table, mc_nome_colonna, mc_id);
+                metaRawModel.RemoveColonna(table, mc_nome_colonna, mc_id);
             }
         }
 
@@ -489,7 +489,7 @@ WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
                     }
 
                     if (updated)
-                        context.UpdateColonna(uicCol);
+                        metaRawModel.UpdateColonna(uicCol);
                 }
 
                 RawHelpers.setMetadataVersion();
