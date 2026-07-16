@@ -13,6 +13,13 @@ namespace metaModelRaw
 {
     public class MySqlscaffolding
     {
+        // Nome del db di sistema MySQL, usato per confronti/skip (non frammento SQL).
+        private const string InformationSchemaDb = "information_schema";
+        // Suffisso di connection string per puntare la connessione a information_schema.
+        private const string InformationSchemaDbSuffix = ";database=" + InformationSchemaDb;
+        // Chiave del Dictionary di ritorno dei metodi scaffold* con il log dell'operazione.
+        private const string MessageKey = "message";
+
         private static void ParseQualifiedDbObjectName(string input, out string schema, out string name)
         {
             schema = null;
@@ -121,7 +128,7 @@ namespace metaModelRaw
             string effectiveDb = string.IsNullOrWhiteSpace(tableSchema) ? db : tableSchema;
 
             List<bind_list> tblList = new List<bind_list>();
-            using (DbConnection con = MySqlProviderGateway.CreateOpenConnection(connection + ";database=information_schema"))
+            using (DbConnection con = MySqlProviderGateway.CreateOpenConnection(connection + InformationSchemaDbSuffix))
             using (DbCommand cmd = DbProviderUtil.CreateTextCommand(con, "select COLUMN_NAME, DATA_TYPE from columns where table_schema=@db and table_name=@table"))
             {
                 con.Open();
@@ -154,7 +161,7 @@ namespace metaModelRaw
             string effectiveDb = string.IsNullOrWhiteSpace(viewSchema) ? db : viewSchema;
 
             List<bind_list> tblList = new List<bind_list>();
-            using (DbConnection con = MySqlProviderGateway.CreateOpenConnection(connection + ";database=information_schema"))
+            using (DbConnection con = MySqlProviderGateway.CreateOpenConnection(connection + InformationSchemaDbSuffix))
             using (DbCommand cmd = DbProviderUtil.CreateTextCommand(con, "select COLUMN_NAME, DATA_TYPE from columns where table_schema=@db and table_name=@table"))
             {
                 con.Open();
@@ -185,7 +192,7 @@ namespace metaModelRaw
             RawHelpers.checkAdmin(uid);
 
             var sourceColumns = new List<(string TableName, string ColumnName, string DataType, bool IsPk, string PkName, string FkName, string RefTable, string RefColumn)>();
-            using (DbConnection con = MySqlProviderGateway.CreateOpenConnection(connection + ";database=information_schema"))
+            using (DbConnection con = MySqlProviderGateway.CreateOpenConnection(connection + InformationSchemaDbSuffix))
             using (DbCommand cmd = con.CreateCommand())
             {
                 cmd.CommandText = @"
@@ -312,14 +319,11 @@ WHERE t.mddbname = @db OR (@db = '' AND IFNULL(t.mddbname, '') = '');";
                         }
                     }
 
-                    if (src.IsPk)
+                    if (src.IsPk && (uicCol.mc_pk_name != src.PkName || !uicCol.mc_is_primary_key))
                     {
-                        if (uicCol.mc_pk_name != src.PkName || !uicCol.mc_is_primary_key)
-                        {
-                            uicCol.mc_pk_name = src.PkName;
-                            uicCol.mc_is_primary_key = true;
-                            updated = true;
-                        }
+                        uicCol.mc_pk_name = src.PkName;
+                        uicCol.mc_is_primary_key = true;
+                        updated = true;
                     }
 
                     string actualType = RawHelpers.getDBDataType((src.DataType ?? string.Empty).ToLowerInvariant());
@@ -364,8 +368,8 @@ WHERE t.mddbname = @db OR (@db = '' AND IFNULL(t.mddbname, '') = '');";
                 if (reportProg)
                 {
                     totalObj =
-                        tables.Count(t => t != "test" && t != "information_schema") +
-                        views.Count(v => !v.Equals("information_schema", StringComparison.OrdinalIgnoreCase)) +
+                        tables.Count(t => t != "test" && t != InformationSchemaDb) +
+                        views.Count(v => !v.Equals(InformationSchemaDb, StringComparison.OrdinalIgnoreCase)) +
                         storeds.Count;
                     ngUicServicesCore.Controllers.FirstRunProgressTracker.Start(
                         Guid.NewGuid().ToString(), "scaffold-existing-db", totalObj, "Scaffolding " + db);
@@ -377,7 +381,7 @@ WHERE t.mddbname = @db OR (@db = '' AND IFNULL(t.mddbname, '') = '');";
                 {
                     createMenu = createM;
 
-                    if (tb == "test" || tb == "information_schema")
+                    if (tb == "test" || tb == InformationSchemaDb)
                         continue;
 
                     List<columnDefinition> columns = mmd.getColumnsDTMySql(connection, db, tb, str);
@@ -396,7 +400,7 @@ WHERE t.mddbname = @db OR (@db = '' AND IFNULL(t.mddbname, '') = '');";
 
                 foreach (string vw in views.OrderBy(x => x))
                 {
-                    if (vw.Equals("information_schema", StringComparison.OrdinalIgnoreCase))
+                    if (vw.Equals(InformationSchemaDb, StringComparison.OrdinalIgnoreCase))
                         continue;
 
                     List<columnDefinition> columns = metaRawModel.getColumnsVWMySql(connection, db, vw, str);
@@ -431,7 +435,7 @@ WHERE t.mddbname = @db OR (@db = '' AND IFNULL(t.mddbname, '') = '');";
 
             return new Dictionary<string, string>()
             {
-                { "message", str.ToString() }
+                { MessageKey, str.ToString() }
             };
         }
 
@@ -448,7 +452,7 @@ WHERE t.mddbname = @db OR (@db = '' AND IFNULL(t.mddbname, '') = '');";
                 string log = ctx.scaffoldColumnMySql(connection, connName, db, table, column);
                 return new Dictionary<string, string>()
                 {
-                    { "message", log }
+                    { MessageKey, log }
                 };
             }
         }
@@ -479,7 +483,7 @@ WHERE t.mddbname = @db OR (@db = '' AND IFNULL(t.mddbname, '') = '');";
 
                 return new Dictionary<string, string>()
                 {
-                    { "message", log },
+                    { MessageKey, log },
                     { "id", scaffoldedId }
                 };
             }
@@ -488,14 +492,14 @@ WHERE t.mddbname = @db OR (@db = '' AND IFNULL(t.mddbname, '') = '');";
         // Backward-compatible signature.
         public string scaffoldView(string connection, string connName, string db, string view, bool createMenu)
         {
-            return scaffoldView(connection, connName, db, view, createMenu, 0)["message"];
+            return scaffoldView(connection, connName, db, view, createMenu, 0)[MessageKey];
         }
 
         public Dictionary<string, string> scaffoldView(string connection, string connName, string db, string view, bool createMenu, int parentMenuId)
         {
             RawHelpers.authenticate();
 
-            connection = connection + ";database=information_schema";
+            connection = connection + InformationSchemaDbSuffix;
             StringBuilder log = new StringBuilder();
 
             _Metadati_Tabelle currentMT = null;
@@ -524,7 +528,7 @@ WHERE t.mddbname = @db OR (@db = '' AND IFNULL(t.mddbname, '') = '');";
 
             return new Dictionary<string, string>()
             {
-                { "message", logg },
+                { MessageKey, logg },
                 { "id", currentMT != null ? currentMT.md_id.ToString() : string.Empty }
             };
         }
@@ -542,12 +546,12 @@ WHERE t.mddbname = @db OR (@db = '' AND IFNULL(t.mddbname, '') = '');";
                 string log = ctx.scaffoldStoredMySql(ref connection, connName, db, stored);
                 return new Dictionary<string, string>()
                 {
-                    { "message", log }
+                    { MessageKey, log }
                 };
             }
         }
 
-        private void cloneToChild(object baseClassObj, object childClassObject)
+        private static void cloneToChild(object baseClassObj, object childClassObject)
         {
             foreach (PropertyInfo pinfo in baseClassObj.GetType().GetProperties())
             {
