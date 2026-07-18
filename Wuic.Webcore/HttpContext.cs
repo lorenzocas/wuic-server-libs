@@ -255,6 +255,17 @@ namespace System.WebCore
                     method = myType.GetMethod(methodName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase);
                 }
 
+                // Fallback ai metodi `static`: la pass S2325 della campagna Sonar (2026-07-16,
+                // wave-3) ha reso static ~114 metodi pubblici di MetaService (che non usano stato
+                // d'istanza). Sono comunque parte della superficie AsmxProxy e devono restare
+                // dispatchabili. MethodInfo.Invoke ignora il target su un metodo static, quindi
+                // l'invocazione a valle (method.Invoke(myInstance, ...)) funziona identica.
+                // Senza questo fallback -> MissingMethodException 'available candidates: <none>'.
+                if (method == null)
+                {
+                    method = myType.GetMethod(methodName, BindingFlags.Static | BindingFlags.Public | BindingFlags.IgnoreCase);
+                }
+
                 if (method == null)
                 {
                     string assemblyFullName = myType.Assembly?.FullName ?? "<unknown-assembly>";
