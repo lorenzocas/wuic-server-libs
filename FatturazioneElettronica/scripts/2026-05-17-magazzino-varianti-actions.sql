@@ -290,4 +290,40 @@ async function(datasource, record, event, field, wtoolbox) {
     PRINT 'INSERT row-action: magazzini / Vedi giacenze';
 END
 
+-- =====================================================================
+-- D) FIX callback wrapper (2026-07-18): gli INSERT sopra salvano l'intero
+--    wrapper `async function(...) { ... }`, ma il framework inlina il testo
+--    come CORPO dentro new AsyncFunction(...) → un function statement anonimo
+--    da' "SyntaxError: Function statements require a function name" (toolbar
+--    action rotte, row-button no-op). Qui si strippa il wrapper lasciando solo
+--    il corpo. Idempotente: la guardia LIKE '%async function(%' evita doppie
+--    esecuzioni. (Dettagli e versione standalone:
+--    scripts/2026-07-18-fix-magazzino-varianti-callback-wrapper.sql.)
+--    Colonne di tipo `text` → CAST a nvarchar(max); DATALENGTH/2 = char count;
+--    ultima '}' via REVERSE.
+-- =====================================================================
+UPDATE _mtdt__cstom__actions__tabelle
+SET actioncallback = CAST(
+    SUBSTRING(
+        CAST(actioncallback AS nvarchar(max)),
+        CHARINDEX(N'{', CAST(actioncallback AS nvarchar(max))) + 1,
+        ((DATALENGTH(CAST(actioncallback AS nvarchar(max))) / 2)
+            - CHARINDEX(N'}', REVERSE(CAST(actioncallback AS nvarchar(max)))) + 1)
+            - CHARINDEX(N'{', CAST(actioncallback AS nvarchar(max))) - 1
+    ) AS nvarchar(max))
+WHERE buttoncaption IN (N'Genera matrice varianti', N'Movimento manuale', N'Inventario fisico', N'Riconcilia snapshot')
+  AND CAST(actioncallback AS nvarchar(max)) LIKE N'%async function(%';
+
+UPDATE _metadati__colonne
+SET mcbuttonaction = CAST(
+    SUBSTRING(
+        CAST(mcbuttonaction AS nvarchar(max)),
+        CHARINDEX(N'{', CAST(mcbuttonaction AS nvarchar(max))) + 1,
+        ((DATALENGTH(CAST(mcbuttonaction AS nvarchar(max))) / 2)
+            - CHARINDEX(N'}', REVERSE(CAST(mcbuttonaction AS nvarchar(max)))) + 1)
+            - CHARINDEX(N'{', CAST(mcbuttonaction AS nvarchar(max))) - 1
+    ) AS nvarchar(max))
+WHERE mc_nome_colonna IN ('btn_apri_prodotto_padre', 'btn_apri_attributo_padre', 'btn_storico_movimenti', 'btn_rettifica_opposta', 'btn_vedi_giacenze')
+  AND CAST(mcbuttonaction AS nvarchar(max)) LIKE N'%async function(%';
+
 PRINT '2026-05-17-magazzino-varianti-actions.sql applicato.';

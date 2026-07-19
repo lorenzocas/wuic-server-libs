@@ -60,9 +60,29 @@ export class CrmOpportunityKanbanComponent implements OnInit, AfterViewInit, OnD
   constructor(private readonly http: HttpClient) {}
 
   ngOnInit(): void {
-    const role = this.resolveRoleName();
-    this.roleName = role;
-    this.canDragCards = /^(Admin|Amministratore|CRM Manager|CRM Sales)$/i.test(role);
+    // Il ruolo si risolve dalla sessione server via MetaService.me: mai leggere
+    // il cookie k-user direttamente (regola AGENTS.md n.7) — in cookie-auth mode
+    // e' HttpOnly e non leggibile da JS, quindi il vecchio parsing di
+    // document.cookie tornava sempre '' e disabilitava il drag per tutti
+    // (admin inclusi). canDragCards parte false e si abilita quando la risposta
+    // arriva.
+    void this.resolveDragPermission();
+  }
+
+  private async resolveDragPermission(): Promise<void> {
+    try {
+      const apiBase = this.resolveApiBase();
+      const me: any = await firstValueFrom(
+        this.http.post(`${apiBase}Meta/AsmxProxy/MetaService.me`, {})
+      );
+      const role = String(me?.role || '').trim();
+      this.roleName = role;
+      const isAdmin = me?.isAdmin === true || me?.isSuperAdmin === true;
+      this.canDragCards = isAdmin
+        || /^(Admin|Amministratore|CRM Manager|CRM Sales)$/i.test(role);
+    } catch {
+      this.canDragCards = false;
+    }
   }
 
   ngAfterViewInit(): void {
@@ -389,33 +409,6 @@ export class CrmOpportunityKanbanComponent implements OnInit, AfterViewInit, OnD
 
     this.columns = stageColumns;
     this.loading = false;
-  }
-
-  private resolveRoleName(): string {
-    const fromCookie = this.readCookie('k-user');
-    const raw = decodeURIComponent(fromCookie || localStorage.getItem('k-user') || sessionStorage.getItem('k-user') || '').trim();
-    if (!raw) {
-      return '';
-    }
-
-    try {
-      const parsed: any = JSON.parse(raw);
-      return String(parsed?.role || parsed?.ruolo_des || parsed?.role_name || '').trim();
-    } catch {
-      return '';
-    }
-  }
-
-  private readCookie(name: string): string {
-    const cookieName = `${name}=`;
-    const chunks = String(document?.cookie || '').split(';');
-    for (const chunkRaw of chunks) {
-      const chunk = chunkRaw.trim();
-      if (chunk.startsWith(cookieName)) {
-        return chunk.substring(cookieName.length);
-      }
-    }
-    return '';
   }
 
   private resolveApiBase(): string {

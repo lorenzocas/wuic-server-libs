@@ -1,10 +1,11 @@
 using System.Data;
-using System.Security.Claims;
+using System.Security.Authentication;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
+using WEB_UI_CRAFTER.Helpers;
 
 namespace CrmApp.Controllers;
 
@@ -31,6 +32,22 @@ public class CrmActionsController : ControllerBase
             return BadRequest(new { ok = false, actionKey, message = "DataSQLConnection non configurata." });
         }
 
+        // Autenticazione obbligatoria: l'identità dell'utente deriva SOLO dalla
+        // sessione server (cookie k-user), mai da header client (spoofabili).
+        int loggedUserId;
+        try
+        {
+            var authUserId = RawHelpers.authenticate();
+            if (string.IsNullOrEmpty(authUserId) || authUserId == "0" || !int.TryParse(authUserId, out loggedUserId))
+            {
+                return Unauthorized(new { ok = false, actionKey, message = "Autenticazione richiesta." });
+            }
+        }
+        catch (AuthenticationException)
+        {
+            return Unauthorized(new { ok = false, actionKey, message = "Autenticazione richiesta." });
+        }
+
         string? routeName = null;
         JsonElement? currentRecord = null;
         JsonElement? selectedRecordKeys = null;
@@ -54,12 +71,11 @@ public class CrmActionsController : ControllerBase
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.CommandText = "dbo.crm_sp_execute_action";
             cmd.CommandTimeout = 180;
-            var loggedUserId = ResolveLoggedUserId();
             cmd.Parameters.AddWithValue("@action_key", actionKey);
             cmd.Parameters.AddWithValue("@route_name", (object?)routeName ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@current_record", JsonToString(currentRecord));
             cmd.Parameters.AddWithValue("@selected_record_keys", JsonToString(selectedRecordKeys));
-            cmd.Parameters.AddWithValue("@logged_user_id", (object?)loggedUserId ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@logged_user_id", loggedUserId);
 
             await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
             if (!await reader.ReadAsync(cancellationToken))
@@ -89,7 +105,7 @@ public class CrmActionsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore in crm action {ActionKey}", actionKey);
-            return BadRequest(new { ok = false, actionKey, routeName, message = ex.Message });
+            return BadRequest(new { ok = false, actionKey, routeName, message = "Errore durante l'esecuzione dell'azione." });
         }
     }
 
@@ -168,38 +184,4 @@ public class CrmActionsController : ControllerBase
         return val.GetRawText();
     }
 
-    private int? ResolveLoggedUserId()
-    {
-        var claimCandidates = new[]
-        {
-            ClaimTypes.NameIdentifier,
-            "nameid",
-            "sub",
-            "user_id",
-            "userid",
-            "id"
-        };
-
-        foreach (var claimType in claimCandidates)
-        {
-            var claimValue = User?.FindFirst(claimType)?.Value;
-            if (TryParseInt(claimValue, out var parsed))
-            {
-                return parsed;
-            }
-        }
-
-        if (Request?.Headers?.TryGetValue("X-User-Id", out var headerVals) == true &&
-            TryParseInt(headerVals.ToString(), out var headerUserId))
-        {
-            return headerUserId;
-        }
-
-        return null;
-    }
-
-    private static bool TryParseInt(string? value, out int parsed)
-    {
-        return int.TryParse(value, out parsed);
-    }
 }

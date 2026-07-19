@@ -4,28 +4,29 @@
     <DatiTrasmissione>
       <IdTrasmittente>
         <IdPaese>IT</IdPaese>
-        <IdCodice>01234567897</IdCodice>
+        <IdCodice>00000000000</IdCodice>
       </IdTrasmittente>
-      <ProgressivoInvio>1</ProgressivoInvio>
+      <ProgressivoInvio>11</ProgressivoInvio>
       <FormatoTrasmissione>FPR12</FormatoTrasmissione>
       <CodiceDestinatario>0000000</CodiceDestinatario>
+      <PECDestinatario>e2e_6fkab82p@pec.example.it</PECDestinatario>
     </DatiTrasmissione>
     <CedentePrestatore>
       <DatiAnagrafici>
         <IdFiscaleIVA>
           <IdPaese>IT</IdPaese>
-          <IdCodice>01234567897</IdCodice>
+          <IdCodice>00000000000</IdCodice>
         </IdFiscaleIVA>
         <Anagrafica>
-          <Denominazione>WUIC Demo S.r.l.</Denominazione>
+          <Denominazione>FatturazioneElettronica Test SRL</Denominazione>
         </Anagrafica>
         <RegimeFiscale>RF01</RegimeFiscale>
       </DatiAnagrafici>
       <Sede>
-        <Indirizzo>Via Roma 1</Indirizzo>
-        <CAP>65015</CAP>
-        <Comune>Montesilvano</Comune>
-        <Provincia>PE</Provincia>
+        <Indirizzo>Via Esempio 1</Indirizzo>
+        <CAP>00100</CAP>
+        <Comune>Roma</Comune>
+        <Provincia>RM</Provincia>
         <Nazione>IT</Nazione>
       </Sede>
     </CedentePrestatore>
@@ -35,8 +36,9 @@
           <IdPaese>IT</IdPaese>
           <IdCodice>12345678901</IdCodice>
         </IdFiscaleIVA>
+        <CodiceFiscale>12345678901</CodiceFiscale>
         <Anagrafica>
-          <Denominazione>Verdi Test S.r.l.</Denominazione>
+          <Denominazione>Edilizia Romana S.p.A. (e2e)</Denominazione>
         </Anagrafica>
       </DatiAnagrafici>
       <Sede>
@@ -53,15 +55,16 @@
       <DatiGeneraliDocumento>
         <TipoDocumento>TD01</TipoDocumento>
         <Divisa>EUR</Divisa>
-        <Data>2026-05-05</Data>
-        <Numero>1/2026</Numero>
+        <Data>2026-07-18</Data>
+        <Numero>11/2026</Numero>
         <ImportoTotaleDocumento>122.00</ImportoTotaleDocumento>
+        <Causale>Fattura E2E test57 conservazione 1784361091845</Causale>
       </DatiGeneraliDocumento>
     </DatiGenerali>
     <DatiBeniServizi>
       <DettaglioLinee>
         <NumeroLinea>1</NumeroLinea>
-        <Descrizione>Servizio test scaffolding</Descrizione>
+        <Descrizione>Riga E2E 6fkab82p</Descrizione>
         <Quantita>1.00</Quantita>
         <UnitaMisura>pz</UnitaMisura>
         <PrezzoUnitario>100.00</PrezzoUnitario>

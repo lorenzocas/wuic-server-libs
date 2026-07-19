@@ -545,6 +545,9 @@ ORDER BY data_ricezione DESC", cn);
     private static string BuildFatturaPaXml(FatturaPayload p)
     {
         var h = p.Header!;
+        // Dati azienda emittente (CedentePrestatore/DatiTrasmissione) dalla sezione
+        // "Azienda" di appsettings: se mancante/placeholder lancia (caller → errore esplicito).
+        var azienda = FatturazioneElettronica.Services.AziendaAnagrafica.FromConfig();
         // Uso MemoryStream + UTF-8 (no BOM) per avere "encoding=utf-8" nella
         // dichiarazione XML — SDI richiede UTF-8. StringWriter default e' UTF-16
         // e fa fallire la validazione XSD del SDI.
@@ -559,11 +562,11 @@ ORDER BY data_ricezione DESC", cn);
             // ── FatturaElettronicaHeader ────────────────────────────────
             w.WriteStartElement("FatturaElettronicaHeader");
 
-            // DatiTrasmissione (placeholder mittente — produzione: prendere dai dati cedente)
+            // DatiTrasmissione (mittente — dati azienda emittente da config, sezione "Azienda")
             w.WriteStartElement("DatiTrasmissione");
             w.WriteStartElement("IdTrasmittente");
-            w.WriteElementString("IdPaese", "IT");
-            w.WriteElementString("IdCodice", "00000000000");
+            w.WriteElementString("IdPaese", azienda.Nazione);
+            w.WriteElementString("IdCodice", azienda.TrasmittenteOrPartitaIva);
             w.WriteEndElement();
             w.WriteElementString("ProgressivoInvio", h["progressivo"]?.ToString() ?? "1");
             w.WriteElementString("FormatoTrasmissione", "FPR12");
@@ -572,24 +575,24 @@ ORDER BY data_ricezione DESC", cn);
                 w.WriteElementString("PECDestinatario", AsString(h, "cliente_pec"));
             w.WriteEndElement(); // DatiTrasmissione
 
-            // CedentePrestatore (mittente — placeholder, produzione: leggere da config azienda)
+            // CedentePrestatore (mittente — dati azienda emittente da config, sezione "Azienda")
             w.WriteStartElement("CedentePrestatore");
             w.WriteStartElement("DatiAnagrafici");
             w.WriteStartElement("IdFiscaleIVA");
-            w.WriteElementString("IdPaese", "IT");
-            w.WriteElementString("IdCodice", "00000000000");
+            w.WriteElementString("IdPaese", azienda.Nazione);
+            w.WriteElementString("IdCodice", azienda.PartitaIva);
             w.WriteEndElement();
             w.WriteStartElement("Anagrafica");
-            w.WriteElementString("Denominazione", "FatturazioneElettronica Test SRL");
+            w.WriteElementString("Denominazione", azienda.Denominazione);
             w.WriteEndElement();
-            w.WriteElementString("RegimeFiscale", "RF01");
+            w.WriteElementString("RegimeFiscale", azienda.RegimeFiscale);
             w.WriteEndElement(); // DatiAnagrafici
             w.WriteStartElement("Sede");
-            w.WriteElementString("Indirizzo", "Via Esempio 1");
-            w.WriteElementString("CAP", "00100");
-            w.WriteElementString("Comune", "Roma");
-            w.WriteElementString("Provincia", "RM");
-            w.WriteElementString("Nazione", "IT");
+            w.WriteElementString("Indirizzo", azienda.Indirizzo);
+            w.WriteElementString("CAP", azienda.Cap);
+            w.WriteElementString("Comune", azienda.Comune);
+            w.WriteElementString("Provincia", azienda.Provincia);
+            w.WriteElementString("Nazione", azienda.Nazione);
             w.WriteEndElement();
             w.WriteEndElement(); // CedentePrestatore
 

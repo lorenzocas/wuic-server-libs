@@ -43,6 +43,9 @@ public sealed class LipeXmlGenerator : IFiscalReportGenerator
 
         try
         {
+            // Dati dichiarante dalla sezione "Azienda" di appsettings (fail esplicito se placeholder).
+            var azienda = FatturazioneElettronica.Services.AziendaAnagrafica.FromConfig();
+
             // Aggrega via stored
             decimal vendImp = 0, vendIva = 0, acqImp = 0, acqIva = 0;
             int vendCount = 0, acqCount = 0;
@@ -92,10 +95,10 @@ public sealed class LipeXmlGenerator : IFiscalReportGenerator
                 w.WriteStartElement("iv", "Fornitura", "urn:www.agenziaentrate.gov.it:specificheTecniche:sco:ivp");
                 w.WriteAttributeString("identificativoSoftware", "WUIC-FE-LIPE");
 
-                // Frontespizio (placeholder dichiarante - production: leggere da config azienda)
+                // Frontespizio (dichiarante — dati azienda da config, sezione "Azienda")
                 w.WriteStartElement("Frontespizio");
                 w.WriteElementString("CodiceFornitura", "IVP18");
-                w.WriteElementString("CFDichiarante", "00000000000");
+                w.WriteElementString("CFDichiarante", azienda.CodiceFiscale);
                 w.WriteEndElement();
 
                 // Comunicazione
@@ -103,7 +106,7 @@ public sealed class LipeXmlGenerator : IFiscalReportGenerator
                 w.WriteAttributeString("identificativo", $"{anno}{trimestre:00}001");
                 w.WriteStartElement("Frontespizio");
                 w.WriteStartElement("CodiceFiscale");
-                w.WriteString("00000000000");
+                w.WriteString(azienda.CodiceFiscale);
                 w.WriteEndElement();
                 w.WriteElementString("AnnoImposta", anno.ToString());
                 w.WriteEndElement(); // Frontespizio

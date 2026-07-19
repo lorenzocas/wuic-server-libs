@@ -1,105 +1,152 @@
 {
   "config": {
-    "baseUrl": "http://localhost:4200",
+    "baseUrl": "http://localhost:4210",
     "backendBaseUrl": "http://localhost:5100",
     "user": "admin_test",
     "password": "Test123!",
     "apiUser": "admin_test_2",
     "apiPassword": "Test123!",
-    "filter": "^(6[0-9]|7[01])-",
+    "filter": "^(08|11|16|17|18|19|20|21|24|25|26|27)",
     "bail": false,
     "headed": false,
     "outDir": "C:\\src\\Wuic\\FatturazioneElettronica\\playwright\\screenshots"
   },
   "results": [
     {
-      "file": "60-dashboard-magazzino-kpi.mjs",
-      "id": "60",
-      "name": "Dashboard magazzino_kpi (4 KPI + stacked bar + tabella)",
-      "status": "skip",
-      "reason": "frontend not reachable"
+      "file": "08-creazione-fattura.mjs",
+      "id": "08",
+      "name": "Creazione Fattura inviata + trigger totali",
+      "status": "pass",
+      "out": {
+        "fatturaId": "409",
+        "clienteId": "396",
+        "numero": "15/2026",
+        "screenshot": "./screenshots/2026-07-18T08-13-38_fattura-creata.png"
+      },
+      "durationMs": 2423
     },
     {
-      "file": "61-dashboard-varianti-kpi.mjs",
-      "id": "61",
-      "name": "Dashboard varianti_kpi (4 KPI + bar per attributo + ranking)",
-      "status": "skip",
-      "reason": "frontend not reachable"
+      "file": "11-reports.mjs",
+      "id": "11",
+      "name": "Reports (.mrt + datasource SQL coerenti)",
+      "status": "fail",
+      "error": "ASSERT: fatture_inviate: SqlCommand non referenzia dbo.fatture_inviate",
+      "stack": "Error: ASSERT: fatture_inviate: SqlCommand non referenzia dbo.fatture_inviate\n    at assert (file:///C:/src/Wuic/FatturazioneElettronica/playwright/dispatcher.mjs:223:24)\n    at Module.run (file:///C:/src/Wuic/FatturazioneElettronica/playwright/tests/11-reports.mjs:50:5)\n    at async file:///C:/src/Wuic/FatturazioneElettronica/playwright/dispatcher.mjs:233:17",
+      "screenshot": "C:\\src\\Wuic\\FatturazioneElettronica\\playwright\\screenshots\\FAIL_11_1784362419659.png",
+      "durationMs": 1457
     },
     {
-      "file": "62-dashboard-magazzino-storico.mjs",
-      "id": "62",
-      "name": "Dashboard magazzino_storico (4 KPI + line 30gg + tabella movimenti)",
-      "status": "skip",
-      "reason": "frontend not reachable"
+      "file": "16-conversione-preventivo-fattura.mjs",
+      "id": "16",
+      "name": "Conversione preventivo → fattura (API + UI button)",
+      "status": "fail",
+      "error": "ASSERT: conversione fail: {\"ok\":false,\"error\":\"auth required\"}",
+      "stack": "Error: ASSERT: conversione fail: {\"ok\":false,\"error\":\"auth required\"}\n    at assert (file:///C:/src/Wuic/FatturazioneElettronica/playwright/dispatcher.mjs:223:24)\n    at Module.run (file:///C:/src/Wuic/FatturazioneElettronica/playwright/tests/16-conversione-preventivo-fattura.mjs:86:3)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async file:///C:/src/Wuic/FatturazioneElettronica/playwright/dispatcher.mjs:233:17",
+      "screenshot": "C:\\src\\Wuic\\FatturazioneElettronica\\playwright\\screenshots\\FAIL_16_1784362420107.png",
+      "durationMs": 432
     },
     {
-      "file": "63-toolbar-prodotti-genera-matrice-varianti.mjs",
-      "id": "63",
-      "name": "Toolbar action: prodotti/Genera matrice varianti",
-      "status": "skip",
-      "reason": "frontend not reachable"
+      "file": "17-numerazione-multi-serie.mjs",
+      "id": "17",
+      "name": "Numerazione fatture multi-sezionale (trigger + UI verify)",
+      "status": "pass",
+      "out": {
+        "fA1": 410,
+        "fA2": 412,
+        "fB1": 411,
+        "numeri": [
+          "TST_A-1/2026",
+          "TST_B-1/2026",
+          "TST_A-2/2026"
+        ]
+      },
+      "durationMs": 2418
     },
     {
-      "file": "64-toolbar-magazzini-movimento-manuale.mjs",
-      "id": "64",
-      "name": "Toolbar action: magazzini/Movimento manuale",
-      "status": "skip",
-      "reason": "frontend not reachable"
+      "file": "18-solleciti-automatici.mjs",
+      "id": "18",
+      "name": "Solleciti automatici scadenze SCADUTA (SP + UI verify)",
+      "status": "fail",
+      "error": "ASSERT: genera-solleciti fail: {\"ok\":false,\"error\":\"auth required\"}",
+      "stack": "Error: ASSERT: genera-solleciti fail: {\"ok\":false,\"error\":\"auth required\"}\n    at assert (file:///C:/src/Wuic/FatturazioneElettronica/playwright/dispatcher.mjs:223:24)\n    at Module.run (file:///C:/src/Wuic/FatturazioneElettronica/playwright/tests/18-solleciti-automatici.mjs:63:3)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async file:///C:/src/Wuic/FatturazioneElettronica/playwright/dispatcher.mjs:233:17",
+      "screenshot": "C:\\src\\Wuic\\FatturazioneElettronica\\playwright\\screenshots\\FAIL_18_1784362422815.png",
+      "durationMs": 280
     },
     {
-      "file": "65-toolbar-giacenze-inventario-fisico.mjs",
-      "id": "65",
-      "name": "Toolbar action: magazzino_giacenze/Inventario fisico",
-      "status": "skip",
-      "reason": "frontend not reachable"
+      "file": "19-global-search.mjs",
+      "id": "19",
+      "name": "Search globale full-text-like (codice/p.iva/email/citta + UI dropdown)",
+      "status": "fail",
+      "error": "ASSERT: A: search fail: {\"ok\":false,\"error\":\"auth required\"}",
+      "stack": "Error: ASSERT: A: search fail: {\"ok\":false,\"error\":\"auth required\"}\n    at assert (file:///C:/src/Wuic/FatturazioneElettronica/playwright/dispatcher.mjs:223:24)\n    at Module.run (file:///C:/src/Wuic/FatturazioneElettronica/playwright/tests/19-global-search.mjs:62:3)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async file:///C:/src/Wuic/FatturazioneElettronica/playwright/dispatcher.mjs:233:17",
+      "screenshot": "C:\\src\\Wuic\\FatturazioneElettronica\\playwright\\screenshots\\FAIL_19_1784362422898.png",
+      "durationMs": 88
     },
     {
-      "file": "66-toolbar-giacenze-riconcilia-snapshot.mjs",
-      "id": "66",
-      "name": "Toolbar action: magazzino_giacenze/Riconcilia snapshot",
-      "status": "skip",
-      "reason": "frontend not reachable"
+      "file": "20-anteprima-pdf-fattura.mjs",
+      "id": "20",
+      "name": "Anteprima PDF fattura via row action button",
+      "status": "fail",
+      "error": "locator.waitFor: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(':text-is(\"PDF\"):visible, .p-menuitem-link:has-text(\"PDF\"):visible').first() to be visible\u001b[22m\n",
+      "stack": "locator.waitFor: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(':text-is(\"PDF\"):visible, .p-menuitem-link:has-text(\"PDF\"):visible').first() to be visible\u001b[22m\n\n    at Module.run (C:\\src\\Wuic\\FatturazioneElettronica\\playwright\\tests\\20-anteprima-pdf-fattura.mjs:57:19)",
+      "screenshot": "C:\\src\\Wuic\\FatturazioneElettronica\\playwright\\screenshots\\FAIL_20_1784362430024.png",
+      "durationMs": 7131
     },
     {
-      "file": "67-row-action-prodotto-varianti-apri-padre.mjs",
-      "id": "67",
-      "name": "Row action: prodotto_varianti/Apri prodotto padre",
-      "status": "skip",
-      "reason": "frontend not reachable"
+      "file": "21-bulk-marca-pagate.mjs",
+      "id": "21",
+      "name": "Bulk action: Marca pagate scadenze multi-select (UI checkbox + table action)",
+      "status": "fail",
+      "error": "locator.waitFor: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(':text-is(\"Marca pagate\"):visible, .p-menuitem-link:has-text(\"Marca pagate\"):visible').first() to be visible\u001b[22m\n",
+      "stack": "locator.waitFor: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator(':text-is(\"Marca pagate\"):visible, .p-menuitem-link:has-text(\"Marca pagate\"):visible').first() to be visible\u001b[22m\n\n    at Module.run (C:\\src\\Wuic\\FatturazioneElettronica\\playwright\\tests\\21-bulk-marca-pagate.mjs:92:16)",
+      "screenshot": "C:\\src\\Wuic\\FatturazioneElettronica\\playwright\\screenshots\\FAIL_21_1784362438502.png",
+      "durationMs": 8460
     },
     {
-      "file": "68-row-action-attr-valori-apri-attributo.mjs",
-      "id": "68",
-      "name": "Row action: prodotto_attributi_valori/Apri attributo padre",
-      "status": "skip",
-      "reason": "frontend not reachable"
+      "file": "24-quick-create.mjs",
+      "id": "24",
+      "name": "Quick-create modal: Alt+N + button + 4 entita + navigate",
+      "status": "pass",
+      "out": {
+        "entities_tested": 4,
+        "navigations_tested": 2
+      },
+      "durationMs": 6224
     },
     {
-      "file": "69-row-action-giacenze-storico-movimenti.mjs",
-      "id": "69",
-      "name": "Row action: magazzino_giacenze/Storico movimenti",
-      "status": "skip",
-      "reason": "frontend not reachable"
+      "file": "25-iva-riepilogo.mjs",
+      "id": "25",
+      "name": "Riepilogo IVA periodico (SP + endpoint + UI tabella + saldo)",
+      "status": "fail",
+      "error": "Backend MetaService.insertRecord HTTP 500: {\"ok\":false,\"errorCode\":\"errors.db.sql_exception\",\"args\":{\"passthrough\":true,\"legacyWrapped\":true,\"sqlMessage\":\"data_already_inserted_warning\",\"query\":\"SELECT SCOPE_IDENTITY()\",\"stackTrace\":\"System.InvalidOperationException: AsmxProxy invocation failed. Requested='MetaService.insertRecord', Current='ok', Application='ok', Instances='System.Collections.Concurrent.ConcurrentDictionary`2[[System.String, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[Sys",
+      "stack": "Error: Backend MetaService.insertRecord HTTP 500: {\"ok\":false,\"errorCode\":\"errors.db.sql_exception\",\"args\":{\"passthrough\":true,\"legacyWrapped\":true,\"sqlMessage\":\"data_already_inserted_warning\",\"query\":\"SELECT SCOPE_IDENTITY()\",\"stackTrace\":\"System.InvalidOperationException: AsmxProxy invocation failed. Requested='MetaService.insertRecord', Current='ok', Application='ok', Instances='System.Collections.Concurrent.ConcurrentDictionary`2[[System.String, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[Sys\n    at call (file:///C:/src/Wuic/KonvergenceCore/wwwroot/my-workspace/playwright/docs/_shared/backend-api-client.mjs:359:19)\n    at async Module.run (file:///C:/src/Wuic/FatturazioneElettronica/playwright/tests/25-iva-riepilogo.mjs:85:15)\n    at async file:///C:/src/Wuic/FatturazioneElettronica/playwright/dispatcher.mjs:233:17",
+      "screenshot": "C:\\src\\Wuic\\FatturazioneElettronica\\playwright\\screenshots\\FAIL_25_1784362445509.png",
+      "durationMs": 799
     },
     {
-      "file": "70-row-action-movimenti-rettifica-opposta.mjs",
-      "id": "70",
-      "name": "Row action: magazzino_movimenti/Crea rettifica opposta",
-      "status": "skip",
-      "reason": "frontend not reachable"
+      "file": "26-validate-piva-cf.mjs",
+      "id": "26",
+      "name": "Validate P.IVA + CF (formal checksum offline, no external API)",
+      "status": "fail",
+      "error": "ASSERT: A: Ferrari P.IVA dovrebbe essere valida: {\"ok\":false,\"error\":\"auth required\"}",
+      "stack": "Error: ASSERT: A: Ferrari P.IVA dovrebbe essere valida: {\"ok\":false,\"error\":\"auth required\"}\n    at assert (file:///C:/src/Wuic/FatturazioneElettronica/playwright/dispatcher.mjs:223:24)\n    at Module.run (file:///C:/src/Wuic/FatturazioneElettronica/playwright/tests/26-validate-piva-cf.mjs:36:3)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async file:///C:/src/Wuic/FatturazioneElettronica/playwright/dispatcher.mjs:233:17",
+      "screenshot": "C:\\src\\Wuic\\FatturazioneElettronica\\playwright\\screenshots\\FAIL_26_1784362445562.png",
+      "durationMs": 50
     },
     {
-      "file": "71-row-action-magazzini-vedi-giacenze.mjs",
-      "id": "71",
-      "name": "Row action: magazzini/Vedi giacenze",
-      "status": "skip",
-      "reason": "frontend not reachable"
+      "file": "27-saved-searches.mjs",
+      "id": "27",
+      "name": "Saved Searches per utente (CRUD API + isolation + multi-route filter)",
+      "status": "fail",
+      "error": "ASSERT: A: POST fail: {\"ok\":false,\"error\":\"auth required\"}",
+      "stack": "Error: ASSERT: A: POST fail: {\"ok\":false,\"error\":\"auth required\"}\n    at assert (file:///C:/src/Wuic/FatturazioneElettronica/playwright/dispatcher.mjs:223:24)\n    at Module.run (file:///C:/src/Wuic/FatturazioneElettronica/playwright/tests/27-saved-searches.mjs:43:3)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async file:///C:/src/Wuic/FatturazioneElettronica/playwright/dispatcher.mjs:233:17",
+      "screenshot": "C:\\src\\Wuic\\FatturazioneElettronica\\playwright\\screenshots\\FAIL_27_1784362445669.png",
+      "durationMs": 113
     }
   ],
-  "pass": 0,
-  "fail": 0,
-  "skip": 12,
+  "pass": 3,
+  "fail": 9,
+  "skip": 0,
   "total": 12,
-  "runAt": "2026-06-01T12:36:25.401Z"
+  "runAt": "2026-07-18T08:14:05.873Z"
 }

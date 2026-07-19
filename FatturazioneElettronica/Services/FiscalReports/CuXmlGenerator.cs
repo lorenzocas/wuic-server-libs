@@ -48,6 +48,9 @@ public sealed class CuXmlGenerator : IFiscalReportGenerator
 
         try
         {
+            // Dati sostituto d'imposta dalla sezione "Azienda" di appsettings (fail esplicito se placeholder).
+            var azienda = FatturazioneElettronica.Services.AziendaAnagrafica.FromConfig();
+
             // Aggregato collaboratori: query opzionale su tabelle payroll.
             // Pattern: se esiste `dbo.collaboratori_pagamenti` con (anno, codice_fiscale,
             // nome, compenso_lordo, ritenuta), iteriamo. Altrimenti CU vuoto (header only).
@@ -97,7 +100,7 @@ GROUP BY codice_fiscale, nome, cognome", cn);
                 w.WriteAttributeString("annoImposta", anno.ToString());
 
                 w.WriteStartElement("Frontespizio");
-                w.WriteElementString("CFSostitutoImposta", "00000000000"); // Placeholder
+                w.WriteElementString("CFSostitutoImposta", azienda.CodiceFiscale);
                 w.WriteElementString("AnnoFornitura", anno.ToString());
                 w.WriteEndElement();
 

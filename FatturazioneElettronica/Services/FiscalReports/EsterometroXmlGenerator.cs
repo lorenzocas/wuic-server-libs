@@ -49,6 +49,8 @@ public sealed class EsterometroXmlGenerator : IFiscalReportGenerator
 
         try
         {
+            // Dati trasmittente dalla sezione "Azienda" di appsettings (fail esplicito se placeholder).
+            var azienda = FatturazioneElettronica.Services.AziendaAnagrafica.FromConfig();
             // Query fatture verso/da estero. Criteri tipici:
             //   - cliente.nazione != 'IT' (vendite intra/extra UE)
             //   - cliente.codice_destinatario = 'XXXXXXX' (codice convenzionale per estero)
@@ -108,9 +110,9 @@ ORDER BY f.data_documento, f.progressivo", cn);
                 w.WriteElementString("CodiceFornitura", "DAT20");
                 w.WriteEndElement();
 
-                w.WriteStartElement("CessionarioCommittenteDTE"); // dati trasmittente (placeholder)
+                w.WriteStartElement("CessionarioCommittenteDTE"); // dati trasmittente (azienda emittente)
                 w.WriteStartElement("IdentificativiFiscali");
-                w.WriteElementString("IdFiscaleIVA",  "00000000000");
+                w.WriteElementString("IdFiscaleIVA", azienda.PartitaIva);
                 w.WriteEndElement();
                 w.WriteEndElement();
 

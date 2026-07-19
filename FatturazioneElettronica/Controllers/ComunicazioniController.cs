@@ -70,6 +70,11 @@ public class ComunicazioniController : ControllerBase
         var lipeData = GetLipeRaw(anno, trimestre);
         if (lipeData == null) return NotFound(new { ok = false, error = "Nessun dato per il trimestre" });
 
+        // Dati dichiarante dalla sezione "Azienda" di appsettings (fail esplicito se placeholder).
+        FatturazioneElettronica.Services.AziendaAnagrafica azienda;
+        try { azienda = FatturazioneElettronica.Services.AziendaAnagrafica.FromConfig(); }
+        catch (InvalidOperationException ex) { return BadRequest(new { ok = false, error = ex.Message }); }
+
         var sb = new StringBuilder();
         var settings = new XmlWriterSettings { Indent = true, Encoding = new UTF8Encoding(false) };
         using var sw = new StringWriter(sb);
@@ -80,7 +85,7 @@ public class ComunicazioniController : ControllerBase
             w.WriteAttributeString("identificativo", $"LIPE-{anno}-T{trimestre}");
 
             w.WriteStartElement("Frontespizio");
-            w.WriteElementString("CodiceFiscale", "00000000000");  // TODO: leggere da config azienda
+            w.WriteElementString("CodiceFiscale", azienda.CodiceFiscale);
             w.WriteElementString("AnnoImposta", anno.ToString());
             w.WriteEndElement();
 

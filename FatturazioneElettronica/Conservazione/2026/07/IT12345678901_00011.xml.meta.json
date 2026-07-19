@@ -1,0 +1,12 @@
+{
+  "fatturaId": 378,
+  "fileName": "IT12345678901_00011.xml",
+  "sha256": "46393c307ce40f9e71bd2df7c3decab41782242846fcd1756791f7366274e477",
+  "fileSizeBytes": 2844,
+  "sealedAt": "2026-07-18T07:51:32.1750593Z",
+  "sealedBy": "100285",
+  "retentionUntil": "2036-07-18T07:51:32.1750593Z",
+  "tsaUrl": "https://freetsa.org/tsr",
+  "tsSerial": "64f30e0",
+  "metadataJson": "{\u0022numero\u0022:\u002211/2026\u0022,\u0022anno\u0022:2026,\u0022totale\u0022:122.0000,\u0022cliente\u0022:\u0022Edilizia Romana S.p.A. (e2e)\u0022,\u0022cliente_piva\u0022:\u002212345678901\u0022}"
+}
