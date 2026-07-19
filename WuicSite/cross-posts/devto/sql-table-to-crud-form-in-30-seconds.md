@@ -1,12 +1,12 @@
 ---
 title: "From SQL table to working CRUD form in 30 seconds: a metadata-driven scaffolding approach"
 published: false
-description: "How WUIC turns a CREATE TABLE statement into a complete CRUD UI — list, edit form, validation, lookup widgets — without writing a single TypeScript file. The actual scaffolding endpoint, what it inspects, and what it skips."
+description: "How WUIC turns a CREATE TABLE statement into a complete CRUD UI — list, edit form, validation, lookup widgets — without writing a single TypeScript file. How the built-in scaffolder works, what it inspects, and what it skips."
 tags: database, angular, sqlserver, lowcode
 canonical_url: https://wuic-framework.com/blog/sql-table-to-crud-form-in-30-seconds
 ---
 
-The cleanest demo of WUIC is also the boring one: write a SQL `CREATE TABLE`, hit one endpoint, refresh the browser. There's a working list page, an edit form, validation rules, lookup widgets, sortable columns, mobile responsiveness — and you wrote no Angular. No controller. No service. No DTOs.
+The cleanest demo of WUIC is also the boring one: write a SQL `CREATE TABLE`, click one button, refresh the browser. There's a working list page, an edit form, validation rules, lookup widgets, sortable columns, mobile responsiveness — and you wrote no Angular. No controller. No service. No DTOs.
 
 This post walks through what's actually happening when you do that, and what it's *not* doing (because over-promising is how low-code platforms lose trust).
 
@@ -28,14 +28,11 @@ CREATE TABLE vendors (
 );
 ```
 
-Then call the scaffolding endpoint:
+Then open the built-in **Scaffolding** page (it ships as an admin menu entry — no code, no external tool). Pick the connection, the database, and the `vendors` table from the dropdowns, tick **Create Menu**, and hit **Scaffold Table**:
 
-```http
-POST /api/Meta/AsmxProxy/MetaService.scaffoldTable
-Cookie: k-user=...
+![The built-in Scaffolding page: pick connection → database → table, tick Create Menu, hit Scaffold Table](https://wuic-framework.com/assets/wuic-framework-docs/screenshots/scaffolding__scaffold-table__desktop.png)
 
-{ "tableName": "vendors" }
-```
+The same page has a few neighbours: **Scaffold DB** does every table in a schema at once, **Scaffold Columns** re-reads a table you've already scaffolded and adds the columns you added since (without clobbering your manual tweaks), and **Scaffold OData** exposes the route as an OData endpoint. It's all driven by the same handler underneath — scriptable via the `scaffolding.scaffoldTable` proxy method if you'd rather automate it, but the page is how you do it day-to-day.
 
 Refresh the app. There's a new menu entry "Vendors" with:
 
@@ -120,8 +117,8 @@ A short list, because honest documentation matters:
 
 ## Try it
 
-The scaffolding endpoint runs on the [public demo](https://wuic-framework.com/sandbox). The demo data is reset every 24 hours, so you can `CREATE TABLE foo (id int identity, name nvarchar(100))`, scaffold it, see the auto-generated CRUD, then leave — by tomorrow the schema is clean again.
+The Scaffolding page runs on the [public demo](https://wuic-framework.com/sandbox). The demo data is reset every 24 hours, so you can `CREATE TABLE foo (id int identity, name nvarchar(100))`, scaffold it, see the auto-generated CRUD, then leave — by tomorrow the schema is clean again.
 
-If you want to read the source: the scaffolder is `MetaController.AsmxProxy.scaffoldTable` and the runtime metadata loader is `MetadataService.loadFromDb`. The codebase chatbot ([previous post](https://wuic-framework.com/blog/rag-chatbot-with-claude-and-bge-m3)) can find the exact files for you faster than I can paste links.
+If you want to read how it works under the hood: the scaffolder entry point is `scaffolding.scaffoldTable` (one gateway per DBMS — SQL Server, MySQL, PostgreSQL, Oracle — because `INFORMATION_SCHEMA` is only *mostly* portable). The in-product codebase chatbot ([covered here](https://wuic-framework.com/blog/rag-chatbot-with-claude-and-bge-m3)) can find the exact files for you faster than I can paste links.
 
-These three posts are the first batch — the next two we're writing dig into the **mobile auto-layout** (how a desktop table becomes a card stack with zero per-screen config) and the **workflow engine** (multi-step business processes from a graph metadata table). Subscribe via the RSS feed, or just check back here.
+If this sounded interesting, the follow-ups are already out: how the **mobile auto-layout** turns a desktop table into a card stack with [zero per-screen config](https://wuic-framework.com/blog/mobile-first-auto-layout-zero-config), and how the **workflow engine** runs multi-step business processes [from a graph metadata table](https://wuic-framework.com/blog/workflow-engine-graph-source-of-truth). Or skip the reading and [try the live demo](https://wuic-framework.com/sandbox) — the schema resets every night at 4:00, so you can scaffold anything you like.

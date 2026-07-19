@@ -53,7 +53,7 @@ And a teaser of what the chatbot does with that retrieval. Open the dashboard de
 
 ⚡ From SQL `CREATE TABLE` to working CRUD UI in 30 seconds.
 
-Write a `CREATE TABLE`. Hit one endpoint. Refresh the browser. There's a working list page, an edit form, validation rules pulled from the schema, FK columns auto-rendered as lookup widgets, sortable columns, mobile responsiveness — and you wrote no Angular.
+Write a `CREATE TABLE`. Open the built-in Scaffolding page, pick the table, click Scaffold. Refresh the browser. There's a working list page, an edit form, validation rules pulled from the schema, FK columns auto-rendered as lookup widgets, sortable columns, mobile responsiveness — and you wrote no Angular.
 
 Sounds like every low-code platform's marketing pitch. The post explains exactly *what* the scaffolder inspects from the schema, what it *doesn't* try to do (we picked our battles), and where the boundary lives between "auto-generated" and "you tweak this by hand".
 

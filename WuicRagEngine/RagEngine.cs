@@ -26,11 +26,13 @@ public sealed class RagEngine : IDisposable
     private readonly Dictionary<string, string> _translate;
     private readonly string _toolsJson; // array tool-definition (verbatim da rag_tools.json), passato a Claude
     private readonly string _envProfile; // floor profile del server: "internal" | "release"
+    private readonly IntentCache? _intentCache; // retrieval pre-rerankato per intento (null = feature off)
     public int DocsLoaded { get; }
 
     private RagEngine(Pipeline pipe, OnnxEmbedder emb, OnnxReranker ce,
-                      Dictionary<string, string> translate, string toolsJson, string envProfile, int docs)
-    { _pipe = pipe; _emb = emb; _ce = ce; _translate = translate; _toolsJson = toolsJson; _envProfile = envProfile; DocsLoaded = docs; }
+                      Dictionary<string, string> translate, string toolsJson, string envProfile, int docs,
+                      IntentCache? intentCache)
+    { _pipe = pipe; _emb = emb; _ce = ce; _translate = translate; _toolsJson = toolsJson; _envProfile = envProfile; DocsLoaded = docs; _intentCache = intentCache; }
 
     /// <summary>Carica indice + modelli ONNX + tokenizer + translate-cache. Costoso (~secondi,
     /// warm-up modelli). Da chiamare una volta e tenere come singleton.</summary>
@@ -80,8 +82,12 @@ public sealed class RagEngine : IDisposable
         // warm-up: prima query reale veloce (evita cold start su prima richiesta utente)
         try { _ = pipe.SearchHits("warmup", topK: 1); } catch { }
 
+        // Intent-cache (opzionale): {root}/intent_cache.json. Assente -> null (pipeline
+        // classico). Gli exemplar vengono embeddati in background dentro TryLoad.
+        var intentCache = IntentCache.TryLoad(root, pipe.EmbedQuery);
+
         string envProfile = (profile ?? "internal").Trim().ToLowerInvariant() == "release" ? "release" : "internal";
-        return new RagEngine(pipe, emb, ce, translate, toolsJson, envProfile, docs.Count);
+        return new RagEngine(pipe, emb, ce, translate, toolsJson, envProfile, docs.Count, intentCache);
     }
 
     /// <summary>Lookup IT->EN nella cache (come _translate_query del server: solo cache, no live).</summary>
@@ -99,7 +105,16 @@ public sealed class RagEngine : IDisposable
     /// (release) drop deny + redact a firma -> slice topK. Ritorna (hit, snippet_finale).</summary>
     private List<(RagHit hit, string snippet)> BuildSources(string query, int topK, string effProfile)
     {
-        var raw = _pipe.SearchHits(Translate(query), Math.Max(topK + 8, 12));
+        // Intent-cache first: su match (1 embed, cosine vs exemplar) serviamo il
+        // contesto pre-rerankato e saltiamo embed+BM25+cross-encoder (il collo di
+        // bottiglia CPU). Miss/warm-up incompleto/chunk_id stantii -> pipeline pieno.
+        List<RagHit>? raw = null;
+        if (_intentCache is not null
+            && _intentCache.TryMatch(query, _pipe.EmbedQuery, out _, out var cachedHits, out _))
+        {
+            raw = _pipe.TryHitsByChunkIds(cachedHits, minHits: Math.Min(topK, 5));
+        }
+        raw ??= _pipe.SearchHits(Translate(query), Math.Max(topK + 8, 12));
         var filtered = DedupDocLocales(DropAiInternal(raw));
         var outp = new List<(RagHit, string)>(topK);
         foreach (var h in filtered)
@@ -128,15 +143,25 @@ public sealed class RagEngine : IDisposable
     }
 
     /// <summary>Stato (contratto /health) + provider ONNX attivo (GPU/CPU) + profilo.</summary>
-    public string HealthJson() => JsonSerializer.Serialize(new
+    public string HealthJson()
     {
-        status = "ok",
-        engine = "dotnet-onnx",
-        provider = OnnxSession.LastProvider,
-        profile = _envProfile,
-        docs_loaded = DocsLoaded,
-        translate_cache_size = _translate.Count,
-    });
+        object? intent = null;
+        if (_intentCache is not null)
+        {
+            var (hits, misses, lastIntent, ready, intents) = _intentCache.Stats;
+            intent = new { ready, intents, hits, misses, last_intent = lastIntent };
+        }
+        return JsonSerializer.Serialize(new
+        {
+            status = "ok",
+            engine = "dotnet-onnx",
+            provider = OnnxSession.LastProvider,
+            profile = _envProfile,
+            docs_loaded = DocsLoaded,
+            translate_cache_size = _translate.Count,
+            intent_cache = intent,
+        });
+    }
 
     private static RagSourceDto ToDto(RagHit h, int rank, string snippet, string effProfile)
     {

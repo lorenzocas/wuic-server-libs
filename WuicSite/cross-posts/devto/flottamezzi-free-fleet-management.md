@@ -1,119 +1,111 @@
 ---
 title: "FlottaMezzi: a free fleet management app with geolocation, maintenance deadlines and cost rollups"
 published: false
-description: "FlottaMezzi is the third free app on WUIC: anagrafica mezzi, manutenzioni programmate con alert scadenze (bollo, revisione, assicurazione, tagliando), tracking geolocation via OBD/GPS feed, aggregazione costi per mezzo / driver / periodo, reportistica. Free as-shipped, runs on your own SQL Server."
+description: "FlottaMezzi is the third free app on WUIC: vehicle and driver registry, deadline tracking (driver license, insurance, inspection) with a daily scheduled scan, GPS position feed with live map and per-day route playback, per-vehicle cost roll-ups (maintenance, fuel, claims) and dashboards. Free as-shipped, runs on your own SQL Server."
 tags: iot, geolocation, opensource, wuic
 canonical_url: https://wuic-framework.com/blog/flottamezzi-free-fleet-management
 ---
 
-`FlottaMezzi` is the third and final app in our free distribution lineup. It targets the problem space that mid-size logistics / construction / service companies handle in Excel until someone reaches their limit: tracking what mezzi (cars, vans, trucks, escavatori, muletti — anything with a license plate or a serial) the company owns, what's due on each of them, where they are right now if they're moving, and what each one is costing per month.
+`FlottaMezzi` is the third and final app in our free distribution lineup. It targets the problem space that mid-size logistics / construction / service companies handle in Excel until someone reaches their limit: tracking what vehicles the company owns, what's due on each of them, where they are right now if they're moving, and what each one is costing per month.
 
 This post covers what's in the box, who tends to install this kind of thing, and the same licensing rule that applies to the other two free apps.
 
 ## What ships in the free distribution
 
-Download is `FlottaMezzi-iis-v1.0.0-with-dbs.zip` on the [Downloads page](https://wuic-framework.com/downloads). Inside:
+Download is `FlottaMezzi-iis-v1.5.0-with-dbs.zip` on the [Downloads page](https://wuic-framework.com/downloads#free-apps). Inside:
 
-### Anagrafica & ownership
+### Registry & ownership
 
-- **Mezzi** — targa, telaio, marca/modello, anno, classe (auto, furgone, autocarro, semirimorchio, attrezzatura), assegnatario, sede di parcheggio. Multi-azienda (se hai più P.IVA che condividono la flotta)
-- **Drivers / autisti** — anagrafica, patente con data scadenza, CQC, ADR, tessera tachigrafa
-- **Documenti del mezzo** — libretto, carta di circolazione, contratto noleggio/leasing, polizza assicurativa, certificato revisione — ognuno con data emissione + data scadenza
+- **Vehicles (mezzi)** — plate, chassis number, make/model, year, fuel type, current odometer, vehicle type and status (both lookup-driven, so you can add your own classes), assigned driver, and last known GPS position
+- **Drivers (conducenti)** — personal data, license number, license category, license expiry date, contacts
+- **Maintenance (manutenzioni)** — date, odometer at service, type, cost, workshop, invoice reference
+- **Refuelings (rifornimenti)** — litres, total cost, price per litre, odometer reading; a DB trigger propagates the odometer reading back to the vehicle, so `km_attuali` stays current without a separate data-entry step
+- **Insurance contracts (contratti assicurativi)** — company, policy number, start/expiry, annual cost, coverage type
+- **Inspections (revisioni)** — date, outcome, next due date, inspection centre, cost
+- **Incidents (sinistri)** — date, driver, counterparty, estimated cost, claim status; a trigger flips the vehicle status when an incident comes in
 
-### Scadenze automatiche
+Every one of these is a metadata-driven WUIC route, so each list ships with search, filters, Excel export and an edit dialog for free — and adding a column to the SQL table makes it appear in the UI.
 
-The piece that triggers an ROI conversation:
+### Deadline tracking
 
-- **Bollo annuale** — calcolato dalla regione di immatricolazione + cv fiscali
-- **Revisione** — biennale per auto < 3.5 t, annuale per veicoli commerciali pesanti, tachigrafico ogni 2 anni
-- **Assicurazione** — RCA + ARD, scadenza polizza
-- **Tagliando** — basato su km percorsi (manuale: leggi km al pieno) o tempo (es. ogni 12 mesi)
-- **Patente / CQC / ADR autista** — scadenze personali, non del mezzo
+The piece that triggers an ROI conversation: driver license expiry, insurance expiry and inspection due dates all live in the data model, and a scheduled job (`flottamezzi_check_scadenze`, a row in the framework's `scheduler` table, daily at 07:00) scans for anything expiring in the next 30 days — plus anything already expired — and reports the counts. The home dashboard has a **deadline aging** widget built on the same data, so "what's about to bite us" is the first thing a fleet manager sees.
 
-The `FlottaJobsController.CheckScadenze` endpoint is a scheduled job (row in `scheduler` table, runs daily at 06:00) that scans `_mezzi_scadenze` and:
-
-1. Sends an email to the assegnatario + responsabile flotta 30 / 14 / 7 / 1 giorni before each deadline
-2. Pushes a notification in-app via `INotificationRepository.EnqueueAsync` (the notification bell in the menubar lights up)
-3. Logs the alert in `_mezzi_alert_log`
-
-You can configure the lead-time intervals (30/14/7/1 vs 60/30/15 vs whatever) in `appsettings.json:FlottaMezzi:LeadTimes`.
+Out of the box the job produces the scan summary and the dashboard does the surfacing; wiring the scan result to outbound email or the in-app notification bell is a documented extension point (the scheduler row already carries an exception-notification address).
 
 ### Geolocation
 
-`GeolocationController.UpdatePosition` accepts position updates from any device that can POST a JSON payload:
+`POST /api/Geolocation/UpdatePosition` accepts position updates from anything that can authenticate and POST a JSON payload:
 
 ```json
-{ "mezzoId": 42, "lat": 45.4642, "lng": 9.1900, "speed": 60, "heading": 180, "timestamp": "2026-05-15T14:30:00Z" }
+{ "mezzo_id": 42, "latitudine": 45.4642, "longitudine": 9.1900 }
 ```
 
-Source can be an OBD-II dongle (Teltonika FMB003, Queclink GV57), a smartphone app, an ELD-style fleet tracker. The endpoint inserts into `_mezzi_positions` (time-series, partitioned by month). The UI has a `map-list` widget (Google Maps + clustering) showing current position of every active mezzo, last-known if offline > 10 min, and a per-mezzo route playback.
+The endpoint requires an authenticated session with the `admin`, `gestore_flotta` or `autista` role — so a driver's phone, a scripted tracker bridge, or a back-office import can all feed it, but a random unauthenticated device can't. It updates the vehicle's last known position, and a `mezzi_posizioni` history table (timestamp, coordinates, speed) accumulates the trail, with a per-day route view used by the map for **route playback**.
 
-We DO NOT ship a hardware integration in the free distribution — you bring your own device that POSTs to our endpoint. The contract is documented; any device that can hit `POST /api/Geolocation/UpdatePosition` with a bearer token works.
+The UI is the framework's map archetype — Google Maps with marker clustering, custom marker colouring per vehicle, and polyline rendering for routes. You supply your own key in `appsettings.json` under `GoogleMaps:ApiKey`.
 
-### Aggregazione costi
+![Map list — live markers with clustering, click a vehicle for its info window](https://wuic-framework.com/assets/wuic-framework-docs/screenshots/map-list__map-marker__desktop.gif)
 
-`FlottaJobsController.AggregaCosti` is another scheduled job (weekly). Reads:
+We do NOT ship a hardware integration in the free distribution — you bring your own device or bridge that POSTs to the endpoint. If you don't have a tracker yet, a `curl` loop with a logged-in session is enough to see the map move.
 
-- **Costi diretti** — manutenzioni, ricambi, carburante (import CSV dalle fuel card), assicurazione (rata mensile), bollo (rata annuale ammortizzata)
-- **Costi indiretti** — leasing/noleggio, parcheggi, multe pagate dall'azienda
-- **Km percorsi** — dal feed geolocation o lettura manuale al rifornimento
+### Cost roll-ups
 
-Produces:
+Costs flow in from three sources — maintenance, fuel, incidents — and roll up in three places:
 
-- **Costo €/km per mezzo** — vista mensile e cumulativa
-- **Costo €/km per driver** — utile per identificare guidatori che bruciano carburante o danneggiano i mezzi
-- **Costo €/giorno di servizio** — diviso classe mezzo, utile per pricing dei lavori (es. *"quanto mi costa tenere un escavatore in cantiere?"*)
-- **TCO** (Total Cost of Ownership) per mezzo su orizzonte 5 anni — utile per la decisione *"questo Iveco lo tengo o lo cambio?"*
+- **`ReportCostiMezzo`** — per-vehicle cost report over a selectable year range, broken down by maintenance / fuel / claims, sorted by total (the "which vehicle is bleeding us" view)
+- **Monthly cost view** (`vw_costi_per_mese`) — feeding the dashboard's monthly trend and **cost forecast** widgets
+- **Top vehicles dashboard** — the most expensive vehicles at a glance
 
-Reports in `ReportingController`:
-
-- **ReportCostiMezzo** — PDF/Excel, periodo selezionabile, dettaglio per voce di costo
-- Drill-down dalla dashboard alla singola voce di spesa
+A second scheduled job (`flottamezzi_aggrega_costi`, daily at 02:00) keeps the aggregates fresh.
 
 ### Dashboard
 
-`/dashboard` shows:
+The home dashboard ships with:
 
-- KPI tile: mezzi attivi / in officina / fermi
-- Tabella scadenze imminenti (prossimi 30 giorni)
-- Map widget con posizione live (richiede geolocation feed configurato)
-- Chart costi mensili per categoria
-- Top 5 mezzi per costo €/km (ultimi 3 mesi)
+- Deadline aging (what expires in the next 30 days, what's already expired)
+- Monthly cost trend + forecast
+- Top vehicles by cost
+- Live map with current positions
 
 ## Who installs this kind of app
 
 It pays off if:
 
-- You have **15+ veicoli** o attrezzature — sotto questo threshold un Excel + un Google Calendar + un'agenda della segretaria copre tutto
-- Hai **multi-sede o cantieri mobili** — quando sai dove sta ogni mezzo in tempo reale eviti il "vado io a prenderlo, dove l'avete lasciato?"
-- Operi in un settore **regolato** (trasporto merci pesanti, ADR, rifiuti) dove le scadenze documentali sono auditate
-- Vuoi **smettere di pagare** €5–€15 per mezzo per mese al gestionale verticale (Targa Telematics, Vodafone Automotive Fleet, Wialon hosted) — la spesa mensile per 50 mezzi è €250–€750, l'app gira gratis su un server tuo
+- You have **15+ vehicles** or plated equipment — below that threshold, Excel plus a shared calendar covers it
+- You run **multiple sites or mobile crews** — knowing where every vehicle is in real time kills the "who took the van and where did they leave it?" phone calls
+- You operate in a **regulated sector** (heavy goods transport, waste) where document deadlines get audited
+- You want to **stop paying per-vehicle-per-month** to a vertical SaaS — at 50 vehicles even a few euros per vehicle per month adds up to thousands per year, and this app runs free on a server you already have
 
-Non pay off se:
-- Hai 5 mezzi o meno
-- Vuoi white-glove SaaS, no infrastructure to manage — in quel caso prendi un servizio cloud
-- Hai bisogno di integrazione nativa con DKV/Eni Card/UTA Card per import automatico carburante — il free ships con import CSV manuale; le integrazioni native sono nella roadmap commerciale
+It does NOT pay off if:
+
+- You have 5 vehicles or fewer
+- You want white-glove SaaS with zero infrastructure to manage — in that case buy a cloud service
+- You need native fuel-card integrations (DKV, Eni, UTA) with automatic transaction import — the free app tracks refuelings as records you enter or feed via the API; native card integrations are the kind of extension that lives on the commercial side
 
 ## Install
 
-Stesso flusso degli altri free apps:
+Same flow as the other free apps:
 
-1. Download `FlottaMezzi-iis-v1.0.0-with-dbs.zip` da [Downloads](https://wuic-framework.com/downloads)
-2. Unzip in `C:\inetpub\wwwroot\Flotta`
-3. Restore i due `.bak` (`FlottaMezzi_Data` + `_Metadata`) su SQL Server 2022+
-4. Edit `appsettings.json` per le 2 connection string (e opzionalmente la Google Maps API key se vuoi la mappa custom; senza chiave la mappa funziona ma con tile marcata "for development purposes")
-5. IIS site, app pool No Managed Code, browse, login `admin_test / Test123!`
+1. Download `FlottaMezzi-iis-v1.5.0-with-dbs.zip` from [Downloads](https://wuic-framework.com/downloads#free-apps)
+2. Unzip into `C:\inetpub\wwwroot\Flotta`
+3. Restore the two `.bak` files shipped in the `db\` folder (`data.bak` + `metadata.bak`) — SQL Server 2017 or later, Express is enough; the bundled `INSTALL.md` has the exact `RESTORE DATABASE` statements
+4. Edit `appsettings.json` for the two connection strings, plus your `GoogleMaps:ApiKey` for the map
+5. IIS site, app pool set to No Managed Code, browse, log in as `admin_test / Test123!`
 
-Per il feed geolocation: il device tracker deve fare `POST /api/Geolocation/UpdatePosition` con un bearer token. Il token si configura in `appsettings.json:FlottaMezzi:GeolocationApiKey`. Se non hai ancora un device, puoi simulare con `curl` + uno script bash per testare la mappa.
+For the geolocation feed: authenticate (any user with the `autista` or `gestore_flotta` role), then POST to `/api/Geolocation/UpdatePosition` with the session cookie. No tracker hardware yet? Simulate with `curl` and a loop to test the map.
 
 ## License rule
 
-Identica agli altri due free app:
+Identical to the other two free apps:
 
-> **FlottaMezzi è free as-shipped. Se ricompili l'app da sorgente serve una licenza WUIC.**
+> **FlottaMezzi is free as-shipped. If you rebuild the app from source you need a WUIC license.**
 
-Lo ZIP free ti dà il binary pronto (`FlottaMezzi.dll`) con la `.lic` host-binding embedded che autorizza il runtime framework. Lo ZIP source ti dà il C# dell'app — ma ricompilarlo localmente produce un binary con identità diversa (PKT strong-name diverso, nessuna `WUIC.HostBindingLicense` embedded — non distribuiamo né la .snk né la chiave RSA privata che firma la .lic), quindi il framework smette di riconoscere l'host come autorizzato e cade sul controllo fingerprint standard.
+The free ZIP gives you the ready-to-run binary (`FlottaMezzi.dll`) with the embedded host-binding `.lic` that authorizes the framework runtime. The source ZIP gives you the app's C# — but recompiling it locally produces a binary with a different identity (different strong-name PKT, no embedded `WUIC.HostBindingLicense` resource — we don't ship the .snk or the RSA private key that signs the .lic), so the framework stops recognizing the host as authorized and falls back to the standard fingerprint check.
 
-Puoi estendere FlottaMezzi senza ricompilare il binary: aggiungi metadata via SQL, custom components Angular, custom report Stimulsoft, job schedulati nella tabella `scheduler`, configura un'API key geolocation diversa via `appsettings.json`. Aggiungere un controller nuovo (es. `FuelCardController.cs` per integrare DKV) richiede invece ricompilare `FlottaMezzi.dll`, quindi quello supera la soglia licenza.
+You can extend FlottaMezzi without recompiling the binary: add metadata via SQL, add custom Angular components, add Stimulsoft reports, add scheduled jobs in the `scheduler` table, change the Maps key or connection strings in `appsettings.json`. Adding a new controller (say, a `FuelCardController.cs` to integrate DKV) requires recompiling `FlottaMezzi.dll`, so that crosses the license line.
 
-Vedi [Pricing](https://wuic-framework.com/pricing) — Developer tier €600/anno per i sorgenti del framework + il diritto di distribuire binari FlottaMezzi ricompilati dentro i tuoi prodotti (integrazioni native fuel card, dongle OBD-II white-label, conservazione regolamentata dei dati tachigrafici).
+## Get it
+
+- **Download**: [Downloads → Free apps → FlottaMezzi](https://wuic-framework.com/downloads#free-apps) — current release is **v1.5.0**
+- **Try WUIC first**: the framework underneath has a live sandbox at [demo.wuic-framework.com](https://demo.wuic-framework.com/)
+- **Need fuel-card integrations or white-label trackers?** See [Pricing](https://wuic-framework.com/pricing) — the Developer tier unlocks the framework source and the right to ship recompiled FlottaMezzi binaries inside your products

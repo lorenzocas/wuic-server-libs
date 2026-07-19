@@ -61,6 +61,42 @@ public sealed class Pipeline
     }
 
     // ---------- public API ----------
+    /// <summary>Embedding bge-m3 della query (stessa tokenizzazione di VectorScores).
+    /// Usato da IntentCache per il match cosine: 1 solo forward dell'embedder,
+    /// contro i ~40 del cross-encoder che il match permette di saltare.</summary>
+    public float[] EmbedQuery(string query) => _emb.Encode(_tok.EncodeSingle(query));
+
+    /// <summary>Ricostruisce RagHit da una lista di chunk_id pre-rerankati (IntentCache).
+    /// Snippet dal Doc live (identico a SearchHits: cap 1500) cosi' resta allineato
+    /// all'indice corrente. chunk_id sconosciuti (indice rigenerato) vengono saltati;
+    /// se ne sopravvivono meno di <paramref name="minHits"/> ritorna null e il
+    /// chiamante ricade sul pipeline pieno.</summary>
+    public List<RagHit>? TryHitsByChunkIds(IReadOnlyList<IntentCache.CachedHit> cached, int minHits)
+    {
+        _byChunkId ??= BuildChunkIndex();
+        var hits = new List<RagHit>(cached.Count);
+        int rank = 1;
+        foreach (var c in cached)
+        {
+            if (!_byChunkId.TryGetValue(c.ChunkId, out int i)) continue;
+            var d = _docs[i];
+            string text = d.Text ?? "";
+            string snippet = text.Length > 1500 ? text.Substring(0, 1500) : text;
+            hits.Add(new RagHit(rank++, d.ChunkId, d.RelPath, d.SymbolName, d.SymbolType,
+                d.StartLine, d.EndLine, c.ScoreVector, c.ScoreBm25, snippet));
+        }
+        return hits.Count >= minHits ? hits : null;
+    }
+
+    private Dictionary<string, int>? _byChunkId;
+    private Dictionary<string, int> BuildChunkIndex()
+    {
+        var map = new Dictionary<string, int>(_docs.Count, StringComparer.Ordinal);
+        for (int i = 0; i < _docs.Count; i++)
+            if (!string.IsNullOrEmpty(_docs[i].ChunkId)) map[_docs[i].ChunkId] = i;
+        return map;
+    }
+
     /// <summary>Solo chunk_id (usato dal gate di parità).</summary>
     public List<string> Search(string query, int topK = 8, double ceBlend = 0.85,
         int ceTopN = 40, double ceIntentWeight = 0.0, int docRecallGuarantee = 5)

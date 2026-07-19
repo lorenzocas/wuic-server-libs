@@ -6,7 +6,7 @@ tags: crm, opensource, wuic, selfhosted
 canonical_url: https://wuic-framework.com/blog/crmapp-free-crm-on-wuic
 ---
 
-CrmApp is the first of the three **free distributions** we ship on top of WUIC. It runs on your own Windows server, talks to your own SQL Server, and uses the WUIC framework runtime under a bundled host-binding license — which means you don't need to buy anything to run it. The download is a single `<App>-iis-v1.0.0-with-dbs.zip` archive on the [Downloads page](https://wuic-framework.com/downloads): unzip, point IIS at the folder, restore the tutorial DB, you're live.
+CrmApp is the first of the three **free distributions** we ship on top of WUIC. It runs on your own Windows server, talks to your own SQL Server, and uses the WUIC framework runtime under a bundled host-binding license — which means you don't need to buy anything to run it. The download is a single `CrmApp-iis-v1.5.0-with-dbs.zip` archive on the [Downloads page](https://wuic-framework.com/downloads#free-apps): unzip, point IIS at the folder, restore the two shipped databases, you're live.
 
 This post covers three things:
 
@@ -16,22 +16,27 @@ This post covers three things:
 
 ## What's inside
 
-CrmApp is a B2B CRM. Not a marketing automation suite, not a help-desk ticket system — a sales pipeline tool. The shipped database (`CrmApp_Data`) has the entities you'd expect:
+CrmApp is a B2B CRM. Not a marketing automation suite, not a help-desk-only ticket system — a sales pipeline tool. The shipped database has the entities you'd expect:
 
-- **Customers** (anagrafica clienti) — names, PIVA, addresses, contacts, multi-address support, soft-delete
-- **Opportunities** — value, probability, stage, expected close date, owner, history
-- **Activities** — calls, meetings, emails attached to a customer or opportunity, with assigned-to and due-date
+- **Accounts & contacts** — companies and the people inside them, linked, with the usual anagrafica fields and soft-delete
+- **Leads** — with conditional grid styling so the hot ones stand out
+- **Opportunities** — value, stage, owner, plus **product lines per opportunity** with automatically recalculated totals
+- **Activities** — calls, meetings, emails attached to an account or opportunity, with assigned-to and due-date
+- **Helpdesk cases with SLA tracking** — a lightweight case module with SLA deadlines, so post-sale doesn't live in a separate tool
 - **Pipeline view** — kanban board grouping opportunities by stage, drag-and-drop to move them
-- **Dashboard** — per-role widgets (sales rep sees their pipeline, sales manager sees the team rollup)
-- **User & role management** — `admin_test`, `sales_test`, `readonly_test` seeded out of the box
+- **Guided "new opportunity" wizard** — a four-step workflow (account → contact → opportunity → products) built on the framework's workflow engine, launched from its own menu entry
+- **Dashboards & notifications** — per-role widgets and an in-app notification table
+- **User & role management** — an `admin_test` user is seeded out of the box; add your own users and roles from the UI
 
-The UI is metadata-driven (the part of WUIC that scaffolded the CRUD forms from `_metadati__tabelle` / `_metadati__colonne` rows — same engine described in [our earlier post](https://wuic-framework.com/blog/sql-table-to-crud-form-in-30-seconds)). Practical consequence: every list page has search, sort, column visibility, filter chips, export to Excel, edit dialog. You don't lose any of that when you add a new field.
+![Kanban pipeline — drag an opportunity card between stages, the record updates underneath](https://wuic-framework.com/assets/wuic-framework-docs/screenshots/kanban-list__kanban-base__desktop.gif)
+
+The UI is metadata-driven (the part of WUIC that scaffolds CRUD forms from `_metadati__tabelle` / `_metadati__colonne` rows — same engine described in [our earlier post](https://wuic-framework.com/blog/sql-table-to-crud-form-in-30-seconds)). Practical consequence: every list page has search, sort, column visibility, filter chips, export to Excel, edit dialog. You don't lose any of that when you add a new field.
 
 What's NOT inside (on purpose):
 
-- No outbound email automation (drips, sequences). If you want SendGrid integration you wire it in via `customCrudHookClass`
-- No native phone integration. The `Activities` table has a `phone_number` field, but no Twilio/dialer plugin ships in the free distribution
-- No mobile app. The UI is responsive (the framework's `MobileTemplateRenderingService` kicks in on viewport <= 720 px) but there's no Android/iOS native shell
+- No outbound email automation (drips, sequences). If you want SendGrid integration you wire it in via the `customCrudHookClass` hook in `appsettings.json`
+- No native phone integration. No Twilio/dialer plugin ships in the free distribution
+- No mobile app. The UI is responsive — the framework's `DeviceAwarenessService` swaps list grids to a card stack below the 768 px breakpoint (configurable) — but there's no Android/iOS native shell
 
 ## Who it's for
 
@@ -46,14 +51,14 @@ It does NOT pay off if you're a 200-person sales org that needs Salesforce-tier 
 
 ## How to install (10 minutes, honestly)
 
-1. Download `CrmApp-iis-v1.0.0-with-dbs.zip` from the [Downloads page](https://wuic-framework.com/downloads)
+1. Download `CrmApp-iis-v1.5.0-with-dbs.zip` from the [Downloads page](https://wuic-framework.com/downloads#free-apps)
 2. Unzip into `C:\inetpub\wwwroot\CrmApp`
-3. Restore the two `.bak` files in the `db\` folder to your local SQL Server (`CrmApp_Data` + `CrmApp_Metadata`) — `RESTORE DATABASE` from SSMS, takes ~5 seconds each (SQL Server 2022+ for the BAK format)
+3. Restore the two `.bak` files shipped in the `db\` folder (`data.bak` + `metadata.bak`) to your SQL Server — the bundled `INSTALL.md` has the exact `RESTORE DATABASE` statements. SQL Server 2017 or later; Express edition is enough
 4. Edit `appsettings.json` and set the two connection strings to your SQL Server instance
-5. In IIS Manager: add new site, point to the unzipped folder, set the app pool to **No Managed Code** (this is .NET 10 in-process, the pool isn't loading any CLR)
+5. In IIS Manager: add new site, point to the unzipped folder, set the app pool to **No Managed Code** (this is ASP.NET Core 10, the pool isn't loading any CLR)
 6. Browse to the URL, log in as `admin_test / Test123!`
 
-That's it. The bundled host-binding license makes the framework runtime authorize itself automatically — no key to copy, no email to send. If you want to switch the SQL provider to MySQL, `appsettings.mysql.json` ships in the same ZIP; just rename it over `appsettings.json` and adjust the connection string.
+That's it. The bundled host-binding license makes the framework runtime authorize itself automatically — no key to copy, no email to send, and you can install on as many servers as you want.
 
 ## The licensing rule — one sentence
 
@@ -63,4 +68,8 @@ The reason is mechanical, not commercial: the free distribution is authorized by
 
 You can still extend CrmApp **without** recompiling the app binary: add new metadata via SQL (rows in `_metadati__tabelle` / `_metadati__colonne`), add Angular components in the wwwroot frontend tree, add scheduled jobs (rows in the `scheduler` table), configure custom action hooks via `appsettings.json:customCrudHookClass`. All of that ships as-is in the free distribution and is applied at runtime by the binary you already have. The line is: **you `dotnet publish` the source ZIP → you need a license**. You change metadata / Angular / SQL only → you don't.
 
-If you're in the second bucket, the download is in `Downloads → Free apps → CrmApp`. If you're in the first, see [Pricing](https://wuic-framework.com/pricing) — Developer tier is €600/year and unlocks both the framework source and the right to ship recompiled CrmApp binaries inside your products.
+## Get it
+
+- **Download**: [Downloads → Free apps → CrmApp](https://wuic-framework.com/downloads#free-apps) — current release is **v1.5.0**
+- **Try WUIC first**: the framework that powers CrmApp has a live sandbox at [demo.wuic-framework.com](https://demo.wuic-framework.com/) if you want to feel the metadata-driven UI before installing anything
+- **Want to recompile?** See [Pricing](https://wuic-framework.com/pricing) — the Developer tier unlocks the framework source and the right to ship recompiled CrmApp binaries inside your products
