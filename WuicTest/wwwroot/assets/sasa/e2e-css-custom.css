@@ -1,0 +1,8 @@
+/* Placeholder E2E — dashboard--css-custom.mjs (docs-driven).
+   Questo file DEVE esistere all'avvio di `ng serve`: il dev-server Angular
+   (vite/@angular/build) costruisce la mappa degli asset allo startup e i file
+   creati DOPO non vengono mai serviti (assets-middleware serve solo path gia'
+   in mappa; watchFiles include solo i file risolti al primo build). Il test
+   sovrascrive il contenuto a runtime (il middleware fa readFileSync per i CSS
+   a ogni request, quindi il contenuto aggiornato viene servito) e ripristina
+   questo placeholder nel finally. NON cancellare. */

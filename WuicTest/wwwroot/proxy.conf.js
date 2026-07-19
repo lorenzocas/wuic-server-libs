@@ -129,9 +129,15 @@ function silentConfigure(proxy /*, options */) {
   proxy.on('error', onProxyError);
 }
 
+// Target backend parametrico: il dispatcher docs-driven puo' spostare il BE su
+// un'altra porta (es. :5210 quando :5000 e' occupata da un altro progetto)
+// esportando WUIC_E2E_BACKEND_URL via Launch.Frontend.EnvVars. Default: :5000
+// (comportamento storico, invariato per il dev manuale).
+const BACKEND_TARGET = process.env.WUIC_E2E_BACKEND_URL || 'http://localhost:5000';
+
 module.exports = {
   '/api': {
-    target: 'http://localhost:5000',
+    target: BACKEND_TARGET,
     secure: false,
     changeOrigin: true,
     logLevel: 'silent',
@@ -140,7 +146,7 @@ module.exports = {
     bypass: apiBypass,
   },
   '/upload': {
-    target: 'http://localhost:5000',
+    target: BACKEND_TARGET,
     secure: false,
     changeOrigin: true,
     logLevel: 'silent',
@@ -149,10 +155,10 @@ module.exports = {
   },
   // WebSocket notifiche realtime (NotificationRealtimeService -> /ws/notifications).
   // `ws: true` e' OBBLIGATORIO: senza, il dev-server NON inoltra l'upgrade WebSocket
-  // al backend :5000 -> handshake timeout (close code 1006) -> niente push live, le
+  // al backend -> handshake timeout (close code 1006) -> niente push live, le
   // notifiche (e il refresh del messaggio chatbot) arrivano solo al reload manuale.
   '/ws': {
-    target: 'http://localhost:5000',
+    target: BACKEND_TARGET,
     secure: false,
     changeOrigin: true,
     ws: true,

@@ -1,6 +1,8 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { BlogManifest, BlogPost } from '../../models/blog.model';
 import { SeoService } from '../../services/seo.service';
 
@@ -21,6 +23,8 @@ import { SeoService } from '../../services/seo.service';
   styleUrl: './blog.scss',
 })
 export class BlogList implements OnInit {
+  private http = inject(HttpClient);
+
   loading = signal(true);
   error = signal<string | null>(null);
   posts = signal<BlogPost[]>([]);
@@ -33,14 +37,21 @@ export class BlogList implements OnInit {
       descriptionLiteral:
         'Deep dives on metadata-driven Angular, RAG over codebases, embeddable workflow engines, and what we have learned shipping enterprise apps with WUIC.',
       path: '/blog',
+      // Contenuto single-language: canonical alla sola versione root, niente
+      // hreflang (i .md sono autorati in una lingua — vedi PageSeo.localizedUrls).
+      localizedUrls: false,
     });
   }
 
   async ngOnInit(): Promise<void> {
     try {
-      const resp = await fetch('/blog-manifest.json', { cache: 'no-cache' });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const manifest: BlogManifest = await resp.json();
+      // HttpClient (NON fetch grezzo): con `withFetch()` Angular SSR
+      // intercetta la richiesta durante il prerender e la serve dal bundle
+      // assets in-memory → l'indice arriva GIA' popolato nell'HTML statico.
+      // Il fetch() nativo non è intercettato: durante il prerender non
+      // risolveva mai e le pagine statiche uscivano bloccate su
+      // "Loading posts…" (bug fixato 2026-07-14).
+      const manifest = await firstValueFrom(this.http.get<BlogManifest>('/blog-manifest.json'));
       this.posts.set(manifest.posts);
     } catch (err: unknown) {
       this.error.set(err instanceof Error ? err.message : String(err));

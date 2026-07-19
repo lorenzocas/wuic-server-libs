@@ -1,79 +1,781 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://wuic-framework.com/</loc>
-    <lastmod>2026-06-11</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/"/>
+    <lastmod>2026-07-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/it</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/"/>
+    <lastmod>2026-07-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/fr</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/"/>
+    <lastmod>2026-07-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/es</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/"/>
+    <lastmod>2026-07-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/de</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/"/>
+    <lastmod>2026-07-12</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://wuic-framework.com/features</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/features"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/features"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/features"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/features"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/features"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/features"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/it/features</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/features"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/features"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/features"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/features"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/features"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/features"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/fr/features</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/features"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/features"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/features"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/features"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/features"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/features"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/es/features</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/features"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/features"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/features"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/features"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/features"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/features"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/de/features</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/features"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/features"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/features"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/features"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/features"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/features"/>
     <lastmod>2026-06-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://wuic-framework.com/pricing</loc>
-    <lastmod>2026-06-11</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/pricing"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/pricing"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/pricing"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/pricing"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/pricing"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/pricing"/>
+    <lastmod>2026-07-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/it/pricing</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/pricing"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/pricing"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/pricing"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/pricing"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/pricing"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/pricing"/>
+    <lastmod>2026-07-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/fr/pricing</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/pricing"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/pricing"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/pricing"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/pricing"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/pricing"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/pricing"/>
+    <lastmod>2026-07-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/es/pricing</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/pricing"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/pricing"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/pricing"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/pricing"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/pricing"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/pricing"/>
+    <lastmod>2026-07-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/de/pricing</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/pricing"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/pricing"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/pricing"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/pricing"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/pricing"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/pricing"/>
+    <lastmod>2026-07-12</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://wuic-framework.com/comparison</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/comparison"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/comparison"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/comparison"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/comparison"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/comparison"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/comparison"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/it/comparison</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/comparison"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/comparison"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/comparison"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/comparison"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/comparison"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/comparison"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/fr/comparison</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/comparison"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/comparison"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/comparison"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/comparison"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/comparison"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/comparison"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/es/comparison</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/comparison"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/comparison"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/comparison"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/comparison"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/comparison"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/comparison"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/de/comparison</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/comparison"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/comparison"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/comparison"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/comparison"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/comparison"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/comparison"/>
     <lastmod>2026-06-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://wuic-framework.com/gallery</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/gallery"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/gallery"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/gallery"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/gallery"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/gallery"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/gallery"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/it/gallery</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/gallery"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/gallery"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/gallery"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/gallery"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/gallery"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/gallery"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/fr/gallery</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/gallery"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/gallery"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/gallery"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/gallery"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/gallery"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/gallery"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/es/gallery</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/gallery"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/gallery"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/gallery"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/gallery"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/gallery"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/gallery"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/de/gallery</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/gallery"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/gallery"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/gallery"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/gallery"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/gallery"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/gallery"/>
     <lastmod>2026-06-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://wuic-framework.com/docs</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/docs"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/docs"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/docs"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/docs"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/docs"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/docs"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/it/docs</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/docs"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/docs"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/docs"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/docs"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/docs"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/docs"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/fr/docs</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/docs"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/docs"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/docs"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/docs"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/docs"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/docs"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/es/docs</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/docs"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/docs"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/docs"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/docs"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/docs"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/docs"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/de/docs</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/docs"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/docs"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/docs"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/docs"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/docs"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/docs"/>
     <lastmod>2026-06-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://wuic-framework.com/blog</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/blog"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/blog"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/blog"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/blog"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/blog"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/blog"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/it/blog</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/blog"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/blog"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/blog"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/blog"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/blog"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/blog"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/fr/blog</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/blog"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/blog"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/blog"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/blog"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/blog"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/blog"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/es/blog</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/blog"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/blog"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/blog"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/blog"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/blog"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/blog"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/de/blog</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/blog"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/blog"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/blog"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/blog"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/blog"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/blog"/>
     <lastmod>2026-06-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://wuic-framework.com/downloads</loc>
-    <lastmod>2026-06-11</lastmod>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/downloads"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/downloads"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/downloads"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/downloads"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/downloads"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/downloads"/>
+    <lastmod>2026-07-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/it/downloads</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/downloads"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/downloads"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/downloads"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/downloads"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/downloads"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/downloads"/>
+    <lastmod>2026-07-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/fr/downloads</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/downloads"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/downloads"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/downloads"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/downloads"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/downloads"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/downloads"/>
+    <lastmod>2026-07-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/es/downloads</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/downloads"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/downloads"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/downloads"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/downloads"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/downloads"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/downloads"/>
+    <lastmod>2026-07-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/de/downloads</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/downloads"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/downloads"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/downloads"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/downloads"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/downloads"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/downloads"/>
+    <lastmod>2026-07-12</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://wuic-framework.com/sandbox</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/sandbox"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/sandbox"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/sandbox"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/sandbox"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/sandbox"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/sandbox"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/it/sandbox</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/sandbox"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/sandbox"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/sandbox"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/sandbox"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/sandbox"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/sandbox"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/fr/sandbox</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/sandbox"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/sandbox"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/sandbox"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/sandbox"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/sandbox"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/sandbox"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/es/sandbox</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/sandbox"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/sandbox"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/sandbox"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/sandbox"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/sandbox"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/sandbox"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/de/sandbox</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/sandbox"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/sandbox"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/sandbox"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/sandbox"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/sandbox"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/sandbox"/>
     <lastmod>2026-06-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://wuic-framework.com/legal</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/legal"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/legal"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/legal"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/legal"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/legal"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/legal"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/it/legal</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/legal"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/legal"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/legal"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/legal"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/legal"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/legal"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/fr/legal</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/legal"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/legal"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/legal"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/legal"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/legal"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/legal"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/es/legal</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/legal"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/legal"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/legal"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/legal"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/legal"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/legal"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/de/legal</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/legal"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/legal"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/legal"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/legal"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/legal"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/legal"/>
     <lastmod>2026-06-11</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
     <loc>https://wuic-framework.com/privacy</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/privacy"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/privacy"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/privacy"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/privacy"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/privacy"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/privacy"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/it/privacy</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/privacy"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/privacy"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/privacy"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/privacy"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/privacy"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/privacy"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/fr/privacy</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/privacy"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/privacy"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/privacy"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/privacy"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/privacy"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/privacy"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/es/privacy</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/privacy"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/privacy"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/privacy"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/privacy"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/privacy"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/privacy"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/de/privacy</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/privacy"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/privacy"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/privacy"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/privacy"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/privacy"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/privacy"/>
     <lastmod>2026-06-11</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
     <loc>https://wuic-framework.com/cookies</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/cookies"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/cookies"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/cookies"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/cookies"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/cookies"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/cookies"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/it/cookies</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/cookies"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/cookies"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/cookies"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/cookies"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/cookies"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/cookies"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/fr/cookies</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/cookies"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/cookies"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/cookies"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/cookies"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/cookies"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/cookies"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/es/cookies</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/cookies"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/cookies"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/cookies"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/cookies"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/cookies"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/cookies"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/de/cookies</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/cookies"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/cookies"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/cookies"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/cookies"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/cookies"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/cookies"/>
     <lastmod>2026-06-11</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
     <loc>https://wuic-framework.com/terms</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/terms"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/terms"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/terms"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/terms"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/terms"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/terms"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/it/terms</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/terms"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/terms"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/terms"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/terms"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/terms"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/terms"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/fr/terms</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/terms"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/terms"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/terms"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/terms"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/terms"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/terms"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/es/terms</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/terms"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/terms"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/terms"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/terms"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/terms"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/terms"/>
+    <lastmod>2026-06-11</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://wuic-framework.com/de/terms</loc>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://wuic-framework.com/terms"/>
+    <xhtml:link rel="alternate" hreflang="it-IT" href="https://wuic-framework.com/it/terms"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://wuic-framework.com/fr/terms"/>
+    <xhtml:link rel="alternate" hreflang="es-ES" href="https://wuic-framework.com/es/terms"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://wuic-framework.com/de/terms"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://wuic-framework.com/terms"/>
     <lastmod>2026-06-11</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>

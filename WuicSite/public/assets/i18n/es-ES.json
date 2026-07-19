@@ -391,12 +391,12 @@
       "fattel": {
         "name": "FatturazioneElettronica",
         "tagline": "Facturación electrónica italiana + SDI",
-        "features": "Editor de facturas FatturaPA v1.2, firma CADES-BES, validación XSD, 4 proveedores SDI intercambiables (DirectPec gratuito vía PEC, ArubaPec/FatturePec/PecIt comerciales), conservación legal, registros IVA y liquidación."
+        "features": "Editor de facturas FatturaPA v1.2, firma CADES-BES, validación XSD, 5 proveedores SDI intercambiables (DirectPec gratuito vía PEC, ArubaPec/FatturePec/PecIt/Notarify comerciales), conservación legal con sellado de tiempo RFC 3161, exportaciones fiscales LIPE / Esterometro / CU."
       },
       "flotta": {
         "name": "FlottaMezzi",
         "tagline": "Gestión de flotas + geolocalización",
-        "features": "Registro de vehículos/conductores, vencimientos automáticos (impuesto, ITV, seguro, mantenimiento, carnet), feed geolocalización OBD/GPS, mapa en vivo, agregación de costes €/km por vehículo y por conductor, reporting TCO."
+        "features": "Registro de vehículos/conductores, alertas automáticas de vencimiento (carnet, seguro, ITV), feed de geolocalización GPS con mapa en vivo y reproducción de rutas, repostajes y siniestros, informes de costes de mantenimiento/combustible/siniestros por vehículo con vistas mensuales y paneles de previsión."
       }
     },
     "linuxInstall": {
@@ -956,5 +956,14 @@
       "partial": "Parcial / limitado",
       "none": "No soportado"
     }
+  },
+  "newsletter": {
+    "title": "Recibe la newsletter técnica de WUIC",
+    "subtitle": "Angular basado en metadatos, RAG sobre el código, motores de workflow — algunos análisis al mes, sin spam.",
+    "placeholder": "tu@email.com",
+    "button": "Suscribirse",
+    "success": "Ya casi — revisa tu correo para confirmar la suscripción.",
+    "error": "Algo salió mal. Comprueba la dirección e inténtalo de nuevo.",
+    "note": "Doble opt-in. Cancela cuando quieras. Nunca compartimos tu dirección."
   }
 }

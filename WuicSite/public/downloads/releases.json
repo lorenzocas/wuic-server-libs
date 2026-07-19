@@ -1,82 +1,83 @@
 {
-  "updated": "2026-07-12T17:59:40.2498024Z",
+  "updated": "2026-07-15T15:33:01.8341972Z",
+  "latest": "v1.5.0_1.5.0",
   "releases": [
     {
       "key": "v1.5.0_1.5.0",
       "server": "1.5.0",
       "client": "1.5.0",
-      "date": "2026-07-12",
-      "timestampUtc": "2026-07-12T17:59:35.4827999Z",
+      "date": "2026-07-15",
+      "timestampUtc": "2026-07-15T15:32:59.4004881Z",
       "files": [
         {
-          "archiveUrl": "/downloads/archive/v1.5.0_1.5.0/WuicTest-iis-server-1.5.0-rag-client-1.5.0.zip",
-          "tutorial": "no",
-          "audience": "iis",
+          "url": "/downloads/WuicTest-iis-server-1.5.0-rag-client-1.5.0.zip",
+          "rag": true,
           "sizeMb": 562.3,
           "name": "WuicTest-iis-server-1.5.0-rag-client-1.5.0.zip",
-          "rag": true,
+          "archiveUrl": "/downloads/archive/v1.5.0_1.5.0/WuicTest-iis-server-1.5.0-rag-client-1.5.0.zip",
+          "audience": "iis",
           "size": "562.3 MB",
-          "url": "/downloads/WuicTest-iis-server-1.5.0-rag-client-1.5.0.zip"
+          "tutorial": "no"
         },
         {
-          "archiveUrl": "/downloads/archive/v1.5.0_1.5.0/WuicTest-iis-tutorial-bak-server-1.5.0-rag-client-1.5.0.zip",
-          "tutorial": "BAK",
-          "audience": "iis",
+          "url": "/downloads/WuicTest-iis-tutorial-bak-server-1.5.0-rag-client-1.5.0.zip",
+          "rag": true,
           "sizeMb": 1083.2,
           "name": "WuicTest-iis-tutorial-bak-server-1.5.0-rag-client-1.5.0.zip",
-          "rag": true,
+          "archiveUrl": "/downloads/archive/v1.5.0_1.5.0/WuicTest-iis-tutorial-bak-server-1.5.0-rag-client-1.5.0.zip",
+          "audience": "iis",
           "size": "1083.2 MB",
-          "url": "/downloads/WuicTest-iis-tutorial-bak-server-1.5.0-rag-client-1.5.0.zip"
+          "tutorial": "BAK"
         },
         {
-          "archiveUrl": "/downloads/archive/v1.5.0_1.5.0/WuicTest-iis-tutorial-server-1.5.0-rag-client-1.5.0.zip",
-          "tutorial": "SQL",
-          "audience": "iis",
+          "url": "/downloads/WuicTest-iis-tutorial-server-1.5.0-rag-client-1.5.0.zip",
+          "rag": true,
           "sizeMb": 773.5,
           "name": "WuicTest-iis-tutorial-server-1.5.0-rag-client-1.5.0.zip",
-          "rag": true,
+          "archiveUrl": "/downloads/archive/v1.5.0_1.5.0/WuicTest-iis-tutorial-server-1.5.0-rag-client-1.5.0.zip",
+          "audience": "iis",
           "size": "773.5 MB",
-          "url": "/downloads/WuicTest-iis-tutorial-server-1.5.0-rag-client-1.5.0.zip"
+          "tutorial": "SQL"
         },
         {
-          "archiveUrl": "/downloads/archive/v1.5.0_1.5.0/WuicTest-src-server-1.5.0-client-1.5.0.zip",
-          "tutorial": "no",
-          "audience": "src",
+          "url": "/downloads/WuicTest-src-server-1.5.0-client-1.5.0.zip",
+          "rag": false,
           "sizeMb": 95.3,
           "name": "WuicTest-src-server-1.5.0-client-1.5.0.zip",
-          "rag": false,
+          "archiveUrl": "/downloads/archive/v1.5.0_1.5.0/WuicTest-src-server-1.5.0-client-1.5.0.zip",
+          "audience": "src",
           "size": "95.3 MB",
-          "url": "/downloads/WuicTest-src-server-1.5.0-client-1.5.0.zip"
+          "tutorial": "no"
         },
         {
-          "archiveUrl": "/downloads/archive/v1.5.0_1.5.0/WuicTest-src-server-1.5.0-rag-client-1.5.0.zip",
-          "tutorial": "no",
-          "audience": "src",
+          "url": "/downloads/WuicTest-src-server-1.5.0-rag-client-1.5.0.zip",
+          "rag": true,
           "sizeMb": 493.4,
           "name": "WuicTest-src-server-1.5.0-rag-client-1.5.0.zip",
-          "rag": true,
+          "archiveUrl": "/downloads/archive/v1.5.0_1.5.0/WuicTest-src-server-1.5.0-rag-client-1.5.0.zip",
+          "audience": "src",
           "size": "493.4 MB",
-          "url": "/downloads/WuicTest-src-server-1.5.0-rag-client-1.5.0.zip"
+          "tutorial": "no"
         },
         {
-          "archiveUrl": "/downloads/archive/v1.5.0_1.5.0/WuicTest-src-tutorial-bak-server-1.5.0-rag-client-1.5.0.zip",
-          "tutorial": "BAK",
-          "audience": "src",
+          "url": "/downloads/WuicTest-src-tutorial-bak-server-1.5.0-rag-client-1.5.0.zip",
+          "rag": true,
           "sizeMb": 1014.2,
           "name": "WuicTest-src-tutorial-bak-server-1.5.0-rag-client-1.5.0.zip",
-          "rag": true,
+          "archiveUrl": "/downloads/archive/v1.5.0_1.5.0/WuicTest-src-tutorial-bak-server-1.5.0-rag-client-1.5.0.zip",
+          "audience": "src",
           "size": "1014.2 MB",
-          "url": "/downloads/WuicTest-src-tutorial-bak-server-1.5.0-rag-client-1.5.0.zip"
+          "tutorial": "BAK"
         },
         {
-          "archiveUrl": "/downloads/archive/v1.5.0_1.5.0/WuicTest-src-tutorial-server-1.5.0-rag-client-1.5.0.zip",
-          "tutorial": "SQL",
-          "audience": "src",
+          "url": "/downloads/WuicTest-src-tutorial-server-1.5.0-rag-client-1.5.0.zip",
+          "rag": true,
           "sizeMb": 704.6,
           "name": "WuicTest-src-tutorial-server-1.5.0-rag-client-1.5.0.zip",
-          "rag": true,
+          "archiveUrl": "/downloads/archive/v1.5.0_1.5.0/WuicTest-src-tutorial-server-1.5.0-rag-client-1.5.0.zip",
+          "audience": "src",
           "size": "704.6 MB",
-          "url": "/downloads/WuicTest-src-tutorial-server-1.5.0-rag-client-1.5.0.zip"
+          "tutorial": "SQL"
         }
       ],
       "releaseNotesUrl": "/downloads/release-notes/release-notes-v1.5.0_1.5.0.it-IT.html",
@@ -430,6 +431,5 @@
         "fr-FR": "/downloads/release-notes/release-notes-v1.2.1_1.2.1.fr-FR.html"
       }
     }
-  ],
-  "latest": "v1.5.0_1.5.0"
+  ]
 }

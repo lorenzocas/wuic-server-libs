@@ -1,6 +1,7 @@
 import { ApplicationConfig, effect, inject, provideAppInitializer } from '@angular/core';
-import { provideRouter, withInMemoryScrolling } from '@angular/router';
+import { NavigationStart, provideRouter, Router, withInMemoryScrolling } from '@angular/router';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { maintenanceInterceptor } from './core/maintenance.interceptor';
 import { providePrimeNG } from 'primeng/config';
 import Aura from '@primeng/themes/aura';
@@ -9,6 +10,13 @@ import { provideTranslateHttpLoader } from '@ngx-translate/http-loader';
 
 import { routes } from './app.routes';
 import { LanguageService } from './services/language.service';
+import { DEFAULT_LOCALE, localeFromPath, localizePath } from './services/locale-url';
+
+/** Separa il path puro da querystring+fragment ('/start?m=x#y' → ['/start', '?m=x#y']). */
+function splitPathSuffix(url: string): [string, string] {
+  const m = /^([^?#]*)(.*)$/.exec(url || '/');
+  return [m?.[1] || '/', m?.[2] || ''];
+}
 
 export const appConfig: ApplicationConfig = {
   // Browser-only providers (provideBrowserGlobalErrorListeners,
@@ -56,17 +64,50 @@ export const appConfig: ApplicationConfig = {
       loader: provideTranslateHttpLoader({ prefix: './assets/i18n/', suffix: '.json' })
     }),
 
-    // Sync the LanguageService signal with ngx-translate's active language.
-    // Runs whenever LanguageService.current() changes (navbar flag pick).
+    // Sync LanguageService ⇄ ngx-translate + sticky-locale navigation.
+    // La lingua iniziale è già URL-derived (LanguageService.readInitial).
+    // AWAIT del primo translate.use: durante il prerender garantisce che il
+    // file i18n sia caricato PRIMA che la pagina venga serializzata → l'HTML
+    // statico esce già tradotto nella lingua dell'URL.
     provideAppInitializer(() => {
       const translate = inject(TranslateService);
       const lang = inject(LanguageService);
-      // Initial sync
-      translate.use(lang.current());
-      // Keep in sync on every change (Signal effect)
+      const router = inject(Router);
+
+      // Keep in sync on every change (Signal effect).
+      // NB: effect() e subscribe() vanno registrati in modo SINCRONO, prima
+      // di qualsiasi await — dopo un await l'injection context non esiste
+      // più e effect() lancia NG0203 (rompeva l'estrazione route del prerender).
       effect(() => {
         translate.use(lang.current());
       });
+
+      // STICKY LOCALE: i routerLink interni sono locale-less ('/pricing').
+      // Su una variante localizzata (/it/**) un click li porterebbe alla
+      // versione EN. Intercettiamo la NavigationStart: se la lingua attiva ha
+      // un prefisso e la URL target non ce l'ha, re-instradiamo alla variante
+      // localizzata. Il selettore lingua aggiorna PRIMA il signal e POI naviga,
+      // quindi il cambio lingua esplicito non viene mai "riacchiappato".
+      router.events.subscribe(ev => {
+        if (!(ev instanceof NavigationStart)) return;
+        const active = lang.current();
+        if (active === DEFAULT_LOCALE) return;               // root EN: nulla da fare
+        const url = ev.url || '/';
+        if (localeFromPath(url)) {
+          // URL già localizzata: allinea il signal se l'utente naviga
+          // direttamente su un ALTRO prefisso (back/forward, link esterni).
+          const target = localeFromPath(url)!;
+          if (target !== active) lang.setLanguage(target);
+          return;
+        }
+        const [path, suffix] = splitPathSuffix(url);
+        router.navigateByUrl(localizePath(path, active) + suffix, { replaceUrl: false });
+      });
+
+      // Ritorna la promise del primo load i18n: l'app initializer la attende,
+      // così nel prerender l'HTML viene serializzato SOLO a traduzioni caricate
+      // (la pagina statica esce già nella lingua dell'URL).
+      return firstValueFrom(translate.use(lang.current()));
     })
   ]
 };

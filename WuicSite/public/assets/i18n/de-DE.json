@@ -391,12 +391,12 @@
       "fattel": {
         "name": "FatturazioneElettronica",
         "tagline": "Italienische E-Rechnung + SDI",
-        "features": "FatturaPA v1.2-Rechnungseditor, CADES-BES-Signatur, XSD-Validierung, 4 austauschbare SDI-Provider (DirectPec kostenlos via PEC, ArubaPec/FatturePec/PecIt kommerziell), gesetzliche Aufbewahrung, IVA-Register und Liquidation."
+        "features": "FatturaPA v1.2-Rechnungseditor, CADES-BES-Signatur, XSD-Validierung, 5 austauschbare SDI-Provider (DirectPec kostenlos via PEC, ArubaPec/FatturePec/PecIt/Notarify kommerziell), rechtskonforme Aufbewahrung mit RFC-3161-Zeitstempel, LIPE-/Esterometro-/CU-Steuerexporte."
       },
       "flotta": {
         "name": "FlottaMezzi",
         "tagline": "Fuhrparkverwaltung + Geolokalisierung",
-        "features": "Fahrzeug-/Fahrerverwaltung, automatische Fristen (Steuer, TÜV, Versicherung, Wartung, Führerschein), OBD/GPS-Geolokalisierungs-Feed, Live-Karte, €/km-Kostenaggregation pro Fahrzeug und Fahrer, TCO-Reporting."
+        "features": "Fahrzeug-/Fahrerverwaltung, automatische Ablauf-Alerts (Führerschein, Versicherung, TÜV), GPS-Geolokalisierungs-Feed mit Live-Karte und Routen-Replay, Tank- und Schadensverwaltung, Kostenberichte Wartung/Kraftstoff/Schäden pro Fahrzeug mit Monatsansichten und Forecast-Dashboards."
       }
     },
     "linuxInstall": {
@@ -956,5 +956,14 @@
       "partial": "Teilweise / eingeschränkt",
       "none": "Nicht unterstützt"
     }
+  },
+  "newsletter": {
+    "title": "Erhalte den WUIC-Engineering-Newsletter",
+    "subtitle": "Metadatengetriebenes Angular, RAG über Code, Workflow-Engines — ein paar Deep Dives im Monat, kein Spam.",
+    "placeholder": "deine@email.com",
+    "button": "Abonnieren",
+    "success": "Fast geschafft — prüfe dein Postfach, um das Abo zu bestätigen.",
+    "error": "Etwas ist schiefgelaufen. Prüfe die Adresse und versuche es erneut.",
+    "note": "Double-Opt-in. Jederzeit abbestellbar. Wir geben deine Adresse nie weiter."
   }
 }

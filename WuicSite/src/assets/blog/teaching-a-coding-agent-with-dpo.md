@@ -3,11 +3,11 @@ title: "Teaching a local coding agent from its own mistakes: DPO on a 30B model"
 slug: teaching-a-coding-agent-with-dpo
 date: 2026-07-05
 author: Lorenzo Castrico
-description: "Our VS Code assistant was passing every test on its curriculum — which meant the curriculum had stopped measuring anything. Here's how we built honest eval sets, found two silent contaminations in our test bench, and used Direct Preference Optimization to teach a 30B model to pick the right tool on the first try instead of getting bounced by a guard and correcting afterwards. Five OutOfMemory crashes, one counterintuitive fix, and a clean 4-hour training run included."
+description: "Our VS Code assistant was passing every test on its curriculum — which meant the curriculum had stopped measuring anything. Here's how we built honest eval sets, found two silent contaminations in our test bench, and used Direct Preference Optimization on the assistant's own redirect pairs to teach a 30B model to pick the right tool on the first try. Five OutOfMemory crashes, one counterintuitive fix, a clean 4-hour training run — and a pre-registered eval gate whose verdict we report as measured, including the part that failed."
 tags: dpo, qlora, fine-tuning, llm, local-inference, ollama, vscode, agentic
 ---
 
-The **WUIC Assistant** is our agentic VS Code plugin: it scaffolds Angular components, dashboards, reports, workflows, and metadata patches for apps built on the WUIC framework. Under the hood it runs **qwen3-coder:30b** — a Mixture-of-Experts model with ~3B active parameters — served locally through Ollama on a single RTX 4090. No API calls, no data leaving the machine.
+The **WUIC Assistant** is our agentic VS Code plugin: it scaffolds Angular components, dashboards, reports, workflows, and metadata patches for apps built on the WUIC framework. Under the hood it runs **qwen3-coder:30b** — a Mixture-of-Experts model with ~3B active parameters — [served locally through Ollama](/blog/local-llm-ollama-mcp-agentic-vscode) on a single RTX 4090. No API calls, no data leaving the machine.
 
 For weeks the plugin had been sitting at **100% on its curriculum**: 32 tasks, five green runs each, a 96/96 regression suite. Beautiful numbers, and a problem. A curriculum that always passes has stopped measuring anything. It could no longer tell us whether the model *generalized* to the prompts a real developer types, nor how often it took a wrong turn before correcting itself.
 
@@ -16,7 +16,7 @@ We wanted two things:
 1. **Measure real generalization**, with prompts the model had never seen.
 2. **Cut the churn** — those moments where the model tries the wrong tool, gets bounced by a guard (`STOP: use scaffold, not ng generate`), and only *then* does the right thing. It works, but it's slow and brittle. We wanted it right on the **first** try.
 
-This post is the story of how we got there. It involves five OutOfMemory crashes, a saturated benchmark, two hidden contaminations, and a 30-billion-parameter model that eventually learned to make fewer mistakes.
+This post is the story of how we got there. It involves five OutOfMemory crashes, a saturated benchmark, two hidden contaminations, and a 30-billion-parameter model that did learn — though not exactly what we asked it to.
 
 ## Chapter 1 — Measuring what matters: holdout sets
 
@@ -29,7 +29,7 @@ The latest of these, the fourth **"HARD"** set (Q01–Q12), deliberately raises 
 - **Combinations** of two mechanisms in a single task.
 - **Rare capabilities** — multi-range conditions, lifecycle callbacks, 3-step workflows.
 
-Measured on a clean bench, the base model lands at **25/36 (69%)**, failing Q02, Q04, Q05, Q07 systematically. But the most interesting data point was elsewhere: **Q01 passed 3 times out of 3 — with 9 redirects**. It got there, but by bouncing off the guards the whole way. That's the churn we wanted gone.
+Measured on a clean bench, the base model lands at **25/36 (69%)** — failing Q02, Q04 and Q07 on every attempt, and Q05 on two of three. But the most interesting data point was elsewhere: **Q01 passed 3 times out of 3 — with 9 redirects**. It got there, but by bouncing off the guards the whole way. That's the churn we wanted gone.
 
 ## Chapter 2 — Two hidden contaminations (the part that stings)
 
@@ -57,7 +57,7 @@ The right technique here isn't more supervised fine-tuning. The SFT we'd already
 - the first **accepted correction** (`scaffold widget=map` → Saved) = *chosen*;
 - the **context before the decision** = the prompt.
 
-An extractor pulled **559 pairs** from hundreds of runs (including the red ones — a pair is valuable if it contains a valid rejected→corrected transition), deduplicated and balanced so no single task dominates.
+An extractor pulled **559 pairs** from more than a thousand archived runs (including the red ones — a pair is valuable if it contains a valid rejected→corrected transition), deduplicated and balanced so no single task dominates.
 
 ## Chapter 5 — The gauntlet: five OutOfMemory crashes
 
@@ -86,17 +86,32 @@ The full run trained in the background on the A100 (detached, to survive SSH dro
 
 **70 steps, 1 epoch over 559 pairs, 4h11m, zero OutOfMemory** from start to finish — even when VRAM read 96% (a false alarm: that was PyTorch's stable *reserved pool*, not a live allocation at the edge; the paged 8-bit optimizer spills to system RAM as a relief valve). Margins above 1.0 and accuracies at 88% say the preference signal was learned cleanly.
 
-## What happens next
+## Chapter 7 — The gate, and the verdict
 
-As of this writing, the DPO adapter is being merged and converted to GGUF q4_K_M to be served by Ollama as `qwen3-coder-wuic:30b-dpo`. Then comes the **eval gate**, with criteria fixed *before* looking at the results:
+The adapter was merged, converted to GGUF q4_K_M, and served by Ollama as `qwen3-coder-wuic:30b-dpo`. Then came the **eval gate**, with criteria fixed *before* looking at the results:
 
 - **PASS ≥ 25/36** on the HARD set (no regression);
 - **redirects < 0.47/run** (−30% from the base's 0.67/run) — the primary "first-shot correctness" metric;
+- **zero-redirect runs > 53%** (the base's share);
 - **curriculum 96/96** intact (no forgetting);
 - critical guards (report scaffolding) still working.
 
-If it clears the gate, it becomes the default, with trivial rollback (the base stays installed). If it doesn't, it remains a clean, reproducible experiment — and we know exactly why.
+A/B on the same clean bench, three rounds per task:
 
-Because that's the real point of this whole story. Not "we fine-tuned a model," but: **we built a ruler that doesn't lie, we cleaned the test bench, and we let the numbers decide.** The verdict lands shortly.
+| Criterion | Base | DPO | Gate | Verdict |
+|---|---|---|---|---|
+| PASS on HARD | 25/36 (69%) | **28/36 (78%)** | ≥ 25/36 | pass |
+| Curriculum | 96/96 | 96/96 | 96/96 | pass |
+| Report guard | intact | intact | intact | pass |
+| Redirects/run | 0.67 | 0.83 | < 0.47 | **fail** |
+| Zero-redirect runs | 53% | 39% | > 53% | **fail** |
 
-*— to be continued.*
+The capability gains are real: Q02 went from 0/3 to **3/3** — a task the base never solved — and Q05 from 1/3 to 2/3, with zero forgetting. And on Q01, the flagship churn case the pairs were built around, redirects fell from 9 to 6.
+
+But the primary metric — the whole reason we ran DPO — moved the *wrong* way: +25% redirects overall. Digging in, the number is less damning than it looks. The base scores zero redirects on Q02 because it *fails cleanly*; the DPO model racks up four because it *fights and wins* (0/3 → 3/3). A redirect count that punishes engaging with hard tasks is a metric with a blind spot — a flaw we only saw because the gate forced us to stare at it.
+
+The pre-registered rule, though, was: no automatic adoption unless the gate clears. It didn't clear. The base stays the plugin's default; the DPO model sits one setting away, and switching in either direction is trivial — exactly the cheap, reversible outcome the gate was designed to buy.
+
+One epilogue. On a different job — single-shot tool routing for the [in-product RAG chatbot](/blog/local-llm-ollama-mcp-agentic-vscode), where there are no guards and no multi-turn churn to fall back on — the same DPO model scored **96/102 against the base's 88/102** at identical speed, and *that* gate it cleared. It now ships as the chatbot's default brain. The model didn't fail; it turned out to be better at a different job than the one we trained it for.
+
+Because that's the real point of this whole story. Not "we fine-tuned a model," but: **we built a ruler that doesn't lie, we cleaned the test bench, we fixed the criteria before looking — and we let the numbers decide.** Twice.

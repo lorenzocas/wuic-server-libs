@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-12T17:52:33.819Z",
+  "generatedAt": "2026-07-15T15:24:04.253Z",
   "count": 14,
   "posts": [
     {
@@ -16,7 +16,7 @@
         "low-code",
         "framework"
       ],
-      "readingMinutes": 7,
+      "readingMinutes": 10,
       "sourcePath": "assets/blog/workflow-engine-graph-source-of-truth.md"
     },
     {
@@ -24,7 +24,7 @@
       "title": "Teaching a local coding agent from its own mistakes: DPO on a 30B model",
       "date": "2026-07-05",
       "author": "Lorenzo Castrico",
-      "description": "Our VS Code assistant was passing every test on its curriculum — which meant the curriculum had stopped measuring anything. Here's how we built honest eval sets, found two silent contaminations in our test bench, and used Direct Preference Optimization to teach a 30B model to pick the right tool on the first try instead of getting bounced by a guard and correcting afterwards. Five OutOfMemory crashes, one counterintuitive fix, and a clean 4-hour training run included.",
+      "description": "Our VS Code assistant was passing every test on its curriculum — which meant the curriculum had stopped measuring anything. Here's how we built honest eval sets, found two silent contaminations in our test bench, and used Direct Preference Optimization on the assistant's own redirect pairs to teach a 30B model to pick the right tool on the first try. Five OutOfMemory crashes, one counterintuitive fix, a clean 4-hour training run — and a pre-registered eval gate whose verdict we report as measured, including the part that failed.",
       "tags": [
         "dpo",
         "qlora",
@@ -35,7 +35,7 @@
         "vscode",
         "agentic"
       ],
-      "readingMinutes": 7,
+      "readingMinutes": 9,
       "sourcePath": "assets/blog/teaching-a-coding-agent-with-dpo.md"
     },
     {
@@ -56,7 +56,7 @@
         "architecture",
         "ai"
       ],
-      "readingMinutes": 10,
+      "readingMinutes": 11,
       "sourcePath": "assets/blog/local-llm-ollama-mcp-agentic-vscode.md"
     },
     {
@@ -116,7 +116,7 @@
       "title": "FatturazioneElettronica: a free Italian e-invoicing app with SDI integration",
       "date": "2026-05-15",
       "author": "Lorenzo Castrico",
-      "description": "FatturazioneElettronica is a self-hosted FatturaPA / SDI integration: invoice editor, CADES-BES signature, XSD validation, four interchangeable SDI providers (DirectPec free, ArubaPec / FatturePec / PecIt commercial), conservation pipeline. Free distribution, MIT-friendly bundling rule, runs on your own SQL Server.",
+      "description": "FatturazioneElettronica is a self-hosted FatturaPA / SDI integration: invoice editor with a full quote-to-invoice document cycle, CADES-BES signature, XSD validation, five interchangeable SDI providers (DirectPec free, ArubaPec / FatturePec / PecIt / Notarify commercial), conservation pipeline. Free distribution, runs on your own SQL Server.",
       "tags": [
         "einvoicing",
         "fatturapa",
@@ -125,7 +125,7 @@
         "cades-bes",
         "free-apps"
       ],
-      "readingMinutes": 5,
+      "readingMinutes": 6,
       "sourcePath": "assets/blog/fatturazione-elettronica-free-italian-einvoicing.md"
     },
     {
@@ -133,7 +133,7 @@
       "title": "FlottaMezzi: a free fleet management app with geolocation, maintenance deadlines and cost rollups",
       "date": "2026-05-15",
       "author": "Lorenzo Castrico",
-      "description": "FlottaMezzi is the third free app on WUIC: anagrafica mezzi, manutenzioni programmate con alert scadenze (bollo, revisione, assicurazione, tagliando), tracking geolocation via OBD/GPS feed, aggregazione costi per mezzo / driver / periodo, reportistica. Free as-shipped, runs on your own SQL Server.",
+      "description": "FlottaMezzi is the third free app on WUIC: vehicle and driver registry, deadline tracking (driver license, insurance, inspection) with a daily scheduled scan, GPS position feed with live map and per-day route playback, per-vehicle cost roll-ups (maintenance, fuel, claims) and dashboards. Free as-shipped, runs on your own SQL Server.",
       "tags": [
         "fleet-management",
         "geolocation",
@@ -159,7 +159,7 @@
         "mrt",
         "pdf"
       ],
-      "readingMinutes": 8,
+      "readingMinutes": 9,
       "sourcePath": "assets/blog/building-reports-without-code-sql-view-to-mrt.md"
     },
     {
@@ -184,7 +184,7 @@
       "title": "Mobile-first auto-layout with zero config: how WUIC reflows enterprise tables on a phone",
       "date": "2026-05-04",
       "author": "Lorenzo Castrico",
-      "description": "Most enterprise UIs are desktop-only. WUIC's list-grid and edit-form switch to mobile layouts automatically below 768px — table becomes card stack, two-column form becomes vertical flex, no per-screen template, no per-column responsive flag. This post explains the exact split between runtime swap (TS) and CSS-only fallback (SCSS) and why we picked that split.",
+      "description": "Most enterprise UIs are desktop-only. WUIC's list-grid and edit-form switch to mobile layouts automatically below 768px — table becomes card stack, multi-column form becomes vertical flex, no per-screen template, no per-column responsive flag. This post explains the exact split between runtime template swap (TS) and CSS-only reflow (SCSS) and why we picked that split.",
       "tags": [
         "angular",
         "primeng",
@@ -193,7 +193,7 @@
         "list-grid",
         "edit-form"
       ],
-      "readingMinutes": 7,
+      "readingMinutes": 8,
       "sourcePath": "assets/blog/mobile-first-auto-layout-zero-config.md"
     },
     {
@@ -221,7 +221,7 @@
       "title": "From SQL table to working CRUD form in 30 seconds: a metadata-driven scaffolding approach",
       "date": "2026-05-01",
       "author": "Lorenzo Castrico",
-      "description": "How WUIC turns a CREATE TABLE statement into a complete CRUD UI — list, edit form, validation, lookup widgets — without writing a single TypeScript file. The actual scaffolding endpoint, what it inspects, and what it skips.",
+      "description": "How WUIC turns a CREATE TABLE statement into a complete CRUD UI — list, edit form, validation, lookup widgets — without writing a single TypeScript file. How the built-in scaffolder works, what it inspects, and what it skips.",
       "tags": [
         "scaffolding",
         "crud",
@@ -229,7 +229,7 @@
         "sql-server",
         "metadata-driven"
       ],
-      "readingMinutes": 6,
+      "readingMinutes": 7,
       "sourcePath": "assets/blog/sql-table-to-crud-form-in-30-seconds.md"
     },
     {

@@ -1,4 +1,6 @@
-import { Injectable, signal } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import { DEFAULT_LOCALE, localeFromPath } from './locale-url';
 
 export interface SiteLanguage {
   code: string;           // ISO locale used inside docs manifest, e.g. 'it-IT'
@@ -29,15 +31,21 @@ export const SITE_LANGUAGES: SiteLanguage[] = [
   { code: 'de-DE', short: 'DE', label: 'Deutsch',  flag: 'de' },
 ];
 
-const STORAGE_KEY = 'wuic-site-lang';
-
 /**
- * Shared signal for the currently selected site language. Components subscribe
- * to `current()` reactively; changes are persisted to localStorage and read back
- * on next visit. Default is Italian (project default + first manifest entry).
+ * Shared signal for the currently selected site language.
+ *
+ * URL-FIRST (2026-07-14, EN-root prerender): la lingua iniziale è derivata
+ * ESCLUSIVAMENTE dal path (`/it/**` → it-IT, root → en-US) via `localeFromPath`.
+ * Le vecchie euristiche localStorage/navigator sono state RIMOSSE di proposito:
+ * durante il prerender SSG `navigator` riflette il locale della BUILD MACHINE
+ * (macchina italiana → tutte le pagine statiche uscivano `lang="it-IT"`), e a
+ * runtime avrebbero fatto divergere lingua della UI e lingua dell'URL, rompendo
+ * canonical/hreflang. La scelta utente ora vive nell'URL: il LanguageSelector
+ * NAVIGA alla variante localizzata (vedi language-selector.ts).
  */
 @Injectable({ providedIn: 'root' })
 export class LanguageService {
+  private readonly doc = inject(DOCUMENT);
   private readonly _current = signal<string>(this.readInitial());
 
   readonly languages = SITE_LANGUAGES;
@@ -46,13 +54,6 @@ export class LanguageService {
   setLanguage(code: string): void {
     if (!SITE_LANGUAGES.some(l => l.code === code)) return;
     this._current.set(code);
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        window.localStorage.setItem(STORAGE_KEY, code);
-      }
-    } catch {
-      // ignore storage quota / privacy-mode errors
-    }
   }
 
   getLanguageByCode(code: string): SiteLanguage | undefined {
@@ -60,45 +61,16 @@ export class LanguageService {
   }
 
   /**
-   * Resolve the initial language, in this priority order:
-   *   1) localStorage — last user choice (if still valid)
-   *   2) navigator.languages — user's preferred browser languages, in order
-   *   3) navigator.language — single primary locale (legacy fallback)
-   *   4) 'en-US' — universal fallback when nothing matches
-   *
-   * Matching first tries exact `code` (e.g. 'fr-FR') then language prefix
-   * (e.g. 'fr' matches 'fr-FR') so that visitors with region-specific locales
-   * (fr-CA, en-GB, es-MX, de-CH, …) still hit the nearest supported language.
+   * Lingua iniziale = prefisso locale dell'URL corrente (deterministico sia
+   * nel browser sia nel prerender: platform-server espone DOCUMENT.location
+   * con l'URL della route in corso di prerender). Root senza prefisso = EN.
    */
   private readInitial(): string {
     try {
-      // 1) Persisted user choice wins
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const saved = window.localStorage.getItem(STORAGE_KEY);
-        if (saved && SITE_LANGUAGES.some(l => l.code === saved)) return saved;
-      }
-
-      // 2) Browser preference list (ordered by user priority in settings)
-      if (typeof navigator !== 'undefined') {
-        const prefs: string[] = Array.isArray(navigator.languages) && navigator.languages.length > 0
-          ? [...navigator.languages]
-          : (navigator.language ? [navigator.language] : []);
-
-        for (const pref of prefs) {
-          if (!pref) continue;
-          // Exact match (fr-FR == fr-FR)
-          const exact = SITE_LANGUAGES.find(l => l.code.toLowerCase() === pref.toLowerCase());
-          if (exact) return exact.code;
-          // Language-code match (fr matches fr-FR, en-GB matches en-US, de-CH matches de-DE)
-          const prefLang = pref.split('-')[0].toLowerCase();
-          const byLang = SITE_LANGUAGES.find(l => l.code.split('-')[0].toLowerCase() === prefLang);
-          if (byLang) return byLang.code;
-        }
-      }
+      const path = this.doc?.location?.pathname ?? '/';
+      return localeFromPath(path) ?? DEFAULT_LOCALE;
     } catch {
-      // ignore localStorage/privacy-mode errors
+      return DEFAULT_LOCALE;
     }
-    // 3) Universal fallback
-    return 'en-US';
   }
 }

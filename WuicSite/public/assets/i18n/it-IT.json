@@ -391,12 +391,12 @@
       "fattel": {
         "name": "FatturazioneElettronica",
         "tagline": "Fatturazione elettronica + SDI",
-        "features": "Editor fatture FatturaPA v1.2, firma CADES-BES, validazione XSD, 4 provider SDI intercambiabili (DirectPec gratuito via PEC, ArubaPec/FatturePec/PecIt commerciali), conservazione a norma, registri IVA e liquidazione."
+        "features": "Editor fatture FatturaPA v1.2, firma CADES-BES, validazione XSD, 5 provider SDI intercambiabili (DirectPec gratuito via PEC, ArubaPec/FatturePec/PecIt/Notarify commerciali), conservazione a norma con marca temporale RFC 3161, export fiscali LIPE / Esterometro / CU."
       },
       "flotta": {
         "name": "FlottaMezzi",
         "tagline": "Gestione flotta + geolocation",
-        "features": "Anagrafica mezzi/driver, scadenze automatiche (bollo/revisione/assicurazione/tagliando/patente), feed geolocation OBD/GPS, mappa live, aggregazione costi €/km per mezzo e per driver, reportistica TCO."
+        "features": "Anagrafica mezzi/driver, alert automatici di scadenza (patente, assicurazione, revisione), feed geolocalizzazione GPS con mappa live e replay percorso, rifornimenti e sinistri, report costi manutenzione/carburante/sinistri per mezzo con viste mensili e dashboard di forecast."
       }
     },
     "linuxInstall": {
@@ -956,5 +956,14 @@
       "partial": "Parziale / limitato",
       "none": "Non supportato"
     }
+  },
+  "newsletter": {
+    "title": "Ricevi la newsletter tecnica di WUIC",
+    "subtitle": "Angular metadata-driven, RAG sul codice, workflow engine — qualche approfondimento al mese, niente spam.",
+    "placeholder": "la-tua@email.com",
+    "button": "Iscriviti",
+    "success": "Ci siamo quasi — controlla la posta per confermare l'iscrizione.",
+    "error": "Qualcosa è andato storto. Controlla l'indirizzo e riprova.",
+    "note": "Double opt-in. Disiscrizione in un click. Non condividiamo mai il tuo indirizzo."
   }
 }

@@ -36,6 +36,21 @@ export const BASE_URL = 'https://wuic-framework.com';
  *              changefreq and priority, but they're harmless and Bing still
  *              uses them as one of many signals.
  */
+/**
+ * Schema URL multilingua (2026-07-14): root = en-US (x-default), le altre
+ * 4 lingue sotto prefisso. Ogni route statica viene emessa 5 volte (una per
+ * lingua) con il blocco xhtml:link di alternates reciproci. Deve restare
+ * allineato a src/app/services/locale-url.ts.
+ */
+export const LOCALES = [
+  { code: 'en-US', prefix: '' },
+  { code: 'it-IT', prefix: '/it' },
+  { code: 'fr-FR', prefix: '/fr' },
+  { code: 'es-ES', prefix: '/es' },
+  { code: 'de-DE', prefix: '/de' },
+];
+export const DEFAULT_LOCALE = 'en-US';
+
 export const ROUTES = [
   { path: '/',           dir: 'home',      changefreq: 'weekly',  priority: 1.0 },
   { path: '/features',   dir: 'features',  changefreq: 'monthly', priority: 0.9 },
@@ -144,9 +159,17 @@ export function lastModifiedMs(dir) {
  * Exported so the postbuild sanity checker can re-run the same logic in
  * memory and compare against the file actually shipped in dist/.
  */
+/** URL localizzata di un path per un locale ('/pricing' + '/it' → '/it/pricing'; '/' + '/it' → '/it'). */
+function localizedLoc(path, prefix) {
+  if (!prefix) return `${BASE_URL}${path}`;
+  return path === '/' ? `${BASE_URL}${prefix}` : `${BASE_URL}${prefix}${path}`;
+}
+
 export function buildSitemapEntries() {
   const todayIso = new Date().toISOString().slice(0, 10);
-  const staticEntries = ROUTES.map(({ path, dir, changefreq, priority }) => {
+  // Ogni route statica → 5 entry (una per lingua), ognuna con la lista
+  // completa degli alternates (hreflang reciproci + x-default = EN root).
+  const staticEntries = ROUTES.flatMap(({ path, dir, changefreq, priority }) => {
     const folder = join(SRC_PAGES, dir);
     const ts = lastModifiedMs(folder);
     // Fallback to today if both git and fs lookups failed (e.g. route added
@@ -154,10 +177,20 @@ export function buildSitemapEntries() {
     const lastmod = ts > 0
       ? new Date(ts).toISOString().slice(0, 10)
       : todayIso;
-    return { loc: `${BASE_URL}${path}`, lastmod, changefreq, priority };
+    const alternates = [
+      ...LOCALES.map(l => ({ hreflang: l.code, href: localizedLoc(path, l.prefix) })),
+      { hreflang: 'x-default', href: localizedLoc(path, '') },
+    ];
+    return LOCALES.map(l => ({
+      loc: localizedLoc(path, l.prefix),
+      lastmod,
+      changefreq,
+      priority,
+      alternates,
+    }));
   });
-  // Concat one entry per blog post — discovered from the manifest so this
-  // script doesn't need to be edited every time an article is published.
+  // Blog: contenuto single-language → SOLO la versione root in sitemap
+  // (le varianti /xx/blog/* esistono ma canonicalizzano alla root).
   return [...staticEntries, ...blogPostEntries()];
 }
 
@@ -165,10 +198,14 @@ export function buildSitemapEntries() {
 export function buildSitemapXml(entries) {
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
-    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    // xmlns:xhtml serve per i blocchi <xhtml:link rel="alternate"> hreflang
+    // (formato sitemap multilingua raccomandato da Google).
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">',
     ...entries.map(u => [
       '  <url>',
       `    <loc>${u.loc}</loc>`,
+      ...(u.alternates ?? []).map(a =>
+        `    <xhtml:link rel="alternate" hreflang="${a.hreflang}" href="${a.href}"/>`),
       `    <lastmod>${u.lastmod}</lastmod>`,
       `    <changefreq>${u.changefreq}</changefreq>`,
       `    <priority>${u.priority.toFixed(1)}</priority>`,

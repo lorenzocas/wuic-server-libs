@@ -49,17 +49,35 @@ async function blogPrerenderSlugs(): Promise<{ slug: string }[]> {
   }
 }
 
+/**
+ * Prefissi locale (allineati a services/locale-url.ts — duplicati come
+ * literal per non importare codice browser in questo file server-only).
+ * Le route parametriche esistono anche sotto ogni prefisso (/it/docs/:slug,
+ * /fr/blog/:slug, ...) e ognuna richiede la sua entry esplicita: il matching
+ * delle ServerRoute è sul path COMPLETO.
+ */
+const LOCALE_PREFIXES = ['it', 'fr', 'es', 'de'] as const;
+
 export const serverRoutes: ServerRoute[] = [
   { path: 'docs/:slug', renderMode: RenderMode.Client },
-  // Blog posts: prerender each slug discovered in the manifest. With
-  // soft-launch noindex still on the page, prerendering doesn't make the
-  // article indexable — but it gives reviewers a fast first-byte and
-  // means the title/description/JSON-LD are present in the static HTML
-  // when sharing draft links internally (Slack/email previews).
+  ...LOCALE_PREFIXES.map(p => ({ path: `${p}/docs/:slug`, renderMode: RenderMode.Client } as ServerRoute)),
+  // Blog posts: prerender each slug discovered in the manifest — dal fix
+  // HttpClient (2026-07-14) l'HTML statico contiene il BODY dell'articolo,
+  // non più "Loading article…".
   {
     path: 'blog/:slug',
     renderMode: RenderMode.Prerender,
     getPrerenderParams: blogPrerenderSlugs,
   },
+  // Varianti locale del blog: prerender anche loro (chrome tradotto, stesso
+  // body single-language). Canonical/hreflang le puntano alla root (vedi
+  // blog-post.ts localizedUrls:false) → nessun rischio duplicati in SERP.
+  ...LOCALE_PREFIXES.map(p => ({
+    path: `${p}/blog/:slug`,
+    renderMode: RenderMode.Prerender,
+    getPrerenderParams: blogPrerenderSlugs,
+  } as ServerRoute)),
+  // Tutte le route statiche — INCLUSI gli alberi /it /fr /es /de (l'extractor
+  // scopre i figli statici dei wrapper locale e li prerenderizza ×5).
   { path: '**', renderMode: RenderMode.Prerender },
 ];

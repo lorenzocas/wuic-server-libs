@@ -1,6 +1,16 @@
 import { Routes } from '@angular/router';
+import { LOCALE_PREFIXES, LOCALE_BY_PREFIX } from './services/locale-url';
 
-export const routes: Routes = [
+/**
+ * Route delle pagine, SENZA prefisso locale. Definite una volta sola e
+ * riusate sia alla root (EN) sia sotto ogni prefisso locale (/it, /fr, /es,
+ * /de) — stessi componenti, la lingua attiva è derivata dall'URL
+ * (services/locale-url.ts + LanguageService).
+ *
+ * NB: `loadComponent` è condiviso tra gli alberi → il chunk lazy di ogni
+ * pagina resta UNO solo (nessuna duplicazione di bundle per locale).
+ */
+const pageRoutes: Routes = [
   {
     path: '',
     loadComponent: () => import('./pages/home/home').then(m => m.Home)
@@ -49,23 +59,14 @@ export const routes: Routes = [
     path: 'terms',
     loadComponent: () => import('./pages/terms/terms').then(m => m.Terms)
   },
-
-  // ─── Sprint 1 placeholders ──────────────────────────────────────────
-  // Routes are registered now (so internal links + analytics + sitemap
-  // tooling work) but rendered via the shared ComingSoon component with
-  // `noindex` so Google doesn't index thin content. Each route gets
-  // promoted to a dedicated component in later sprints (Sprint 2:
-  // /comparison + /sandbox; Sprint 3: /blog + /blog/:slug; Sprint 5:
-  // /start). When promoting, replace `loadComponent` and drop the
-  // `data` block — SeoService.set() in the new component takes over.
   {
     path: 'comparison',
     loadComponent: () => import('./pages/comparison/comparison').then(m => m.Comparison),
   },
-  // Blog — soft-launch / draft mode: routes registered, components are
-  // real, but pages emit `noindex` and are NOT in the sitemap. Direct
-  // URLs work for review; once the content is approved, flip noindex
-  // to false in BlogList + BlogPost and add the slugs to the sitemap.
+  // Blog — contenuto single-language (i .md sono autorati in UNA lingua):
+  // esiste anche sotto i prefissi locale (chrome tradotto), ma le pagine
+  // emettono canonical/hreflang alla sola versione root (vedi blog-list.ts /
+  // blog-post.ts `localizedUrls: false`) per non indicizzare duplicati.
   {
     path: 'blog',
     loadComponent: () => import('./pages/blog/blog-list').then(m => m.BlogList),
@@ -86,6 +87,20 @@ export const routes: Routes = [
     data: { bareLayout: true },
     loadComponent: () => import('./pages/start/start').then(m => m.Start),
   },
+];
 
+/**
+ * Schema URL (piano Visibilità W9-12, deciso 2026-07-14):
+ *   `/` = inglese (nessun redirect, x-default), `/it|/fr|/es|/de` = altre lingue.
+ * I wrapper locale sono componentless → i figli ereditano `data.locale`
+ * (paramsInheritanceStrategy 'emptyOnly' copre i parent senza component).
+ */
+export const routes: Routes = [
+  ...LOCALE_PREFIXES.map(prefix => ({
+    path: prefix,
+    data: { locale: LOCALE_BY_PREFIX[prefix] },
+    children: pageRoutes,
+  })),
+  ...pageRoutes,
   { path: '**', redirectTo: '' }
 ];

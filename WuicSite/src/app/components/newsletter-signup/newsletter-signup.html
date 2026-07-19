@@ -1,0 +1,40 @@
+@if (configured) {
+  <section class="newsletter" aria-labelledby="newsletter-title">
+    <div class="newsletter-copy">
+      <h3 id="newsletter-title">{{ 'newsletter.title' | translate }}</h3>
+      <p>{{ 'newsletter.subtitle' | translate }}</p>
+    </div>
+
+    @if (state() === 'success') {
+      <p class="newsletter-success" role="status">
+        <i class="pi pi-check-circle" aria-hidden="true"></i>
+        {{ 'newsletter.success' | translate }}
+      </p>
+    } @else {
+      <form class="newsletter-form" (submit)="submit($event)" novalidate>
+        <input
+          type="email"
+          name="email"
+          autocomplete="email"
+          [attr.aria-label]="'newsletter.placeholder' | translate"
+          [placeholder]="'newsletter.placeholder' | translate"
+          [value]="email()"
+          (input)="onInput($any($event.target).value)"
+          [attr.aria-invalid]="state() === 'error'"
+          required />
+        <button type="submit" [disabled]="state() === 'submitting'">
+          @if (state() === 'submitting') {
+            <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+          } @else {
+            {{ 'newsletter.button' | translate }}
+          }
+        </button>
+      </form>
+
+      @if (state() === 'error') {
+        <p class="newsletter-error" role="alert">{{ 'newsletter.error' | translate }}</p>
+      }
+      <p class="newsletter-note">{{ 'newsletter.note' | translate }}</p>
+    }
+  </section>
+}

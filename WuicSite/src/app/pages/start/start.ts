@@ -5,6 +5,7 @@ import { map } from 'rxjs';
 import { TranslateModule } from '@ngx-translate/core';
 import { ButtonModule } from 'primeng/button';
 import { SeoService } from '../../services/seo.service';
+import { GoogleAdsService } from '../../services/google-ads.service';
 
 /**
  * /start — ads landing page (Sprint 5).
@@ -32,6 +33,7 @@ export class Start {
   readonly demoUrl = 'https://demo.wuic-framework.com/';
 
   private readonly route = inject(ActivatedRoute);
+  private readonly ads = inject(GoogleAdsService);
 
   /** Hero variant key resolved from the `m` query param (see class docs). */
   readonly variant = toSignal(
@@ -50,12 +52,15 @@ export class Start {
   }
 
   /**
-   * Fire a Plausible custom event if the analytics script is loaded.
-   * Safe no-op before task "Analytics" wires the script in — the goals
-   * (sandbox_open / download_click) are pre-wired so the funnel starts
-   * reporting the moment Plausible lands on the page.
+   * Fire the funnel event su ENTRAMBI i canali:
+   *  - Plausible custom goal (traffico/attribuzione, cookieless);
+   *  - Google Ads conversion (misura ROI degli annunci a pagamento).
+   * Entrambi no-op finché i rispettivi tag non sono configurati, così i goal
+   * (sandbox_open / download_click) sono pre-cablati e iniziano a riportare
+   * appena i tag atterrano sulla pagina.
    */
   track(event: string): void {
     (window as unknown as { plausible?: (e: string) => void }).plausible?.(event);
+    this.ads.trackConversion(event);
   }
 }

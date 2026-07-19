@@ -1,5 +1,7 @@
 import { Component, ElementRef, HostListener, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { LanguageService, SiteLanguage } from '../../services/language.service';
+import { localizePath } from '../../services/locale-url';
 
 @Component({
   selector: 'app-language-selector',
@@ -9,6 +11,7 @@ import { LanguageService, SiteLanguage } from '../../services/language.service';
 })
 export class LanguageSelector {
   private languageService = inject(LanguageService);
+  private router = inject(Router);
   private host = inject(ElementRef<HTMLElement>);
 
   languages = this.languageService.languages;
@@ -27,7 +30,16 @@ export class LanguageSelector {
 
   select(lang: SiteLanguage, evt?: MouseEvent): void {
     evt?.stopPropagation();
+    // Ordine importante: PRIMA il signal (così lo sticky-locale listener in
+    // app.config vede già la nuova lingua e non re-instrada), POI la
+    // navigazione alla variante localizzata della pagina corrente — la
+    // lingua vive nell'URL (root=EN, /it /fr /es /de).
     this.languageService.setLanguage(lang.code);
+    const [path, suffix] = (() => {
+      const m = /^([^?#]*)(.*)$/.exec(this.router.url || '/');
+      return [m?.[1] || '/', m?.[2] || ''] as [string, string];
+    })();
+    void this.router.navigateByUrl(localizePath(path, lang.code) + suffix);
     this.open.set(false);
   }
 

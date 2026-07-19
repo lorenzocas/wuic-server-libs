@@ -1,6 +1,8 @@
 import { Component, computed, inject, OnInit, signal, PLATFORM_ID } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DatePipe, isPlatformBrowser } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { marked } from 'marked';
 import hljs from 'highlight.js';
@@ -34,6 +36,7 @@ export class BlogPost implements OnInit {
   private sanitizer = inject(DomSanitizer);
   private seo = inject(SeoService);
   private platformId = inject(PLATFORM_ID);
+  private http = inject(HttpClient);
 
   loading = signal(true);
   error = signal<string | null>(null);
@@ -53,9 +56,10 @@ export class BlogPost implements OnInit {
       // Resolve the post metadata from the manifest first — that's how we
       // discover where the .md lives and grab the title for the SEO tags
       // before the body has even arrived.
-      const manifestResp = await fetch('/blog-manifest.json', { cache: 'no-cache' });
-      if (!manifestResp.ok) throw new Error(`manifest HTTP ${manifestResp.status}`);
-      const manifest: BlogManifest = await manifestResp.json();
+      // HttpClient (NON fetch grezzo): il prerender SSG intercetta solo il
+      // backend fetch di HttpClient (withFetch) — con fetch() nativo il body
+      // non si popolava mai e l'HTML statico usciva "Loading article…".
+      const manifest = await firstValueFrom(this.http.get<BlogManifest>('/blog-manifest.json'));
       const m = manifest.posts.find(p => p.slug === slug);
       if (!m) {
         this.loading.set(false);
@@ -69,6 +73,8 @@ export class BlogPost implements OnInit {
         titleLiteral: m.title,
         descriptionLiteral: m.description,
         path: `/blog/${m.slug}`,
+        // Articolo single-language: canonical alla versione root, no hreflang.
+        localizedUrls: false,
         structuredData: [
           articleSchema({
             headline: m.title,
@@ -85,9 +91,7 @@ export class BlogPost implements OnInit {
         ],
       });
 
-      const mdResp = await fetch(`/${m.sourcePath}`, { cache: 'no-cache' });
-      if (!mdResp.ok) throw new Error(`markdown HTTP ${mdResp.status}`);
-      const raw = await mdResp.text();
+      const raw = await firstValueFrom(this.http.get(`/${m.sourcePath}`, { responseType: 'text' }));
       // Strip the frontmatter block before rendering.
       const body = raw.replace(/^---[\s\S]*?---\s*/, '');
       const html = await marked.parse(body, { gfm: true, breaks: false });

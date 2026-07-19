@@ -3,6 +3,7 @@ import { Title, Meta } from '@angular/platform-browser';
 import { DOCUMENT } from '@angular/common';
 import { TranslateService } from '@ngx-translate/core';
 import { LanguageService } from './language.service';
+import { DEFAULT_LOCALE, localizePath, stripLocalePrefix } from './locale-url';
 
 /**
  * Per-route SEO metadata applied at runtime.
@@ -55,6 +56,18 @@ export interface PageSeo {
    * softwareAppSchema) to build the payload.
    */
   structuredData?: object | object[];
+  /**
+   * Default `true`: la pagina esiste in tutte le lingue sotto i prefissi
+   * locale (`/it/**` ecc.) → canonical self localizzato + hreflang ×5
+   * bidirezionale + x-default alla root EN.
+   *
+   * `false` per contenuto SINGLE-LANGUAGE (blog: i .md sono autorati in una
+   * lingua sola): canonical SEMPRE alla versione root senza prefisso — le
+   * varianti `/xx/blog/...` (raggiungibili, chrome tradotto) si
+   * canonicalizzano alla root e non emettono hreflang → niente duplicati
+   * nell'indice.
+   */
+  localizedUrls?: boolean;
 }
 
 const SUPPORTED_LANGS = ['it-IT', 'en-US', 'fr-FR', 'es-ES', 'de-DE'] as const;
@@ -99,7 +112,14 @@ export class SeoService {
     const title = titleBase ? `${titleBase} — WUIC Framework` : 'WUIC Framework';
     const description = seo.descriptionLiteral
       ?? (seo.descriptionKey ? this.translate.instant(seo.descriptionKey, seo.params) : '');
-    const canonical = `${BASE_URL}${seo.path}`;
+    // I componenti passano `path` locale-less ('/pricing'). Il canonical è
+    // SELF: la variante localizzata di quel path per la lingua attiva
+    // (root per en-US, '/it/pricing' per it-IT, ...). Per le pagine
+    // single-language (localizedUrls:false) il canonical resta alla root.
+    const basePath = stripLocalePrefix(seo.path);
+    const localized = seo.localizedUrls !== false;
+    const canonicalPath = localized ? localizePath(basePath, this.langSvc.current()) : basePath;
+    const canonical = `${BASE_URL}${canonicalPath === '/' ? '/' : canonicalPath}`;
 
     this.titleSvc.setTitle(title);
 
@@ -123,21 +143,20 @@ export class SeoService {
     // Canonical link
     this.upsertLink('canonical', canonical);
 
-    // hreflang: tell crawlers about the same page in other languages.
-    // We don't have separate URLs per language (the SPA uses ngx-translate
-    // at runtime), so all hreflang point to the same path. This is still
-    // useful to declare the languages we serve — Google + Bing accept it
-    // and can pick the right one based on the user's browser locale.
+    // hreflang BIDIREZIONALE (per-URL locale, 2026-07-14): ogni lingua ha la
+    // sua URL (root=EN, /it /fr /es /de) — ogni pagina dichiara TUTTE le
+    // varianti, ognuna col proprio href; x-default punta alla root EN.
+    // Le pagine single-language (localizedUrls:false) NON emettono hreflang:
+    // esistono in una sola lingua, dichiarare alternates sarebbe scorretto.
     this.removeAllLinkRel('alternate');
-    SUPPORTED_LANGS.forEach(l => {
-      this.appendLink({
-        rel: 'alternate',
-        hreflang: this.htmlLang(l),
-        href: canonical,
+    if (localized) {
+      SUPPORTED_LANGS.forEach(l => {
+        const href = `${BASE_URL}${localizePath(basePath, l)}`;
+        this.appendLink({ rel: 'alternate', hreflang: this.htmlLang(l), href });
       });
-    });
-    // x-default is the fallback for unmatched user locales — point to canonical.
-    this.appendLink({ rel: 'alternate', hreflang: 'x-default', href: canonical });
+      const xDefault = `${BASE_URL}${localizePath(basePath, DEFAULT_LOCALE)}`;
+      this.appendLink({ rel: 'alternate', hreflang: 'x-default', href: xDefault });
+    }
 
     // Per-page robots directive: opt-out of indexing for placeholder /
     // ad-only landing pages. The sitewide default "index, follow" is set

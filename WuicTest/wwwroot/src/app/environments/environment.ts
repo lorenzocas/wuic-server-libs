@@ -5,18 +5,21 @@
 
 // DEV ENVIRONMENT (default, usato da `ng serve:dev` su :4200).
 //
-// URL assoluti al backend su :5000 — necessari perche' il dev server Angular
-// gira su una porta diversa dal backend. In prod/npm config il builder
-// sostituisce questo file con `environment.prod.ts` (vedi
-// `angular.json` → `configurations.npm.fileReplacements`) che usa URL
-// relativi (origin-less) safe su qualsiasi host serving.
+// URL RELATIVI (origin-less) come prod: il browser li risolve contro
+// `window.location.origin` (:4200) e il dev-proxy Angular (proxy.conf.js) li
+// inoltra al backend. Cosi' il FE e' DISACCOPPIATO dalla porta del backend:
+// il proxy punta a :5000 di default, oppure a un'altra porta via
+// `WUIC_E2E_BACKEND_URL` (es. dispatcher docs-driven su :5210 quando :5000 e'
+// occupata da un altro progetto). Prima erano hardcodati `http://localhost:5000`
+// assoluti (bypassavano il proxy) → spostando la porta del backend il bootstrap
+// (traduzioni/auth/firstrun) restava su :5000 e la UI non caricava.
 export const environment = {
-  file_path: 'http://localhost:5000/',
-  api_url: 'http://localhost:5000/api/',
-  meta_url: 'http://localhost:5000/api/Meta/',
-  global_root_url: 'http://localhost:5000/api/Meta/AsmxProxy/',
-  upload_handler: 'http://localhost:5000/api/UploadImage',
-  upload_path: 'http://localhost:5000/upload/',
+  file_path: '/',
+  api_url: '/api/',
+  meta_url: '/api/Meta/',
+  global_root_url: '/api/Meta/AsmxProxy/',
+  upload_handler: '/api/UploadImage',
+  upload_path: '/upload/',
   oauth_enabled: false,
   cacheMetadataVersionExpirationMinutes: 0,
   preventNavigateOnFilterByDefault: true,

@@ -8,6 +8,7 @@ import { PurchaseDialog } from './purchase-dialog';
 import { PRODUCTS, PAYPAL_CONFIG, PurchaseProduct } from './paypal.config';
 import { fetchPaypalConfig } from './paypal-loader';
 import { SeoService } from '../../services/seo.service';
+import { GoogleAdsService } from '../../services/google-ads.service';
 
 interface FeatureRow {
   key: string;   // i18n subkey under pricing.comparison.rows
@@ -79,10 +80,16 @@ export class Pricing implements OnInit {
     return `mailto:${this.contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   }
 
+  private readonly ads = inject(GoogleAdsService);
+
   /** Triggered by "Acquista ora" buttons (only rendered when paypalAvailable). */
   openPurchase(productKey: keyof typeof PRODUCTS): void {
     this.selectedProduct = PRODUCTS[productKey];
     this.purchaseDialogVisible = true;
+    // Intent d'acquisto = conversione chiave del funnel a pagamento (goal
+    // pre-cablato; no-op finché l'ID Ads non è configurato).
+    (window as unknown as { plausible?: (e: string) => void }).plausible?.('buy_click');
+    this.ads.trackConversion('buy_click');
   }
 
   /**

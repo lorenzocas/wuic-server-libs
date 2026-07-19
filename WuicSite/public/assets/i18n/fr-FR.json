@@ -391,12 +391,12 @@
       "fattel": {
         "name": "FatturazioneElettronica",
         "tagline": "Facturation électronique italienne + SDI",
-        "features": "Éditeur de factures FatturaPA v1.2, signature CADES-BES, validation XSD, 4 fournisseurs SDI interchangeables (DirectPec gratuit via PEC, ArubaPec/FatturePec/PecIt commerciaux), conservation légale, registres IVA et liquidation."
+        "features": "Éditeur de factures FatturaPA v1.2, signature CADES-BES, validation XSD, 5 fournisseurs SDI interchangeables (DirectPec gratuit via PEC, ArubaPec/FatturePec/PecIt/Notarify commerciaux), conservation légale avec horodatage RFC 3161, exports fiscaux LIPE / Esterometro / CU."
       },
       "flotta": {
         "name": "FlottaMezzi",
         "tagline": "Gestion de flotte + géolocalisation",
-        "features": "Anagraphe véhicules/conducteurs, échéances automatiques (taxe, contrôle technique, assurance, révision, permis), feed géolocalisation OBD/GPS, carte en direct, agrégation coûts €/km par véhicule et par conducteur, reporting TCO."
+        "features": "Registre véhicules/conducteurs, alertes d’échéance automatiques (permis, assurance, contrôle technique), flux de géolocalisation GPS avec carte en direct et relecture de trajet, carburant et sinistres, rapports de coûts entretien/carburant/sinistres par véhicule avec vues mensuelles et tableaux de bord prévisionnels."
       }
     },
     "linuxInstall": {
@@ -956,5 +956,14 @@
       "partial": "Partiel / limité",
       "none": "Non supporté"
     }
+  },
+  "newsletter": {
+    "title": "Recevez la newsletter technique de WUIC",
+    "subtitle": "Angular piloté par métadonnées, RAG sur le code, moteurs de workflow — quelques analyses par mois, sans spam.",
+    "placeholder": "votre@email.com",
+    "button": "S'abonner",
+    "success": "Presque terminé — vérifiez votre boîte mail pour confirmer l'abonnement.",
+    "error": "Une erreur s'est produite. Vérifiez l'adresse et réessayez.",
+    "note": "Double opt-in. Désabonnement en un clic. Nous ne partageons jamais votre adresse."
   }
 }

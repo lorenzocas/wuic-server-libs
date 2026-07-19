@@ -32,6 +32,10 @@
               <i class="pi pi-play-circle play-badge" aria-hidden="true"></i>
             </span>
             <span class="meta">{{ demo.blurbKey | translate }}</span>
+            <a [routerLink]="['/docs', demo.docSlug]" class="docs-link card-docs-link">
+              {{ 'gallery.openDocs' | translate }}
+              <i class="pi pi-arrow-right"></i>
+            </a>
           </figcaption>
         </figure>
       }

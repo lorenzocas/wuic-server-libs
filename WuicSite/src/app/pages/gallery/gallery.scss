@@ -153,6 +153,23 @@
       text-transform: uppercase;
       letter-spacing: 0.4px;
     }
+
+    // Link "torna alla documentazione" sulla singola card featured (la sezione
+    // auto-docs ha il link a livello di gruppo; qui è per-card come promette il
+    // sottotitolo della pagina).
+    .card-docs-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 4px;
+      color: #4f46e5;
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: color 0.15s;
+
+      &:hover { color: #4338ca; }
+    }
   }
 }
 

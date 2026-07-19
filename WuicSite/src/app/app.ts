@@ -5,6 +5,7 @@ import { Footer } from './components/footer/footer';
 import { CookieBanner } from './components/cookie-banner/cookie-banner';
 import { MaintenanceToast } from './core/maintenance-toast';
 import { MaintenanceService } from './core/maintenance.service';
+import { GoogleAdsService } from './services/google-ads.service';
 
 @Component({
   selector: 'app-root',
@@ -15,6 +16,9 @@ import { MaintenanceService } from './core/maintenance.service';
 export class App {
   private readonly router = inject(Router);
   private readonly maintenance = inject(MaintenanceService);
+  // Istanzia il tag Ads (Consent Mode v2): il servizio si auto-bootstrappa
+  // solo se l'ID Ads è configurato (analytics.config.ts) e solo nel browser.
+  private readonly ads = inject(GoogleAdsService);
 
   /**
    * True when the active route declares `data: { bareLayout: true }` —
