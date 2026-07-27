@@ -633,7 +633,10 @@ FROM {fromTable}
                     string safeEntityName = GetTablePrefix(relatedTable) + EscapeDBObjectName(relatedTable.md_nome_tabella);
                     string safeUniqueEntityName = metaQuery.EscapeDBObjectName(categoryColumnLookUp.mc_nome_colonna + "_" + categoryColumnLookUp.mc_ui_lookup_entity_name);
 
-                    string safeTextField = metaQuery.EscapeDBObjectName(categoryColumnLookUp.mc_ui_lookup_dataTextField);
+                    // friendly→physical resolution + skipColumns reset: vedi ResolveLookupTextField.
+                    // Parity col chart oracle: il nome risolto fa sia da riferimento nel
+                    // group_by sia da alias della SELECT.
+                    string safeTextField = metaQuery.EscapeDBObjectName(ResolveLookupTextField(relatedTable, categoryColumnLookUp));
                     join = string.Format(" LEFT JOIN {0} AS {3} ON {1} = {2} ", safeEntityName, current_fld, safeUniqueEntityName + "." + metaQuery.EscapeDBObjectName(categoryColumnLookUp.mc_ui_lookup_dataValueField), safeUniqueEntityName);
                     group_by = safeUniqueEntityName + "." + safeTextField;
                     select_cols = aggregationFunction + "(" + table_name + "." + metaQuery.EscapeDBObjectName(valueField) + ") AS " + metaQuery.EscapeDBObjectName(valueField) + ", coalesce(" + group_by + ", 'NULLO') AS " + safeTextField;

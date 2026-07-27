@@ -658,6 +658,11 @@ FROM {fromTable}
                     string safeEntityName = EscapeDBObjectName(relatedTable.md_nome_tabella);
                     string safeUniqueEntityName = EscapeDBObjectName(categoryColumnLookUp.mc_nome_colonna + "_" + categoryColumnLookUp.mc_ui_lookup_entity_name);
                     _ = NormalizeComputedTextSnippet(categoryColumnLookUp.mc_ui_lookup_computed_dataTextField);
+                    // skipColumns reset PRIMA della risoluzione (come nei path di grouping):
+                    // sulle system route la collezione colonne arriva vuota → textColCat null
+                    // → fallback al friendly RAW → ORA-00904.
+                    if (relatedTable != null && relatedTable.skipColumns)
+                        relatedTable.skipColumns = false;
                     // friendly→physical resolution: vedi commento in JoinBuilder.
                     _Metadati_Colonne textColCat = relatedTable?._Metadati_Colonnes
                         ?.FirstOrDefault(xk => xk.mc_nome_colonna == categoryColumnLookUp.mc_ui_lookup_dataTextField)
