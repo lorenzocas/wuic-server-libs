@@ -33,7 +33,7 @@ The interesting part. We have **five** interchangeable providers behind `ISdiPro
 
 - **`DirectPec`** (FREE) — sends the signed XML directly to SDI by sending an email from your own PEC mailbox to `sdi01@pec.fatturapa.it`. Costs whatever your PEC provider charges (typically €5–€30/year). No middleman. An IMAP poller watches the same PEC inbox for the SDI responses (AT/RC/NS/MC/NE/DT) and parses them into your local `sdi_notifications` table
 - **`ArubaPec`**, **`FatturePec`**, **`PecIt`**, **`Notarify`** — commercial intermediaries, each with its own REST/SOAP client *and* its own symmetric notification poller (commercial providers deliver SDI receipts on their infrastructure, not on your PEC)
-- **`MockSdiProvider`** — dev/test fallback, active when no real provider is configured. Echoes back synthetic receipts so you can exercise the whole pipeline locally
+- **Mock provider** — dev/test fallback, active when no real provider is configured. Echoes back synthetic receipts so you can exercise the whole pipeline locally
 
 Configure **exactly one** provider subsection: with zero configured you get the mock, and with more than one the app deliberately fails at startup with an explicit error — a deliberate guard against "I copied prod config into dev and sent real invoices to SDI by accident".
 
@@ -41,8 +41,8 @@ The free path (`DirectPec`) is the one to use if you want zero per-invoice cost.
 
 ### Signature & validation
 
-- **`CadesBesSigner`** — CADES-BES signature on the XML payload using a PKCS#12 certificate (`.p12`), configured via `Sdi:Signer:Pkcs12Path` + `Pkcs12Password`. Production: AgID qualified cert. Dev: `scripts/generate-dev-sdi-cert.ps1` produces a self-signed one (SDI rejects it but at least your pipeline runs end-to-end)
-- **`FatturaPaXsdValidator`** — validates against the official FatturaPA v1.2 XSD schemas. Catches malformed XML before SDI rejects it with an NS notification (and burns one of your daily quota slots)
+- **CADES-BES signature** — on the XML payload using a PKCS#12 certificate (`.p12`), configured via `Sdi:Signer:Pkcs12Path` + `Pkcs12Password`. Production: AgID qualified cert. Dev: `scripts/generate-dev-sdi-cert.ps1` produces a self-signed one (SDI rejects it but at least your pipeline runs end-to-end)
+- **FatturaPA XSD validation** — validates against the official FatturaPA v1.2 XSD schemas. Catches malformed XML before SDI rejects it with an NS notification (and burns one of your daily quota slots)
 
 ### Conservation
 

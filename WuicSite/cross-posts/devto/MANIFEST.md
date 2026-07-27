@@ -18,7 +18,7 @@ outrank our own canonical post on long-tail queries.
 
 | ☐ | Article | dev.to tags | Source |
 |---|---|---|---|
-| ☐ | [Building reports without code: SQL view to .mrt to printed PDF in one route](https://wuic-framework.com/blog/building-reports-without-code-sql-view-to-mrt) | `reports, sql, lowcode, pdf` | [building-reports-without-code-sql-view-to-mrt.md](building-reports-without-code-sql-view-to-mrt.md) |
+| ✅ | [Enterprise reports in three steps: SQL view → drag-and-drop designer → menu entry](https://wuic-framework.com/blog/building-reports-without-code-sql-view-to-mrt) | `reports, sql, lowcode, pdf` | [building-reports-without-code-sql-view-to-mrt.md](building-reports-without-code-sql-view-to-mrt.md) |
 | ☐ | [CrmApp: a free CRM you can install in 10 minutes (and own forever)](https://wuic-framework.com/blog/crmapp-free-crm-on-wuic) | `crm, opensource, wuic, selfhosted` | [crmapp-free-crm-on-wuic.md](crmapp-free-crm-on-wuic.md) |
 | ✅ | [The dashboard designer: drag-and-drop that writes JSON metadata, not Angular code](https://wuic-framework.com/blog/dashboard-designer-drag-and-drop-metadata) | `dashboard, designer, lowcode, angular` | [dashboard-designer-drag-and-drop-metadata.md](dashboard-designer-drag-and-drop-metadata.md) |
 | ☐ | [FatturazioneElettronica: a free Italian e-invoicing app with SDI integration](https://wuic-framework.com/blog/fatturazione-elettronica-free-italian-einvoicing) | `fintech, compliance, italy, cadesbes` | [fatturazione-elettronica-free-italian-einvoicing.md](fatturazione-elettronica-free-italian-einvoicing.md) |

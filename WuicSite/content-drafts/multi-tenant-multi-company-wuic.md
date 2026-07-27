@@ -49,15 +49,15 @@ When the flag is `false`, the tenant plumbing returns the base behaviour untouch
 
 ## How isolation actually happens
 
-Every request carries a `k-user` cookie with the user's `azienda_id`. The authentication layer populates a per-request `TenantScope`, and from there every query, cache lookup, and background job resolves against the right databases:
+Every request carries a `k-user` cookie with the user's `azienda_id`. The authentication layer populates a per-request tenant scope, and from there every query, cache lookup, and background job resolves against the right databases:
 
-- **Server caches** get a per-tenant suffix (`storedMeta__a1`, `userList__a2`, ...) via `MultiTenantHelpers.TenantKey`. Flag off → suffix gone.
+- **Server caches** get a per-tenant suffix (`storedMeta__a1`, `userList__a2`, ...). Flag off → suffix gone.
 - **Client caches** too: the Angular lib names its IndexedDB stores `MetaDB__a<id>` and segregates localStorage keys per tenant, with orphan cleanup at startup.
-- **The scheduler** enumerates companies every poll cycle and runs each job inside the right `TenantScope` — including per-tenant SMTP overrides via a naming convention (`email-host__a1`).
+- **The scheduler** enumerates companies every poll cycle and runs each job inside the right tenant scope — including per-tenant SMTP overrides via a naming convention (`email-host__a1`).
 
 There's an anti-hijack check on every request: for non-superadmin users, the cookie's active `azienda_id` must match the `azienda_id_user` snapshotted at login. A tampered cookie doesn't get a different tenant's data — it gets a forced re-login and a security log entry. We have an e2e test whose whole job is to tamper with that cookie and assert the rejection.
 
-Superadmins are the exception by design: `MetaService.switchAzienda(idAzienda)` re-issues their cookie for another company, and the `<wuic-azienda-switcher>` dropdown in the UI wraps it. Non-superadmins get a 401.
+Superadmins are the exception by design: the `<wuic-azienda-switcher>` dropdown re-issues their cookie for another company. Non-superadmins get a 401.
 
 ## Separate data DBs — or one shared, filtered by row
 
@@ -76,28 +76,19 @@ One honest note: this is a metadata-driven filter applied by the query builder, 
 
 ## Scaffolding once, propagating everywhere
 
-The part we use daily. WUIC's scaffolder turns a SQL table into a working CRUD UI ([covered here](/blog/sql-table-to-crud-form-in-30-seconds)) — but with per-tenant metadata DBs, scaffolding on tenant 1 does nothing for tenant 2. Repeating it N times by hand is exactly the kind of toil this framework exists to remove, so `scaffolding.scaffoldTable` (and `scaffoldView`) grew a flag:
+The part we use daily. WUIC's scaffolder turns a SQL table into a working CRUD UI ([covered here](/blog/sql-table-to-crud-form-in-30-seconds)) — but with per-tenant metadata DBs, scaffolding on tenant 1 does nothing for tenant 2. Repeating it N times by hand is exactly the kind of toil this framework exists to remove, so the Scaffolding page grew a **Propagate to all tenants** checkbox (superadmin-only, multi-tenant mode on; the same operation is exposed on the metadata API for scripted provisioning).
 
-```http
-POST /api/Meta/AsmxProxy/scaffolding.scaffoldTable
-Cookie: k-user=...
-
-{ "connName": "Tenant1_Data", "db": "WideWorldImporters_T1",
-  "table": "audit_demo", "createMenu": false,
-  "provider": "mssql", "propagateToTenants": true }
-```
-
-With `propagateToTenants: true`, after scaffolding the current tenant the backend iterates over every other active company with a valid connection mapping and replicates the scaffolding into each one's metadata DB — reading the schema from each tenant's **own** data DB, so column differences are respected. The result reports per-tenant outcomes:
+With it ticked, after scaffolding the current tenant the backend iterates over every other active company with a valid connection mapping and replicates the scaffolding into each one's metadata DB — reading the schema from each tenant's **own** data DB, so column differences are respected. The result reports per-tenant outcomes:
 
 ```json
-{ "__propagate": "targets=...", "tenant_2:": "OK", "tenant_3:": "SKIPPED:not-found" }
+{ "tenant_2": "OK", "tenant_3": "SKIPPED:not-found" }
 ```
 
-`SKIPPED:not-found` means that tenant doesn't have the physical table — the operation is best-effort, not a cross-tenant transaction. It's gated to superadmins with the multi-tenant flag on; for anyone else the parameter is silently ignored, and in single-tenant installs the "Propagate to all tenants" checkbox never even renders in the scaffolding dialog.
+`SKIPPED:not-found` means that tenant doesn't have the physical table — the operation is best-effort, not a cross-tenant transaction. It's gated to superadmins with the multi-tenant flag on; for anyone else it's silently ignored, and in single-tenant installs the "Propagate to all tenants" checkbox never even renders in the scaffolding dialog.
 
 ## Users across tenants
 
-When a login doesn't match on the primary metadata DB, the backend falls back through `_login_index` — a table mapping `SHA-256(lowercased username)` to candidate company ids — and retries the login on each candidate tenant's DB. First match wins, and the cookie is issued for that tenant.
+When a login doesn't match on the primary metadata DB, the backend falls back through an index table mapping a hash of the lowercased username to candidate company ids — and retries the login on each candidate tenant's DB. First match wins, and the cookie is issued for that tenant.
 
 Which leads to a deliberate convention: if the same person needs standard (non-superadmin) access to two tenants, give them **two accounts with distinct usernames** (`mario.rossi.t1`, `mario.rossi.t2`). Reusing one username across tenants means the fallback always lands on the lowest company id and the other tenant becomes unreachable. Superadmins don't need this — one account plus the switcher covers everything.
 

@@ -103,7 +103,7 @@ Identical to the other two free apps:
 
 The free ZIP gives you the ready-to-run binary (`FlottaMezzi.dll`) with the embedded host-binding `.lic` that authorizes the framework runtime. The source ZIP gives you the app's C# — but recompiling it locally produces a binary with a different identity (different strong-name PKT, no embedded `WUIC.HostBindingLicense` resource — we don't ship the .snk or the RSA private key that signs the .lic), so the framework stops recognizing the host as authorized and falls back to the standard fingerprint check.
 
-You can extend FlottaMezzi without recompiling the binary: add metadata via SQL, add custom Angular components, add Stimulsoft reports, add scheduled jobs in the `scheduler` table, change the Maps key or connection strings in `appsettings.json`. Adding a new controller (say, a `FuelCardController.cs` to integrate DKV) requires recompiling `FlottaMezzi.dll`, so that crosses the license line.
+You can extend FlottaMezzi without recompiling the binary: add metadata via SQL, add custom Angular components, add Stimulsoft reports, add scheduled jobs in the `scheduler` table, change the Maps key or connection strings in `appsettings.json`. Adding a new controller (say, to integrate DKV fuel-card imports) means changing the app's C# and recompiling `FlottaMezzi.dll`, so that crosses the license line.
 
 ## Get it
 

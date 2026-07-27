@@ -40,13 +40,13 @@ One grant record, concretely:
 
 Because grants can target a role, a specific user, or a tenant, the sales/support scenario above is two rows of metadata, not two screens. And because the enforcement happens where the query is built, there is no "the API still returns it, we just hide the column" gap — the class of bug where the permission model exists only in the DOM.
 
-Framework-level mutations (editing metadata, saving dashboards, scaffolding) sit behind a separate, stricter gate: the `isSuperAdmin` flag, checked server-side on every metadata endpoint. WUIC actually distinguishes three admin notions with increasing scope:
+Framework-level mutations (editing metadata, saving dashboards, scaffolding) sit behind a separate, stricter gate: a project-level super-admin privilege, checked server-side on every metadata endpoint. WUIC actually distinguishes three admin notions with increasing scope:
 
-| Flag | What it means | What it can do |
+| Admin notion | What it means | What it can do |
 |---|---|---|
-| `isSuperAdmin` | Project-level privilege | Modify project metadata; passes the server-side admin gate |
-| `isRoleAdmin` | The role is nominally "admin" | Fallback grant on routes without explicit grants — nothing more |
-| `isAdmin` (legacy) | Per-user historical flag | Same fallback grant; kept for backwards compatibility |
+| Project super-admin | Project-level privilege | Modify project metadata; passes the server-side admin gate |
+| Role admin | The role is nominally "admin" | Fallback grant on routes without explicit grants — nothing more |
+| Legacy per-user admin | Per-user historical flag | Same fallback grant; kept for backwards compatibility |
 
 A role being *named* "Admin" is not enough to touch metadata — we learned to distinguish nominal admins from metadata admins the hard way, and the permissive fallback cascade exists precisely so tightening the model didn't break fifteen-year-old installs.
 
@@ -91,7 +91,7 @@ WUIC ships this check framework-wide behind one setting:
 }
 ```
 
-The mechanics: every edit form carries an `__original` snapshot of the record as it was loaded. On `updateRecord`, the server compares `__original` against the current database state:
+The mechanics: every edit form carries a snapshot of the record as it was loaded. On save, the server compares that snapshot against the current database state:
 
 1. Values match → the update proceeds.
 2. Values don't match → someone else changed the record since you loaded it, and the save is rejected with a concurrency error instead of a silent overwrite. The user re-loads, sees the other person's change, and re-applies theirs consciously.
@@ -106,7 +106,7 @@ The point isn't the algorithm — it's that it applies to every route in the app
 
 Last one, and the most underrated. When something fails in production, a low-code tool typically shows the user a raw exception string — in English, with a stack trace, sometimes with the SQL query in it. That's simultaneously a terrible user experience and an information leak.
 
-Every server exception in WUIC passes through a central filter (`JsonExceptionFilter`) that produces one stable envelope:
+Every server exception in WUIC passes through a central exception filter that produces one stable envelope:
 
 ```json
 {
@@ -118,9 +118,9 @@ Every server exception in WUIC passes through a central filter (`JsonExceptionFi
 }
 ```
 
-A translator layer (`MetaExceptionTranslator`) maps known exception families to stable codes — malformed metadata to `errors.metadata.props_bag.malformed`, auth failures to 401/403 envelopes, unknown ones to `errors.server.unhandled`. SQL errors are the one deliberate exception to localization: the database engine's message is already the precise diagnostic a developer needs, so it's passed through to a dedicated dialog with expandable stack/query/parameters sections instead of being paraphrased.
+A translator layer maps known exception families to stable codes — malformed metadata to `errors.metadata.props_bag.malformed`, auth failures to 401/403 envelopes, unknown ones to `errors.server.unhandled`. SQL errors are the one deliberate exception to localization: the database engine's message is already the precise diagnostic a developer needs, so it's passed through to a dedicated dialog with expandable stack/query/parameters sections instead of being paraphrased.
 
-On the Angular side, a global error handler (`GlobalHandler`, wired as Angular's `ErrorHandler`) looks up the `errorCode` in the `_wuic_translations` table, interpolates the `{argName}` placeholders from `args`, and shows the message in the user's language. Your app code can throw its own typed errors and they ride the same pipeline — `WuicException` server-side, `WuicClientException` client-side:
+On the Angular side, a global error handler (wired as Angular's `ErrorHandler`) looks up the `errorCode` in the `_wuic_translations` table, interpolates the `{argName}` placeholders from `args`, and shows the message in the user's language. Your app code can throw its own typed errors and they ride the same pipeline — `WuicException` server-side, `WuicClientException` client-side:
 
 ```ts
 throw new WuicClientException(

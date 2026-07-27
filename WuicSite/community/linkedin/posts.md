@@ -109,11 +109,11 @@ The post explains the JSON shape, the palette extension model (register a custom
 
 ## Day 7 — 2026-06-06 (reports)
 
-📊 Reports without per-report TypeScript, per-report backend code, or per-report auth.
+📊 The last time you shipped a report, how much of it was the report — and how much was plumbing?
 
 Reporting in most enterprise apps is a tiny project per report: stored procedure, custom controller, viewer wiring, manual filter context, manual permission checks.
 
-WUIC's report engine ties a Stimulsoft `.mrt` file to a metadata route. Drop the file in the right folder, add a menu entry pointing at the route's viewer — the framework's auth, filter context, per-column permissions, and i18n all apply automatically because the data source IS the route's CRUD endpoint.
+WUIC's report engine ties a Stimulsoft `.mrt` file to a metadata route. You lay the report out in the embedded browser designer — it opens with the route's fields already loaded and saves the .mrt into the route's folder for you — then add a menu entry pointing at the route's viewer. The framework's auth, filter context, per-column permissions, and i18n all apply automatically because the data source IS the route's CRUD endpoint.
 
 👉 https://wuic-framework.com/blog/building-reports-without-code-sql-view-to-mrt
 

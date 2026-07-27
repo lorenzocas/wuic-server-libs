@@ -1,14 +1,14 @@
 ---
-title: "Building reports without code: SQL view to .mrt to printed PDF in one route"
+title: "Enterprise reports in three steps: SQL view → drag-and-drop designer → menu entry"
 published: false
-description: "WUIC's report engine binds a Stimulsoft .mrt file to a metadata route. Write a SQL view, scaffold it, point the .mrt at the route, drop the route into a menu — the report runs in the embedded viewer with the right data, right filters, and right permissions. No per-report TypeScript, no per-report backend code, no separate auth layer."
+description: "WUIC's report engine binds a Stimulsoft .mrt file to a metadata route. Write a SQL view, scaffold it, design the report in the embedded browser designer, drop the route into a menu — it runs in the embedded viewer with the right data, right filters, and right permissions. No per-report TypeScript, no per-report backend code, no separate auth layer."
 tags: reports, sql, lowcode, pdf
 canonical_url: https://wuic-framework.com/blog/building-reports-without-code-sql-view-to-mrt
 ---
 
 The reporting story in most enterprise apps goes like this: build a stored procedure, expose it via a custom controller, write a TypeScript service to call it, embed a Stimulsoft (or Crystal, or Telerik) viewer, manually wire the parameters, manually handle the per-user filter, manually validate the permissions. Multiply by 40 reports. Each one is a tiny project.
 
-The WUIC version: write a SQL view, scaffold it as a metadata route, drop a `.mrt` file in a folder, add a menu entry pointing at the route's report viewer. The framework picks it up. The same auth, per-user filtering, and column permissions that drive list pages apply to the report — for free, because it's the same route.
+The WUIC version: write a SQL view, scaffold it as a metadata route, lay the report out in the embedded designer (it saves into the route's folder for you), add a menu entry pointing at the route's report viewer. The framework picks it up. The same auth, per-user filtering, and column permissions that drive list pages apply to the report — for free, because it's the same route.
 
 This post walks through the contract between the report, the route, and the viewer, and why naming discipline matters more here than anywhere else in the framework.
 
@@ -35,24 +35,19 @@ That's the data. Now the report.
 
 ## Scaffold the view as a metadata route
 
-The framework needs to know about the view in `_metadati__tabelle` so the runtime can resolve it, apply per-user column grants, and inject the user's filter context. One endpoint call:
+The framework needs to know about the view in `_metadati__tabelle` so the runtime can resolve it, apply per-user column grants, and inject the user's filter context. Same tool as for tables: the built-in **Scaffolding** page. Its object dropdown lists tables, views (tagged `[VISTA]`) and stored procedures (`[STORED]`) — pick `vw_sales_by_region`, and this time **leave "Create Menu" unticked**, because we don't want the view to appear as its own list page; it's reachable through the report's own menu entry.
 
-```http
-POST /api/Meta/AsmxProxy/scaffolding.scaffoldView
-Cookie: k-user=...
-
-{ "connName": "DataSQLConnection", "db": "MyCrmDb", "view": "vw_sales_by_region", "createMenu": false }
-```
-
-(The parameter is `view`, not `viewName` — the AsmxProxy layer silently falls back to defaults on unknown JSON keys, so a typo here fails quietly. Same trap as in the [scaffolding post](https://wuic-framework.com/blog/sql-table-to-crud-form-in-30-seconds).)
-
-`createMenu: false` because we don't want this view to show up as a list page — it'll be reachable through the report's own menu entry. The scaffolder inserts a `_metadati__tabelle` row with `mdroutename = 'vw_sales_by_region'` and one `_metadati__colonne` row per column.
+Scaffolding a view is the same click as scaffolding a table — the page detects it's a view and routes accordingly. It inserts a `_metadati__tabelle` row with `mdroutename = 'vw_sales_by_region'` and one `_metadati__colonne` row per column. (For automation it's the `scaffolding.scaffoldView` proxy method, sibling of `scaffoldTable` — but as with tables, the page is how you do it interactively.)
 
 The columns are now metadata. The framework knows that `total_amount` is a decimal that should render with thousand separators, that `region_name` is a string used as the human-friendly group key, and that the view has 6 columns. None of that is in the report yet — it's in the metadata, and the report will read it.
 
-## Bind the .mrt to the route
+## Design the report against the route
 
-The Stimulsoft `.mrt` file is XML. The convention with WUIC is **the SQL data source inside the .mrt is named after the metadata route** (spaces replaced by underscores). Simplified:
+You don't hand-write the `.mrt` XML. WUIC ships an **embedded Stimulsoft report designer** in the browser, at `#/<route>/report-designer`. When you open it for a scaffolded route, the backend seeds the report's data dictionary with that route's data source already wired up: the view's columns are sitting in the fields list, ready to drag onto the canvas. You lay out bands, drop fields, preview on real data — the designer writes the XML.
+
+![Report designer — embedded Stimulsoft designer in the browser, drag fields onto the canvas, preview on real data](https://wuic-framework.com/assets/wuic-framework-docs/screenshots/report-designer__report-designer-animation__desktop.gif)
+
+What it generates is worth understanding, because it's the contract the viewer relies on. The `.mrt` is XML, and the convention is that **the SQL data source is named after the metadata route** (spaces replaced by underscores):
 
 ```xml
 <DataSources>
@@ -65,7 +60,7 @@ The Stimulsoft `.mrt` file is XML. The convention with WUIC is **the SQL data so
 </DataSources>
 ```
 
-And every binding expression in the report references `{vw_sales_by_region.field_name}`:
+…and every binding expression in the report references `{vw_sales_by_region.field_name}` — again, filled in by the designer as you drag fields:
 
 ```xml
 <Text>{vw_sales_by_region.region_name}</Text>
@@ -108,7 +103,7 @@ One backend prerequisite: `AppSettings.reportQueryTimeout` must exist in `appset
 
 This is where the metadata-driven story pays off:
 
-- **Auth.** The viewer endpoints run the same `RawHelpers.authenticate()` the rest of the API uses. No separate report login. If the `.mrt` declares a `user_id` variable, it's set to the authenticated user at render — usable directly in hand-written SQL.
+- **Auth.** The viewer endpoints run the same authentication the rest of the API uses. No separate report login. If the `.mrt` declares a `user_id` variable, it's set to the authenticated user at render — usable directly in hand-written SQL.
 - **Filter context.** For auto-generated queries, the backend rebuilds the SQL per render via the same query builder the list page uses, so user-scoped filters (e.g. `country_code IN (user's territory)`) apply to the report automatically. Filters passed on the URL flow into the same rebuild.
 - **Per-column grants.** Column visibility is resolved per user and role — the same grant rules (`mc_grant_by_default`, role/company grants) the list page applies. A column the user isn't granted never enters the generated query, so it never reaches Stimulsoft at all. Caveat: this applies to the auto-generated query. Hand-written SQL in the .mrt is preserved verbatim, which means it also bypasses the column gate — you own that trade-off.
 - **i18n.** The designer seeds field aliases from `_metadati__colonne.mc_display_string_in_view`, and the viewer calls Stimulsoft's report localization with the app's current language at render time. Labels follow the language the user is already using in the rest of the app.
@@ -116,13 +111,11 @@ This is where the metadata-driven story pays off:
 
 What you'd have rolled by hand in a custom controller — auth, filter context, per-column gate, i18n, caching — is the framework's default for every route.
 
-## Designer integration
+## A note on the dictionary
 
-![Report designer — embedded Stimulsoft designer in the browser, drag fields onto the canvas, preview on real data](https://wuic-framework.com/assets/wuic-framework-docs/screenshots/report-designer__report-designer-animation__desktop.gif)
+One detail worth calling out about that designer: the pre-populated dictionary includes the fields of every **lookup** the route declares, not just the view's own columns — so a foreign-key column shows up with its resolved display fields, ready to drop into the layout. If you add or remove metadata columns later, reopen the designer to regenerate the dictionary.
 
-Reports are typically built in the embedded Stimulsoft Designer at `#/<route>/report-designer` (the standalone designer works too, if you prefer). When it opens, the backend pre-populates the Stimulsoft dictionary from the route's metadata: column names, types, and display labels land in the field tree ready for drag-and-drop, including the fields of every lookup the route declares. If you add or remove metadata columns later, reopen the designer to regenerate the dictionary.
-
-Saving the `.mrt` to the right folder publishes it. There's no separate "register report" step — the folder structure IS the registration.
+Saving from the designer publishes it: the `.mrt` lands in the route's folder automatically. There's no separate "register report" step — the folder structure IS the registration.
 
 ## Naming discipline (a real warning)
 
@@ -136,10 +129,8 @@ Specifically:
 What the framework does to make these failures visible instead of mysterious:
 
 - A missing or misnamed report file returns a **typed error envelope** (`errors.report.not_found`, HTTP 404) carrying the route, the report name, and the path it looked at — localized in the UI instead of a raw stacktrace.
-- The client runs a lightweight preflight (`CheckReport`) before mounting the Stimulsoft viewer, because the viewer itself crashes ungracefully on any non-200. If the file isn't there, you get a clean localized dialog and the viewer never mounts.
+- The client runs a lightweight preflight before mounting the Stimulsoft viewer, because the viewer itself crashes ungracefully on any non-200. If the file isn't there, you get a clean localized dialog and the viewer never mounts.
 - The `__autogenerated` sentinel keeps the engine from clobbering hand-written SQL on re-render — the most common way a "working yesterday" report used to die.
-
-None of this is glamorous. All of it has saved us from a real incident.
 
 ## What the report engine does NOT do
 
@@ -154,7 +145,5 @@ In the same spirit as our other posts on this framework — here's what's delibe
 The public [demo](https://wuic-framework.com/sandbox) ships seeded reports built on the tutorial data — open one from the menu and it renders in the embedded viewer with print, export-to-PDF, and export-to-Excel out of the box.
 
 To build your own you need write access to the `Reports/` folder, so on the hosted demo this part is read-only for visitors — but the workflow is exactly the same on a self-hosted install: scaffold a view, save a .mrt from the embedded designer, add the menu entry.
-
-The source files involved: `ReportViewerController.cs` (viewer actions plus the per-DBMS data binding — MSSQL, PostgreSQL, MySQL, Oracle each get their own code path), `ReportDesignerController.cs` (designer hosting and dictionary pre-population), and the `<wuic-report-viewer>` Angular component. The codebase chatbot ([RAG post](https://wuic-framework.com/blog/rag-chatbot-with-claude-and-bge-m3)) can locate each one if you don't want to grep.
 
 If reporting is the "output" half of the metadata story, the input half is just as automated — see how the same routes behave [on a phone with zero configuration](https://wuic-framework.com/blog/mobile-first-auto-layout-zero-config), or how the [workflow engine](https://wuic-framework.com/blog/workflow-engine-graph-source-of-truth) drives state transitions over the same metadata.
