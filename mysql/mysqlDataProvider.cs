@@ -562,8 +562,111 @@ LIMIT 1";
                         }
                     }
                 }
-                if (selectParts.Count == 0)
+                // === Tier 1 parity (2026-07-27): aggregations[] + groupByColumns[] ===
+                // Stessa estensione dell'inline MSSQL (MetaService.previewViewDefinition,
+                // "EXTENSION 2026-05-08"): il satellite era rimasto alla generazione
+                // precedente e ignorava silenziosamente aggregations/groupByColumns,
+                // producendo il preview piatto anche con la ViewDefinition aggregata.
+                // Dialetto MySQL: quoting via QId (backtick), LIMIT gia' gestito in coda.
+                var aggregations = def["aggregations"] as JArray;
+                var groupByColumns = def["groupByColumns"] as JArray;
+                var aggregateSelectParts = new List<string>();
+                var groupBySelects = new List<string>();
+                bool hasAggregations = false;
+
+                if (aggregations != null && aggregations.Count > 0)
+                {
+                    // Mappa qualifiedLabel ("t0.stato") → colRef reale per risolvere sourceColumn.
+                    var qualifiedToColRef = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var tbl in tables)
+                    {
+                        string tAlias = Convert.ToString(tbl[TableAliasJsonKey] ?? "").Trim();
+                        var cols = tbl[ColumnsJsonKey] as JArray ?? new JArray();
+                        foreach (var col in cols)
+                        {
+                            string colLabel = Convert.ToString(col["label"] ?? col[AliasJsonKey] ?? "").Trim();
+                            string realName = Convert.ToString(col["realName"] ?? col[AliasJsonKey] ?? "").Trim();
+                            string formula = Convert.ToString(col["formula"] ?? "").Trim();
+                            string qualif = $"{tAlias}.{colLabel}";
+                            if (!string.IsNullOrWhiteSpace(qualif) && !string.IsNullOrWhiteSpace(realName))
+                            {
+                                string colRef = !string.IsNullOrWhiteSpace(formula)
+                                    ? formula
+                                    : $"{QId(tAlias)}.{QId(realName)}";
+                                qualifiedToColRef[qualif] = colRef;
+                            }
+                        }
+                    }
+
+                    foreach (var agg in aggregations.OfType<JObject>())
+                    {
+                        string srcQualified = Convert.ToString(agg["sourceColumn"] ?? "").Trim();
+                        string fn = Convert.ToString(agg["function"] ?? "SUM").Trim().ToUpperInvariant();
+                        string outputAlias = Convert.ToString(agg["outputAlias"] ?? "").Trim();
+
+                        var allowedFn = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "SUM", "COUNT", "AVG", "MIN", "MAX", "COUNT_DISTINCT" };
+                        if (!allowedFn.Contains(fn)) fn = "SUM";
+
+                        string colRef;
+                        // Convenzione speciale: sourceColumn = "*" → COUNT(*).
+                        if (srcQualified == "*" && (fn == "COUNT" || fn == "COUNT_DISTINCT"))
+                            colRef = "*";
+                        else if (qualifiedToColRef.TryGetValue(srcQualified, out var resolved))
+                            colRef = resolved;
+                        else
+                            continue; // aggregation con sourceColumn non risolvibile
+
+                        string aggSql = fn == "COUNT_DISTINCT"
+                            ? $"COUNT(DISTINCT {colRef})"
+                            : $"{fn}({colRef})";
+
+                        if (string.IsNullOrWhiteSpace(outputAlias))
+                            outputAlias = $"{fn.ToLowerInvariant()}_{srcQualified.Replace('.', '_').Replace('*', '_')}";
+
+                        aggregateSelectParts.Add($"{aggSql} AS {QId(outputAlias)}");
+                        hasAggregations = true;
+                    }
+                }
+
+                if (groupByColumns != null && groupByColumns.Count > 0)
+                {
+                    foreach (var gb in groupByColumns)
+                    {
+                        string qualifiedLabel = Convert.ToString(gb).Trim();
+                        if (string.IsNullOrWhiteSpace(qualifiedLabel)) continue;
+                        var qparts = qualifiedLabel.Split('.', 2);
+                        if (qparts.Length != 2) continue;
+                        string tAlias = qparts[0].Trim();
+                        string colLabel = qparts[1].Trim();
+                        string realName = colLabel;
+                        string formula = "";
+                        foreach (var tbl in tables.Where(t => Convert.ToString(t[TableAliasJsonKey] ?? "").Trim() == tAlias))
+                        {
+                            var cols = tbl[ColumnsJsonKey] as JArray;
+                            if (cols == null) continue;
+                            foreach (var col in cols)
+                            {
+                                if (Convert.ToString(col["label"] ?? col[AliasJsonKey] ?? "").Trim() == colLabel)
+                                {
+                                    realName = Convert.ToString(col["realName"] ?? col[AliasJsonKey] ?? colLabel).Trim();
+                                    formula = Convert.ToString(col["formula"] ?? "").Trim();
+                                    break;
+                                }
+                            }
+                        }
+                        string gbRef = !string.IsNullOrWhiteSpace(formula)
+                            ? formula
+                            : $"{QId(tAlias)}.{QId(realName)}";
+                        groupBySelects.Add(gbRef);
+                    }
+                }
+
+                // Con sole aggregations la SELECT senza colonne standard e' legittima.
+                if (selectParts.Count == 0 && !hasAggregations)
                     throw new ValidationException("No columns selected in viewDefinition.");
+
+                if (hasAggregations)
+                    selectParts.AddRange(aggregateSelectParts);
 
                 // FROM + JOINs (MySQL no schema-prefix).
                 string FromOf((string Alias, string PhysicalName, string Schema, string ConnName, JArray SelectedCols) ti)
@@ -731,9 +834,48 @@ LIMIT 1";
                     catch { /* ignore malformed */ }
                 }
 
+                // GROUP BY: esplicito da groupByColumns, oppure auto-inferito quando ci
+                // sono aggregations senza groupBy — con ONLY_FULL_GROUP_BY (default
+                // MySQL 8) ogni colonna non aggregata in SELECT deve stare in GROUP BY,
+                // quindi si inferiscono tutte le dimension columns (stesso contratto
+                // dell'inline MSSQL).
+                string groupBySql = "";
+                if (groupBySelects.Count > 0)
+                {
+                    groupBySql = $"\nGROUP BY {string.Join(", ", groupBySelects)}";
+                }
+                else if (hasAggregations)
+                {
+                    int dimCount = selectParts.Count - aggregateSelectParts.Count;
+                    if (dimCount > 0)
+                    {
+                        var inferred = new List<string>();
+                        int idx = 0;
+                        foreach (var info in tableInfos)
+                        {
+                            foreach (var col in info.SelectedCols)
+                            {
+                                if (idx >= dimCount) break;
+                                string realName = Convert.ToString(col["realName"] ?? col[AliasJsonKey] ?? "").Trim();
+                                string lookupKey = $"{info.Alias}|{realName}";
+                                if (string.IsNullOrWhiteSpace(realName) || !physicalColumns.Contains(lookupKey)) continue;
+                                string formula = Convert.ToString(col["formula"] ?? "").Trim();
+                                string colRef = !string.IsNullOrWhiteSpace(formula)
+                                    ? formula
+                                    : $"{QId(info.Alias)}.{QId(realName)}";
+                                inferred.Add(colRef);
+                                idx++;
+                            }
+                            if (idx >= dimCount) break;
+                        }
+                        if (inferred.Count > 0)
+                            groupBySql = $"\nGROUP BY {string.Join(", ", inferred)}";
+                    }
+                }
+
                 string querySql = safeMaxRows > 0
-                    ? $"SELECT\n  {selectSql}\nFROM {fromSb}{whereSql}\nLIMIT {safeMaxRows}"
-                    : $"SELECT\n  {selectSql}\nFROM {fromSb}{whereSql}";
+                    ? $"SELECT\n  {selectSql}\nFROM {fromSb}{whereSql}{groupBySql}\nLIMIT {safeMaxRows}"
+                    : $"SELECT\n  {selectSql}\nFROM {fromSb}{whereSql}{groupBySql}";
 
                 response["ok"] = true;
                 response["sql"] = querySql;
@@ -1181,5 +1323,162 @@ WHERE c.mc_ui_column_type = 'lookupByID'
             }
         }
         return true;
+    }
+
+    // Row DTO per l'introspezione autocomplete: mapping Dapper case-insensitive,
+    // tipi numerici = quelli che il connettore MySQL emette (BIGINT → long) per
+    // evitare l'InvalidCastException dello strict-cast di Dapper.
+    private sealed class AutocompleteColumnRow
+    {
+        public string DbName { get; set; }
+        public string TableName { get; set; }
+        public string ColumnName { get; set; }
+        public string DataType { get; set; }
+        public long NotNullable { get; set; }
+        public string ColComment { get; set; }
+        public long IsPkey { get; set; }
+        public long IsIdentity { get; set; }
+        public long Ord { get; set; }
+    }
+
+    private sealed class AutocompleteScaffoldRow
+    {
+        public string DbName { get; set; }
+        public string TableName { get; set; }
+        public string MetaColumnName { get; set; }
+        public string RealColumnName { get; set; }
+    }
+
+    /// <summary>
+    /// Versione MySQL di MetaService.AutocompleteSqlObjects (port 2026-07-27 del
+    /// gap documentato "lista vuota su DBMS non-MSSQL"). Introspezione via
+    /// INFORMATION_SCHEMA sul database dati corrente. v1: schemi (=database),
+    /// tabelle, colonne con flag PK/identity; `relations`/`types`/`storeds`
+    /// restano vuoti (JOIN-suggestion e stored autocomplete deferred — Monaco
+    /// degrada senza errori con le liste vuote).
+    /// </summary>
+    public List<WuicCore.Models.SqlModel> AutocompleteSqlObjects(bool scaffoldedOnly = true)
+    {
+        using (MySqlConnection connection = metaQueryMySql.GetOpenConnection(false))
+        {
+            List<AutocompleteColumnRow> columnRows = connection.Query<AutocompleteColumnRow>(@"
+SELECT
+    DATABASE() AS DbName,
+    c.TABLE_NAME AS TableName,
+    c.COLUMN_NAME AS ColumnName,
+    c.DATA_TYPE AS DataType,
+    CAST(CASE WHEN c.IS_NULLABLE = 'NO' THEN 1 ELSE 0 END AS SIGNED) AS NotNullable,
+    c.COLUMN_COMMENT AS ColComment,
+    CAST(CASE WHEN c.COLUMN_KEY = 'PRI' THEN 1 ELSE 0 END AS SIGNED) AS IsPkey,
+    CAST(CASE WHEN c.EXTRA LIKE '%auto_increment%' THEN 1 ELSE 0 END AS SIGNED) AS IsIdentity,
+    -- ORDINAL_POSITION e' `int unsigned`: senza CAST il connettore materializza
+    -- uint e lo strict-cast di Dapper sul DTO `long` lancia (500 sull'endpoint).
+    CAST(c.ORDINAL_POSITION AS SIGNED) AS Ord
+FROM INFORMATION_SCHEMA.COLUMNS c
+INNER JOIN INFORMATION_SCHEMA.TABLES t
+    ON t.TABLE_SCHEMA = c.TABLE_SCHEMA AND t.TABLE_NAME = c.TABLE_NAME AND t.TABLE_TYPE = 'BASE TABLE'
+WHERE c.TABLE_SCHEMA = DATABASE()
+ORDER BY c.TABLE_NAME, c.ORDINAL_POSITION").ToList();
+
+            if (scaffoldedOnly)
+            {
+                columnRows = FilterAutocompleteRowsByScaffoldedMetadata(columnRows);
+            }
+
+            return BuildAutocompleteSqlModels(columnRows);
+        }
+    }
+
+    /// <summary>
+    /// Filtro `scaffoldedOnly`: stessa semantica dell'inline MSSQL — il filtro e'
+    /// ATTIVO solo quando i metadata portano `mddbname` valorizzato (metadata
+    /// database-scoped); senza, si restituisce l'introspezione completa. Il match
+    /// e' per NOME TABELLA (MySQL e' single-database: niente chiave schema).
+    /// </summary>
+    private static List<AutocompleteColumnRow> FilterAutocompleteRowsByScaffoldedMetadata(List<AutocompleteColumnRow> columnRows)
+    {
+        List<AutocompleteScaffoldRow> scaffolded;
+        using (MySqlConnection metaConnection = metaQueryMySql.GetOpenConnection(true))
+        {
+            scaffolded = metaConnection.Query<AutocompleteScaffoldRow>(@"
+SELECT
+    TRIM(IFNULL(t.mddbname, '')) AS DbName,
+    TRIM(t.md_nome_tabella) AS TableName,
+    TRIM(c.mc_nome_colonna) AS MetaColumnName,
+    TRIM(IFNULL(NULLIF(c.mcrealcolumnname, ''), c.mc_nome_colonna)) AS RealColumnName
+FROM _metadati__tabelle t
+INNER JOIN _metadati__colonne c ON c.md_id = t.md_id
+WHERE IFNULL(t.issystemroute, 0) = 0
+  AND IFNULL(t.mdisstored, 0) = 0
+  AND IFNULL(t.md_nome_tabella, '') <> ''
+  AND IFNULL(c.mc_nome_colonna, '') <> ''
+  AND (t.mdconnname IS NULL OR t.mdconnname = '' OR t.mdconnname = 'DataSQLConnection')").ToList();
+        }
+
+        bool hasDatabaseScopedMetadata = scaffolded.Any(r => !string.IsNullOrWhiteSpace(r.DbName));
+        if (!hasDatabaseScopedMetadata)
+        {
+            return columnRows;
+        }
+
+        var allowedColumnsByTable = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+        foreach (AutocompleteScaffoldRow row in scaffolded)
+        {
+            if (string.IsNullOrWhiteSpace(row.TableName)) continue;
+            if (!allowedColumnsByTable.TryGetValue(row.TableName, out HashSet<string> cols))
+            {
+                cols = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                allowedColumnsByTable[row.TableName] = cols;
+            }
+            if (!string.IsNullOrWhiteSpace(row.RealColumnName)) cols.Add(row.RealColumnName);
+            if (!string.IsNullOrWhiteSpace(row.MetaColumnName)) cols.Add(row.MetaColumnName);
+        }
+
+        return columnRows.Where(r =>
+            allowedColumnsByTable.TryGetValue(r.TableName ?? string.Empty, out HashSet<string> cols)
+            && cols.Contains(r.ColumnName ?? string.Empty)).ToList();
+    }
+
+    /// <summary>Raggruppa le righe di introspezione nella forma `SqlModel` attesa dal client Monaco.</summary>
+    private static List<WuicCore.Models.SqlModel> BuildAutocompleteSqlModels(List<AutocompleteColumnRow> columnRows)
+    {
+        var ret = new List<WuicCore.Models.SqlModel>();
+        foreach (AutocompleteColumnRow row in columnRows)
+        {
+            // MySQL non ha schemi separati dal database: schema = database corrente.
+            string schemaName = row.DbName ?? string.Empty;
+            WuicCore.Models.SqlModel model = ret.FirstOrDefault(x => x.schema == schemaName);
+            if (model == null)
+            {
+                model = new WuicCore.Models.SqlModel { database = row.DbName, schema = schemaName, isDefault = true };
+                ret.Add(model);
+            }
+
+            WuicCore.Models.SqlTable table = model.tables.FirstOrDefault(x => x.table == row.TableName);
+            if (table == null)
+            {
+                table = new WuicCore.Models.SqlTable { table = row.TableName, schema = schemaName };
+                model.tables.Add(table);
+            }
+
+            if (!table.columns.Any(x => x.column == row.ColumnName))
+            {
+                table.columns.Add(new WuicCore.Models.SqlColumn
+                {
+                    schema = schemaName,
+                    table = row.TableName,
+                    column = row.ColumnName,
+                    type = row.DataType,
+                    isNullable = row.NotNullable == 1,
+                    columnDescription = string.IsNullOrWhiteSpace(row.ColComment) ? null : row.ColComment,
+                    isPkey = row.IsPkey == 1,
+                    isIdentity = row.IsIdentity == 1,
+                    order = (int)row.Ord
+                });
+            }
+        }
+
+        WuicCore.Models.SqlModel.GenerateTableAlias(ret);
+        return ret;
     }
 }

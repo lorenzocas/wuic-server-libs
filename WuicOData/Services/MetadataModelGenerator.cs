@@ -146,9 +146,13 @@ namespace WuicOData.Services
                 if (col.IsComputed)
                     configs.Add(".ValueGeneratedOnAddOrUpdate()");
 
-                // Emit HasColumnName only when the DB name differs from the property name
-                if (col.ColumnName != propName)
-                    configs.Add($".HasColumnName(\"{col.ColumnName}\")");
+                // Emit HasColumnName con il nome FISICO della colonna (case esatto dello schema)
+                // quando differisce dal nome della property CLR. Usare il physical (non il
+                // friendly ColumnName) e' obbligatorio su Oracle, dove gli identifier sono
+                // quotati e case-sensitive (es. "id" lowercase vs property Id).
+                var physicalColumnName = string.IsNullOrWhiteSpace(col.RealColumnName) ? col.ColumnName : col.RealColumnName;
+                if (physicalColumnName != propName)
+                    configs.Add($".HasColumnName(\"{physicalColumnName}\")");
 
                 if (col.IsPrimaryKey)
                 {

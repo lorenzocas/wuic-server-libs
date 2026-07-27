@@ -297,6 +297,17 @@ namespace WuicOData
         /// </summary>
         private static T InvokeProviderOdataMethod<T>(string typeName, string dllName, string methodName, object[] args)
         {
+            // FIX (2026-07-22): la semantica fail-safe (`return default`) resta SOLO
+            // per la fase di RISOLUZIONE plugin (tipo/assembly/metodo non trovato).
+            // Le eccezioni lanciate dal METODO INVOCATO devono invece propagare:
+            // i metodi `Try*` dei satellite hanno gia' il loro try/catch interno
+            // (ritornano null, mai throw), mentre i metodi di WRITE (InsertEntity,
+            // UpdateEntity, DeleteEntity) LANCIANO deliberatamente sugli errori SQL
+            // ("Throws on SQL errors") e i caller li gestiscono con try/catch per
+            // rispondere 400 col messaggio reale. Il vecchio `catch { return default; }`
+            // avvolgeva anche l'invoke: INSERT fallito (es. ORA-xxxxx) → null →
+            // il controller rispondeva 201 senza aver scritto nulla.
+            MethodInfo method;
             try
             {
                 Type t = null;
@@ -320,14 +331,25 @@ namespace WuicOData
                     }
                 }
                 if (t == null) return default;
-                var method = t.GetMethod(methodName, BindingFlags.Public | BindingFlags.Static);
+                method = t.GetMethod(methodName, BindingFlags.Public | BindingFlags.Static);
                 if (method == null) return default;
-                var result = method.Invoke(null, args);
-                return result == null ? default : (T)result;
             }
             catch
             {
+                // Plugin-loading fallito: comportamento storico invariato.
                 return default;
+            }
+
+            try
+            {
+                var result = method.Invoke(null, args);
+                return result == null ? default : (T)result;
+            }
+            catch (TargetInvocationException tie) when (tie.InnerException != null)
+            {
+                // Unwrap: il caller deve vedere l'eccezione reale del satellite,
+                // non il wrapper reflection.
+                throw tie.InnerException;
             }
         }
 

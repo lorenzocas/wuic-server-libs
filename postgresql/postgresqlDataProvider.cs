@@ -566,8 +566,110 @@ LIMIT 1";
                         }
                     }
                 }
-                if (selectParts.Count == 0)
+                // === Tier 1 parity (2026-07-27): aggregations[] + groupByColumns[] ===
+                // Stessa estensione dell'inline MSSQL (MetaService.previewViewDefinition,
+                // "EXTENSION 2026-05-08"): il satellite era rimasto alla generazione
+                // precedente e ignorava silenziosamente aggregations/groupByColumns.
+                // Dialetto PostgreSQL: quoting via QId (double quote), LIMIT in coda.
+                var aggregations = def["aggregations"] as JArray;
+                var groupByColumns = def["groupByColumns"] as JArray;
+                var aggregateSelectParts = new List<string>();
+                var groupBySelects = new List<string>();
+                bool hasAggregations = false;
+
+                if (aggregations != null && aggregations.Count > 0)
+                {
+                    // Mappa qualifiedLabel ("t0.stato") → colRef reale per risolvere sourceColumn.
+                    var qualifiedToColRef = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var tbl in tables)
+                    {
+                        string tAlias = Convert.ToString(tbl[TableAliasKey] ?? "").Trim();
+                        var cols = tbl[ColumnsKey] as JArray ?? new JArray();
+                        foreach (var col in cols)
+                        {
+                            string colLabel = Convert.ToString(col["label"] ?? col[ColAliasKey] ?? "").Trim();
+                            string realName = Convert.ToString(col["realName"] ?? col[ColAliasKey] ?? "").Trim();
+                            string formula = Convert.ToString(col["formula"] ?? "").Trim();
+                            string qualif = $"{tAlias}.{colLabel}";
+                            if (!string.IsNullOrWhiteSpace(qualif) && !string.IsNullOrWhiteSpace(realName))
+                            {
+                                string colRef = !string.IsNullOrWhiteSpace(formula)
+                                    ? formula
+                                    : $"{QId(tAlias)}.{QId(realName)}";
+                                qualifiedToColRef[qualif] = colRef;
+                            }
+                        }
+                    }
+
+                    foreach (var agg in aggregations.OfType<JObject>())
+                    {
+                        string srcQualified = Convert.ToString(agg["sourceColumn"] ?? "").Trim();
+                        string fn = Convert.ToString(agg["function"] ?? "SUM").Trim().ToUpperInvariant();
+                        string outputAlias = Convert.ToString(agg["outputAlias"] ?? "").Trim();
+
+                        var allowedFn = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "SUM", "COUNT", "AVG", "MIN", "MAX", "COUNT_DISTINCT" };
+                        if (!allowedFn.Contains(fn)) fn = "SUM";
+
+                        string colRef;
+                        // Convenzione speciale: sourceColumn = "*" → COUNT(*).
+                        if (srcQualified == "*" && (fn == "COUNT" || fn == "COUNT_DISTINCT"))
+                            colRef = "*";
+                        else if (qualifiedToColRef.TryGetValue(srcQualified, out var resolved))
+                            colRef = resolved;
+                        else
+                            continue; // aggregation con sourceColumn non risolvibile
+
+                        string aggSql = fn == "COUNT_DISTINCT"
+                            ? $"COUNT(DISTINCT {colRef})"
+                            : $"{fn}({colRef})";
+
+                        if (string.IsNullOrWhiteSpace(outputAlias))
+                            outputAlias = $"{fn.ToLowerInvariant()}_{srcQualified.Replace('.', '_').Replace('*', '_')}";
+
+                        aggregateSelectParts.Add($"{aggSql} AS {QId(outputAlias)}");
+                        hasAggregations = true;
+                    }
+                }
+
+                if (groupByColumns != null && groupByColumns.Count > 0)
+                {
+                    foreach (var gb in groupByColumns)
+                    {
+                        string qualifiedLabel = Convert.ToString(gb).Trim();
+                        if (string.IsNullOrWhiteSpace(qualifiedLabel)) continue;
+                        var qparts = qualifiedLabel.Split('.', 2);
+                        if (qparts.Length != 2) continue;
+                        string tAlias = qparts[0].Trim();
+                        string colLabel = qparts[1].Trim();
+                        string realName = colLabel;
+                        string formula = "";
+                        foreach (var tbl in tables.Where(t => Convert.ToString(t[TableAliasKey] ?? "").Trim() == tAlias))
+                        {
+                            var cols = tbl[ColumnsKey] as JArray;
+                            if (cols == null) continue;
+                            foreach (var col in cols)
+                            {
+                                if (Convert.ToString(col["label"] ?? col[ColAliasKey] ?? "").Trim() == colLabel)
+                                {
+                                    realName = Convert.ToString(col["realName"] ?? col[ColAliasKey] ?? colLabel).Trim();
+                                    formula = Convert.ToString(col["formula"] ?? "").Trim();
+                                    break;
+                                }
+                            }
+                        }
+                        string gbRef = !string.IsNullOrWhiteSpace(formula)
+                            ? formula
+                            : $"{QId(tAlias)}.{QId(realName)}";
+                        groupBySelects.Add(gbRef);
+                    }
+                }
+
+                // Con sole aggregations la SELECT senza colonne standard e' legittima.
+                if (selectParts.Count == 0 && !hasAggregations)
                     throw new ValidationException("No columns selected in viewDefinition.");
+
+                if (hasAggregations)
+                    selectParts.AddRange(aggregateSelectParts);
 
                 // FROM + JOINs (PostgreSQL no schema-prefix).
                 string FromOf((string Alias, string PhysicalName, string Schema, string ConnName, JArray SelectedCols) ti)
@@ -735,9 +837,47 @@ LIMIT 1";
                     catch { /* ignore malformed */ }
                 }
 
+                // GROUP BY: esplicito da groupByColumns, oppure auto-inferito quando ci
+                // sono aggregations senza groupBy — PostgreSQL esige ogni colonna non
+                // aggregata della SELECT in GROUP BY, quindi si inferiscono tutte le
+                // dimension columns (stesso contratto dell'inline MSSQL).
+                string groupBySql = "";
+                if (groupBySelects.Count > 0)
+                {
+                    groupBySql = $"\nGROUP BY {string.Join(", ", groupBySelects)}";
+                }
+                else if (hasAggregations)
+                {
+                    int dimCount = selectParts.Count - aggregateSelectParts.Count;
+                    if (dimCount > 0)
+                    {
+                        var inferred = new List<string>();
+                        int idx = 0;
+                        foreach (var info in tableInfos)
+                        {
+                            foreach (var col in info.SelectedCols)
+                            {
+                                if (idx >= dimCount) break;
+                                string realName = Convert.ToString(col["realName"] ?? col[ColAliasKey] ?? "").Trim();
+                                string lookupKey = $"{info.Alias}|{realName}";
+                                if (string.IsNullOrWhiteSpace(realName) || !physicalColumns.Contains(lookupKey)) continue;
+                                string formula = Convert.ToString(col["formula"] ?? "").Trim();
+                                string colRef = !string.IsNullOrWhiteSpace(formula)
+                                    ? formula
+                                    : $"{QId(info.Alias)}.{QId(realName)}";
+                                inferred.Add(colRef);
+                                idx++;
+                            }
+                            if (idx >= dimCount) break;
+                        }
+                        if (inferred.Count > 0)
+                            groupBySql = $"\nGROUP BY {string.Join(", ", inferred)}";
+                    }
+                }
+
                 string querySql = safeMaxRows > 0
-                    ? $"SELECT\n  {selectSql}\nFROM {fromSb}{whereSql}\nLIMIT {safeMaxRows}"
-                    : $"SELECT\n  {selectSql}\nFROM {fromSb}{whereSql}";
+                    ? $"SELECT\n  {selectSql}\nFROM {fromSb}{whereSql}{groupBySql}\nLIMIT {safeMaxRows}"
+                    : $"SELECT\n  {selectSql}\nFROM {fromSb}{whereSql}{groupBySql}";
 
                 response["ok"] = true;
                 response["sql"] = querySql;
@@ -1184,5 +1324,165 @@ WHERE c.mc_ui_column_type = 'lookupByID'
             }
         }
         return true;
+    }
+
+    // Row DTO per l'introspezione autocomplete: mapping Dapper case-insensitive,
+    // tipi numerici = quelli che Npgsql emette per i CASE WHEN (int4 → int).
+    private sealed class AutocompleteColumnRow
+    {
+        public string DbName { get; set; }
+        public string SchemaName { get; set; }
+        public string TableName { get; set; }
+        public string ColumnName { get; set; }
+        public string DataType { get; set; }
+        public int NotNullable { get; set; }
+        public int IsPkey { get; set; }
+        public int IsIdentity { get; set; }
+        public int Ord { get; set; }
+    }
+
+    private sealed class AutocompleteScaffoldRow
+    {
+        public string DbName { get; set; }
+        public string TableName { get; set; }
+        public string MetaColumnName { get; set; }
+        public string RealColumnName { get; set; }
+    }
+
+    /// <summary>
+    /// Versione PostgreSQL di MetaService.AutocompleteSqlObjects (port 2026-07-27
+    /// del gap documentato "lista vuota su DBMS non-MSSQL"). Introspezione via
+    /// information_schema sullo schema `public` del database dati. v1: schemi,
+    /// tabelle, colonne con flag PK/identity; `relations`/`types`/`storeds`
+    /// restano vuoti (JOIN-suggestion e stored autocomplete deferred — Monaco
+    /// degrada senza errori con le liste vuote).
+    /// </summary>
+    public List<WuicCore.Models.SqlModel> AutocompleteSqlObjects(bool scaffoldedOnly = true)
+    {
+        using (NpgsqlConnection connection = metaQueryPostgreSql.GetOpenConnection(false))
+        {
+            List<AutocompleteColumnRow> columnRows = connection.Query<AutocompleteColumnRow>(@"
+SELECT
+    current_database() AS DbName,
+    c.table_schema AS SchemaName,
+    c.table_name AS TableName,
+    c.column_name AS ColumnName,
+    c.data_type AS DataType,
+    CASE WHEN c.is_nullable = 'NO' THEN 1 ELSE 0 END AS NotNullable,
+    CASE WHEN pk.column_name IS NOT NULL THEN 1 ELSE 0 END AS IsPkey,
+    CASE WHEN c.is_identity = 'YES' OR c.column_default LIKE 'nextval%' THEN 1 ELSE 0 END AS IsIdentity,
+    c.ordinal_position AS Ord
+FROM information_schema.columns c
+INNER JOIN information_schema.tables t
+    ON t.table_schema = c.table_schema AND t.table_name = c.table_name AND t.table_type = 'BASE TABLE'
+LEFT JOIN (
+    SELECT kcu.table_schema, kcu.table_name, kcu.column_name
+    FROM information_schema.table_constraints tc
+    INNER JOIN information_schema.key_column_usage kcu
+        ON kcu.constraint_name = tc.constraint_name AND kcu.table_schema = tc.table_schema
+    WHERE tc.constraint_type = 'PRIMARY KEY'
+) pk ON pk.table_schema = c.table_schema AND pk.table_name = c.table_name AND pk.column_name = c.column_name
+WHERE c.table_schema = 'public'
+ORDER BY c.table_name, c.ordinal_position").ToList();
+
+            if (scaffoldedOnly)
+            {
+                columnRows = FilterAutocompleteRowsByScaffoldedMetadata(columnRows);
+            }
+
+            return BuildAutocompleteSqlModels(columnRows);
+        }
+    }
+
+    /// <summary>
+    /// Filtro `scaffoldedOnly`: stessa semantica dell'inline MSSQL — il filtro e'
+    /// ATTIVO solo quando i metadata portano `mddbname` valorizzato; senza, si
+    /// restituisce l'introspezione completa. Match per NOME TABELLA (il fisico
+    /// vive tutto in `public`).
+    /// </summary>
+    private static List<AutocompleteColumnRow> FilterAutocompleteRowsByScaffoldedMetadata(List<AutocompleteColumnRow> columnRows)
+    {
+        List<AutocompleteScaffoldRow> scaffolded;
+        using (NpgsqlConnection metaConnection = metaQueryPostgreSql.GetOpenConnection(true))
+        {
+            scaffolded = metaConnection.Query<AutocompleteScaffoldRow>(@"
+SELECT
+    TRIM(COALESCE(t.mddbname, '')) AS DbName,
+    TRIM(t.md_nome_tabella) AS TableName,
+    TRIM(c.mc_nome_colonna) AS MetaColumnName,
+    TRIM(COALESCE(NULLIF(c.mcrealcolumnname, ''), c.mc_nome_colonna)) AS RealColumnName
+FROM ""_metadati__tabelle"" t
+INNER JOIN ""_metadati__colonne"" c ON c.md_id = t.md_id
+WHERE COALESCE(t.issystemroute, 0) = 0
+  AND COALESCE(t.mdisstored, 0) = 0
+  AND COALESCE(t.md_nome_tabella, '') <> ''
+  AND COALESCE(c.mc_nome_colonna, '') <> ''
+  AND (t.mdconnname IS NULL OR t.mdconnname = '' OR t.mdconnname = 'DataSQLConnection')").ToList();
+        }
+
+        bool hasDatabaseScopedMetadata = scaffolded.Any(r => !string.IsNullOrWhiteSpace(r.DbName));
+        if (!hasDatabaseScopedMetadata)
+        {
+            return columnRows;
+        }
+
+        var allowedColumnsByTable = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+        foreach (AutocompleteScaffoldRow row in scaffolded)
+        {
+            if (string.IsNullOrWhiteSpace(row.TableName)) continue;
+            if (!allowedColumnsByTable.TryGetValue(row.TableName, out HashSet<string> cols))
+            {
+                cols = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                allowedColumnsByTable[row.TableName] = cols;
+            }
+            if (!string.IsNullOrWhiteSpace(row.RealColumnName)) cols.Add(row.RealColumnName);
+            if (!string.IsNullOrWhiteSpace(row.MetaColumnName)) cols.Add(row.MetaColumnName);
+        }
+
+        return columnRows.Where(r =>
+            allowedColumnsByTable.TryGetValue(r.TableName ?? string.Empty, out HashSet<string> cols)
+            && cols.Contains(r.ColumnName ?? string.Empty)).ToList();
+    }
+
+    /// <summary>Raggruppa le righe di introspezione nella forma `SqlModel` attesa dal client Monaco.</summary>
+    private static List<WuicCore.Models.SqlModel> BuildAutocompleteSqlModels(List<AutocompleteColumnRow> columnRows)
+    {
+        var ret = new List<WuicCore.Models.SqlModel>();
+        foreach (AutocompleteColumnRow row in columnRows)
+        {
+            string schemaName = row.SchemaName ?? string.Empty;
+            WuicCore.Models.SqlModel model = ret.FirstOrDefault(x => x.schema == schemaName);
+            if (model == null)
+            {
+                model = new WuicCore.Models.SqlModel { database = row.DbName, schema = schemaName, isDefault = true };
+                ret.Add(model);
+            }
+
+            WuicCore.Models.SqlTable table = model.tables.FirstOrDefault(x => x.table == row.TableName);
+            if (table == null)
+            {
+                table = new WuicCore.Models.SqlTable { table = row.TableName, schema = schemaName };
+                model.tables.Add(table);
+            }
+
+            if (!table.columns.Any(x => x.column == row.ColumnName))
+            {
+                table.columns.Add(new WuicCore.Models.SqlColumn
+                {
+                    schema = schemaName,
+                    table = row.TableName,
+                    column = row.ColumnName,
+                    type = row.DataType,
+                    isNullable = row.NotNullable == 1,
+                    columnDescription = null,
+                    isPkey = row.IsPkey == 1,
+                    isIdentity = row.IsIdentity == 1,
+                    order = row.Ord
+                });
+            }
+        }
+
+        WuicCore.Models.SqlModel.GenerateTableAlias(ret);
+        return ret;
     }
 }

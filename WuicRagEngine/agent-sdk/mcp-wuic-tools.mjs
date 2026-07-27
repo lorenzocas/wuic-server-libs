@@ -39,9 +39,18 @@ function log(...a) { process.stderr.write('[wuic-agent-sdk-mcp] ' + a.join(' ') 
 function loadTools() {
   let arr = [];
   try { arr = JSON.parse(fs.readFileSync(TOOLS_PATH, 'utf8')); } catch (e) { log('rag_tools.json non leggibile: ' + (e?.message || e)); arr = []; }
+  // Cap per-tool description length. Il vecchio 6000 TRONCAVA a metà la
+  // description di propose_designer_inject (13.6K): la guida `archetype_config`
+  // dei chart (CONFIG ARCHETIPO INLINE @6392, `- chart:{type…}` @6987,
+  // dataProperty:'dato' @7049, esempio pie @8424) cadeva OLTRE il taglio, così
+  // il modello vedeva "action:'chart'" (@5302, tenuto) ma NON lo schema del
+  // config → emetteva un chart DATAREPEATER con archetype_config vuoto/typeless
+  // (rag-chatbot--designer-chart-config 0/3). 16000 tiene l'intera description.
+  // Override via WUIC_RAG_TOOL_DESC_CAP.
+  const descCap = Number(process.env.WUIC_RAG_TOOL_DESC_CAP) > 0 ? Number(process.env.WUIC_RAG_TOOL_DESC_CAP) : 16000;
   const tools = (Array.isArray(arr) ? arr : []).map((t) => ({
     name: t.name,
-    description: String(t.description || '').slice(0, 6000),
+    description: String(t.description || '').slice(0, descCap),
     inputSchema: t.input_schema || { type: 'object' },
   }));
   tools.push({

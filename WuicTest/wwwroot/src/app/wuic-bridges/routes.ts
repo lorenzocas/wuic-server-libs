@@ -87,6 +87,15 @@ export const routes: Routes = [
     data: { breadcrumbs: 'pivot-builder', description: 'Pivot Builder WUIC standalone: seleziona una route sorgente e costruisci dashboard pivot multidimensionali.' }
   },
   {
+    // Metametrics: dashboard amministrativa metriche route (menu Amministrazione).
+    // DEVE precedere i pattern generici `:route/:action`.
+    path: 'route-metrics-dashboard',
+    loadComponent: () => import('wuic-framework-lib-src/component/route-metrics-dashboard/route-metrics-dashboard.component').then((m) => m.RouteMetricsDashboardComponent),
+    canMatch: [menuRouteAccessCanMatchGuard, roleRouteCanMatchGuard],
+    canActivate: [menuRouteAccessCanActivateGuard, roleRouteCanActivateGuard],
+    data: { breadcrumbs: 'route-metrics-dashboard', description: 'Dashboard metriche route WUIC: abilita la raccolta per route, filtra per date e confronta fetch/render/data quality nel tempo.' }
+  },
+  {
     path: ':route/:action',
     loadComponent: () => import('wuic-framework-lib-src/component/bounded-repeater/bounded-repeater.component').then((m) => m.BoundedRepeaterComponent),
     canMatch: [menuRouteAccessCanMatchGuard, roleRouteCanMatchGuard],

@@ -236,7 +236,11 @@ namespace metaModelRaw
         {
             RawHelpers.authenticate();
             List<bind_list> tblList = new List<bind_list>();
-            string owner = NormalizeOwner(schema ?? db);
+            // `??` non basta: il chiamante passa spesso schema="" (stringa vuota,
+            // non null) e l'owner restava vuoto -> md_db_name salvato vuoto,
+            // e il successivo scaffoldColumn (che filtra su mddbname) non
+            // riconosceva piu' la route creando un duplicato `<route>_1`.
+            string owner = NormalizeOwner(string.IsNullOrWhiteSpace(schema) ? db : schema);
 
             foreach (string tb in GetOracleTables(connection, owner).OrderBy(x => x))
             {
@@ -667,7 +671,11 @@ WHERE t.mddbname = :db OR (:db = '' AND coalesce(t.mddbname, '') = '');";
         {
             RawHelpers.authenticate();
             StringBuilder log = new StringBuilder();
-            string owner = NormalizeOwner(schema ?? db);
+            // `??` non basta: il chiamante passa spesso schema="" (stringa vuota,
+            // non null) e l'owner restava vuoto -> md_db_name salvato vuoto,
+            // e il successivo scaffoldColumn (che filtra su mddbname) non
+            // riconosceva piu' la route creando un duplicato `<route>_1`.
+            string owner = NormalizeOwner(string.IsNullOrWhiteSpace(schema) ? db : schema);
             ParseQualifiedDbObjectName(table, out string tableSchema, out string tableName);
             if (!string.IsNullOrWhiteSpace(tableSchema))
                 owner = NormalizeOwner(tableSchema);

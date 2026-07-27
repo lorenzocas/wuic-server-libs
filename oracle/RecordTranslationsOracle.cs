@@ -353,7 +353,13 @@ WHEN NOT MATCHED THEN
             {
                 using (OracleConnection metaConn = metaQueryOracleSql.GetOpenConnection(true))
                 {
-                    var langs = metaConn.Query<string>("SELECT DISTINCT id FROM Lingue").ToList();
+                    // FIX oracle (2026-07-22): la colonna id di LINGUE e' quoted-lowercase
+                    // ("id") sullo schema Oracle. Bare `id` -> Oracle folda a ID -> ORA-00904
+                    // -> catch -> fallback a 1 sola lingua (runtime), quindi il seed insert
+                    // scriveva N_field x 1 righe invece di N_field x N_lingue. Quotiamo "id"
+                    // per allineare il comportamento a MSSQL/PG/MySQL (tutte le lingue). Il
+                    // nome tabella Lingue resta bare (folda a LINGUE, tabella fisica corretta).
+                    var langs = metaConn.Query<string>("SELECT DISTINCT \"id\" FROM Lingue").ToList();
                     if (langs.Count > 0)
                         return langs.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
                 }

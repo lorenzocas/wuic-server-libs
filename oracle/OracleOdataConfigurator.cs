@@ -52,9 +52,14 @@ namespace metaModelRaw
             {
                 using var connection = new OracleConnection(metadataConnectionString);
                 using var cmd = connection.CreateCommand();
+                // FIX oracle (2026-07-22): il nome tabella con leading underscore DEVE
+                // essere quotato ("_metadati__tabelle") — bare e' un identificatore
+                // illegale su Oracle -> ORA-00911 -> catch -> null -> il controller
+                // OData risponde 403 insert_disabled anche coi flag a 1. Le colonne
+                // restano bare (fisiche UPPERCASE, il fold di Oracle le risolve).
                 cmd.CommandText = @"
                     SELECT mdserviceenableinsert, mdserviceenableedit, mdserviceenabledelete
-                    FROM _metadati__tabelle
+                    FROM ""_metadati__tabelle""
                     WHERE mdexposeinwebapi = 1
                       AND (mdroutename = :name OR md_nome_tabella = :name)
                     ORDER BY md_id
@@ -148,7 +153,7 @@ namespace metaModelRaw
         ///
         /// Su Oracle:
         ///   • Identifier quoting: doppi apici <c>"..."</c> (case-sensitive).
-        ///   • Recupero PK auto-generata: clausola <c>RETURNING "pk" INTO :__inserted_id</c>
+        ///   • Recupero PK auto-generata: clausola <c>RETURNING "pk" INTO :p_inserted_id</c>
         ///     appesa al singolo statement, con un OracleParameter di output bindato.
         ///   • Lo schema (= owner) opzionalmente prefissa la tabella: <c>"OWNER"."TABLE"</c>.
         ///
@@ -179,16 +184,25 @@ namespace metaModelRaw
 
             using var connection = new OracleConnection(dataConnectionString);
             connection.Open();
+            // FIX oracle (2026-07-22): COMMIT esplicito. Empiricamente questa DML
+            // senza transazione NON risulta committata (il RETURNING valorizza l'id
+            // nella sessione ma la riga sparisce alla Dispose della connection →
+            // il chiamante rispondeva 201 e la lettura successiva trovava 0 righe).
+            using var tx = connection.BeginTransaction();
             using var cmd = connection.CreateCommand();
+            cmd.Transaction = tx;
             cmd.BindByName = true;
 
             string sql = "INSERT INTO " + qualifiedTable + " (" + columnsCsv + ") VALUES (" + paramsCsv + ")";
             OracleParameter returningParam = null;
             if (!string.IsNullOrWhiteSpace(keyColumn))
             {
+                // FIX oracle (2026-07-22): i bind name NON possono iniziare con
+                // underscore (`:__inserted_id` -> ORA-00911 "carattere non valido
+                // dopo :"). Rinominato in p_inserted_id.
                 string quotedKey = "\"" + keyColumn.Replace("\"", "\"\"") + "\"";
-                sql += " RETURNING " + quotedKey + " INTO :__inserted_id";
-                returningParam = new OracleParameter("__inserted_id", OracleDbType.Decimal)
+                sql += " RETURNING " + quotedKey + " INTO :p_inserted_id";
+                returningParam = new OracleParameter("p_inserted_id", OracleDbType.Decimal)
                 {
                     Direction = ParameterDirection.Output
                 };
@@ -208,6 +222,7 @@ namespace metaModelRaw
                 cmd.Parameters.Add(returningParam);
 
             cmd.ExecuteNonQuery();
+            tx.Commit();
 
             if (returningParam == null) return null;
             object raw = returningParam.Value;
@@ -230,9 +245,12 @@ namespace metaModelRaw
             {
                 using var connection = new OracleConnection(metadataConnectionString);
                 using var cmd = connection.CreateCommand();
+                // FIX oracle (2026-07-22): tabella quotata, vedi TryGetWriteFlags.
+                // Prima il catch silenzioso faceva perdere il forced-top (benigno
+                // nel GET, ma stessa radice del 403 sulle CUD).
                 cmd.CommandText = @"
                     SELECT COALESCE(NULLIF(mdservicepagesize, 0), NULLIF(mdpagesize, 0))
-                    FROM _metadati__tabelle
+                    FROM ""_metadati__tabelle""
                     WHERE mdexposeinwebapi = 1
                       AND (mdroutename = :name OR md_nome_tabella = :name)
                     ORDER BY md_id

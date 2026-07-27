@@ -2809,6 +2809,14 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
             {
                 _Metadati_Tabelle metaStored = context.GetMetadati_Tabelles(stored).FirstOrDefault();
 
+                // Route stored NON registrata → ValidationException PRIMA di dereferenziare
+                // metaStored: senza guard si NRE-ava su `metaStored.md_props_bag` sotto →
+                // envelope `errors.server.unhandled` invece del contratto `errors.validation.failed`
+                // ("Stored 'x' not found"). Allineato a postgresql/oracle GetFlatDataFromStored
+                // (il check `if (metaStored != null)` più sotto era tardivo).
+                if (metaStored == null)
+                    throw new ValidationException(string.Format("Stored '{0}' not found", stored));
+
                 dynamic parameterDefinition = null;
 
                 if (!string.IsNullOrEmpty(metaStored.md_props_bag))
@@ -4826,8 +4834,8 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                     if (fld.mc_ui_column_type == ColTypePoint)
                     {
                         singleGeography = true;
-                        lat_field = string.Format("X({0})", fld.mc_nome_colonna);
-                        lon_field = string.Format("Y({0})", fld.mc_nome_colonna);
+                        lat_field = string.Format("ST_X({0})", fld.mc_nome_colonna);
+                        lon_field = string.Format("ST_Y({0})", fld.mc_nome_colonna);
                     }
 
                     if (fld.mc_ui_column_type == "google_map")
@@ -4837,8 +4845,8 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
                         if (mapProps != null && mapProps.linked_point_field != null)
                         {
-                            lat_field = string.Format("X({0})", mapProps.linked_point_field);
-                            lon_field = string.Format("Y({0})", mapProps.linked_point_field);
+                            lat_field = string.Format("ST_X({0})", mapProps.linked_point_field);
+                            lon_field = string.Format("ST_Y({0})", mapProps.linked_point_field);
                         }
                         else if (mapProps != null && mapProps.latitude_field != null)
                         {
@@ -4851,7 +4859,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                     {
                         if (mapProps != null && (mapProps.map_type == "polyline" || mapProps.map_type == "polygon" || mapProps.map_type == ColTypeGeometry))
                         {
-                            string polylineWhere = string.Format(" ( ST_Contains(GeomFromText('{0}') ,{1}) = 1 || ST_Intersects(GeomFromText('{0}') ,{1}) = 1 )", f.value, fld.mc_nome_colonna);
+                            string polylineWhere = string.Format(" ( ST_Contains(ST_GeomFromText('{0}') ,{1}) = 1 || ST_Intersects(ST_GeomFromText('{0}') ,{1}) = 1 )", f.value, fld.mc_nome_colonna);
                             where += ((where == "") ? " where " : " " + logicOperator + " ") + polylineWhere;
 
                             filterInfo.filters.Remove(f);
@@ -4862,10 +4870,14 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                     }
 
                     string geoWhere;
+                    // NB: geoWhere DEVE lasciare esattamente una '(' non chiusa: il group-close
+                    // incondizionato a fondo AppendFilter (where += " )") chiude il gruppo del
+                    // filtro. Un geoWhere gia' bilanciato (con la ')' finale) produrrebbe una ')'
+                    // di troppo -> "syntax error near ')'". Allineato al provider base MSSQL.
                     if (singleGeography)
-                        geoWhere = string.Format(" ( ST_Contains(GeomFromText('{0}') , {1}) = 1 )", f.value, fld.mc_nome_colonna);
+                        geoWhere = string.Format(" ( ST_Contains(ST_GeomFromText('{0}') , {1}) = 1 ", f.value, fld.mc_nome_colonna);
                     else
-                        geoWhere = string.Format(" ( ST_Contains( GeomFromText( '{0}' ) , Point({1}, {2}) ) = 1 )", f.value, lat_field, lon_field);
+                        geoWhere = string.Format(" ( ST_Contains( ST_GeomFromText( '{0}' ) , Point({1}, {2}) ) = 1 ", f.value, lat_field, lon_field);
 
                     where += ((where == "") ? " where " : " " + logicOperator + " ") + geoWhere;
 
@@ -4887,15 +4899,15 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
                         if ((mapProps != null && mapProps.map_type == ColTypePoint) || fld.mc_db_column_type == ColTypePoint)
                         {
-                            lat_field = string.Format("Y({0})", fld.mc_nome_colonna);
-                            lon_field = string.Format("X({0})", fld.mc_nome_colonna);
+                            lat_field = string.Format("ST_Y({0})", fld.mc_nome_colonna);
+                            lon_field = string.Format("ST_X({0})", fld.mc_nome_colonna);
                         }
                         else if (fld.mc_ui_column_type == "google_map")
                         {
                             if (mapProps != null && mapProps.linked_point_field != null)
                             {
-                                lat_field = string.Format("X({0})", mapProps.linked_point_field);
-                                lon_field = string.Format("Y({0})", mapProps.linked_point_field);
+                                lat_field = string.Format("ST_X({0})", mapProps.linked_point_field);
+                                lon_field = string.Format("ST_Y({0})", mapProps.linked_point_field);
                             }
                             else if (mapProps != null && mapProps.latitude_field != null)
                             {
@@ -4907,8 +4919,8 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
                             if ((string.IsNullOrEmpty(lat_field) || string.IsNullOrEmpty(lon_field)) && pointField != null)
                             {
-                                lat_field = string.Format("Y({0})", pointField.mc_nome_colonna);
-                                lon_field = string.Format("X({0})", pointField.mc_nome_colonna);
+                                lat_field = string.Format("ST_Y({0})", pointField.mc_nome_colonna);
+                                lon_field = string.Format("ST_X({0})", pointField.mc_nome_colonna);
                             }
                             else if (string.IsNullOrEmpty(lat_field) || string.IsNullOrEmpty(lon_field))
                             {
@@ -4943,7 +4955,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
                         //average earth radius in meters: 6 371.000 -> distance in meters
                         //could be a parameter specified in mapProps -> depending on area -> to improve precision
-                        string geoWhere = string.Format("(    (  {4} >= (  6371000 * 2 * ASIN(SQRT( POWER(SIN(({0} - {2}) *  pi()/180 / 2), 2) + COS({0} * pi()/180) * COS({2} * pi()/180) * POWER(SIN(({1} - {3}) * pi()/180 / 2), 2) ))  )   ) AND ( {5} )    ) ", lat, lng, lat_field, lon_field, radius, rectangleOptimizationWhere);
+                        string geoWhere = string.Format("(    (  {4} >= (  6371000 * 2 * ASIN(SQRT( POWER(SIN(({0} - {2}) *  pi()/180 / 2), 2) + COS({0} * pi()/180) * COS({2} * pi()/180) * POWER(SIN(({1} - {3}) * pi()/180 / 2), 2) ))  )   ) AND ( {5} )    ", lat, lng, lat_field, lon_field, radius, rectangleOptimizationWhere);
 
                         where += ((where == "") ? " where " : " " + logicOperator + " ") + geoWhere;
                     }
@@ -5061,14 +5073,14 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
             if (realOperator == "is null")
             {
                 if (fld.mc_db_column_type == ColTypePoint || fld.mc_db_column_type == ColTypeGeometry)
-                    where += ((where == "") ? " where " : " " + logicOperator + " ") + "(" + "AsText(" + currentFld + ")" + " is null";
+                    where += ((where == "") ? " where " : " " + logicOperator + " ") + "(" + "ST_AsText(" + currentFld + ")" + " is null";
                 else
                     where += ((where == "") ? " where " : " " + logicOperator + " ") + "(" + currentFld + " is null";
             }
             else if (realOperator == "is not null")
             {
                 if (fld.mc_db_column_type == ColTypePoint || fld.mc_db_column_type == ColTypeGeometry)
-                    where += ((where == "") ? " where " : " " + logicOperator + " ") + "(" + "AsText(" + currentFld + ")" + " is not null";
+                    where += ((where == "") ? " where " : " " + logicOperator + " ") + "(" + "ST_AsText(" + currentFld + ")" + " is not null";
                 else
                     where += ((where == "") ? " where " : " " + logicOperator + " ") + "(" + currentFld + " is not null";
             }
@@ -5123,7 +5135,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
             }
             else if (fld.mc_db_column_type == ColTypePoint)
             {
-                currentFld = string.Format("AsText({0})", currentFld);
+                currentFld = string.Format("ST_AsText({0})", currentFld);
                 Pair point = RawHelpers.pointStringToPoint(filterValue, MySqlProviderName);
                 filterValue = string.Format("POINT({0} {1})", point.First.ToString(), point.Second.ToString());
                 leftExtraOperator = rightExtraOperator = "'";
@@ -5131,7 +5143,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
             }
             else if (fld.mc_db_column_type == ColTypeGeometry)
             {
-                currentFld = string.Format("AsText({0})", currentFld);
+                currentFld = string.Format("ST_AsText({0})", currentFld);
                 leftExtraOperator = rightExtraOperator = "'";
                 where += ((where == "") ? " where " : " " + logicOperator + " ") + "( (" + (fld.mc_is_computed.Value ? fld.mc_computed_formula : currentFld) + ")" + realOperator + string.Format(" {0}{1}{2} ", leftExtraOperator, filterValue, rightExtraOperator);
             }
@@ -5994,6 +6006,26 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
         #endregion
 
+        // friendly→physical resolution del dataTextField per i path di grouping
+        // (parity col JoinBuilder, righe ~4496-4506): sulle system route (es. lookup
+        // verso ' metadati  tabelle') la collezione arriva con skipColumns=true e la
+        // related table esporrebbe 0 colonne → il nome friendly (es. `md_display_string`
+        // → fisico `mm_display_string`) finiva RAW nella SELECT di grouping →
+        // Error 1054 Unknown column.
+        private static string ResolveLookupTextField(_Metadati_Tabelle relatedTable, _Metadati_Colonne_Lookup col)
+        {
+            if (relatedTable.skipColumns)
+                relatedTable.skipColumns = false;
+
+            var textCol = relatedTable._Metadati_Colonnes.FirstOrDefault(xk => xk.mc_nome_colonna == col.mc_ui_lookup_dataTextField)
+                ?? relatedTable._Metadati_Colonnes.FirstOrDefault(xk => xk.mc_real_column_name == col.mc_ui_lookup_dataTextField);
+
+            if (textCol == null)
+                return col.mc_ui_lookup_dataTextField;
+
+            return string.IsNullOrEmpty(textCol.mc_real_column_name) ? textCol.mc_nome_colonna : textCol.mc_real_column_name;
+        }
+
         private static string FinalizeCientSideGrouping(List<_Metadati_Colonne> lst, metaRawModel mmd, List<GroupInfo> GroupInfo, string safetableName, string join, string where)
         {
             string field_list = "";
@@ -6012,7 +6044,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                         string safeappend = EscapeDBObjectName(col.mc_ui_lookup_entity_name.Replace(" ", "_") + "___" + col.mc_ui_lookup_dataTextField + "__" + col.mc_nome_colonna);
 
                         string safeUniqueEntityName = EscapeDBObjectName(col.mc_nome_colonna + "_" + col.mc_ui_lookup_entity_name);
-                        string safeTextField = EscapeDBObjectName(col.mc_ui_lookup_dataTextField);
+                        string safeTextField = EscapeDBObjectName(ResolveLookupTextField(relatedTable, col));
 
                         field_list += (string.IsNullOrEmpty(field_list) ? "" : ", ") + string.Format("{0} AS {1}", safeUniqueEntityName + "." + safeTextField, safeappend);
                     }
@@ -6048,7 +6080,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
                         _ = GetTableName(relatedTable);
                         string safeUniqueEntityName = EscapeDBObjectName(col.mc_nome_colonna + "_" + col.mc_ui_lookup_entity_name);
-                        string safeTextField = EscapeDBObjectName(col.mc_ui_lookup_dataTextField);
+                        string safeTextField = EscapeDBObjectName(ResolveLookupTextField(relatedTable, col));
                         string calculatedText = col.mc_ui_lookup_computed_dataTextField;
 
                         fieldList += (string.IsNullOrEmpty(fieldList) ? "" : ", ") + string.Format("{0} AS {1}", string.IsNullOrEmpty(calculatedText) ? (safeUniqueEntityName + "." + safeTextField) : calculatedText, safeappend);
@@ -6378,7 +6410,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
                         if (!string.IsNullOrEmpty(point?.First?.ToString()) && !string.IsNullOrEmpty(point?.Second?.ToString()))
                         {
-                            valore = string.Format("GeomFromText('POINT({0} {1})')", point.First.ToString(), point.Second.ToString());
+                            valore = string.Format("ST_GeomFromText('POINT({0} {1})')", point.First.ToString(), point.Second.ToString());
                             quote = "";
                         }
                         else
@@ -6391,7 +6423,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                 {
                     if (valore != null && !string.IsNullOrEmpty(valore.ToString()))
                     {
-                        valore = string.Format("GeomFromText('{0}')", valore.ToString().Replace("'", "''"));
+                        valore = string.Format("ST_GeomFromText('{0}')", valore.ToString().Replace("'", "''"));
                         quote = "";
                     }
                 }
@@ -6414,7 +6446,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                                 && double.TryParse(latRaw, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double lat)
                                 && double.TryParse(lngRaw, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double lng))
                             {
-                                valore = string.Format("GeomFromText('POINT({0} {1})')",
+                                valore = string.Format("ST_GeomFromText('POINT({0} {1})')",
                                     lng.ToString(System.Globalization.CultureInfo.InvariantCulture),
                                     lat.ToString(System.Globalization.CultureInfo.InvariantCulture));
                                 convertedToPoint = true;
@@ -6434,7 +6466,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                             Pair point = RawHelpers.pointStringToPoint(rawGeo, MySqlProviderName);
                             if (!string.IsNullOrEmpty(point.First?.ToString()) && !string.IsNullOrEmpty(point.Second?.ToString()))
                             {
-                                valore = string.Format("GeomFromText('POINT({0} {1})')", point.First.ToString(), point.Second.ToString());
+                                valore = string.Format("ST_GeomFromText('POINT({0} {1})')", point.First.ToString(), point.Second.ToString());
                                 convertedToPoint = true;
                             }
                         }
@@ -6442,7 +6474,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
                     if (!convertedToPoint)
                     {
-                        valore = string.Format("GeomFromText('{0}')", rawGeo.Replace("'", "''"));
+                        valore = string.Format("ST_GeomFromText('{0}')", rawGeo.Replace("'", "''"));
                     }
 
                     quote = "";
@@ -7392,7 +7424,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
                             if (!string.IsNullOrEmpty(point?.First?.ToString()) && !string.IsNullOrEmpty(point?.Second?.ToString()))
                             {
-                                valore = string.Format("GeomFromText('POINT({0} {1})')", point.First.ToString(), point.Second.ToString());
+                                valore = string.Format("ST_GeomFromText('POINT({0} {1})')", point.First.ToString(), point.Second.ToString());
 
                             }
                             else
@@ -7405,7 +7437,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                     {
                         if (valore != null && !string.IsNullOrEmpty(valore.ToString()))
                         {
-                            valore = string.Format("GeomFromText('{0}')", valore.ToString().Replace("'", "''"));
+                            valore = string.Format("ST_GeomFromText('{0}')", valore.ToString().Replace("'", "''"));
 
                         }
                     }
@@ -7428,7 +7460,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                                     && double.TryParse(latRaw, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double lat)
                                     && double.TryParse(lngRaw, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double lng))
                                 {
-                                    valore = string.Format("GeomFromText('POINT({0} {1})')",
+                                    valore = string.Format("ST_GeomFromText('POINT({0} {1})')",
                                         lng.ToString(System.Globalization.CultureInfo.InvariantCulture),
                                         lat.ToString(System.Globalization.CultureInfo.InvariantCulture));
                                     convertedToPoint = true;
@@ -7448,7 +7480,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
                                 Pair point = RawHelpers.pointStringToPoint(rawGeo, MySqlProviderName);
                                 if (!string.IsNullOrEmpty(point.First?.ToString()) && !string.IsNullOrEmpty(point.Second?.ToString()))
                                 {
-                                    valore = string.Format("GeomFromText('POINT({0} {1})')", point.First.ToString(), point.Second.ToString());
+                                    valore = string.Format("ST_GeomFromText('POINT({0} {1})')", point.First.ToString(), point.Second.ToString());
                                     convertedToPoint = true;
                                 }
                             }
@@ -7456,7 +7488,7 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
                         if (!convertedToPoint)
                         {
-                            valore = string.Format("GeomFromText('{0}')", rawGeo.Replace("'", "''"));
+                            valore = string.Format("ST_GeomFromText('{0}')", rawGeo.Replace("'", "''"));
                         }
                     }
 
@@ -8167,62 +8199,97 @@ FOREIGN KEY (`FK_IdChange`) REFERENCES `ChangeMaster`(`IdChange`);");
 
                             recordCounter++;
 
-                            if (uploadOption.import_type.Contains("U"))
+                            // Parity con l'ImportFile MSSQL (_Metadati_methods.cs): l'errore di un
+                            // SINGOLO record segue la semantica di commit_level. Senza questo catch
+                            // l'eccezione usciva dal loop, la transazione moriva senza commit e
+                            // nessuna riga veniva importata QUALUNQUE fosse commit_level — 'C'
+                            // ("logga e prosegui") era di fatto inesistente su MySQL.
+                            try
                             {
-                                //select using pkey values in record ... 
-                                string table_name = RawHelpers.getStoreTableName(tabel, MySqlProviderName);
-
-                                string query_check_from = string.Format(string.Format("SELECT * FROM {0} ", table_name));
-                                StringBuilder query_check_where = new StringBuilder();
-                                bool flg = true;
-
-                                foreach (string pkeyColName in pkeys.Select(pkey => pkey.mc_nome_colonna))
+                                if (uploadOption.import_type.Contains("U"))
                                 {
-                                    object pkey_value = record[pkeyColName];
-                                    if (pkey_value == null || string.IsNullOrEmpty(pkey_value.ToString()))
-                                    {
-                                        flg = false;
-                                        break;
-                                    }
-                                    else
-                                    {
+                                    //select using pkey values in record ...
+                                    string table_name = RawHelpers.getStoreTableName(tabel, MySqlProviderName);
 
-                                        string quote = "";
-                                        if (string.IsNullOrEmpty(tabel.md_primary_key_type) || tabel.md_primary_key_type == "GUID")
-                                            quote = "'";
+                                    string query_check_from = string.Format(string.Format("SELECT * FROM {0} ", table_name));
+                                    StringBuilder query_check_where = new StringBuilder();
+                                    bool flg = true;
 
-                                        query_check_where.Append((query_check_where.Length == 0 ? " WHERE " : " AND ") + RawHelpers.getStoreTableName(tabel, MySqlProviderName) + "." + RawHelpers.escapeDBObjectName(pkeyColName, MySqlProviderName) + " = " + quote + pkey_value + quote);
+                                    foreach (string pkeyColName in pkeys.Select(pkey => pkey.mc_nome_colonna))
+                                    {
+                                        object pkey_value = record[pkeyColName];
+                                        if (pkey_value == null || string.IsNullOrEmpty(pkey_value.ToString()))
+                                        {
+                                            flg = false;
+                                            break;
+                                        }
+                                        else
+                                        {
+
+                                            string quote = "";
+                                            if (string.IsNullOrEmpty(tabel.md_primary_key_type) || tabel.md_primary_key_type == "GUID")
+                                                quote = "'";
+
+                                            query_check_where.Append((query_check_where.Length == 0 ? " WHERE " : " AND ") + RawHelpers.getStoreTableName(tabel, MySqlProviderName) + "." + RawHelpers.escapeDBObjectName(pkeyColName, MySqlProviderName) + " = " + quote + pkey_value + quote);
+                                        }
                                     }
+
+                                    if (flg)
+                                    {
+                                        List<Dapper.SqlMapper.FastExpando> entity = (List<Dapper.SqlMapper.FastExpando>)con.Query(query_check_from + query_check_where.ToString(), null, myTrans);
+                                        if (entity.Count > 0)
+                                        {
+                                            if (!parseFKey(uploadOption, tabel, record, context, ref errorCount, log, fileName, recordCounter, MySqlProviderName))
+                                                return log.ToString();
+
+
+
+                                            string update_query = metaQueryMySql.BuildDynamicUpdateQuery(record, tabel._Metadati_Colonnes.ToList(), uploadOption.user_id, true);
+                                            _ = con.Execute(update_query, null, myTrans).ToString();
+
+                                            updatedRecord++;
+                                            continue;
+                                        }
+                                    }
+
                                 }
 
-                                if (flg)
+                                if (uploadOption.import_type.Contains("I"))
                                 {
-                                    List<Dapper.SqlMapper.FastExpando> entity = (List<Dapper.SqlMapper.FastExpando>)con.Query(query_check_from + query_check_where.ToString(), null, myTrans);
-                                    if (entity.Count > 0)
-                                    {
-                                        if (!parseFKey(uploadOption, tabel, record, context, ref errorCount, log, fileName, recordCounter, MySqlProviderName))
-                                            return log.ToString();
+                                    if (!fkeyParsed && !parseFKey(uploadOption, tabel, record, context, ref errorCount, log, fileName, recordCounter, MySqlProviderName))
+                                        return log.ToString();
 
-
-
-                                        string update_query = metaQueryMySql.BuildDynamicUpdateQuery(record, tabel._Metadati_Colonnes.ToList(), uploadOption.user_id, true);
-                                        _ = con.Execute(update_query, null, myTrans).ToString();
-
-                                        updatedRecord++;
-                                        continue;
-                                    }
+                                    string insert_query = metaQueryMySql.BuildDynamicInsertQuery(record, tabel._Metadati_Colonnes.ToList(), uploadOption.user_id, out pk, true);
+                                    _ = con.Execute(insert_query, null, myTrans).ToString();
+                                    insertedRecord++;
                                 }
-
                             }
-
-                            if (uploadOption.import_type.Contains("I"))
+                            catch (Exception recordEx)
                             {
-                                if (!fkeyParsed && !parseFKey(uploadOption, tabel, record, context, ref errorCount, log, fileName, recordCounter, MySqlProviderName))
+                                errorCount++;
+                                string errorDetails = recordEx.ToString();
+                                if (string.IsNullOrWhiteSpace(errorDetails))
+                                    errorDetails = recordEx.Message + (recordEx.InnerException != null ? recordEx.InnerException.Message : "");
+                                string recordContext = string.Format("Record {0} (route {1})", recordCounter, tabel?.md_route_name);
+                                if (uploadOption.commit_level == "R")
+                                {
+                                    log.AppendLine(recordContext + ": " + errorDetails);
+                                    myTrans.Rollback();
+                                    log.AppendLine("Changes have been rolled back.");
                                     return log.ToString();
-
-                                string insert_query = metaQueryMySql.BuildDynamicInsertQuery(record, tabel._Metadati_Colonnes.ToList(), uploadOption.user_id, out pk, true);
-                                _ = con.Execute(insert_query, null, myTrans).ToString();
-                                insertedRecord++;
+                                }
+                                else if (uploadOption.commit_level == "I")
+                                {
+                                    log.AppendLine(recordContext + ": " + errorDetails);
+                                    myTrans.Commit();
+                                    return log.ToString();
+                                }
+                                else if (uploadOption.commit_level == "C" || uploadOption.commit_level == "T")
+                                {
+                                    // MySQL non invalida la transazione su statement fallito:
+                                    // si logga e si prosegue con i record successivi.
+                                    log.AppendLine(recordContext + ": " + errorDetails);
+                                }
                             }
                         }
 

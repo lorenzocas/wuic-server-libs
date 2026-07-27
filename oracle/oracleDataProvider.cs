@@ -528,12 +528,20 @@ FETCH FIRST 1 ROWS ONLY";
                 var physicalColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 using (var dataConnSchema = metaQueryOracleSql.GetOpenConnection(false))
                 {
+                    // Match sia il case ESATTO sia l'UPPER: le tabelle `_`-prefissate
+                    // (es. `_e2e_import_export_demo`) sono quoted-lowercase su Oracle e
+                    // col solo UPPER() non matchavano mai → physicalColumns vuoto → tutte
+                    // le dimension columns venivano scartate dalla SELECT del preview.
+                    // Due bind DISTINTI (non lo stesso :tableName ripetuto): Dapper su
+                    // ODP binda per posizione senza BindByName → il nome ripetuto darebbe
+                    // ORA-01008.
                     const string colSql = @"SELECT COLUMN_NAME, DATA_TYPE FROM ALL_TAB_COLUMNS
-                                            WHERE OWNER = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') AND TABLE_NAME = UPPER(:tableName)";
+                                            WHERE OWNER = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA')
+                                              AND TABLE_NAME IN (:tableNameExact, :tableNameUpper)";
                     foreach (var info in tableInfos)
                     {
                         var dbCols = (List<Dapper.SqlMapper.FastExpando>)dataConnSchema.Query(colSql,
-                            new { tableName = info.PhysicalName });
+                            new { tableNameExact = info.PhysicalName, tableNameUpper = (info.PhysicalName ?? string.Empty).ToUpperInvariant() });
                         foreach (var colData in dbCols.Select(c => c.data))
                         {
                             string colName = Convert.ToString(colData["COLUMN_NAME"]);
@@ -580,8 +588,110 @@ FETCH FIRST 1 ROWS ONLY";
                         }
                     }
                 }
-                if (selectParts.Count == 0)
+                // === Tier 1 parity (2026-07-27): aggregations[] + groupByColumns[] ===
+                // Stessa estensione dell'inline MSSQL (MetaService.previewViewDefinition,
+                // "EXTENSION 2026-05-08"): il satellite era rimasto alla generazione
+                // precedente e ignorava silenziosamente aggregations/groupByColumns.
+                // Dialetto Oracle: quoting via QId (double quote), FETCH FIRST in coda.
+                var aggregations = def["aggregations"] as JArray;
+                var groupByColumns = def["groupByColumns"] as JArray;
+                var aggregateSelectParts = new List<string>();
+                var groupBySelects = new List<string>();
+                bool hasAggregations = false;
+
+                if (aggregations != null && aggregations.Count > 0)
+                {
+                    // Mappa qualifiedLabel ("t0.stato") → colRef reale per risolvere sourceColumn.
+                    var qualifiedToColRef = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var tbl in tables)
+                    {
+                        string tAlias = Convert.ToString(tbl[TableAliasKey] ?? "").Trim();
+                        var cols = tbl[ColumnsKey] as JArray ?? new JArray();
+                        foreach (var col in cols)
+                        {
+                            string colLabel = Convert.ToString(col["label"] ?? col[AliasKey] ?? "").Trim();
+                            string realName = Convert.ToString(col[RealNameKey] ?? col[AliasKey] ?? "").Trim();
+                            string formula = Convert.ToString(col["formula"] ?? "").Trim();
+                            string qualif = $"{tAlias}.{colLabel}";
+                            if (!string.IsNullOrWhiteSpace(qualif) && !string.IsNullOrWhiteSpace(realName))
+                            {
+                                string colRef = !string.IsNullOrWhiteSpace(formula)
+                                    ? formula
+                                    : $"{QId(tAlias)}.{QId(realName)}";
+                                qualifiedToColRef[qualif] = colRef;
+                            }
+                        }
+                    }
+
+                    foreach (var agg in aggregations.OfType<JObject>())
+                    {
+                        string srcQualified = Convert.ToString(agg["sourceColumn"] ?? "").Trim();
+                        string fn = Convert.ToString(agg["function"] ?? "SUM").Trim().ToUpperInvariant();
+                        string outputAlias = Convert.ToString(agg["outputAlias"] ?? "").Trim();
+
+                        var allowedFn = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "SUM", "COUNT", "AVG", "MIN", "MAX", "COUNT_DISTINCT" };
+                        if (!allowedFn.Contains(fn)) fn = "SUM";
+
+                        string colRef;
+                        // Convenzione speciale: sourceColumn = "*" → COUNT(*).
+                        if (srcQualified == "*" && (fn == "COUNT" || fn == "COUNT_DISTINCT"))
+                            colRef = "*";
+                        else if (qualifiedToColRef.TryGetValue(srcQualified, out var resolved))
+                            colRef = resolved;
+                        else
+                            continue; // aggregation con sourceColumn non risolvibile
+
+                        string aggSql = fn == "COUNT_DISTINCT"
+                            ? $"COUNT(DISTINCT {colRef})"
+                            : $"{fn}({colRef})";
+
+                        if (string.IsNullOrWhiteSpace(outputAlias))
+                            outputAlias = $"{fn.ToLowerInvariant()}_{srcQualified.Replace('.', '_').Replace('*', '_')}";
+
+                        aggregateSelectParts.Add($"{aggSql} AS {QId(outputAlias)}");
+                        hasAggregations = true;
+                    }
+                }
+
+                if (groupByColumns != null && groupByColumns.Count > 0)
+                {
+                    foreach (var gb in groupByColumns)
+                    {
+                        string qualifiedLabel = Convert.ToString(gb).Trim();
+                        if (string.IsNullOrWhiteSpace(qualifiedLabel)) continue;
+                        var qparts = qualifiedLabel.Split('.', 2);
+                        if (qparts.Length != 2) continue;
+                        string tAlias = qparts[0].Trim();
+                        string colLabel = qparts[1].Trim();
+                        string realName = colLabel;
+                        string formula = "";
+                        foreach (var tbl in tables.Where(t => Convert.ToString(t[TableAliasKey] ?? "").Trim() == tAlias))
+                        {
+                            var cols = tbl[ColumnsKey] as JArray;
+                            if (cols == null) continue;
+                            foreach (var col in cols)
+                            {
+                                if (Convert.ToString(col["label"] ?? col[AliasKey] ?? "").Trim() == colLabel)
+                                {
+                                    realName = Convert.ToString(col[RealNameKey] ?? col[AliasKey] ?? colLabel).Trim();
+                                    formula = Convert.ToString(col["formula"] ?? "").Trim();
+                                    break;
+                                }
+                            }
+                        }
+                        string gbRef = !string.IsNullOrWhiteSpace(formula)
+                            ? formula
+                            : $"{QId(tAlias)}.{QId(realName)}";
+                        groupBySelects.Add(gbRef);
+                    }
+                }
+
+                // Con sole aggregations la SELECT senza colonne standard e' legittima.
+                if (selectParts.Count == 0 && !hasAggregations)
                     throw new ValidationException("No columns selected in viewDefinition.");
+
+                if (hasAggregations)
+                    selectParts.AddRange(aggregateSelectParts);
 
                 // FROM + JOINs (Oracle no schema-prefix).
                 string FromOf((string Alias, string PhysicalName, string Schema, string ConnName, JArray SelectedCols) ti)
@@ -780,9 +890,47 @@ FETCH FIRST 1 ROWS ONLY";
                     catch { /* ignore malformed */ }
                 }
 
+                // GROUP BY: esplicito da groupByColumns, oppure auto-inferito quando ci
+                // sono aggregations senza groupBy — Oracle (ORA-00979) esige ogni
+                // colonna non aggregata della SELECT in GROUP BY, quindi si inferiscono
+                // tutte le dimension columns (stesso contratto dell'inline MSSQL).
+                string groupBySql = "";
+                if (groupBySelects.Count > 0)
+                {
+                    groupBySql = $"\nGROUP BY {string.Join(", ", groupBySelects)}";
+                }
+                else if (hasAggregations)
+                {
+                    int dimCount = selectParts.Count - aggregateSelectParts.Count;
+                    if (dimCount > 0)
+                    {
+                        var inferred = new List<string>();
+                        int idx = 0;
+                        foreach (var info in tableInfos)
+                        {
+                            foreach (var col in info.SelectedCols)
+                            {
+                                if (idx >= dimCount) break;
+                                string realName = Convert.ToString(col[RealNameKey] ?? col[AliasKey] ?? "").Trim();
+                                string lookupKey = $"{info.Alias}|{realName}";
+                                if (string.IsNullOrWhiteSpace(realName) || !physicalColumns.Contains(lookupKey)) continue;
+                                string formula = Convert.ToString(col["formula"] ?? "").Trim();
+                                string colRef = !string.IsNullOrWhiteSpace(formula)
+                                    ? formula
+                                    : $"{QId(info.Alias)}.{QId(realName)}";
+                                inferred.Add(colRef);
+                                idx++;
+                            }
+                            if (idx >= dimCount) break;
+                        }
+                        if (inferred.Count > 0)
+                            groupBySql = $"\nGROUP BY {string.Join(", ", inferred)}";
+                    }
+                }
+
                 string querySql = safeMaxRows > 0
-                    ? $"SELECT\n  {selectSql}\nFROM {fromSb}{whereSql}\nFETCH FIRST {safeMaxRows} ROWS ONLY"
-                    : $"SELECT\n  {selectSql}\nFROM {fromSb}{whereSql}";
+                    ? $"SELECT\n  {selectSql}\nFROM {fromSb}{whereSql}{groupBySql}\nFETCH FIRST {safeMaxRows} ROWS ONLY"
+                    : $"SELECT\n  {selectSql}\nFROM {fromSb}{whereSql}{groupBySql}";
 
                 response["ok"] = true;
                 response["sql"] = querySql;
@@ -1405,5 +1553,172 @@ SELECT md_id, md_nome_tabella
             result["view_route"] = view_route;
             return RawHelpers.serialize(result, null);
         }
+    }
+
+    // Row DTO per l'introspezione autocomplete: mapping Dapper case-insensitive.
+    // Oracle NUMBER arriva come decimal — dichiarare int provocherebbe
+    // l'InvalidCastException dello strict-cast di Dapper (trappola gia' pagata
+    // su COUNT(*), vedi GetActiveSchedulerInfoByMetadataId).
+    private sealed class AutocompleteColumnRow
+    {
+        public string DbName { get; set; }
+        public string TableName { get; set; }
+        public string ColumnName { get; set; }
+        public string DataType { get; set; }
+        public decimal NotNullable { get; set; }
+        public string ColComment { get; set; }
+        public decimal IsPkey { get; set; }
+        public decimal IsIdentity { get; set; }
+        public decimal Ord { get; set; }
+    }
+
+    private sealed class AutocompleteScaffoldRow
+    {
+        public string DbName { get; set; }
+        public string TableName { get; set; }
+        public string MetaColumnName { get; set; }
+        public string RealColumnName { get; set; }
+    }
+
+    /// <summary>
+    /// Versione Oracle di MetaService.AutocompleteSqlObjects (port 2026-07-27 del
+    /// gap documentato "lista vuota su DBMS non-MSSQL"). Introspezione via
+    /// USER_TAB_COLUMNS sullo schema dell'utente dati corrente. v1: schema,
+    /// tabelle, colonne con flag PK/identity; `relations`/`types`/`storeds`
+    /// restano vuoti (JOIN-suggestion e stored autocomplete deferred — Monaco
+    /// degrada senza errori con le liste vuote).
+    /// </summary>
+    public List<WuicCore.Models.SqlModel> AutocompleteSqlObjects(bool scaffoldedOnly = true)
+    {
+        using (OracleConnection connection = metaQueryOracleSql.GetOpenConnection(false))
+        {
+            List<AutocompleteColumnRow> columnRows = connection.Query<AutocompleteColumnRow>(@"
+SELECT
+    USER AS DbName,
+    c.TABLE_NAME AS TableName,
+    c.COLUMN_NAME AS ColumnName,
+    c.DATA_TYPE AS DataType,
+    CASE WHEN c.NULLABLE = 'N' THEN 1 ELSE 0 END AS NotNullable,
+    cm.COMMENTS AS ColComment,
+    CASE WHEN pk.COLUMN_NAME IS NOT NULL THEN 1 ELSE 0 END AS IsPkey,
+    CASE WHEN c.IDENTITY_COLUMN = 'YES' THEN 1 ELSE 0 END AS IsIdentity,
+    c.COLUMN_ID AS Ord
+FROM USER_TAB_COLUMNS c
+INNER JOIN USER_TABLES t ON t.TABLE_NAME = c.TABLE_NAME
+LEFT JOIN USER_COL_COMMENTS cm ON cm.TABLE_NAME = c.TABLE_NAME AND cm.COLUMN_NAME = c.COLUMN_NAME
+LEFT JOIN (
+    SELECT acc.TABLE_NAME, acc.COLUMN_NAME
+    FROM USER_CONSTRAINTS ac
+    INNER JOIN USER_CONS_COLUMNS acc ON acc.CONSTRAINT_NAME = ac.CONSTRAINT_NAME
+    WHERE ac.CONSTRAINT_TYPE = 'P'
+) pk ON pk.TABLE_NAME = c.TABLE_NAME AND pk.COLUMN_NAME = c.COLUMN_NAME
+WHERE c.COLUMN_ID IS NOT NULL
+ORDER BY c.TABLE_NAME, c.COLUMN_ID").ToList();
+
+            if (scaffoldedOnly)
+            {
+                columnRows = FilterAutocompleteRowsByScaffoldedMetadata(columnRows);
+            }
+
+            return BuildAutocompleteSqlModels(columnRows);
+        }
+    }
+
+    /// <summary>
+    /// Filtro `scaffoldedOnly`: stessa semantica dell'inline MSSQL — il filtro e'
+    /// ATTIVO solo quando i metadata portano `mddbname` valorizzato; senza, si
+    /// restituisce l'introspezione completa. Match per NOME TABELLA (lo schema
+    /// fisico e' quello dell'utente connesso).
+    /// </summary>
+    private static List<AutocompleteColumnRow> FilterAutocompleteRowsByScaffoldedMetadata(List<AutocompleteColumnRow> columnRows)
+    {
+        List<AutocompleteScaffoldRow> scaffolded;
+        using (OracleConnection metaConnection = metaQueryOracleSql.GetOpenConnection(true))
+        {
+            // Case verificato sul dump (mai assumere): i nomi TABELLA `_`-prefissati
+            // sono quoted-lowercase (`"_metadati__tabelle"`), ma le COLONNE del
+            // metadb Oracle sono standard UPPERCASE non-quoted → si referenziano
+            // unquoted (Oracle le uppercasa da solo). Quotarle lowercase produce
+            // ORA-00904. `''` ≡ NULL su Oracle: bastano gli IS NOT NULL.
+            scaffolded = metaConnection.Query<AutocompleteScaffoldRow>(@"
+SELECT
+    TRIM(t.MDDBNAME) AS DbName,
+    TRIM(t.MD_NOME_TABELLA) AS TableName,
+    TRIM(c.MC_NOME_COLONNA) AS MetaColumnName,
+    TRIM(NVL(c.MCREALCOLUMNNAME, c.MC_NOME_COLONNA)) AS RealColumnName
+FROM ""_metadati__tabelle"" t
+INNER JOIN ""_metadati__colonne"" c ON c.MD_ID = t.MD_ID
+WHERE NVL(t.ISSYSTEMROUTE, 0) = 0
+  AND NVL(t.MDISSTORED, 0) = 0
+  AND t.MD_NOME_TABELLA IS NOT NULL
+  AND c.MC_NOME_COLONNA IS NOT NULL
+  AND (t.MDCONNNAME IS NULL OR t.MDCONNNAME = 'DataSQLConnection')").ToList();
+        }
+
+        bool hasDatabaseScopedMetadata = scaffolded.Any(r => !string.IsNullOrWhiteSpace(r.DbName));
+        if (!hasDatabaseScopedMetadata)
+        {
+            return columnRows;
+        }
+
+        var allowedColumnsByTable = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+        foreach (AutocompleteScaffoldRow row in scaffolded)
+        {
+            if (string.IsNullOrWhiteSpace(row.TableName)) continue;
+            if (!allowedColumnsByTable.TryGetValue(row.TableName, out HashSet<string> cols))
+            {
+                cols = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                allowedColumnsByTable[row.TableName] = cols;
+            }
+            if (!string.IsNullOrWhiteSpace(row.RealColumnName)) cols.Add(row.RealColumnName);
+            if (!string.IsNullOrWhiteSpace(row.MetaColumnName)) cols.Add(row.MetaColumnName);
+        }
+
+        return columnRows.Where(r =>
+            allowedColumnsByTable.TryGetValue(r.TableName ?? string.Empty, out HashSet<string> cols)
+            && cols.Contains(r.ColumnName ?? string.Empty)).ToList();
+    }
+
+    /// <summary>Raggruppa le righe di introspezione nella forma `SqlModel` attesa dal client Monaco.</summary>
+    private static List<WuicCore.Models.SqlModel> BuildAutocompleteSqlModels(List<AutocompleteColumnRow> columnRows)
+    {
+        var ret = new List<WuicCore.Models.SqlModel>();
+        foreach (AutocompleteColumnRow row in columnRows)
+        {
+            // Oracle: schema = utente connesso (USER), un solo "database" logico.
+            string schemaName = row.DbName ?? string.Empty;
+            WuicCore.Models.SqlModel model = ret.FirstOrDefault(x => x.schema == schemaName);
+            if (model == null)
+            {
+                model = new WuicCore.Models.SqlModel { database = row.DbName, schema = schemaName, isDefault = true };
+                ret.Add(model);
+            }
+
+            WuicCore.Models.SqlTable table = model.tables.FirstOrDefault(x => x.table == row.TableName);
+            if (table == null)
+            {
+                table = new WuicCore.Models.SqlTable { table = row.TableName, schema = schemaName };
+                model.tables.Add(table);
+            }
+
+            if (!table.columns.Any(x => x.column == row.ColumnName))
+            {
+                table.columns.Add(new WuicCore.Models.SqlColumn
+                {
+                    schema = schemaName,
+                    table = row.TableName,
+                    column = row.ColumnName,
+                    type = row.DataType,
+                    isNullable = row.NotNullable == 1,
+                    columnDescription = string.IsNullOrWhiteSpace(row.ColComment) ? null : row.ColComment,
+                    isPkey = row.IsPkey == 1,
+                    isIdentity = row.IsIdentity == 1,
+                    order = (int)row.Ord
+                });
+            }
+        }
+
+        WuicCore.Models.SqlModel.GenerateTableAlias(ret);
+        return ret;
     }
 }

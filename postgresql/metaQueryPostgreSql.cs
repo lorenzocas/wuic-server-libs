@@ -2164,15 +2164,28 @@ FROM {fromTable}
 
                         string filename = entity[upload_fix.mc_nome_colonna].ToString();
                         string fname = System.IO.Path.Combine(srcDir, filename);
+                        string dstFile = System.IO.Path.Combine(dstDir, filename);
 
-                        if (System.IO.File.Exists(fname))
+                        // FIX pg (2026-07-21): quando l'UPDATE non porta un upload fresco
+                        // (nessun __guid/__id/uid nel payload) __id_src ripiega sul pkey -> srcDir
+                        // == dstDir -> fname == dstFile. Il codice cancellava dstFile (che E' fname)
+                        // e poi File.Copy(fname, dstFile) falliva con FileNotFoundException perche'
+                        // la source era appena stata eliminata. E' il caso del re-save di un valore
+                        // upload gia' in place (es. fallback del test upload preview-thumb). Se
+                        // source e destinazione sono lo STESSO file fisico non c'e' nulla da
+                        // spostare -> skip dell'intero move (copy + thumb + delete della source).
+                        bool uploadSameFile = string.Equals(
+                            System.IO.Path.GetFullPath(fname),
+                            System.IO.Path.GetFullPath(dstFile),
+                            StringComparison.OrdinalIgnoreCase);
+
+                        if (!uploadSameFile && System.IO.File.Exists(fname))
                         {
                             if (!upload_fix.isDBUpload)
                             {
                                 if (!System.IO.Directory.Exists(dstDir))
                                     System.IO.Directory.CreateDirectory(dstDir);
 
-                                string dstFile = System.IO.Path.Combine(dstDir, filename);
                                 if (System.IO.File.Exists(dstFile))
                                     System.IO.File.Delete(dstFile);
                                 System.IO.File.Copy(fname, dstFile);
@@ -3140,6 +3153,37 @@ FROM {fromTable}
             }
         }
 
+        // PG strict identifier resolution (condivisa da JoinBuilder e dai due path di
+        // grouping): in MSSQL/MySQL aliased SELECTs make runtime names like
+        // `md_display_string` accidentally resolvable in some contexts; PG never does
+        // that. Resolve dataTextField to mc_real_column_name when the metadata stores
+        // a runtime/friendly name (e.g. `md_display_string` → `mm_display_string`),
+        // altrimenti la SELECT referenzia una colonna inesistente → 42703.
+        //
+        // skipColumns reset PRIMA della risoluzione (parity col JoinBuilder MySQL):
+        // sulle system route (es. lookup verso ' metadati  tabelle') la collezione
+        // arriva con skipColumns=true e `_Metadati_Colonnes` resta vuota → textCol
+        // null → il nome friendly finiva RAW nella SELECT → 42703 su getFlatRecordData
+        // (visto su scheduler/edit/1, colonna target_route; stessa classe di bug sul
+        // grouping di una list-grid raggruppata su colonna lookup).
+        private static string ResolveLookupTextField(_Metadati_Tabelle relatedTable, _Metadati_Colonne_Lookup col)
+        {
+            if (relatedTable.skipColumns)
+                relatedTable.skipColumns = false;
+
+            string resolvedTextField = col.mc_ui_lookup_dataTextField;
+            if (relatedTable.md_nome_tabella != ReticularTableName && relatedTable._Metadati_Colonnes != null)
+            {
+                // Null-safe filter: in alcuni edge case metadata corrotti contengono righe con mc_nome_colonna null.
+                var textCol = relatedTable._Metadati_Colonnes.FirstOrDefault(xk =>
+                    xk != null && !string.IsNullOrEmpty(xk.mc_nome_colonna) &&
+                    string.Equals(xk.mc_nome_colonna, col.mc_ui_lookup_dataTextField, StringComparison.OrdinalIgnoreCase));
+                if (textCol != null && !string.IsNullOrEmpty(textCol.mc_real_column_name))
+                    resolvedTextField = textCol.mc_real_column_name;
+            }
+            return resolvedTextField;
+        }
+
         private static string FinalizeCientSideGrouping(_Metadati_Tabelle tab, List<_Metadati_Colonne> lst, metaRawModel mmd, List<GroupInfo> GroupInfo, string safetableName, string join, string where)
         {
             string fieldList = "";
@@ -3158,7 +3202,7 @@ FROM {fromTable}
                         string safeappend = EscapeDBObjectName(col.mc_ui_lookup_entity_name.Replace(" ", "_") + "___" + col.mc_ui_lookup_dataTextField + "__" + col.mc_nome_colonna);
 
                         string safeUniqueEntityName = EscapeDBObjectName(col.mc_nome_colonna + "_" + col.mc_ui_lookup_entity_name);
-                        string safeTextField = EscapeDBObjectName(col.mc_ui_lookup_dataTextField);
+                        string safeTextField = EscapeDBObjectName(ResolveLookupTextField(relatedTable, col));
 
                         fieldList += (string.IsNullOrEmpty(fieldList) ? "" : ", ") + string.Format("{0} AS {1}", safeUniqueEntityName + "." + safeTextField, safeappend);
                     }
@@ -3208,7 +3252,7 @@ FROM {fromTable}
 
                         _ = GetTableName(relatedTable);
                         string safeUniqueEntityName = EscapeDBObjectName(col.mc_nome_colonna + "_" + col.mc_ui_lookup_entity_name);
-                        string safeTextField = EscapeDBObjectName(col.mc_ui_lookup_dataTextField);
+                        string safeTextField = EscapeDBObjectName(ResolveLookupTextField(relatedTable, col));
                         string calculatedText = col.mc_ui_lookup_computed_dataTextField;
 
                         fieldList += (string.IsNullOrEmpty(fieldList) ? "" : ", ") + string.Format("{0} AS {1}", string.IsNullOrEmpty(calculatedText) ? (safeUniqueEntityName + "." + safeTextField) : calculatedText, safeappend);
@@ -3365,11 +3409,22 @@ FROM {fromTable}
 
             #region special cases
 
+            // FIX pg (2026-07-21): le clausole MANDATORY (reticular / logic-delete /
+            // record-restriction) devono essere sempre in AND — sono vincoli di
+            // sistema, non filtri utente. Prima venivano unite con `logicOperator`:
+            // con un filtro utente OR (es. GetManyToManyOptions che filtra la lookup
+            // con CityID=a OR CityID=b OR ...) diventavano
+            // `where deleted=false OR CityID=a OR ...` -> il coalesce(deleted)=false
+            // (vero per ~tutte le righe) dissolveva il filtro -> TUTTE le righe
+            // (combo m2m ritornava 1000 città invece delle selezionate, gonfiando il
+            // currentRecord oltre il cap AsmxProxy 64KB -> 500 -> error-dialog che
+            // bloccava i click). I filtri utente vengono ora raggruppati in parentesi
+            // e messi in AND ai mandatory (vedi fine metodo).
             if (tab.md_is_reticular)
             {
                 tableName = ReticularTableName;
                 safetableName = GetTablePrefix(tab) + EscapeDBObjectName(tableName);
-                where += ((where == "") ? " where " : " " + logicOperator + " ") + safetableName + "." + tab.reticular_key_name + " = " + (tab.reticular_key_value.HasValue ? tab.reticular_key_value.Value.ToString() : "null");
+                where += ((where == "") ? " where " : " AND ") + safetableName + "." + tab.reticular_key_name + " = " + (tab.reticular_key_value.HasValue ? tab.reticular_key_value.Value.ToString() : "null");
             }
 
             if (tab.md_has_logic_delete)
@@ -3380,12 +3435,12 @@ FROM {fromTable}
                     // PG: boolean column → coalesce(.., FALSE) = FALSE (in MSSQL/MySQL BIT vs 0 funziona, in PG no).
                     bool isBool = string.Equals(logic_del_key.mc_db_column_type, "bit", StringComparison.OrdinalIgnoreCase) || string.Equals(logic_del_key.mc_db_column_type, TypeBoolean, StringComparison.OrdinalIgnoreCase);
                     string falseLit = isBool ? "FALSE" : "0";
-                    where += ((where == "") ? " where " : " " + logicOperator + " ") + " coalesce(" + safetableName + "." + EscapeDBObjectName(RawHelpers.getStoreColumnName(logic_del_key)) + "," + falseLit + ") = " + falseLit;
+                    where += ((where == "") ? " where " : " AND ") + " coalesce(" + safetableName + "." + EscapeDBObjectName(RawHelpers.getStoreColumnName(logic_del_key)) + "," + falseLit + ") = " + falseLit;
                 }
                 else if (tab.md_is_reticular)
                 {
                     // PG-native: cancellato è boolean → confronto con FALSE.
-                    where += ((where == "") ? " where " : " " + logicOperator + " ") + " coalesce(" + safetableName + ".cancellato,FALSE) = FALSE";
+                    where += ((where == "") ? " where " : " AND ") + " coalesce(" + safetableName + ".cancellato,FALSE) = FALSE";
                 }
             }
 
@@ -3446,6 +3501,11 @@ FROM {fromTable}
 
             #endregion
 
+            // FIX pg (2026-07-21): i filtri utente vengono accumulati in `userWhere`
+            // separato dai mandatory (`where`), così un logicOperator OR resta confinato
+            // al gruppo utente e non dissolve logic-delete/reticular/restriction.
+            string mandatoryWhere = where;
+            string userWhere = "";
             lst.ForEach((fld) =>
             {
                 string currentFld = GetCurrentFieldString(tab, fld);
@@ -3454,7 +3514,7 @@ FROM {fromTable}
                 {
                     if (filterInfo.filters.Any(x => x.field == ExtraFilterField))
                     {
-                        where = AppendFilter(fld, filterInfo, logicOperator, (currentFld), where, tab, formulaLookup, userId);
+                        userWhere = AppendFilter(fld, filterInfo, logicOperator, (currentFld), userWhere, tab, formulaLookup, userId);
                     }
                     else
                     {
@@ -3463,10 +3523,22 @@ FROM {fromTable}
                             filterTargetFld = !fld.mc_is_computed.Value ? currentFld : fld.mc_nome_colonna;
                         else
                             filterTargetFld = formulaLookup;
-                        where = AppendFilter(fld, filterInfo, logicOperator, filterTargetFld, where, tab, formulaLookup, userId);
+                        userWhere = AppendFilter(fld, filterInfo, logicOperator, filterTargetFld, userWhere, tab, formulaLookup, userId);
                     }
                 }
             });
+
+            if (!string.IsNullOrEmpty(userWhere))
+            {
+                string ub = userWhere.TrimStart();
+                if (ub.StartsWith("where ", StringComparison.OrdinalIgnoreCase))
+                    ub = ub.Substring("where ".Length);
+                where = mandatoryWhere + ((mandatoryWhere == "") ? " where ( " : " AND ( ") + ub + " )";
+            }
+            else
+            {
+                where = mandatoryWhere;
+            }
 
             return where;
         }
@@ -3636,21 +3708,8 @@ FROM {fromTable}
             string safeUniqueEntityName = EscapeDBObjectName(fld.mc_nome_colonna + "_" + col.mc_ui_lookup_entity_name);
             string calculatedText = col.mc_ui_lookup_computed_dataTextField;
 
-            // PG strict identifier resolution: in MSSQL/MySQL aliased SELECTs make runtime
-            // names like `md_display_string` accidentally resolvable in some contexts; PG never
-            // does that. Resolve dataTextField to mc_real_column_name when the metadata stores
-            // a runtime/friendly name (e.g. `md_display_string` → `mm_display_string`).
-            string resolvedTextField = col.mc_ui_lookup_dataTextField;
-            if (relatedTable.md_nome_tabella != ReticularTableName && relatedTable._Metadati_Colonnes != null)
-            {
-                // Null-safe filter: in alcuni edge case metadata corrotti contengono righe con mc_nome_colonna null.
-                var textCol = relatedTable._Metadati_Colonnes.FirstOrDefault(xk =>
-                    xk != null && !string.IsNullOrEmpty(xk.mc_nome_colonna) &&
-                    string.Equals(xk.mc_nome_colonna, col.mc_ui_lookup_dataTextField, StringComparison.OrdinalIgnoreCase));
-                if (textCol != null && !string.IsNullOrEmpty(textCol.mc_real_column_name))
-                    resolvedTextField = textCol.mc_real_column_name;
-            }
-            string safeTextField = EscapeDBObjectName(resolvedTextField);
+            // Risoluzione friendly→physical + skipColumns reset: vedi ResolveLookupTextField.
+            string safeTextField = EscapeDBObjectName(ResolveLookupTextField(relatedTable, col));
 
             string comboTxtValue;
 
@@ -3955,10 +4014,22 @@ FROM {fromTable}
                     string lat_field = "";
                     string lon_field = "";
 
-                    _ = RawHelpers.deserialize(fld.mc_props_bag, null);
+                    // FIX pg (2026-07-21): il ramo era MSSQL-only (geography::STGeomFromText/.STContains)
+                    // e non impostava singleGeography per una colonna 'point'. mapProps restava sempre
+                    // null e l'accesso non guardato mapProps.map_type dava RuntimeBinderException
+                    // ("Cannot perform runtime binding on a null reference"). Allineato al provider
+                    // mysql + PostGIS: ST_Contains/ST_GeomFromText/ST_X/ST_Y su geometrie SRID 0
+                    // (le Location WWI su pg hanno SRID 0). ST_Contains ritorna boolean → niente '= 1'.
                     dynamic mapProps = null;
 
                     bool singleGeography = false;
+
+                    if (fld.mc_ui_column_type == TypePoint)
+                    {
+                        singleGeography = true;
+                        lat_field = string.Format("ST_Y({0})", EscapeDBObjectName(fld.mc_nome_colonna));
+                        lon_field = string.Format("ST_X({0})", EscapeDBObjectName(fld.mc_nome_colonna));
+                    }
 
                     if (fld.mc_ui_column_type == "google_map")
                     {
@@ -3967,8 +4038,8 @@ FROM {fromTable}
 
                         if (mapProps != null && mapProps.linked_point_field != null)
                         {
-                            lat_field = string.Format(LongFieldFormat, mapProps.linked_point_field);
-                            lon_field = string.Format(LatFieldFormat, mapProps.linked_point_field);
+                            lat_field = string.Format("ST_X({0})", mapProps.linked_point_field);
+                            lon_field = string.Format("ST_Y({0})", mapProps.linked_point_field);
                         }
                         else if (mapProps != null && mapProps.latitude_field != null)
                         {
@@ -3976,21 +4047,12 @@ FROM {fromTable}
                             lon_field = mapProps.longitude_field;
                         }
                     }
-                    else if (mapProps != null)
-                    {
-                        if (mapProps.map_type == TypePoint)
-                        {
-                            lat_field = string.Format(LongFieldFormat, fld.mc_nome_colonna);
-                            lon_field = string.Format(LatFieldFormat, fld.mc_nome_colonna);
-                            singleGeography = true;
-                        }
-                    }
 
                     if (string.IsNullOrEmpty(lat_field) || string.IsNullOrEmpty(lon_field))
                     {
-                        if (mapProps.map_type == "polyline")
+                        if (mapProps != null && (mapProps.map_type == "polyline" || mapProps.map_type == "polygon" || mapProps.map_type == TypeGeometry))
                         {
-                            string polylineWhere = string.Format(" ( geography::STGeomFromText('{0}', 8307).STContains({1}) = 1 || geography::STGeomFromText('{0}', 8307).STIntersects({1}) = 1 )", f.value, fld.mc_nome_colonna);
+                            string polylineWhere = string.Format(" ( ST_Contains(ST_GeomFromText('{0}') ,{1}) OR ST_Intersects(ST_GeomFromText('{0}') ,{1}) )", f.value, EscapeDBObjectName(fld.mc_nome_colonna));
                             where += ((where == "") ? " where " : " " + logicOperator + " ") + polylineWhere;
 
                             filterInfo.filters.Remove(f);
@@ -4003,9 +4065,9 @@ FROM {fromTable}
                     string geoWhere;
 
                     if (singleGeography)
-                        geoWhere = string.Format(" (  geography::STGeomFromText('{0}', 8307).STContains({1}) = 1 )", f.value, fld.mc_nome_colonna);
+                        geoWhere = string.Format(" ( ST_Contains(ST_GeomFromText('{0}') , {1}) )", f.value, EscapeDBObjectName(fld.mc_nome_colonna));
                     else
-                        geoWhere = string.Format(" (  geography::STGeomFromText('{0}', 8307).STContains(geography::STGeomFromText('Point({1}, {2})', 8307)) = 1 )", f.value, lat_field, lon_field);
+                        geoWhere = string.Format(" ( ST_Contains(ST_GeomFromText('{0}') , ST_MakePoint({2}, {1})) )", f.value, lat_field, lon_field);
 
                     where += ((where == "") ? " where " : " " + logicOperator + " ") + geoWhere;
 
@@ -4014,7 +4076,8 @@ FROM {fromTable}
                 }
                 else if (realOperator == "mapdistance")
                 {
-                    _ = RawHelpers.deserialize(fld.mc_props_bag, null);
+                    // FIX pg (2026-07-21): mapProps resta null (guardato); lat/lon via ST_Y/ST_X
+                    // (era col.Lat/.Long MSSQL) + ramo colonna 'point'. Allineato al provider mysql.
                     dynamic mapProps = null;
 
                     string lat = "";
@@ -4028,12 +4091,19 @@ FROM {fromTable}
                         string lat_field = "";
                         string lon_field = "";
 
+                        // colonna 'point': lat=ST_Y, lon=ST_X direttamente dalla geometry.
+                        if (fld.mc_ui_column_type == TypePoint)
+                        {
+                            lat_field = string.Format("ST_Y({0})", EscapeDBObjectName(fld.mc_nome_colonna));
+                            lon_field = string.Format("ST_X({0})", EscapeDBObjectName(fld.mc_nome_colonna));
+                        }
+
                         if (fld.mc_ui_column_type == "google_map")
                         {
                             if (mapProps != null && mapProps.linked_point_field != null)
                             {
-                                lat_field = string.Format(LongFieldFormat, mapProps.linked_point_field);
-                                lon_field = string.Format(LatFieldFormat, mapProps.linked_point_field);
+                                lat_field = string.Format("ST_Y({0})", mapProps.linked_point_field);
+                                lon_field = string.Format("ST_X({0})", mapProps.linked_point_field);
                             }
                             else if (mapProps != null && mapProps.latitude_field != null)
                             {
@@ -4045,8 +4115,8 @@ FROM {fromTable}
 
                             if ((string.IsNullOrEmpty(lat_field) || string.IsNullOrEmpty(lon_field)) && pointField != null)
                             {
-                                lat_field = string.Format(LatFieldFormat, pointField.mc_nome_colonna);
-                                lon_field = string.Format(LongFieldFormat, pointField.mc_nome_colonna);
+                                lat_field = string.Format("ST_Y({0})", pointField.mc_nome_colonna);
+                                lon_field = string.Format("ST_X({0})", pointField.mc_nome_colonna);
                             }
                             else if (string.IsNullOrEmpty(lat_field) || string.IsNullOrEmpty(lon_field))
                             {
@@ -4058,8 +4128,8 @@ FROM {fromTable}
                         {
                             if (mapProps.map_type == TypePoint)
                             {
-                                lat_field = string.Format(LatFieldFormat, fld.mc_nome_colonna);
-                                lon_field = string.Format(LongFieldFormat, fld.mc_nome_colonna);
+                                lat_field = string.Format("ST_Y({0})", EscapeDBObjectName(fld.mc_nome_colonna));
+                                lon_field = string.Format("ST_X({0})", EscapeDBObjectName(fld.mc_nome_colonna));
                             }
                         }
 
@@ -4161,12 +4231,16 @@ FROM {fromTable}
 
                 if (fld.mc_ui_column_type == UiTypeDatetime && f.value != null && f.value != "")
                 {
-                    //se f.value è del format YYYY-MM-ddTHH:mm:ssZ -> il DateTime.Parse applica UTC time. 
+                    //se f.value è del format YYYY-MM-ddTHH:mm:ssZ -> il DateTime.Parse applica UTC time.
                     string parsed = f.value.ToString().Replace(@"""", "");
                     DateTime d = DateTime.Parse(parsed);
-                    f.value = d.ToString(DateTimeLogFormat).Replace(".", ":");
+                    f.value = d.ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
 
-                    where += ((where == "") ? " where " : " " + logicOperator + " ") + "( (" + "DATEADD(ms, -DATEPART(ms, " + currentFld + "), " + currentFld + ")" + ")" + realOperator + string.Format(" {0}{1}{2} {3} )", leftExtraOperator, f.value, rightExtraOperator, async_extra_condition);
+                    // FIX pg (2026-07-21): era MSSQL DATEADD(ms,-DATEPART(ms,..))  (inesistenti su pg)
+                    // -> ogni filtro su colonna datetime dava errore SQL (500 su getFlatRecordData,
+                    // es. scheduler view). date_trunc('second', col) tronca i ms (stesso intento),
+                    // confronto con timestamp literal.
+                    where += ((where == "") ? " where " : " " + logicOperator + " ") + "( date_trunc('second', " + currentFld + ") " + realOperator + " '" + f.value + "' " + async_extra_condition + " )";
                     if (!isNested)
                         filterInfo.filters.Remove(f);
                     return;
@@ -4174,7 +4248,7 @@ FROM {fromTable}
                 }
                 else if (fld.mc_ui_column_type == "date" && f.value != null && f.value != "")
                 {
-                    //FIX UTC TIME ISSUE 
+                    //FIX UTC TIME ISSUE
                     string parsed = f.value.ToString().Replace(@"""", "");
                     DateTime d = DateTime.Parse(parsed, new System.Globalization.CultureInfo("en-US", false));
                     if (f.operatore == "le" || f.operatore == "lte")
@@ -4185,17 +4259,24 @@ FROM {fromTable}
                             d = d.AddHours(1);
                     }
 
-                    f.value = d.ToString("yyyyMMdd");
+                    f.value = d.ToString("yyyy-MM-dd");
 
-                    where += ((where == "") ? " where " : " " + logicOperator + " ") + "( (" + "DateAdd(day, datediff(day,0, " + currentFld + "), 0)" + ")" + realOperator + string.Format(" {0}{1}{2} {3} )", leftExtraOperator, f.value, rightExtraOperator, async_extra_condition);
+                    // FIX pg (2026-07-21): era MSSQL DateAdd(day, datediff(day,0,..),0) -> errore SQL
+                    // su pg. Confronto per-giorno via cast ::date del column e literal date.
+                    where += ((where == "") ? " where " : " " + logicOperator + " ") + "( (" + currentFld + ")::date " + realOperator + " '" + f.value + "'::date " + async_extra_condition + " )";
 
                     if (!isNested)
                         filterInfo.filters.Remove(f);
 
                     return;
                 }
-                else if (fld.mc_ui_column_type == UiTypeNumberBoolean && f.value != null && f.value != "")
+                else if ((fld.mc_ui_column_type == UiTypeNumberBoolean || fld.mc_ui_column_type == TypeBoolean) && f.value != null && f.value != "")
                 {
+                    // FIX pg (2026-07-21): anche mc_ui_column_type=='boolean' va coercito a 0/1 nel
+                    // filtro WHERE. Le colonne bit/boolean sono int-backed (smallint) nel converted
+                    // schema pg: senza questo il filtro emetteva `col = true` (boolean literal) ->
+                    // "42883 operator does not exist: smallint = boolean". Prima solo number_boolean
+                    // era gestito.
                     if (f.value.ToString().ToLower() == FalseLiteral || f.value.ToString().ToLower() == "0")
                         f.value = "0";
                     else
@@ -5368,6 +5449,23 @@ FROM {fromTable}
             {
                 value = parsedBool ? "1" : "0";
             }
+            else if (col.mc_ui_column_type == UiTypeDatetime || col.mc_ui_column_type == "date"
+                || originalValue is DateTime || originalValue is DateTimeOffset)
+            {
+                // FIX pg (2026-07-21): il payload __original (optimistic-concurrency, inviato dal
+                // FE su ogni save) arriva deserializzato da Newtonsoft con le stringhe ISO delle
+                // date gia' promosse a DateTime. originalValue.ToString() usava la CULTURE della
+                // macchina (it-IT -> "14/06/2026 00:00:00", DD/MM/YYYY) e pg leggeva mese=14 ->
+                // 22008 date/time field value out of range (save 400, test boolean-date). Formato
+                // ISO invariante cosi' pg lo parsa in modo deterministico a prescindere dal datestyle.
+                if (originalValue is DateTime dtVal)
+                    value = dtVal.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+                else if (originalValue is DateTimeOffset dtoVal)
+                    value = dtoVal.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+                else if (DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime pd)
+                    || DateTime.TryParse(value, CultureInfo.CurrentCulture, DateTimeStyles.None, out pd))
+                    value = pd.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+            }
 
             fltr += (string.IsNullOrEmpty(fltr) ? "" : " AND ")
                 + currentFld + "=" + quote + EscapeValue(value) + quote;
@@ -5649,7 +5747,12 @@ FROM {fromTable}
                     return;
                 }
 
-                if (!entity.ContainsKey(fld.mc_nome_colonna))
+                // FIX pg (2026-07-22): allineamento a MSSQL (_Metadati_methods.cs) e mysql — la
+                // guardia "colonna non nel payload → skip" DEVE esentare la primary key
+                // (`&& !fld.mc_is_primary_key`). Senza, un pk auto-gen non inviato dal client veniva
+                // saltato prima del ramo pk-type. Su pg era mascherato dal pk IDENTITY (default-case
+                // = omesso → riempito dal DB), ma un pk-type=MAX si sarebbe rotto come su oracle.
+                if (!entity.ContainsKey(fld.mc_nome_colonna) && !fld.mc_is_primary_key)
                     return;
 
                 if ((!fld.mc_logic_editable.HasValue || !fld.mc_logic_editable.Value) && !fld.mc_is_primary_key && string.IsNullOrEmpty(fld.mc_default_value))
@@ -5772,8 +5875,14 @@ FROM {fromTable}
                                 valore = null;
                         }
                     }
-                    else if (fld.mc_ui_column_type == TypeBoolean && tabel.md_is_reticular)
+                    else if (fld.mc_ui_column_type == TypeBoolean)
                     {
+                        // FIX pg (2026-07-21): la coercion boolean->0/1 era gated su md_is_reticular,
+                        // così per una tabella NON reticular (es. schedules) il valore veniva emesso
+                        // come literal `true`/`false` -> "42804 column is of type smallint but
+                        // expression is of type boolean" sull'INSERT. Il ramo UPDATE coercisce sempre
+                        // (linea ~4838): qui allineo l'INSERT — coerce true->1 / false->0 per TUTTE le
+                        // tabelle (le colonne bit/boolean sono int-backed nel converted schema pg).
                         if (valore != null)
                         {
                             if (valore.ToString().ToLower() == "true")
@@ -5785,17 +5894,7 @@ FROM {fromTable}
                                 valore = 0;
                             }
                         }
-                        else
-                        {
-                            if (fld.mc_validation_has.Value && fld.mc_validation_required.Value)
-                            {
-                                valore = 0;
-                            }
-                        }
-                    }
-                    else if (fld.mc_ui_column_type == TypeBoolean)
-                    {
-                        if (valore == null && fld.mc_validation_has.Value && fld.mc_validation_required.Value)
+                        else if (fld.mc_validation_has.Value && fld.mc_validation_required.Value)
                         {
                             valore = 0;
                         }
@@ -6447,6 +6546,10 @@ FROM {fromTable}
                             }).ToDictionary(data => data.Column, data => data.Value));
 
                         int recordCounter = 0;
+                        // Nome fisso: ricrearlo a ogni giro RIMPIAZZA il savepoint precedente
+                        // (semantica PostgreSQL), quindi non serve RELEASE sul percorso felice.
+                        const string recordSavepoint = "wuic_import_record";
+
                         foreach (Dictionary<string, object> record in dicts)
                         {
                             string pk = "";
@@ -6454,63 +6557,106 @@ FROM {fromTable}
 
                             recordCounter++;
 
-                            if (uploadOption.import_type.Contains("U"))
+                            // Parity con l'ImportFile MSSQL (_Metadati_methods.cs): l'errore di un
+                            // SINGOLO record segue la semantica di commit_level. In piu', specificita'
+                            // PostgreSQL: dopo uno statement fallito la transazione entra in stato
+                            // aborted (25P02) e QUALSIASI statement successivo — Commit() compreso —
+                            // fallisce. Il SAVEPOINT per record permette di ripulire lo stato aborted
+                            // annullando il solo record in errore, preservando quelli gia' riusciti
+                            // (necessario sia per 'C'/'T' che proseguono, sia per 'I' che committa).
+                            myTrans.Save(recordSavepoint);
+
+                            try
                             {
-                                // select using pkey values in record
-                                string table_name = RawHelpers.getStoreTableName(tabel, DbmsName);
-
-                                string query_check_from = string.Format("SELECT * FROM {0} ", table_name);
-                                StringBuilder query_check_where = new StringBuilder();
-                                bool flg = true;
-
-                                foreach (string pkeyName in pkeys.Select(pkey => pkey.mc_nome_colonna))
+                                if (uploadOption.import_type.Contains("U"))
                                 {
-                                    object pkey_value = record[pkeyName];
-                                    if (pkey_value == null || string.IsNullOrEmpty(pkey_value.ToString()))
-                                    {
-                                        flg = false;
-                                        break;
-                                    }
-                                    else
-                                    {
-                                        string quote = "";
-                                        if (string.IsNullOrEmpty(tabel.md_primary_key_type) || tabel.md_primary_key_type == "GUID")
-                                            quote = "'";
+                                    // select using pkey values in record
+                                    string table_name = RawHelpers.getStoreTableName(tabel, DbmsName);
 
-                                        query_check_where.Append((query_check_where.Length == 0 ? " WHERE " : " AND ")
-                                            + RawHelpers.getStoreTableName(tabel, DbmsName) + "."
-                                            + RawHelpers.escapeDBObjectName(pkeyName, DbmsName) + " = "
-                                            + quote + pkey_value + quote);
+                                    string query_check_from = string.Format("SELECT * FROM {0} ", table_name);
+                                    StringBuilder query_check_where = new StringBuilder();
+                                    bool flg = true;
+
+                                    foreach (string pkeyName in pkeys.Select(pkey => pkey.mc_nome_colonna))
+                                    {
+                                        object pkey_value = record[pkeyName];
+                                        if (pkey_value == null || string.IsNullOrEmpty(pkey_value.ToString()))
+                                        {
+                                            flg = false;
+                                            break;
+                                        }
+                                        else
+                                        {
+                                            string quote = "";
+                                            if (string.IsNullOrEmpty(tabel.md_primary_key_type) || tabel.md_primary_key_type == "GUID")
+                                                quote = "'";
+
+                                            query_check_where.Append((query_check_where.Length == 0 ? " WHERE " : " AND ")
+                                                + RawHelpers.getStoreTableName(tabel, DbmsName) + "."
+                                                + RawHelpers.escapeDBObjectName(pkeyName, DbmsName) + " = "
+                                                + quote + pkey_value + quote);
+                                        }
+                                    }
+
+                                    if (flg)
+                                    {
+                                        List<Dapper.SqlMapper.FastExpando> entity = (List<Dapper.SqlMapper.FastExpando>)con.Query(query_check_from + query_check_where.ToString(), null, myTrans);
+                                        if (entity.Count > 0)
+                                        {
+                                            if (!parseFKeyPg(uploadOption, tabel, record, context, ref errorCount, log, fileName, recordCounter))
+                                                return log.ToString();
+
+                                            string update_query = BuildDynamicUpdateQuery(record, tabel._Metadati_Colonnes.ToList(), uploadOption.user_id, true);
+                                            con.Execute(update_query, null, myTrans);
+
+                                            updatedRecord++;
+                                            continue;
+                                        }
                                     }
                                 }
 
-                                if (flg)
+                                if (uploadOption.import_type.Contains("I"))
                                 {
-                                    List<Dapper.SqlMapper.FastExpando> entity = (List<Dapper.SqlMapper.FastExpando>)con.Query(query_check_from + query_check_where.ToString(), null, myTrans);
-                                    if (entity.Count > 0)
+                                    if (!fkeyParsed && !parseFKeyPg(uploadOption, tabel, record, context, ref errorCount, log, fileName, recordCounter))
                                     {
-                                        if (!parseFKeyPg(uploadOption, tabel, record, context, ref errorCount, log, fileName, recordCounter))
-                                            return log.ToString();
-
-                                        string update_query = BuildDynamicUpdateQuery(record, tabel._Metadati_Colonnes.ToList(), uploadOption.user_id, true);
-                                        con.Execute(update_query, null, myTrans);
-
-                                        updatedRecord++;
-                                        continue;
+                                        return log.ToString();
                                     }
+
+                                    string insert_query = BuildDynamicInsertQuery(record, tabel._Metadati_Colonnes.ToList(), uploadOption.user_id, out pk, true);
+                                    con.Execute(insert_query, null, myTrans);
+                                    insertedRecord++;
                                 }
                             }
-
-                            if (uploadOption.import_type.Contains("I"))
+                            catch (Exception recordEx)
                             {
-                                if (!fkeyParsed && !parseFKeyPg(uploadOption, tabel, record, context, ref errorCount, log, fileName, recordCounter))
+                                // Prima di tutto: rollback AL SAVEPOINT — annulla il solo record
+                                // fallito e riporta la transazione fuori dallo stato aborted,
+                                // cosi' Rollback()/Commit()/statement successivi sono validi.
+                                try { myTrans.Rollback(recordSavepoint); }
+                                catch { /* best effort: se fallisce, i rami sotto falliranno con l'errore reale */ }
+
+                                errorCount++;
+                                string errorDetails = recordEx.ToString();
+                                if (string.IsNullOrWhiteSpace(errorDetails))
+                                    errorDetails = recordEx.Message + (recordEx.InnerException != null ? recordEx.InnerException.Message : "");
+                                string recordContext = string.Format("Record {0} (route {1})", recordCounter, tabel?.md_route_name);
+                                if (uploadOption.commit_level == "R")
                                 {
+                                    log.AppendLine(recordContext + ": " + errorDetails);
+                                    myTrans.Rollback();
+                                    log.AppendLine("Changes have been rolled back.");
                                     return log.ToString();
                                 }
-
-                                string insert_query = BuildDynamicInsertQuery(record, tabel._Metadati_Colonnes.ToList(), uploadOption.user_id, out pk, true);
-                                con.Execute(insert_query, null, myTrans);
-                                insertedRecord++;
+                                else if (uploadOption.commit_level == "I")
+                                {
+                                    log.AppendLine(recordContext + ": " + errorDetails);
+                                    myTrans.Commit();
+                                    return log.ToString();
+                                }
+                                else if (uploadOption.commit_level == "C" || uploadOption.commit_level == "T")
+                                {
+                                    log.AppendLine(recordContext + ": " + errorDetails);
+                                }
                             }
                         }
 

@@ -29,8 +29,15 @@ namespace WuicOData.DTOs
 
     public class ODataColumnInfo
     {
-        /// <summary>Actual DB column name (mc_nome_colonna)</summary>
+        /// <summary>Actual DB column name (mc_nome_colonna) — friendly name, guida il nome
+        /// della property CLR/EDM (parita' cross-DBMS con MSSQL).</summary>
         public string ColumnName { get; set; }
+
+        /// <summary>Physical DB column name (mc_real_column_name) — case ESATTO dello schema,
+        /// usato per EF HasColumnName. Su Oracle gli identifier quotati sono case-sensitive e
+        /// "Oracle = UPPER" NON e' un'assunzione valida (_e2e_odata_demo e' lowercase). Fallback
+        /// a mc_nome_colonna quando non valorizzato.</summary>
+        public string RealColumnName { get; set; }
 
         /// <summary>DB type string (mc_db_column_type)</summary>
         public string DbType { get; set; }

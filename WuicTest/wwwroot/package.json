@@ -44,6 +44,7 @@
     "bootstrap": "^5.3.3",
     "chart.js": "^4.4.6",
     "dexie": "^4.0.8",
+    "frappe-gantt": "^1.2.2",
     "monaco-editor": "^0.45.0",
     "monaco-editor-webpack-plugin": "^7.1.0",
     "ngx-cookie-service": "^21.0.0",

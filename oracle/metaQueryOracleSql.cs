@@ -3677,6 +3677,12 @@ END;");
                         string safeappend = EscapeDBObjectName(col.mc_ui_lookup_entity_name.Replace(" ", "_") + "___" + col.mc_ui_lookup_dataTextField + "__" + col.mc_nome_colonna);
 
                         string safeUniqueEntityName = EscapeDBObjectName(col.mc_nome_colonna + "_" + col.mc_ui_lookup_entity_name);
+                        // skipColumns reset PRIMA della risoluzione (parity col reset del
+                        // JoinBuilder, ~riga 4263): sulle system route (es. lookup verso
+                        // ' metadati  tabelle') la collezione arriva con skipColumns=true →
+                        // textCol null → fallback al friendly RAW → ORA-00904 sul grouping.
+                        if (relatedTable.skipColumns)
+                            relatedTable.skipColumns = false;
                         // friendly→physical resolution: vedi commento in JoinBuilder.
                         _Metadati_Colonne textCol = relatedTable._Metadati_Colonnes
                             .FirstOrDefault(xk => xk.mc_nome_colonna == col.mc_ui_lookup_dataTextField)
@@ -3732,6 +3738,12 @@ END;");
 
                         _ = GetTableName(relatedTable);
                         string safeUniqueEntityName = EscapeDBObjectName(col.mc_nome_colonna + "_" + col.mc_ui_lookup_entity_name);
+                        // skipColumns reset PRIMA della risoluzione (parity col reset del
+                        // JoinBuilder, ~riga 4263): sulle system route (es. lookup verso
+                        // ' metadati  tabelle') la collezione arriva con skipColumns=true →
+                        // textCol null → fallback al friendly RAW → ORA-00904 sul grouping.
+                        if (relatedTable.skipColumns)
+                            relatedTable.skipColumns = false;
                         // friendly→physical resolution: vedi commento in JoinBuilder.
                         _Metadati_Colonne textCol = relatedTable._Metadati_Colonnes
                             .FirstOrDefault(xk => xk.mc_nome_colonna == col.mc_ui_lookup_dataTextField)
@@ -3896,11 +3908,19 @@ END;");
 
             #region special cases
 
+            // FIX oracle (2026-07-21): le clausole MANDATORY (reticular / logic-delete /
+            // record-restriction) devono essere sempre in AND — sono vincoli di sistema,
+            // non filtri utente. Prima venivano unite con `logicOperator`: con un filtro
+            // utente OR (es. GetManyToManyOptions che filtra la lookup con CityID=a OR
+            // CityID=b OR ...) diventavano `where deleted=0 OR CityID=a OR ...` e il
+            // coalesce(deleted)=0 (vero per ~tutte le righe) dissolveva il filtro -> tutte
+            // le righe (combo m2m ritornava tutte le città). Stesso fix applicato a pg.
+            // I filtri utente vengono raggruppati in parentesi e messi in AND (fine metodo).
             if (tab.md_is_reticular)
             {
                 tableName = "tabella_reticolare";
                 safetableName = "" + EscapeDBObjectName(tableName);
-                where += ((where == "") ? " where " : " " + logicOperator + " ") + safetableName + "." + tab.reticular_key_name + " = " + (tab.reticular_key_value.HasValue ? tab.reticular_key_value.Value.ToString() : "null");
+                where += ((where == "") ? " where " : " AND ") + safetableName + "." + tab.reticular_key_name + " = " + (tab.reticular_key_value.HasValue ? tab.reticular_key_value.Value.ToString() : "null");
             }
 
             if (tab.md_has_logic_delete)
@@ -3908,11 +3928,11 @@ END;");
                 _Metadati_Colonne logic_del_key = tab._Metadati_Colonnes.FirstOrDefault(x => x.mc_is_logic_delete_key.HasValue && x.mc_is_logic_delete_key.Value);
                 if (logic_del_key != null)
                 {
-                    where += ((where == "") ? " where " : " " + logicOperator + " ") + " coalesce(" + safetableName + "." + EscapeDBObjectName(RawHelpers.getStoreColumnName(logic_del_key)) + ",0) = 0";
+                    where += ((where == "") ? " where " : " AND ") + " coalesce(" + safetableName + "." + EscapeDBObjectName(RawHelpers.getStoreColumnName(logic_del_key)) + ",0) = 0";
                 }
                 else if (tab.md_is_reticular)
                 {
-                    where += ((where == "") ? " where " : " " + logicOperator + " ") + " coalesce(" + safetableName + ".[cancellato],0) = 0";
+                    where += ((where == "") ? " where " : " AND ") + " coalesce(" + safetableName + ".[cancellato],0) = 0";
                 }
             }
 
@@ -3973,6 +3993,11 @@ END;");
 
             #endregion
 
+            // FIX oracle (2026-07-21): i filtri utente vengono accumulati in `userWhere`
+            // separato dai mandatory (`where`), così un logicOperator OR resta confinato
+            // al gruppo utente (in parentesi) e non dissolve logic-delete/reticular/restriction.
+            string mandatoryWhere = where;
+            string userWhere = "";
             lst.ForEach((fld) =>
             {
                 string currentFld = GetCurrentFieldString(tab, fld);
@@ -3981,7 +4006,7 @@ END;");
                 {
                     if (filterInfo.filters.Any(x => x.field == ExtraFilterField))
                     {
-                        where = AppendFilter(fld, filterInfo, logicOperator, (currentFld), where, tab, formulaLookup, userId);
+                        userWhere = AppendFilter(fld, filterInfo, logicOperator, (currentFld), userWhere, tab, formulaLookup, userId);
                     }
                     else
                     {
@@ -3992,10 +4017,22 @@ END;");
                             filterFieldExpr = currentFld;
                         else
                             filterFieldExpr = fld.mc_nome_colonna;
-                        where = AppendFilter(fld, filterInfo, logicOperator, filterFieldExpr, where, tab, formulaLookup, userId);
+                        userWhere = AppendFilter(fld, filterInfo, logicOperator, filterFieldExpr, userWhere, tab, formulaLookup, userId);
                     }
                 }
             });
+
+            if (!string.IsNullOrEmpty(userWhere))
+            {
+                string ub = userWhere.TrimStart();
+                if (ub.StartsWith("where ", StringComparison.OrdinalIgnoreCase))
+                    ub = ub.Substring("where ".Length);
+                where = mandatoryWhere + ((mandatoryWhere == "") ? " where ( " : " AND ( ") + ub + " )";
+            }
+            else
+            {
+                where = mandatoryWhere;
+            }
 
             return where;
         }
@@ -4227,6 +4264,16 @@ END;");
             string safeEntityName = GetTableName(relatedTable);
             string safeUniqueEntityName = EscapeDBObjectName(fld.mc_nome_colonna + "_" + col.mc_ui_lookup_entity_name);
             string calculatedText = NormalizeComputedTextSnippet(col.mc_ui_lookup_computed_dataTextField);
+
+            // FIX oracle (2026-07-22): parity con MSSQL (_Metadati_methods.cs:6084) e MySQL
+            // (metaQueryMySql.cs:4496): reset skipColumns cosi' il lazy getter
+            // _Metadati_Colonnes carica davvero le colonne della lookup-target. Senza questo,
+            // la tabella raggiunta via lookup (incluso il self-join menu mm_parent_id→mm_id)
+            // resta con skipColumns=true → _Metadati_Colonnes null → la risoluzione
+            // friendly→physical qui sotto viene saltata dal null-guard → l'ON clause emette il
+            // friendly lowercase "mm_id" (quotato) invece del physical UPPER MM_ID → ORA-00904.
+            if (relatedTable != null && relatedTable.skipColumns)
+                relatedTable.skipColumns = false;
 
             // Risoluzione friendly→physical del dataTextField via metadata target.
             // Su MSSQL `mc_nome_colonna` coincide col physical SQL name → l'identifier emesso
@@ -6469,7 +6516,14 @@ END;");
                     return;
                 }
 
-                if (!entity.ContainsKey(fld.mc_nome_colonna))
+                // FIX oracle (2026-07-22): allineamento alla reference MSSQL
+                // (_Metadati_methods.cs#BuildDynamicInsertQuery): la guardia "colonna non nel
+                // payload → skip" DEVE esentare la primary key (`&& !fld.mc_is_primary_key`). Il
+                // port Oracle aveva perso quella clausola → il pk non presente nel payload (client
+                // non invia il pk auto-gen) veniva saltato PRIMA del ramo pk-type che lo calcola
+                // (SELECT max+1 per MAX / GUID / ...) → pk omesso dall'INSERT → ORA-01400 su pk
+                // NOT NULL (es. cities.CITYID, test logic-delete).
+                if (!entity.ContainsKey(fld.mc_nome_colonna) && !fld.mc_is_primary_key)
                     return;
 
                 if ((!fld.mc_logic_editable.HasValue || !fld.mc_logic_editable.Value) && !fld.mc_is_primary_key && string.IsNullOrEmpty(fld.mc_default_value))
@@ -7087,10 +7141,22 @@ END;");
                 string query = "select * from _metadati__tabelle";
                 List<string> where = new List<string>();
                 var dbArgs = new DynamicParameters();
-                if (!string.IsNullOrEmpty(tableName)) { where.Add("md_nome_tabella=:md_nome_tabella"); dbArgs.Add("md_nome_tabella", tableName); }
-                if (!string.IsNullOrEmpty(connName)) { where.Add("mdconnname=:mdconnname"); dbArgs.Add("mdconnname", connName); }
-                if (!string.IsNullOrEmpty(tableSchema)) { where.Add("mdschemaname=:mdschemaname"); dbArgs.Add("mdschemaname", tableSchema); }
-                if (!string.IsNullOrEmpty(db)) { where.Add("mddbname=:mddbname"); dbArgs.Add("mddbname", db); }
+                // Match case-insensitive sul nome oggetto: su Oracle lo stesso
+                // oggetto viaggia sia UPPER (all_tables) sia nel case con cui
+                // l'ha scritto il chiamante. Un confronto esatto faceva fallire
+                // il lookup e il chiamante (scaffoldColumn → scaffoldOfTableMySql)
+                // interpretava il "non trovato" come tabella nuova, creando una
+                // route duplicata `<route>_1` con dentro la sola colonna nuova.
+                if (!string.IsNullOrEmpty(tableName)) { where.Add("UPPER(md_nome_tabella)=UPPER(:md_nome_tabella)"); dbArgs.Add("md_nome_tabella", tableName); }
+                if (!string.IsNullOrEmpty(connName)) { where.Add("UPPER(mdconnname)=UPPER(:mdconnname)"); dbArgs.Add("mdconnname", connName); }
+                if (!string.IsNullOrEmpty(tableSchema)) { where.Add("UPPER(mdschemaname)=UPPER(:mdschemaname)"); dbArgs.Add("mdschemaname", tableSchema); }
+                // `mddbname` vuoto/NULL sui metadata significa "non qualificato",
+                // non "appartiene a un altro db": deve matchare comunque. Lo
+                // scaffold della TABELLA lo lascia vuoto mentre lo scaffold della
+                // COLONNA passa il catalog → senza questa tolleranza le due
+                // operazioni non si riconoscono (verificato 2026-07-26 su
+                // WUIC_TIMELINE_TASK: route duplicata a ogni scaffoldColumn).
+                if (!string.IsNullOrEmpty(db)) { where.Add("(mddbname IS NULL OR mddbname='' OR UPPER(mddbname)=UPPER(:mddbname))"); dbArgs.Add("mddbname", db); }
                 if (where.Count > 0) query += " WHERE " + string.Join(" AND ", where);
 
                 List<Dapper.SqlMapper.FastExpando> rows = (List<Dapper.SqlMapper.FastExpando>)con.Query(query, dbArgs);
@@ -7400,6 +7466,15 @@ END;");
 
                             recordCounter++;
 
+                            // Parity con l'ImportFile MSSQL (_Metadati_methods.cs): l'errore di un
+                            // SINGOLO record segue la semantica di commit_level. Senza questo catch
+                            // l'eccezione usciva dal loop, la transazione moriva senza commit e
+                            // nessuna riga veniva importata QUALUNQUE fosse commit_level — 'C'
+                            // ("logga e prosegui") era di fatto inesistente su Oracle. Oracle fa
+                            // statement-level rollback automatico: la transazione resta valida dopo
+                            // un errore, non servono savepoint (a differenza di PostgreSQL).
+                            try
+                            {
                             if (uploadOption.import_type.Contains("U"))
                             {
                                 string table_name = RawHelpers.getStoreTableName(tabel, OracleDialect);
@@ -7500,6 +7575,32 @@ END;");
                                     con.Execute(insert_query, null, myTrans);
                                 }
                                 insertedRecord++;
+                            }
+                            }
+                            catch (Exception recordEx)
+                            {
+                                errorCount++;
+                                string errorDetails = recordEx.ToString();
+                                if (string.IsNullOrWhiteSpace(errorDetails))
+                                    errorDetails = recordEx.Message + (recordEx.InnerException != null ? recordEx.InnerException.Message : "");
+                                string recordContext = string.Format("Record {0} (route {1})", recordCounter, tabel?.md_route_name);
+                                if (uploadOption.commit_level == "R")
+                                {
+                                    log.AppendLine(recordContext + ": " + errorDetails);
+                                    myTrans.Rollback();
+                                    log.AppendLine("Changes have been rolled back.");
+                                    return log.ToString();
+                                }
+                                else if (uploadOption.commit_level == "I")
+                                {
+                                    log.AppendLine(recordContext + ": " + errorDetails);
+                                    myTrans.Commit();
+                                    return log.ToString();
+                                }
+                                else if (uploadOption.commit_level == "C" || uploadOption.commit_level == "T")
+                                {
+                                    log.AppendLine(recordContext + ": " + errorDetails);
+                                }
                             }
                         }
 
