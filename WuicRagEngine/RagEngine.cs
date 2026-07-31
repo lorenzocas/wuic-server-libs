@@ -327,6 +327,14 @@ public sealed class RagEngine : IDisposable
                 ContextWindowMax = contextWindowMax,
             });
 
+        // ---- intent detection ----
+        // HOISTED sopra la costruzione del system prompt (2026-07-27): serve a
+        // scegliere l'HEAD del prompt, oltre che il tool_choice forcing piu' sotto.
+        // Prima veniva calcolato DOPO il prompt, per questo l'head non poteva
+        // dipenderne e ACTION_SYSTEM_PROMPT restava dead code.
+        bool exampleIntent = LooksLikeExampleRequest(query);
+        bool actionIntent = !string.IsNullOrWhiteSpace(routeContext) && LooksLikeActionRequest(query) && !exampleIntent;
+
         // ---- system prompt ----
         // CONTESTO codebase: snippet troncati a 500 char (come ToDto/QueryJson). I 1500-char
         // pieni distraevano l'LLM dal tool_use (osservato empiricamente: con snippet 1500 il
@@ -344,7 +352,22 @@ public sealed class RagEngine : IDisposable
             string snip = s.snippet.Length > 500 ? s.snippet.Substring(0, 500) : s.snippet;
             ctx.Append(header).Append('\n').Append(snip).Append("\n\n");
         }
-        var system = new System.Text.StringBuilder($"{SYSTEM_PROMPT}\n\nCONTESTO:\n{ctx}");
+        // HEAD condizionale (2026-07-27). Per le RICHIESTE D'AZIONE si usa
+        // ACTION_SYSTEM_PROMPT: SYSTEM_PROMPT impone "usa ESCLUSIVAMENTE il contesto"
+        // e la frase 'Non ho trovato informazioni sufficienti', che la REGOLA 6 del
+        // blocco routeContext deve poi vietare esplicitamente — un tug-of-war che il
+        // modello risolveva in modo probabilistico (proposed_action_json=null).
+        // Misurato sui 14 spec x2 con i tool reali: kind_ok/fields_ok 26/28 -> 28/28.
+        // Il blocco CONTESTO resta in ENTRAMBI i casi: l'A/B storico (commento sopra)
+        // mostra che il grounding a 500 char AIUTA l'emit; e' la lunghezza a disturbare.
+        // A/B 2026-07-29: misurato che NON e' questo head a causare la regressione
+        // display_formula->column_style. Forzando SYSTEM_PROMPT le 10 varianti
+        // display_formula+column_style restano 8/10, identiche al baseline, e il
+        // caso "link cliccabile" si limita a cambiare bersaglio sbagliato
+        // (column_style -> row_action): segno che il modello non ha ALCUN aggancio
+        // per i link, non che venga attirato da un tool specifico. Ripristinato.
+        string promptHead = actionIntent ? ACTION_SYSTEM_PROMPT : SYSTEM_PROMPT;
+        var system = new System.Text.StringBuilder($"{promptHead}\n\nCONTESTO:\n{ctx}");
         if (!string.IsNullOrWhiteSpace(routeContext))
         {
             system.Append("\n\nCONTESTO PAGINA UTENTE:\n")
@@ -356,7 +379,7 @@ public sealed class RagEngine : IDisposable
                 .Append("  - `request_metadata_detail{detail:'lookup_value', route:'<route>', column:'<col>', value:'<valore_visualizzato>'}` per RISOLVERE un valore VISUALIZZATO di una colonna lookupByID (es. 'Virginia') nel suo ID reale: interroga la tabella di lookup (NON le righe in grid) e ritorna `matched_ids`. Usalo prima di scrivere un condition_js che filtra per il valore di un lookup.\n")
                 .Append("Attendi il tool_result, POI emetti il `propose_*` usando i valori ottenuti. Puoi chiamarlo piu' volte (es. prima `columns`, poi `lookup_columns`).\n")
                 .Append("REGOLE:\n")
-                .Append("1. Usa SEMPRE i NOMI REALI delle colonne (da contesto o da `request_metadata_detail`), es. `record.<nome>.value` / `record.<nome>.next(...)`. Mai placeholder inventati.\n")
+                .Append("1. Usa SEMPRE i NOMI REALI delle colonne (da contesto o da `request_metadata_detail`), mai placeholder inventati. La FORMA con cui leggere il valore dipende dal contesto: nei callback di FORM (default value, validazione, selection changed) il record e' una mappa di BehaviorSubject, quindi `record.<nome>.value` per leggere e `record.<nome>.next(...)` per scrivere; negli stili di riga/colonna il record e' la riga di griglia ed e' PIATTO (`record.<nome>`) - vedi regola 8.\n")
                 .Append("2. Per i tool `propose_*`: se l'utente NON menziona esplicitamente una route diversa, il parametro `route` DEVE essere la route della pagina corrente.\n")
                 .Append("3. Per i tool che richiedono `column_name`: scegli il `mc_nome_colonna` REALE corrispondente (dal contesto o da `request_metadata_detail{detail:'columns'}`).\n")
                 .Append("4. Per snippet SQL (computed_formula / sql_metadata_field): usa il full qualifier e, per i lookup, l'alias di join, entrambi ottenuti da `request_metadata_detail`. Non dedurli a mano.\n")
@@ -365,7 +388,9 @@ public sealed class RagEngine : IDisposable
                 .Append("   - se l'utente ha citato una colonna che non esiste, usa la forma: La colonna \"<NOME_CITATO>\" non esiste su questa pagina. Colonne disponibili: <2-4 COLONNE_REALI_PERTINENTI>. Quale vuoi usare?\n")
                 .Append("   - se l'utente NON ha indicato la colonna, usa la forma: Su quale colonna vuoi applicare l'azione? Colonne disponibili: <2-4 COLONNE_REALI_PERTINENTI>.\n")
                 .Append("   Al turno successivo, con la colonna scelta dall'utente, emetti il `propose_*` corretto.\n")
-                .Append("7. COLONNE LOOKUP (lookupByID) NEI CALLBACK JS (OBBLIGATORIO): in un `condition_js` (stile riga/colonna, validazione, selezione) il `record` contiene l'ID della colonna lookup in `record.<column>` (es. `record.StateProvinceID`), NON la stringa visualizzata nella cella. Quindi per una richiesta tipo 'colora se <colonna_lookup> = <valore_visualizzato>' (es. provincia = Virginia): (a) chiama `request_metadata_detail{detail:'lookup_value', route:'<route>', column:'<colonna_lookup>', value:'<valore>'}` per ottenere l'ID reale (`matched_ids`); (b) genera il `condition_js` confrontando l'ID, es: `return Number(record.<column>?.value ?? record.<column>) === <id>;`. E' VIETATO confrontare la stringa visualizzata, ed e' VIETATO usare l'alias di join SQL (es. `record.<column>_<entity>.<x>`) che NON esiste nel record JS. Se `matched_ids` e' vuoto, fai una clarification (valore inesistente, elenca alcuni valori validi); se ha piu' ID, chiedi quale o usa `[id1,id2].includes(Number(record.<column>?.value ?? record.<column>))`.");
+                .Append("7. COLONNE LOOKUP (lookupByID) NEI CALLBACK JS (OBBLIGATORIO): in un `condition_js` (stile riga/colonna, validazione, selezione) il `record` contiene l'ID della colonna lookup in `record.<column>` (es. `record.StateProvinceID`), NON la stringa visualizzata nella cella. Quindi per una richiesta tipo 'colora se <colonna_lookup> = <valore_visualizzato>' (es. provincia = Virginia): (a) chiama `request_metadata_detail{detail:'lookup_value', route:'<route>', column:'<colonna_lookup>', value:'<valore>'}` per ottenere l'ID reale (`matched_ids`); (b) genera il `condition_js` confrontando l'ID, es: `return Number(record.<column>?.value ?? record.<column>) === <id>;`. E' VIETATO confrontare la stringa visualizzata, ed e' VIETATO usare l'alias di join SQL (es. `record.<column>_<entity>.<x>`) che NON esiste nel record JS. Se `matched_ids` e' vuoto, fai una clarification (valore inesistente, elenca alcuni valori validi); se ha piu' ID, chiedi quale o usa `[id1,id2].includes(Number(record.<column>?.value ?? record.<column>))`.\n")
+                .Append("8. FORMA DEL RECORD NEGLI STILI DI RIGA/COLONNA (OBBLIGATORIO): nel `condition_js` di `propose_table_style` / `propose_column_style` il `record` e' la riga della GRIGLIA, cioe' un oggetto PIATTO: leggi SEMPRE i valori direttamente con `record.<colonna>` (es. `record.LatestRecordedPopulation` vale `192`, `record.deleted` vale `true`/`false`). Forma canonica documentata: `return record.<colonna> > 12;`. I valori della riga non sono oggetti e non hanno sotto-proprieta': leggerne una darebbe `undefined` e la condizione diventerebbe costante (lo stile non si applica mai, oppure si applica a tutte le righe). La forma `.value` / `.next(...)` della regola 1 vale per i callback di FORM (campi editabili), non per gli stili di griglia.\n")
+                .Append("9. ROUTE CITATA DALL'UTENTE (OBBLIGATORIO): se l'utente nomina una route DIVERSA da quella della pagina corrente (es. \"la route provincie\", \"sulla tabella fatture\"), NON darla per buona e NON inventarla: chiama PRIMA `request_metadata_detail{detail:'routes', route:'<nome citato>'}`, che fa un match fuzzy sui nomi reali e risponde con `exact` (corrispondenza esatta), `candidates` (nomi simili con punteggio) e `guidance`. Poi: (a) se c'e' `exact`, usa quel nome; (b) se c'e' UN candidato nettamente migliore, usalo e dichiara la sostituzione nel rationale (es. \"uso la route stateprovinces, che corrisponde a provincie\"); (c) se i candidati sono piu' d'uno e vicini, oppure non ce ne sono, NON scegliere a caso: rispondi con una clarification testuale che elenca i candidati reali e chiede quale intende. Vale per OGNI parametro `route` dei tool `propose_*`, incluse le route secondarie di un master-detail nel designer. Una route inventata produce un errore solo al momento dell'apply, cioe' DOPO che l'utente ha confermato: chiedere prima costa un turno, sbagliare costa la fiducia.\n");
         }
         if (!string.IsNullOrWhiteSpace(contextSummary))
             system.Append("\n\nSUMMARY SESSIONE (turn precedenti riassunti):\n").Append(contextSummary.Trim()).Append('\n')
@@ -380,9 +405,8 @@ public sealed class RagEngine : IDisposable
         // I tool propose_*/request_metadata_detail arrivano a Claude via un MCP server bridge stdio
         // (mcp-wuic-tools.mjs, embeddato). Il loop agentico (request_metadata_detail -> proxy backend)
         // lo fa il CLI nativamente. Vedi memory project_rag_agent_sdk_subscription.
-        // ---- intent detection (per il tool_choice forcing piu' sotto). ----
-        bool exampleIntent = LooksLikeExampleRequest(query);
-        bool actionIntent = !string.IsNullOrWhiteSpace(routeContext) && LooksLikeActionRequest(query) && !exampleIntent;
+        // (intent detection spostata sopra la costruzione del system prompt:
+        //  `exampleIntent` / `actionIntent` sono gia' calcolati.)
 
         if (string.Equals(apiKey.Trim(), "agent-sdk", StringComparison.OrdinalIgnoreCase))
             return ChatViaAgentSdk(system.ToString(), query, historyJson, sources, model, contextWindowMax, actionIntent, exampleIntent);
@@ -1162,6 +1186,20 @@ public sealed class RagEngine : IDisposable
         ["propose_workflow_inject"] = "workflow_inject",
         ["propose_sql_metadata_field"] = "sql_metadata_field",
         ["propose_metadata_column_create"] = "metadata_column_create",
+        // Host contestuali aggiunti nel 2026-07 (pivot-builder, report-designer,
+        // app-settings-editor): client-only, applicati da ChatbotHostRegistryService.
+        ["propose_pivot_inject"] = "pivot_inject",
+        ["propose_report_inject"] = "report_inject",
+        ["propose_appsettings_inject"] = "appsettings_inject",
+        // Scaffolding applicato dal backend (la pagina non ha un componente host).
+        ["propose_db_table_create"] = "db_table_create",
+        ["propose_metadata_scaffold_table"] = "metadata_scaffold_table",
+        ["propose_metadata_scaffold_view"] = "metadata_scaffold_view",
+        ["propose_metadata_scaffold_column"] = "metadata_scaffold_column",
+        ["propose_menu_entry_move"] = "menu_entry_move",
+        // Operazioni non reversibili: il gate confirm_token e' lato RagController.
+        ["propose_metadata_column_delete"] = "metadata_column_delete",
+        ["propose_menu_entry_delete"] = "menu_entry_delete",
     };
     private static readonly string[] s_sanitizeTextFields = { "rationale", "label", "description" };
     private static readonly System.Text.RegularExpressions.Regex s_callbackHeadRe = new(
@@ -1331,7 +1369,86 @@ public sealed class RagEngine : IDisposable
             start = text.IndexOf('{', start + 1);
         }
         // Nessun envelope {name,arguments}: prova il formato Ollama "<nome_tool> {args}".
-        return ScanNamedBlock(text);
+        var named = ScanNamedBlock(text);
+        if (named != null) return named;
+        // Ultimo formato noto: pseudo-XML nativo Qwen (vedi ScanXmlFunctionBlock).
+        return ScanXmlFunctionBlock(text);
+    }
+
+    /// <summary>
+    /// Riconosce il formato di tool-call PSEUDO-XML nativo dei modelli Qwen, che
+    /// l'endpoint OpenAI-compat di Ollama (`/v1/chat/completions`) a volte NON
+    /// converte in `tool_calls`, lasciandolo come testo nel `content`:
+    ///
+    ///   &lt;function=request_metadata_detail&gt;
+    ///   &lt;parameter=detail&gt;
+    ///   columns
+    ///   &lt;/parameter&gt;
+    ///   &lt;parameter=route&gt;
+    ///   cities
+    ///   &lt;/parameter&gt;
+    ///   &lt;/function&gt;
+    ///
+    /// Osservato in produzione il 2026-07-27 sui prompt che richiedono prima un
+    /// `request_metadata_detail` (row_action / column_style): il turno si
+    /// chiudeva con `proposed_action_json = null` e il testo grezzo come
+    /// risposta, cioe' un NOEMIT indistinguibile da "il modello non ha capito".
+    /// Gli altri due estrattori non lo intercettano perche' cercano graffe.
+    ///
+    /// Nota: le prove dirette sull'API nativa (`/api/chat`) restituiscono
+    /// `tool_calls` corretti — il difetto e' del parser OpenAI-compat, quindi
+    /// vale la pena ripararlo qui invece di cambiare endpoint.
+    ///
+    /// I valori sono trattati come STRINGHE (il formato non porta tipi); i
+    /// numerici/booleani restano stringhe, coerentemente con quanto fa gia'
+    /// `CoerceStringifiedStructuredArgs` per gli argomenti stringificati.
+    /// </summary>
+    private static object? ScanXmlFunctionBlock(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text) || text.IndexOf("<function=", StringComparison.Ordinal) < 0) return null;
+        var fnRx = new System.Text.RegularExpressions.Regex(
+            @"<function=\s*(?<name>[A-Za-z_][A-Za-z0-9_]*)\s*>(?<body>[\s\S]*?)(?:</function>|\z)",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        var paramRx = new System.Text.RegularExpressions.Regex(
+            @"<parameter=\s*(?<key>[A-Za-z_][A-Za-z0-9_]*)\s*>(?<val>[\s\S]*?)(?:</parameter>|(?=<parameter=)|\z)",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        foreach (System.Text.RegularExpressions.Match fm in fnRx.Matches(text))
+        {
+            string name = fm.Groups["name"].Value;
+            // Accetta solo i tool WUIC noti: evita di sintetizzare chiamate a nomi inventati.
+            if (!(name.StartsWith("propose_", StringComparison.Ordinal)
+                  || name == "request_metadata_detail" || name == "remember_fact"
+                  || name == "forget_fact" || name == "suggest_followups")) continue;
+
+            var input = new Dictionary<string, object>();
+            foreach (System.Text.RegularExpressions.Match pm in paramRx.Matches(fm.Groups["body"].Value))
+            {
+                string key = pm.Groups["key"].Value;
+                // Il valore e' su righe proprie: si toglie solo l'a-capo di cornice,
+                // preservando l'indentazione interna dei body JS.
+                string val = pm.Groups["val"].Value.Trim('\r', '\n').TrimEnd();
+                if (!input.ContainsKey(key)) input[key] = val;
+            }
+            if (input.Count == 0) continue;
+            // In questo formato OGNI parametro arriva come TESTO, anche quelli che lo
+            // schema dichiara array/oggetto: `designer_inject.layout` diventa la stringa
+            // "[{...}]" invece di un array. L'handler client fa `Array.isArray(layout)`,
+            // quindi la scarta e risponde "Layout vuoto: nessun tool proposto dal LLM" —
+            // l'apply fallisce e la proposta sembra sparita nel nulla. Gli altri due
+            // estrattori (tool_calls OpenAI-compat e JSON fallback) passano gia' da
+            // CoerceStringifiedStructuredArgs; questo era l'unico percorso che non lo
+            // faceva, ed e' proprio quello che il modello sceglie a intermittenza — da
+            // cui apply che riescono o falliscono a parita' di prompt.
+            try
+            {
+                using var coerceDoc = JsonDocument.Parse(JsonSerializer.Serialize(input));
+                return new { type = "tool_use", name, input = CoerceStringifiedStructuredArgs(coerceDoc.RootElement) };
+            }
+            catch { /* coercizione best-effort: se fallisce si usano gli input testuali */ }
+            return new { type = "tool_use", name, input };
+        }
+        return null;
     }
 
     /// <summary>Riconosce il pattern (frequente con Ollama sotto tool_choice required) in cui
@@ -1902,11 +2019,18 @@ public sealed class RagEngine : IDisposable
         "crea ", "creare", "creami", "crea una", "crea un", "aggiungi", "aggiung", "modifica",
         "modific", "imposta", "impost", "colora", "applica", "applic", "metti ", "nascondi",
         "rendi ", "abilita", "disabilita", "cambia", "setta", "aggiorna", "rimuovi", "elimina",
+        // EN (2026-07-27): senza questi le varianti inglesi dei test e2e
+        // (~45 prompt tradotti) non ottenevano MAI il tool forcing, quindi
+        // l'emissione della proposta restava probabilistica solo per loro.
+        "add ", "create", "set ", "color", "colour", "apply", "change", "remove", "delete ",
+        "hide ", "enable", "disable", "update ", "insert ", "rename", "make the", "make it",
     };
     private static readonly string[] s_questionStarts =
     {
         "come ", "cosa ", "perch", "quando ", "dove ", "quale ", "quali ", "che cos", "spiega",
         "what ", "how ", "why ", "where ", "which ", "mostrami", "dimmi", "elenca", "trova",
+        // Parita' EN con mostrami/elenca/trova.
+        "show me", "list ", "find ", "can you explain", "is there", "are there",
     };
     /// <summary>Heuristic: la query e' una RICHIESTA D'AZIONE (crea/modifica/imposta/...) sulla
     /// pagina e NON una domanda. Quando vera (con route_context presente) forziamo
@@ -1918,7 +2042,13 @@ public sealed class RagEngine : IDisposable
     {
         string s = (query ?? "").Trim().ToLowerInvariant();
         if (s.Length == 0) return false;
-        if (s.EndsWith("?")) return false;                       // domanda esplicita -> Q&A
+        // Il "?" finale NON e' piu' un veto (2026-07-27): era un veto assoluto e
+        // scartava le richieste d'azione formulate in modo cortese ("puoi
+        // aggiungere una colonna?", "can you add a column?"), che sono azioni a
+        // tutti gli effetti. La discriminante affidabile resta l'APERTURA
+        // interrogativa (`s_questionStarts`, IT+EN): "come aggiungo...?" resta
+        // Q&A perche' inizia con "come ", mentre "puoi aggiungere...?" e' azione.
+        // In assenza di un verbo d'azione si ritorna comunque false.
         foreach (var qw in s_questionStarts) if (s.StartsWith(qw)) return false;
         foreach (var v in s_actionVerbs) if (s.Contains(v)) return true;
         return false;

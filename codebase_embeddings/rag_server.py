@@ -2670,6 +2670,19 @@ def chat_endpoint(req: ChatIn) -> ChatOut:
                 "propose_workflow_inject":        "workflow_inject",
                 "propose_sql_metadata_field":     "sql_metadata_field",
                 "propose_metadata_column_create": "metadata_column_create",
+                # Host contestuali 2026-07 (client-only, via ChatbotHostRegistryService)
+                "propose_pivot_inject":           "pivot_inject",
+                "propose_report_inject":          "report_inject",
+                "propose_appsettings_inject":     "appsettings_inject",
+                # Scaffolding applicato dal backend
+                "propose_db_table_create":        "db_table_create",
+                "propose_metadata_scaffold_table": "metadata_scaffold_table",
+                "propose_metadata_scaffold_view": "metadata_scaffold_view",
+                "propose_metadata_scaffold_column": "metadata_scaffold_column",
+                "propose_menu_entry_move":        "menu_entry_move",
+                # Operazioni non reversibili (gate confirm_token lato RagController)
+                "propose_metadata_column_delete": "metadata_column_delete",
+                "propose_menu_entry_delete":      "menu_entry_delete",
             }
             if tool_name in _ACTION_TOOL_TO_KIND and proposed_action_json is None:
                 action_kind = _ACTION_TOOL_TO_KIND[tool_name]
