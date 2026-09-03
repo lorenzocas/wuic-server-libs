@@ -53,7 +53,7 @@
       },
       "ragChatbot": {
         "title": "RAG Chatbot",
-        "desc": "Asistente IA integrado que consulta el código en lenguaje natural con retrieval híbrido + LLM."
+        "desc": "Asistente IA integrado que configura la aplicación desde el chat: páginas, entradas de menú, columnas, acciones, estilos y nodos de workflow, aplicados solo tras tu confirmación."
       },
       "multiDbms": {
         "title": "Multi-SGBD",
@@ -166,7 +166,7 @@
         },
         "rag": {
           "title": "RAG Chatbot",
-          "desc": "Asistente IA que consulta el código con índice híbrido BM25 + vector + LoRA cross-encoder. Retrieval + Claude LLM."
+          "desc": "Asistente IA sobre código y metadatos: retrieval híbrido BM25 + vector + reranker LoRA, LLM Claude y 30+ herramientas que configuran la aplicación tras tu confirmación."
         },
         "i18n": {
           "title": "Traducciones",
@@ -740,6 +740,10 @@
       "competitor": {
         "title": "La alternativa self-hosted que instalas una vez y es tuya",
         "subtitle": "Sin precio por usuario, sin lock-in cloud: WUIC corre en tus servidores (Windows o Linux), lee tu base de datos SQL y la versión instalada es tuya para siempre."
+      },
+      "zeroCodice": {
+        "title": "Construye tu propio programa de gestión, sin escribir código",
+        "subtitle": "Define una tabla y obtén listas, formularios, informes y workflows listos para usar. El chatbot configura las páginas por ti. Cero código mientras baste, código cuando haga falta: sin techo como en las herramientas no-code."
       }
     },
     "price": "<strong>600–1.200 € / año</strong> fijo · sin precio por usuario · la versión instalada es tuya para siempre",

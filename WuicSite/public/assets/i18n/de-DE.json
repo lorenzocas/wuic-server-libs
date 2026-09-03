@@ -53,7 +53,7 @@
       },
       "ragChatbot": {
         "title": "RAG-Chatbot",
-        "desc": "Integrierter KI-Assistent, der den Codebestand in natürlicher Sprache mit hybridem Retrieval + LLM abfragt."
+        "desc": "Integrierter KI-Assistent, der die Anwendung aus dem Chat konfiguriert: Seiten, Menüeinträge, Spalten, Aktionen, Styles und Workflow-Knoten, angewendet erst nach Ihrer Freigabe."
       },
       "multiDbms": {
         "title": "Multi-DBMS",
@@ -166,7 +166,7 @@
         },
         "rag": {
           "title": "RAG-Chatbot",
-          "desc": "KI-Assistent, der Code über hybriden BM25 + Vektor + LoRA-Cross-Encoder-Index abfragt. Retrieval + Claude LLM."
+          "desc": "KI-Assistent über Code und Metadaten: hybrides Retrieval BM25 + Vektor + LoRA-Reranker, Claude-LLM und 30+ Tools, die die Anwendung nach Ihrer Freigabe konfigurieren."
         },
         "i18n": {
           "title": "Übersetzungen",
@@ -740,6 +740,10 @@
       "competitor": {
         "title": "Die Self-Hosted-Alternative, die Sie einmal installieren und besitzen",
         "subtitle": "Kein Preis pro Nutzer, kein Cloud-Lock-in: WUIC läuft auf Ihren Servern (Windows oder Linux), liest Ihre SQL-Datenbank, und die installierte Version gehört Ihnen für immer."
+      },
+      "zeroCodice": {
+        "title": "Bauen Sie Ihre eigene Business-Anwendung, ohne Code zu schreiben",
+        "subtitle": "Definieren Sie eine Tabelle und erhalten Sie Listen, Formulare, Reports und Workflows, fertig zur Nutzung. Der Chatbot konfiguriert die Seiten für Sie. Null Code, solange es reicht, Code, wenn nötig: keine Obergrenze wie bei No-Code-Tools."
       }
     },
     "price": "<strong>600–1.200 € / Jahr</strong> pauschal · kein Preis pro Nutzer · die installierte Version gehört Ihnen für immer",

@@ -639,12 +639,28 @@ Trappola verificata sul tool: la prima chiamata "riusciva" senza cambiare
 nulla perche' `False` e' il default proto3 e il field mask automatico lo
 scartava. Il tool ora imposta il mask esplicito.
 
-### Non fatto (richiede decisione o strumenti che l'API custom non ha)
+### Serata 03/09 — asset e landing C4 (via API, tool nuovi)
 
-- Callout `Free Demo, No Signup` (A): da rinominare `Live Demo, No Signup`
-  dall'interfaccia (nessun tool asset nel server di scrittura).
-- Sitelink A `Run It On A Local LLM — Ollama, MCP, agentic VS Code`:
-  riformulare la descrizione senza "MCP" (idem, asset).
+- **Callout A**: creato `Live Demo, No Signup` (asset `417011201295`) e
+  scollegato `Free Demo, No Signup` (`415337226154`). I testi degli asset
+  sono immutabili lato API: si crea il nuovo e si scollega il vecchio.
+- **Sitelink A** "Run It On A Local LLM": nuovo asset `416831316377` con
+  descrizioni `Ollama + VS Code assistant.` / `No cloud, no API bills.`
+  (senza "MCP": il framework non espone un server MCP); scollegato il vecchio
+  `415227322241`. Riletto via GAQL: 5 sitelink + 6 callout, i due nuovi in
+  revisione.
+- **Landing C4**: nuova variante hero `/it/start?m=zero-codice` ("Costruisci
+  il tuo gestionale, senza scrivere codice" + sottotitolo su tabella → liste,
+  form, report, workflow; chatbot che configura le pagine; zero codice senza
+  tetto), chiave `start.hero.zeroCodice` in 5 lingue, mapping in `start.ts`.
+  L'annuncio C4 (`823241545879`) punta li' invece che a `/it/` (hero
+  developer-oriented "metadata-driven").
+- **Card RAG Chatbot** (home + Features, 5 lingue): da "interroga il codebase"
+  a "configura l'app dalla chat: pagine, voci di menu, colonne, azioni, stili,
+  nodi workflow, dopo conferma" — allineata al tool catalog dei docs che gli
+  annunci e i sitelink gia' spingevano.
+
+### Non fatto (richiede decisione o strumenti che l'API custom non ha)
 - ~~DBMS sul sito~~ **fatto la sera stessa**: home (card Multi-DBMS e Linux
   nativo), pagina Features e docs `getting-started` ora nominano SQL Server,
   MySQL, PostgreSQL e Oracle in tutte e 5 le lingue; `docs:build` rieseguito e

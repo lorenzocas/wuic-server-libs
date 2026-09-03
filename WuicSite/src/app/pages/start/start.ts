@@ -38,7 +38,15 @@ export class Start {
   /** Hero variant key resolved from the `m` query param (see class docs). */
   readonly variant = toSignal(
     this.route.queryParamMap.pipe(
-      map(params => (params.get('m') === 'competitor' ? 'competitor' : 'default')),
+      map(params => {
+        // `m` è il message-match della campagna Ads che porta qui: la chiave
+        // i18n `start.hero.<variant>` deve esistere in tutte e 5 le lingue.
+        switch (params.get('m')) {
+          case 'competitor': return 'competitor';   // A — alternativa self-hosted
+          case 'zero-codice': return 'zeroCodice';  // C4 — costruiscilo da solo
+          default: return 'default';
+        }
+      }),
     ),
     { initialValue: 'default' as const },
   );

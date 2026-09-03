@@ -53,7 +53,7 @@
       },
       "ragChatbot": {
         "title": "RAG Chatbot",
-        "desc": "Built-in AI assistant that queries the codebase in natural language with hybrid retrieval + LLM."
+        "desc": "Built-in AI assistant that configures the app from a chat: pages, menu entries, columns, actions, styles and workflow nodes, applied only after your approval."
       },
       "multiDbms": {
         "title": "Multi-DBMS",
@@ -166,7 +166,7 @@
         },
         "rag": {
           "title": "RAG Chatbot",
-          "desc": "AI assistant that queries the codebase via hybrid BM25 + vector + LoRA cross-encoder index. Retrieval + Claude LLM."
+          "desc": "AI assistant over your codebase and metadata: hybrid BM25 + vector + LoRA reranker retrieval, Claude LLM, and 30+ tools that configure the app on your approval."
         },
         "i18n": {
           "title": "Translations",
@@ -740,6 +740,10 @@
       "competitor": {
         "title": "The self-hosted alternative you install once and own",
         "subtitle": "No per-user pricing, no cloud lock-in: WUIC runs on your servers (Windows or Linux), reads your SQL database, and the installed version is yours forever."
+      },
+      "zeroCodice": {
+        "title": "Build your own business app, without writing code",
+        "subtitle": "Define a table and get lists, forms, reports and workflows ready to use. The chatbot configures the pages for you. Zero code as long as it is enough, code when you need it: no ceiling like no-code tools."
       }
     },
     "price": "<strong>€600–1,200 / year</strong> flat · no per-seat pricing · the installed version is yours forever",
