@@ -318,3 +318,32 @@ davvero: tutto il resto funziona gia'.
 Per provare una scrittura senza applicarla, mettere `validate_only = True`
 sulla request. Google valida permessi e payload e non tocca nulla: e' il modo
 corretto di testare il percorso di scrittura su un account di produzione.
+
+---
+
+## Search Console via MCP (aggiunto 03/09/2026)
+
+Server `KonvergenceCore/scripts/mcp/google_search_console.py`, launcher
+`google-search-console-mcp.cmd`, voce `google-search-console` in `.mcp.json`.
+Riusa venv e ADC di Google Ads; dipendenza aggiuntiva installata nel venv:
+`google-api-python-client`. API `searchconsole.googleapis.com` abilitata su
+`wuicdev`.
+
+**Prerequisito una tantum**: il token ADC deve avere anche lo scope
+`webmasters`. Rifare il login sommando gli scope (Google Ads continua a
+funzionare):
+
+```powershell
+gcloud auth application-default login --client-id-file="C:\Users\lollo\.config\gcloud-ads-client.json" --scopes=https://www.googleapis.com/auth/adwords,https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/webmasters
+gcloud auth application-default set-quota-project wuicdev
+```
+
+Tool: `sc_sites`, `sc_sitemaps`, `sc_submit_sitemap`, `sc_delete_sitemap`,
+`sc_search_analytics` (page|query|country|device|date, filtri "contiene"),
+`sc_inspect_url`. Non disponibili via API: richiesta di indicizzazione,
+verifica proprieta'. CLI senza riavvio:
+
+```powershell
+C:\src\Wuic\KonvergenceCore\scripts\mcp\google-search-console-mcp.cmd call sc_search_analytics @args.json
+# args.json: {"start_date":"2026-09-03","end_date":"2026-09-10","dimensions":["page"],"page_contains":"/docs/"}
+```
