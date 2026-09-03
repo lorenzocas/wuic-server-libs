@@ -1,0 +1,66 @@
+{\rtf1\ansi\ansicpg1252\deff0
+{\fonttbl{\f0\fswiss Calibri;}{\f1\fmodern Consolas;}}
+\fs32\b WUIC Framework \endash  Google Ads API Integration\b0\fs22\par
+\fs20\i Design document submitted with the Google Ads API Basic Access application\i0\fs22\par
+\par
+\b Manager account (MCC):\b0  456-644-9596\par
+\b Client account:\b0  586-452-3784 (WUIC Framework)\par
+\b Company website:\b0  https://wuic-framework.com\par
+\b Contact:\b0  castricolorenzo@gmail.com\par
+\par
+\fs28\b 1. Purpose\b0\fs22\par
+WUIC Framework is a software product company. We develop and license WUIC, a .NET and Angular framework used to build line-of-business applications from a database schema. Revenue comes from direct sales of annual licences to end customers, distributed through our own website.\par
+\par
+We advertise our own product on Google Search. This integration exists to manage and measure those campaigns programmatically instead of through the Google Ads web interface. It is an internal operations tool. It is not a product, it is not sold, and it is not offered to any third party.\par
+\par
+\fs28\b 2. Users and audience\b0\fs22\par
+The tool is used by internal staff only. In practice there is a single user: the company owner, who is also the administrator of both the manager account and the client account. There are no external users, no clients, and no public interface. Access to the tool requires access to the local development machine and to the Google account that administers the Ads accounts.\par
+\par
+\fs28\b 3. Architecture\b0\fs22\par
+The integration is a self-hosted server built on the official open-source Google Ads MCP server published by Google at github.com/googleads/google-ads-mcp, extended locally with write operations. It runs on a developer workstation over standard input/output transport. There is no hosted service, no multi-tenant component and no public endpoint.\par
+\par
+Data flow:\par
+\f1\fs20
+  developer workstation\par
+      -> local MCP server process (Python)\par
+          -> Google Ads API v-latest (REST/gRPC)\par
+              -> Google Ads account 586-452-3784\par
+                 via manager account 456-644-9596\par
+\f0\fs22\par
+Responses are returned to the operator for inspection. Nothing is forwarded to any other system, and no component is reachable from the network.\par
+\par
+\fs28\b 4. Authentication and credentials\b0\fs22\par
+Authentication uses OAuth 2.0 with the adwords scope, via Google Cloud Application Default Credentials, authenticated as the Google account that administers the accounts. The developer token is supplied to the process as an environment variable and is never committed to source control or shared. No credential is embedded in the tool or distributed.\par
+\par
+\fs28\b 5. Google Ads API usage\b0\fs22\par
+\b 5.1 Read\b0\par
+GoogleAdsService.SearchStream and Search, using GAQL, against the following resources: customer, campaign, campaign_budget, ad_group, ad_group_criterion, ad_group_ad, ad_group_ad_asset_view, asset, campaign_asset, keyword_view, search_term_view, conversion_action and the related metrics and segments. Purpose: monitoring campaign performance, impression share, keyword eligibility, search terms and conversion measurement status.\par
+\par
+\b 5.2 Write\b0\par
+Mutate operations limited to routine campaign management on our own account:\par
+\f1\fs20
+  CampaignBudgetService        daily budget amounts\par
+  CampaignService              status, bidding limits\par
+  CampaignCriterionService     campaign-level negative keywords\par
+  AdGroupService               ad group creation and status\par
+  AdGroupCriterionService      keywords, negative keywords, bids\par
+  AdGroupAdService             responsive search ads\par
+  AssetService / CampaignAsset sitelink and callout assets\par
+\f0\fs22\par
+No operation touches billing, account structure above campaign level, user access, or any account other than 586-452-3784.\par
+\par
+\b 5.3 Keyword planning\b0\par
+KeywordPlanIdeaService, to obtain search volume estimates and keyword ideas for our own product terms. Several keywords in our account are currently flagged by Google as low search volume; this service is used to identify replacement terms that have real query volume. Keyword Planner data is used internally only, for our own campaigns, and is never displayed to or shared with third parties.\par
+\par
+\fs28\b 6. Expected request volume\b0\fs22\par
+The account currently runs two Search campaigns with a combined daily budget of EUR 13. Expected usage is in the order of tens of read requests per day for monitoring, and a small number of write operations per day, concentrated when campaign changes are made. Volume is far below the Basic Access limit of 15,000 operations per day. Basic Access is requested for headroom and stability, not for scale.\par
+\par
+\fs28\b 7. Data storage and retention\b0\fs22\par
+The tool does not maintain a database. Responses are held in memory for the duration of the session and displayed to the operator. No Google Ads data is persisted, exported, aggregated with third-party data, or transmitted to any external service. No personal data of end users is retrieved or stored.\par
+\par
+\fs28\b 8. Interaction model\b0\fs22\par
+There is no graphical user interface, therefore no screenshots or mockups are applicable. The operator issues requests from a local command-line environment; the MCP server translates them into Google Ads API calls and returns structured results. Write operations are issued explicitly and individually by the operator.\par
+\par
+\fs28\b 9. Compliance\b0\fs22\par
+The integration is used solely to manage advertising for our own products. It does not provide services to third parties, does not aggregate or resell Google Ads data, and does not implement App Conversion Tracking or Remarketing. We accept the Google Ads API Terms and Conditions and the Required Minimum Functionality expectations for an advertiser-type token.\par
+}

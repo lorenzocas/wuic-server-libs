@@ -7,6 +7,7 @@
     "gallery": "Galerie",
     "docs": "Docs",
     "downloads": "Download",
+    "model": "Lokales Modell",
     "community": "Community",
     "demoLive": "Live-Demo",
     "download": "Herunterladen"
@@ -56,11 +57,11 @@
       },
       "multiDbms": {
         "title": "Multi-DBMS",
-        "desc": "SQL Server und MySQL werden über Drop-in-Provider unterstützt. Datenbank wechseln ohne Code-Umschrift."
+        "desc": "SQL Server, MySQL, PostgreSQL und Oracle werden über Drop-in-Provider unterstützt. Datenbank wechseln ohne Code-Umschrift."
       },
       "linuxNative": {
         "title": "Linux nativ",
-        "desc": "Deployment auf Linux mit SQL Server oder MySQL. Cross-Platform-Stack .NET 10, eigenständiges Tarball, keine Windows-Runtime-Abhängigkeiten."
+        "desc": "Deployment auf Linux mit SQL Server, MySQL, PostgreSQL oder Oracle. Cross-Platform-Stack .NET 10, eigenständiges Tarball, keine Windows-Runtime-Abhängigkeiten."
       }
     },
     "gallery": {
@@ -157,7 +158,7 @@
         "title": "Infrastruktur",
         "multiDbms": {
           "title": "Multi-DBMS",
-          "desc": "SQL Server und MySQL per Drop-in-Provider. Datenbankwechsel mit einer Zeile in appsettings.json."
+          "desc": "SQL Server, MySQL, PostgreSQL und Oracle per Drop-in-Provider. Datenbankwechsel mit einer Zeile in appsettings.json."
         },
         "auth": {
           "title": "Auth & Sessions",
@@ -484,6 +485,7 @@
     "docs": "Dokumentation",
     "blog": "Blog",
     "downloads": "Downloads",
+    "model": "Lokales Modell",
     "community": "Community",
     "privacy": "Datenschutz",
     "cookies": "Cookies",
@@ -717,6 +719,7 @@
   "seo": {
     "home":      { "title": "Metadaten-basiertes Framework für Business-Anwendungen", "description": "CRUD, Dashboards, Workflows und Berichte aus Metadaten generieren. Inkl. RAG-Chatbot, Multi-DBMS, .NET 10 + Angular 21. Kein Boilerplate." },
     "features":  { "title": "Framework-Funktionen",                                   "description": "Alles enthalten: Datenschicht, visueller Designer, Workflow-Engine, Report-Builder, RAG-Chatbot, Multi-DBMS. Jede Komponente ist metadatenbasiert." },
+    "comparison": { "title": "WUIC vs Retool, Refine, Budibase, AppSmith",            "description": "Direkter Vergleich von WUIC mit Retool, Refine, Budibase und AppSmith: Funktionsmatrix, wann sich welches eignet, und ehrliche Kompromisse." },
     "pricing":   { "title": "Preise und Lizenzen",                                    "description": "Zwei Stufen: Developer 600€/Jahr (1 Fingerprint) und Professional 1200€/Jahr (3 Fingerprints, Designer, KI). Zahlung mit PayPal oder Karte." },
     "gallery":   { "title": "Galerie — Echte Screenshots",                            "description": "Screenshots echter Oberflächen, die vom Framework generiert wurden: Listen, Dashboards, Bearbeitungsformulare, Workflow-Designer, Berichts-Viewer." },
     "docs":      { "title": "Dokumentation",                                          "description": "Vollständige Framework-Dokumentation: Architektur, Komponenten-Archetypen, Metadaten-Konfiguration, Server-APIs, IIS-Deployment." },
@@ -725,6 +728,7 @@
     "privacy":   { "title": "Datenschutzerklärung",                                   "description": "DSGVO-Datenschutzerklärung für wuic-framework.com: erhobene Daten, Zwecke, Rechtsgrundlage, Rechte der Betroffenen, Kontakt des Verantwortlichen." },
     "cookies":   { "title": "Cookie-Richtlinie",                                      "description": "Verwendete Cookie-Typen (technisch und PayPal-Drittanbieter), Zwecke, Einwilligungsmanagement, italienische und europäische rechtliche Verweise." },
     "terms":     { "title": "Allgemeine Geschäftsbedingungen",                        "description": "Verkaufsbedingungen für WUIC-Lizenzen: Gegenstand, Preise, Zahlungsmethoden, Aktivierung, Support, Garantien und Einschränkungen." },
+    "sandbox":   { "title": "Probieren Sie WUIC im Browser",                          "description": "Eine gehostete WUIC-Demo im Browser: echte Daten, vollständiger Designer, Dashboards und Berichte. Ohne Installation, wird jede Nacht zurückgesetzt." },
     "start":     { "title": "Mit WUIC starten",                                       "description": "Testen Sie WUIC in 10 Minuten: Live-Sandbox ohne Installation oder kostenloser Download. 600–1.200 €/Jahr pauschal, kein Preis pro Nutzer." }
   },
   "start": {

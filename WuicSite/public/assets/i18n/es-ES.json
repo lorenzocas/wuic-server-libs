@@ -7,6 +7,7 @@
     "gallery": "Galería",
     "docs": "Docs",
     "downloads": "Descargas",
+    "model": "Modelo local",
     "community": "Comunidad",
     "demoLive": "Demo en vivo",
     "download": "Descargar"
@@ -56,11 +57,11 @@
       },
       "multiDbms": {
         "title": "Multi-SGBD",
-        "desc": "SQL Server y MySQL soportados mediante providers drop-in. Cambia de base sin reescribir código."
+        "desc": "SQL Server, MySQL, PostgreSQL y Oracle soportados mediante providers drop-in. Cambia de base sin reescribir código."
       },
       "linuxNative": {
         "title": "Linux nativo",
-        "desc": "Despliegue en Linux con SQL Server o MySQL. Stack .NET 10 multiplataforma, tarball autónomo, sin dependencias de runtime Windows."
+        "desc": "Despliegue en Linux con SQL Server, MySQL, PostgreSQL u Oracle. Stack .NET 10 multiplataforma, tarball autónomo, sin dependencias de runtime Windows."
       }
     },
     "gallery": {
@@ -157,7 +158,7 @@
         "title": "Infraestructura",
         "multiDbms": {
           "title": "Multi-SGBD",
-          "desc": "SQL Server y MySQL mediante providers drop-in. Cambia de base con una línea en appsettings.json."
+          "desc": "SQL Server, MySQL, PostgreSQL y Oracle mediante providers drop-in. Cambia de base con una línea en appsettings.json."
         },
         "auth": {
           "title": "Auth y Sesiones",
@@ -484,6 +485,7 @@
     "docs": "Documentación",
     "blog": "Blog",
     "downloads": "Descargas",
+    "model": "Modelo local",
     "community": "Comunidad",
     "privacy": "Privacidad",
     "cookies": "Cookies",
@@ -717,6 +719,7 @@
   "seo": {
     "home":      { "title": "Framework metadata-driven para aplicaciones de negocio",  "description": "Genera CRUD, dashboards, workflows e informes desde metadatos. Incluye chatbot RAG, multi-SGBD, .NET 10 + Angular 21. Sin boilerplate." },
     "features":  { "title": "Características del framework",                            "description": "Todo incluido: capa de datos, diseñador visual, motor de workflow, generador de informes, chatbot RAG, multi-SGBD. Cada componente es metadata-driven." },
+    "comparison": { "title": "WUIC vs Retool, Refine, Budibase, AppSmith",              "description": "Comparación directa entre WUIC y Retool, Refine, Budibase y AppSmith: matriz de funciones, cuándo encaja cada uno y compromisos reales." },
     "pricing":   { "title": "Precios y licencias",                                      "description": "Dos niveles: Developer 600€/año (1 fingerprint) y Professional 1200€/año (3 fingerprints, diseñador, IA). Pago con PayPal o tarjeta." },
     "gallery":   { "title": "Galería — Capturas reales",                                "description": "Capturas de interfaces reales generadas por el framework: listas, dashboards, formularios de edición, diseñador de workflow, visor de informes." },
     "docs":      { "title": "Documentación",                                            "description": "Documentación completa del framework: arquitectura, arquetipos de componentes, configuración de metadatos, APIs del servidor, despliegue en IIS." },
@@ -725,6 +728,7 @@
     "privacy":   { "title": "Política de privacidad",                                   "description": "Política de privacidad GDPR para wuic-framework.com: datos recogidos, finalidades, base legal, derechos del interesado, contactos del responsable." },
     "cookies":   { "title": "Política de cookies",                                      "description": "Tipos de cookies en uso (técnicas y de terceros PayPal), finalidades, gestión del consentimiento, referencias normativas italianas y europeas." },
     "terms":     { "title": "Términos y condiciones",                                   "description": "Términos de venta de las licencias WUIC: objeto, precios, métodos de pago, activación, soporte, garantías y limitaciones." },
+    "sandbox":   { "title": "Prueba WUIC en tu navegador",                              "description": "Una demo de WUIC alojada en tu navegador: datos reales, diseñador completo, paneles e informes. Sin instalación, se reinicia cada noche." },
     "start":     { "title": "Empieza con WUIC",                                         "description": "Prueba WUIC en 10 minutos: sandbox live sin instalación o descarga gratuita. 600–1.200 €/año fijo, sin precio por usuario." }
   },
   "start": {
