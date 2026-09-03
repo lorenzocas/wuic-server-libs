@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-21T13:00:56.849Z",
+  "generatedAt": "2026-09-03T13:21:41.984Z",
   "count": 14,
   "posts": [
     {
@@ -193,7 +193,7 @@
         "list-grid",
         "edit-form"
       ],
-      "readingMinutes": 8,
+      "readingMinutes": 9,
       "sourcePath": "assets/blog/mobile-first-auto-layout-zero-config.md"
     },
     {

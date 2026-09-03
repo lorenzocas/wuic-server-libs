@@ -60,6 +60,7 @@ export const ROUTES = [
   { path: '/docs',       dir: 'docs',      changefreq: 'weekly',  priority: 0.8 },
   { path: '/blog',       dir: 'blog',      changefreq: 'weekly',  priority: 0.8 },
   { path: '/downloads',  dir: 'downloads', changefreq: 'weekly',  priority: 0.8 },
+  { path: '/model',      dir: 'model',     changefreq: 'monthly', priority: 0.8, singleLanguage: true },
   { path: '/sandbox',    dir: 'sandbox',   changefreq: 'monthly', priority: 0.6 },
   { path: '/legal',      dir: 'legal',     changefreq: 'yearly',  priority: 0.3 },
   { path: '/privacy',    dir: 'privacy',   changefreq: 'yearly',  priority: 0.3 },
@@ -80,6 +81,53 @@ export const ROUTES = [
  * if someone runs `node generate-sitemap.mjs` standalone before the blog
  * generator has run. The next pre-build will pick the posts up.
  */
+/**
+ * Prefissi locale per cui le pagine `/docs/:slug` entrano in sitemap.
+ * DEVE restare allineato a DOCS_PRERENDER_PREFIXES in
+ * src/app/app.routes.server.ts: in sitemap ci va solo cio' che e'
+ * prerenderizzato. Dichiarare URL client-rendered qui significherebbe
+ * mandare Googlebot a renderizzare JS su ogni pagina, e ognuna scarica i
+ * ~650 KB del manifesto di lingua — crawl budget bruciato su un dominio nuovo.
+ */
+export const DOCS_SITEMAP_LOCALES = LOCALES.filter(l => l.prefix === '' || l.prefix === '/it');
+
+/**
+ * Una entry per ogni coppia slug x lingua-prerenderizzata, con gli alternates
+ * reciproci limitati alle stesse lingue (dichiarare hreflang verso URL che non
+ * spingiamo al crawl darebbe segnali incoerenti).
+ *
+ * `lastmod` viene da `generatedAt` del manifesto: e' la data in cui il
+ * generatore ha prodotto il contenuto, molto piu' onesta della mtime del
+ * file (che si sposta a ogni copia) e uguale per tutte le lingue.
+ */
+function docsPageEntries() {
+  // Legge l'indice leggero (~1,5 KB), non un manifesto di contenuto: qui
+  // servono i soli slug e la data di generazione.
+  const indexPath = resolve(REPO_ROOT, 'public/docs-index.json');
+  if (!existsSync(indexPath)) return [];
+  try {
+    const index = JSON.parse(readFileSync(indexPath, 'utf8'));
+    const slugs = index.slugs ?? [];
+    const lastmod = (index.generatedAt || new Date().toISOString()).slice(0, 10);
+    return slugs.flatMap(slug => {
+      const path = `/docs/${slug}`;
+      const alternates = [
+        ...DOCS_SITEMAP_LOCALES.map(l => ({ hreflang: l.code, href: localizedLoc(path, l.prefix) })),
+        { hreflang: 'x-default', href: localizedLoc(path, '') },
+      ];
+      return DOCS_SITEMAP_LOCALES.map(l => ({
+        loc: localizedLoc(path, l.prefix),
+        lastmod,
+        changefreq: 'monthly',
+        priority: 0.6,
+        alternates,
+      }));
+    });
+  } catch {
+    return [];
+  }
+}
+
 function blogPostEntries() {
   const manifestPath = resolve(REPO_ROOT, 'public/blog-manifest.json');
   if (!existsSync(manifestPath)) return [];
@@ -169,7 +217,7 @@ export function buildSitemapEntries() {
   const todayIso = new Date().toISOString().slice(0, 10);
   // Ogni route statica → 5 entry (una per lingua), ognuna con la lista
   // completa degli alternates (hreflang reciproci + x-default = EN root).
-  const staticEntries = ROUTES.flatMap(({ path, dir, changefreq, priority }) => {
+  const staticEntries = ROUTES.flatMap(({ path, dir, changefreq, priority, singleLanguage }) => {
     const folder = join(SRC_PAGES, dir);
     const ts = lastModifiedMs(folder);
     // Fallback to today if both git and fs lookups failed (e.g. route added
@@ -177,6 +225,11 @@ export function buildSitemapEntries() {
     const lastmod = ts > 0
       ? new Date(ts).toISOString().slice(0, 10)
       : todayIso;
+    // Pagine single-language (localizedUrls:false, es. /model): SOLO la versione
+    // root, senza alternates — coerente col loro canonical root-only.
+    if (singleLanguage) {
+      return [{ loc: localizedLoc(path, ''), lastmod, changefreq, priority }];
+    }
     const alternates = [
       ...LOCALES.map(l => ({ hreflang: l.code, href: localizedLoc(path, l.prefix) })),
       { hreflang: 'x-default', href: localizedLoc(path, '') },
@@ -191,7 +244,7 @@ export function buildSitemapEntries() {
   });
   // Blog: contenuto single-language → SOLO la versione root in sitemap
   // (le varianti /xx/blog/* esistono ma canonicalizzano alla root).
-  return [...staticEntries, ...blogPostEntries()];
+  return [...staticEntries, ...docsPageEntries(), ...blogPostEntries()];
 }
 
 /** Pure: serialize entries to the canonical sitemap XML string. */

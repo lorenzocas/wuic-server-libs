@@ -58,9 +58,55 @@ async function blogPrerenderSlugs(): Promise<{ slug: string }[]> {
  */
 const LOCALE_PREFIXES = ['it', 'fr', 'es', 'de'] as const;
 
+/**
+ * Prefissi per cui le pagine `/docs/:slug` vengono prerenderizzate (oltre
+ * alla root EN, sempre inclusa). Volutamente un SOTTOINSIEME: 79 slug × 5
+ * lingue sono 395 pagine, e oggi non esiste un solo dato su quanto rendano —
+ * non lo sono mai state, perché emettevano tutte `canonical=/docs`. Partiamo
+ * da EN+IT (i due mercati con campagne attive), si misura in Search Console,
+ * e per estendere a fr/es/de basta aggiungerli qui e in generate-sitemap.mjs
+ * (DOCS_SITEMAP_PREFIXES) — le due liste vanno tenute allineate.
+ */
+const DOCS_PRERENDER_PREFIXES = ['it'] as const;
+
+/**
+ * Slug delle pagine docs, letti da `public/docs-index.json` — l'indice leggero
+ * (~1,5 KB) che il generatore emette accanto ai manifesti per lingua. Qui
+ * servono i soli slug: leggerli da un manifesto di contenuto significherebbe
+ * parsare centinaia di KB per ricavarne un elenco di stringhe.
+ */
+async function docsPrerenderSlugs(): Promise<{ slug: string }[]> {
+  try {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const indexPath = path.resolve(process.cwd(), 'public/docs-index.json');
+    if (!fs.existsSync(indexPath)) return [];
+    const raw = fs.readFileSync(indexPath, 'utf8');
+    const index = JSON.parse(raw) as { slugs: string[] };
+    return (index.slugs ?? []).map(slug => ({ slug }));
+  } catch {
+    return [];
+  }
+}
+
 export const serverRoutes: ServerRoute[] = [
-  { path: 'docs/:slug', renderMode: RenderMode.Client },
-  ...LOCALE_PREFIXES.map(p => ({ path: `${p}/docs/:slug`, renderMode: RenderMode.Client } as ServerRoute)),
+  // Docs: prerender per-slug su EN (root) e IT — vedi DOCS_PRERENDER_PREFIXES.
+  {
+    path: 'docs/:slug',
+    renderMode: RenderMode.Prerender,
+    getPrerenderParams: docsPrerenderSlugs,
+  },
+  ...DOCS_PRERENDER_PREFIXES.map(p => ({
+    path: `${p}/docs/:slug`,
+    renderMode: RenderMode.Prerender,
+    getPrerenderParams: docsPrerenderSlugs,
+  } as ServerRoute)),
+  // Lingue non ancora prerenderizzate: restano client-rendered e FUORI
+  // sitemap. Le pagine esistono e sono raggiungibili, semplicemente non le
+  // spingiamo al crawl finché EN/IT non dimostrano di raccogliere impression.
+  ...LOCALE_PREFIXES
+    .filter(p => !DOCS_PRERENDER_PREFIXES.includes(p as typeof DOCS_PRERENDER_PREFIXES[number]))
+    .map(p => ({ path: `${p}/docs/:slug`, renderMode: RenderMode.Client } as ServerRoute)),
   // Blog posts: prerender each slug discovered in the manifest — dal fix
   // HttpClient (2026-07-14) l'HTML statico contiene il BODY dell'articolo,
   // non più "Loading article…".

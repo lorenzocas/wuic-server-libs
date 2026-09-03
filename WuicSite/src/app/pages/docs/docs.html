@@ -25,7 +25,7 @@
               @for (item of group.items; track item.slug) {
                 <li>
                   <a [class.active]="item.slug === currentSlug()"
-                     [href]="'/docs/' + item.slug"
+                     [href]="docHref(item.slug)"
                      (click)="$event.preventDefault(); openPage(item.slug)">
                     <i class="pi" [ngClass]="item.icon || 'pi-file'"></i>
                     <span>{{ item.title }}</span>

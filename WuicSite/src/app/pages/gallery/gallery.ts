@@ -1,6 +1,8 @@
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { ImageModule } from 'primeng/image';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
@@ -54,6 +56,7 @@ interface FeaturedDemo {
 })
 export class Gallery implements OnInit {
   private sanitizer = inject(DomSanitizer);
+  private http = inject(HttpClient);
 
   constructor() {
     inject(SeoService).set({ titleKey: 'seo.gallery.title', descriptionKey: 'seo.gallery.description', path: '/gallery' });
@@ -117,15 +120,19 @@ export class Gallery implements OnInit {
 
   async ngOnInit() {
     try {
-      const resp = await fetch('/docs-content.json');
-      const data: DocsContentManifest = await resp.json();
+      // Un solo file lingua, non il monolite: le didascalie le vogliamo in
+      // it-IT (scelta preesistente) e i path delle GIF sono identici in tutte
+      // le lingue, quindi il file italiano da 650 KB basta e avanza — il
+      // vecchio docs-content.json ne pesava 3.200.
+      //
+      // HttpClient e non `fetch`: /gallery è prerenderizzata, e solo le
+      // richieste HttpClient vengono risolte durante il prerender SSG.
+      const data = await firstValueFrom(
+        this.http.get<DocsContentManifest>('/docs-content.it-IT.json')
+      );
 
       const collected: GalleryItem[] = [];
-      // Prefer it-IT language for captions and titles. GIF paths are shared
-      // across languages (the docs generator emits the same `images[]` for
-      // every localized copy of a page), so iterating the it-IT subset is enough.
-      const italianPages = data.pages.filter(p => p.lang === 'it-IT');
-      for (const page of italianPages) {
+      for (const page of data.pages) {
         const imgs = (page.images || []) as DocsImage[];
         for (const img of imgs) {
           if (img.status !== 'available') continue;

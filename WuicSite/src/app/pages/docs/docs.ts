@@ -1,8 +1,10 @@
-import { Component, signal, computed, inject, OnInit, ElementRef, ViewChild } from '@angular/core';
+import { Component, signal, computed, effect, inject, OnInit, ElementRef, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { NgClass } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { InputTextModule } from 'primeng/inputtext';
 import { TagModule } from 'primeng/tag';
 import { ButtonModule } from 'primeng/button';
@@ -12,6 +14,22 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { DocsContentManifest, DocsPage, DocsNavGroup, DocsSection, DocsCodeSample } from '../../models/docs.model';
 import { LanguageService } from '../../services/language.service';
 import { SeoService } from '../../services/seo.service';
+import { articleSchema } from '../../services/seo-schemas';
+import { localizePath } from '../../services/locale-url';
+
+/**
+ * Cache dei manifesti per lingua, a livello di MODULO e non di componente.
+ *
+ * Navigare tra prefissi locale (`/it/docs/x` → `/de/docs/x`) distrugge e
+ * ricrea il componente Docs: con la cache dentro la classe, ogni cambio
+ * lingua ripartiva da zero e rifaceva la richiesta da ~650 KB.
+ *
+ * Contiene solo contenuto pubblico e immutabile, indicizzato per lingua —
+ * nessun dato utente, quindi condividerlo tra istanze è sicuro. In prerender
+ * il beneficio è anche maggiore: le 158 pagine statiche parsano il manifesto
+ * una volta sola invece di 158.
+ */
+const manifestByLang = new Map<string, Promise<DocsContentManifest | null>>();
 
 interface SectionPart {
   kind: 'html' | 'code';
@@ -30,15 +48,38 @@ export class Docs implements OnInit {
   private router = inject(Router);
   private sanitizer = inject(DomSanitizer);
   private languageService = inject(LanguageService);
+  private seo = inject(SeoService);
+  private http = inject(HttpClient);
 
   constructor() {
-    inject(SeoService).set({ titleKey: 'seo.docs.title', descriptionKey: 'seo.docs.description', path: '/docs' });
+    // SEO REATTIVO, non one-shot. `/docs` e `/docs/:slug` montano lo STESSO
+    // componente: un singolo `set()` nel constructor con `path: '/docs'`
+    // hardcoded faceva emettere a tutte le 79 pagine (×5 lingue) lo stesso
+    // <title>, la stessa description e soprattutto `canonical = /docs` —
+    // cioè ogni pagina dichiarava di essere un duplicato dell'indice, e
+    // nessuna poteva posizionarsi. Qui il set() rigira a ogni cambio di
+    // slug, di lingua e all'arrivo del manifesto (i signal letti dentro
+    // `applySeo` sono le dipendenze dell'effect).
+    effect(() => this.applySeo());
+
+    // Cambio lingua dalla navbar: serve il manifesto dell'altra lingua, che
+    // ora è un file separato. `loadManifest` deduplica, quindi la prima
+    // esecuzione di questo effect e quella di ngOnInit condividono la stessa
+    // richiesta invece di farne due.
+    effect(() => void this.loadManifest(this.currentLang()));
   }
 
   manifest = signal<DocsContentManifest | null>(null);
   loading = signal(true);
   query = signal('');
   currentSlug = signal('getting-started');
+  /**
+   * `/docs` senza slug mostra `getting-started` come contenuto di cortesia,
+   * ma NON è la stessa URL: l'indice deve restare canonical su `/docs` e la
+   * pagina di dettaglio su `/docs/getting-started`, altrimenti le due si
+   * cannibalizzano. Questo flag distingue i due casi per il SEO.
+   */
+  private hasSlug = signal(false);
   /**
    * Reads the globally-selected language from LanguageService (driven by the
    * navbar flag picker). Falls back to `it-IT` if the service isn't ready.
@@ -93,7 +134,14 @@ export class Docs implements OnInit {
     const map = this.pageMap();
     const slug = this.currentSlug();
     const lang = this.currentLang();
-    return map.get(`${lang}:${slug}`) || map.get(`it-IT:${slug}`) || null;
+    // Il vecchio fallback `it-IT:<slug>` è stato rimosso: il manifesto ora
+    // contiene UNA sola lingua, quindi non c'è nessuna copia italiana su cui
+    // ripiegare. Non è una perdita: il generatore emette tutti gli slug in
+    // tutte e cinque le lingue (79 ciascuna), quindi il fallback non è mai
+    // scattato. Se un domani la parità si rompesse, qui si vedrebbe la pagina
+    // vuota invece di contenuto silenziosamente nella lingua sbagliata —
+    // che è il comportamento giusto per accorgersene.
+    return map.get(`${lang}:${slug}`) ?? null;
   });
 
   breadcrumbs = computed(() => {
@@ -103,19 +151,119 @@ export class Docs implements OnInit {
     return ['Docs', group?.title || '', page.title].filter(Boolean);
   });
 
-  async ngOnInit() {
-    try {
-      const resp = await fetch('/docs-content.json');
-      const data: DocsContentManifest = await resp.json();
-      this.manifest.set(data);
-    } catch (e) {
-      console.error('Failed to load docs:', e);
-    } finally {
-      this.loading.set(false);
+  /**
+   * Applica title/description/canonical/hreflang della pagina corrente.
+   * Chiamato da un effect: finché il manifesto non è caricato `currentPage()`
+   * è null e restiamo sui metadata dell'indice — meglio un titolo generico
+   * per un istante che un titolo vuoto nell'HTML prerenderizzato.
+   */
+  private applySeo(): void {
+    const page = this.currentPage();
+    const slug = this.currentSlug();
+    const lang = this.currentLang();
+
+    if (!this.hasSlug() || !page) {
+      this.seo.set({ titleKey: 'seo.docs.title', descriptionKey: 'seo.docs.description', path: '/docs' });
+      return;
     }
+
+    // `path` va passato SENZA prefisso locale: SeoService lo localizza da sé
+    // per canonical e hreflang. Lo schema JSON-LD invece vuole l'URL finale,
+    // quindi lì il prefisso lo mettiamo noi — altrimenti `mainEntityOfPage`
+    // punterebbe alla variante inglese anche sulle pagine /it /fr /es /de.
+    const basePath = `/docs/${slug}`;
+    const description = this.metaDescription(page);
+    const generatedAt = (this.manifest()?.generatedAt || '').slice(0, 10);
+
+    this.seo.set({
+      titleLiteral: page.title,
+      descriptionLiteral: description,
+      path: basePath,
+      structuredData: articleSchema({
+        headline: page.title,
+        description,
+        path: localizePath(basePath, lang),
+        datePublished: generatedAt || '2026-01-01',
+      }),
+    });
+  }
+
+  /**
+   * Meta description derivata dal CORPO della pagina, non dal campo
+   * `description` del manifesto: quel campo è il template italiano
+   * "<Titolo> - documentazione operativa e tecnica" su tutte e cinque le
+   * lingue (pagine inglesi comprese), quindi produrrebbe 395 description
+   * identiche e nella lingua sbagliata. Il corpo invece è tradotto davvero.
+   */
+  private metaDescription(page: DocsPage): string {
+    let text = (page.sections || [])
+      .map(s => s.html || '')
+      .join(' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&#\d+;|&[a-z]+;/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // Il corpo si apre quasi sempre con l'H1, che è già il <title>: ripeterlo
+    // in apertura di description brucia caratteri utili nello snippet SERP.
+    if (page.title && text.toLowerCase().startsWith(page.title.toLowerCase())) {
+      text = text.slice(page.title.length).trim();
+    }
+
+    if (text.length < 40) return page.description || '';
+    if (text.length <= 155) return text;
+    const cut = text.slice(0, 155);
+    const lastSpace = cut.lastIndexOf(' ');
+    return `${(lastSpace > 100 ? cut.slice(0, lastSpace) : cut).trim()}…`;
+  }
+
+  /**
+   * Carica il manifesto della lingua richiesta.
+   *
+   * Un file per lingua invece del monolite: il vecchio `docs-content.json`
+   * pesava 3,2 MB e veniva scaricato intero per leggere ~8 KB di una pagina.
+   * Chi legge `/it/docs` non ha alcun bisogno delle altre quattro lingue.
+   *
+   * HttpClient e NON `fetch` grezzo: il prerender SSG intercetta solo il
+   * backend fetch di HttpClient (withFetch). Con la fetch nativa il manifesto
+   * non si risolve durante il prerender e l'HTML statico esce col corpo VUOTO
+   * — è il motivo per cui `docs/:slug` era rimasto in RenderMode.Client.
+   *
+   * I manifesti già scaricati restano in cache: cambiare lingua avanti e
+   * indietro nella navbar non deve ri-scaricare nulla.
+   */
+  private async loadManifest(lang: string): Promise<void> {
+    // In cache stanno le PROMISE, non i dati: ngOnInit e l'effect sul cambio
+    // lingua possono chiedere la stessa lingua nello stesso tick, e con una
+    // cache di soli dati partirebbero due fetch identiche.
+    let pending = manifestByLang.get(lang);
+    if (!pending) {
+      this.loading.set(true);
+      pending = firstValueFrom(
+        this.http.get<DocsContentManifest>(`/docs-content.${lang}.json`)
+      ).catch(e => {
+        console.error(`Failed to load docs manifest for ${lang}:`, e);
+        // La promise fallita non resta in cache, altrimenti un errore di rete
+        // temporaneo renderebbe quella lingua irrecuperabile per tutta la sessione.
+        manifestByLang.delete(lang);
+        return null;
+      });
+      manifestByLang.set(lang, pending);
+    }
+    const data = await pending;
+    // Nel frattempo l'utente può aver cambiato di nuovo lingua: pubblicare un
+    // manifesto ormai superato farebbe lampeggiare la pagina nella lingua sbagliata.
+    if (data && this.currentLang() === lang) this.manifest.set(data);
+    if (this.currentLang() === lang) this.loading.set(false);
+  }
+
+  async ngOnInit() {
+    await this.loadManifest(this.currentLang());
 
     this.route.paramMap.subscribe(params => {
       const slug = params.get('slug');
+      this.hasSlug.set(!!slug);
       if (slug) {
         this.currentSlug.set(slug);
         // Scroll-to-top centralizzato: qualunque cambio di slug (click sidebar,
@@ -129,13 +277,31 @@ export class Docs implements OnInit {
     });
   }
 
+  /**
+   * href della voce di sidebar, col prefisso locale della lingua attiva.
+   *
+   * Serve l'href REALE, non basta il (click): i crawler seguono l'attributo,
+   * non il gestore JS. Con `/docs/<slug>` fisso, gli alberi `/it /fr /es /de`
+   * non ricevevano NESSUN link interno — irraggiungibili per il crawl anche
+   * una volta prerenderizzati e messi in sitemap. Vale anche per il
+   * click-centrale e l'apri-in-nuova-scheda dell'utente.
+   */
+  docHref(slug: string): string {
+    return localizePath(`/docs/${slug}`, this.currentLang());
+  }
+
   openPage(slug: string) {
     this.currentSlug.set(slug);
     // Lo scroll-to-top e' gestito centralmente nel paramMap.subscribe
     // (vedi ngOnInit): `router.navigate` triggera quella subscribe, quindi
     // qui non serve duplicare la chiamata — evita un doppio scroll che su
     // Safari puo' produrre un "jump" percepibile.
-    this.router.navigate(['/docs', slug]);
+    //
+    // Il prefisso locale va PRESERVATO: `navigate(['/docs', slug])` porta
+    // alla root inglese, e siccome LanguageService deriva la lingua dal path,
+    // un click nella sidebar da `/it/docs` cambiava lingua sotto i piedi e
+    // rendeva l'albero localizzato irraggiungibile navigando.
+    this.router.navigateByUrl(localizePath(`/docs/${slug}`, this.currentLang()));
   }
 
   /**
