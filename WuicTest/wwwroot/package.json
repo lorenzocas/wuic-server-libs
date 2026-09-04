@@ -16,7 +16,9 @@
     "//build:npm": "Canonical release build. Used by deploy-release.ps1. Has fileReplacements for environment.ts->environment.prod.ts (path-relative URLs, work behind any reverse proxy) and wuic-bridges/* -> wuic-bridges-npm/*.",
     "build:npm": "ng build wuic-test --configuration=npm",
     "test:selectors:ngdeep": "node e2e/check-ngdeep-selectors.mjs",
-    "test:selectors:ngdeep:strict": "node e2e/check-ngdeep-selectors.mjs --strict"
+    "test:selectors:ngdeep:strict": "node e2e/check-ngdeep-selectors.mjs --strict",
+    "//build:npm-debug": "Come build:npm (stessi fileReplacements) ma senza ottimizzazione script: mantiene ngDevMode=true e quindi window.ng.getComponent, richiesto dagli e2e docs-driven quando girano contro un deployment reale invece del dev server.",
+    "build:npm-debug": "ng build wuic-test --configuration=npm-debug"
   },
   "private": true,
   "dependencies": {

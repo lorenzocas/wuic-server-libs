@@ -16,6 +16,13 @@ export { WuicRagChatbotFabComponent } from 'wuic-framework-lib';
 export { LazyFirstRunWizardComponent } from 'wuic-framework-lib';
 export { WuicErrorDialogComponent } from 'wuic-framework-lib';
 export { WuicAziendaSwitcherComponent } from 'wuic-framework-lib';
+// Header/tema/menu utente: gemelli degli export aggiunti in wuic-bridges/public.ts.
+// I due barrel vanno tenuti allineati — questo e' quello che le build di
+// rilascio usano via fileReplacements, quindi un export che manca qui rompe
+// SOLO la build spedibile, non il dev server.
+export { ThemeSelectorComponent } from 'wuic-framework-lib';
+export { AppHeaderComponent } from 'wuic-framework-lib';
+export { UserMenuComponent } from 'wuic-framework-lib';
 export type { RagSource } from 'wuic-framework-lib';
 export type { IDataBoundHostComponent } from 'wuic-framework-lib';
 export { MetaInfo } from 'wuic-framework-lib';

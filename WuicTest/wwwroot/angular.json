@@ -174,6 +174,50 @@
                   "with": "src/app/environments/environment.prod.ts"
                 }
               ]
+            },
+            "npm-debug": {
+              "fileReplacements": [
+                {
+                  "replace": "src/app/wuic-bridges/core.ts",
+                  "with": "src/app/wuic-bridges-npm/core.ts"
+                },
+                {
+                  "replace": "src/app/wuic-bridges/ui.ts",
+                  "with": "src/app/wuic-bridges-npm/ui.ts"
+                },
+                {
+                  "replace": "src/app/wuic-bridges/notifications.ts",
+                  "with": "src/app/wuic-bridges-npm/notifications.ts"
+                },
+                {
+                  "replace": "src/app/wuic-bridges/routes.ts",
+                  "with": "src/app/wuic-bridges-npm/routes.ts"
+                },
+                {
+                  "replace": "src/app/wuic-bridges/widget-loaders.ts",
+                  "with": "src/app/wuic-bridges-npm/widget-loaders.ts"
+                },
+                {
+                  "replace": "src/app/wuic-bridges/widget-loaders-advanced.ts",
+                  "with": "src/app/wuic-bridges-npm/widget-loaders-advanced.ts"
+                },
+                {
+                  "replace": "src/app/wuic-bridges/public.ts",
+                  "with": "src/app/wuic-bridges-npm/public.ts"
+                },
+                {
+                  "replace": "src/app/environments/environment.ts",
+                  "with": "src/app/environments/environment.prod.ts"
+                }
+              ],
+              "optimization": {
+                "scripts": false,
+                "styles": true,
+                "fonts": true
+              },
+              "extractLicenses": true,
+              "sourceMap": false,
+              "outputHashing": "all"
             }
           },
           "defaultConfiguration": "development"
