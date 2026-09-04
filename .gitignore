@@ -53,3 +53,11 @@ _dataset_backup/tutorial-mssql/tutorial-metadata.mssql.bak
 # (GitHub HTTP push timeout-a su .so/.dll > 100 MB). Bloccato 2026-06-06 dopo
 # che cb03091 li aveva inavvertitamente committati.
 WuicRagEngine/publish/
+
+# Repository nested: hanno un .git e un remote propri. Aggiungerli qui creerebbe
+# un submodule accidentale (o, peggio, inglobberebbe node_modules e la storia di
+# un altro repo dentro questo). Restano sul disco e nei loro repository.
+#   KonvergenceCore -> github.com/lorenzocas/konvergence-core
+#   wuic2025        -> github.com/lorenzocas/wuic2025 (prototipo 2024, Angular 18)
+KonvergenceCore/
+wuic2025/
