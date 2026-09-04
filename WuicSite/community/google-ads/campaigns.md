@@ -670,3 +670,34 @@ scartava. Il tool ora imposta il mask esplicito.
 - Test Retool su US/UK con cap 4 € in campagna separata; geografia di A
   (esclusione o gruppo in tedesco); hero `/it/` per il pubblico C4; gruppo AI
   in EN dopo aver misurato i volumi dal browser.
+
+---
+
+## Check 04/09/2026 (manuale: il job schedulato si e' bloccato)
+
+Letto via CLI `gaql` alle ore di pranzo del 4/9.
+
+| | 3/9 | 4/9 (parziale) |
+|---|---|---|
+| A - Competitor EN | 43 impr, 4 clic, 6,24 EUR (tutto A4 prima della pausa) | 0 impr |
+| C - Italia | 0 | 1 impr (C3), 0 clic |
+
+- Approvazioni: tutti gli 8 annunci APPROVED, revisione conclusa; asset nuovi
+  `Live Demo, No Signup` e sitelink `Run It On A Local LLM` APPROVED.
+  Forza annunci dopo la modifica dei titoli: C1 EXCELLENT, C2/C3/A4 GOOD,
+  A1/A3/A5/C4 AVERAGE.
+- Dopo la pausa di A4 la campagna A ha fatto 3 impression in totale: 1 su A1,
+  2 su A3 con `gitlab self hosted` e `self hosted jira` -> aggiunte le negative
+  BROAD `gitlab` e `jira` (52 negative in A). A5: 0 impression dopo ~20 ore.
+- C4: 0 impression -> cap di C lasciato a 1,80 EUR come da regola.
+- Search Console: sitemap letta il 3/9 18:31, 238 URL inviati, 0 indicizzati
+  dalla sitemap; `/it/start` indicizzata via richiesta manuale.
+
+**Job schedulato `ads-check-2026-09-04`**: partito alle 9:30, si e' fermato
+dopo Read/ToolSearch/Grep su `C:\src\Wuic\WuicSite` senza mai produrre output:
+prompt di permesso per lettura fuori dalla directory del progetto, che in una
+sessione senza utente non viene mai risolto. Fix: `additionalDirectories`
+(WuicSite, my-workspace) e allow-rule per le CLI dei server MCP in
+`KonvergenceCore/.claude/settings.local.json`; i prompt dei job del 6/9 e 10/9
+hanno il fallback CLI `gaql` e scrivono i file argomenti in
+`scripts/mcp/tmp/` (ignorata da git). Sessione bloccata archiviata.
