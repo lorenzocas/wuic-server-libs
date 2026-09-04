@@ -111,9 +111,8 @@ export class Comparison {
 
   constructor() {
     inject(SeoService).set({
-      titleLiteral: 'WUIC vs Retool, Refine, Budibase, AppSmith',
-      descriptionLiteral:
-        'A side-by-side comparison of WUIC against Retool, Refine, Budibase and AppSmith — feature matrix, when each fits, and honest tradeoffs.',
+      titleKey: 'seo.comparison.title',
+      descriptionKey: 'seo.comparison.description',
       path: '/comparison',
       structuredData: [
         articleSchema({

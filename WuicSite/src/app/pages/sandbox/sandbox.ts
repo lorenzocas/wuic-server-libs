@@ -99,9 +99,8 @@ export class Sandbox {
 
   constructor() {
     inject(SeoService).set({
-      titleLiteral: 'Try WUIC in your browser',
-      descriptionLiteral:
-        'Open a hosted demo of WUIC running in your browser. Live data, real designer, no installation. Resets daily.',
+      titleKey: 'seo.sandbox.title',
+      descriptionKey: 'seo.sandbox.description',
       path: '/sandbox',
       structuredData: [
         articleSchema({
