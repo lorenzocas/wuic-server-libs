@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Release Notes v1.7.0_1.7.0 - WUIC Framework</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; color: #1e293b; background: #ffffff; line-height: 1.6; overflow-wrap: anywhere; word-wrap: break-word; }
+a { color: #6366f1; text-decoration: none; }
+a:hover { color: #4f46e5; text-decoration: underline; }
+
+/* Site-style header (mini-navbar) */
+.rn-header { background: rgba(255, 255, 255, 0.95); border-bottom: 1px solid #e2e8f0; backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 10; }
+.rn-header-inner { max-width: 1200px; margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.rn-brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: #0f172a; font-size: 1.15rem; }
+.rn-brand-bolt { display: inline-block; width: 24px; height: 24px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M13 2L3 14h7l-1 8 10-12h-7l1-8z'/></svg>") center/contain no-repeat; mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M13 2L3 14h7l-1 8 10-12h-7l1-8z'/></svg>") center/contain no-repeat; }
+.rn-back { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border: 1px solid #c7d2fe; border-radius: 6px; color: #4f46e5; background: #eef2ff; font-size: 0.9rem; transition: background 0.15s, border-color 0.15s; }
+.rn-back:hover { background: #e0e7ff; border-color: #a5b4fc; text-decoration: none; }
+
+/* Article container: same width as Site .container */
+.rn-article { max-width: 880px; margin: 0 auto; padding: 48px 24px 80px; }
+
+/* Headings: site palette */
+h1, h2, h3, h4 { color: #0f172a; line-height: 1.25; font-weight: 700; }
+h1 { font-size: 2rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; margin-bottom: 1.25rem; }
+h2 { font-size: 1.4rem; margin-top: 2.25rem; margin-bottom: 0.75rem; }
+h3 { font-size: 1.125rem; margin-top: 1.5rem; margin-bottom: 0.5rem; color: #334155; }
+
+p { margin: 0.75rem 0; color: #334155; }
+strong { color: #0f172a; font-weight: 600; }
+
+ul, ol { padding-left: 1.4rem; margin: 0.75rem 0; }
+li { margin: 0.25rem 0; color: #334155; }
+
+hr { border: 0; border-top: 1px solid #e2e8f0; margin: 2.5rem 0; }
+
+/* Inline code: tinta indigo che richiama il brand */
+code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.9em; }
+code { background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; padding: 0.1em 0.4em; border-radius: 4px; word-break: break-word; }
+pre { background: #f8fafc; border: 1px solid #e2e8f0; padding: 1rem 1.25rem; border-radius: 8px; overflow-x: auto; max-width: 100%; margin: 1rem 0; }
+pre code { background: transparent; color: #1e293b; border: 0; padding: 0; word-break: normal; }
+
+/* Tables: scrollabili, header indigo-tint */
+.table-wrap { overflow-x: auto; max-width: 100%; margin: 1.25rem 0; border: 1px solid #e2e8f0; border-radius: 8px; }
+table { border-collapse: collapse; width: max-content; min-width: 100%; background: #ffffff; }
+th, td { border-bottom: 1px solid #e2e8f0; padding: 0.65rem 0.95rem; text-align: left; vertical-align: top; font-size: 0.95rem; }
+th { background: #f8fafc; color: #0f172a; font-weight: 600; border-bottom-color: #cbd5e1; }
+tr:last-child td { border-bottom: 0; }
+td { color: #334155; }
+
+/* Blockquote: brand accent */
+blockquote { border-left: 3px solid #6366f1; margin: 1.25rem 0; padding: 0.6rem 1.1rem; color: #475569; background: #eef2ff; border-radius: 0 6px 6px 0; }
+blockquote p { color: #475569; }
+
+img { max-width: 100%; height: auto; border-radius: 6px; }
+</style>
+<script>
+// Wrap tables post-render in scroll container (markdown converter emits raw <table>).
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('table').forEach(t => {
+    if (t.parentElement && t.parentElement.classList.contains('table-wrap')) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+});
+</script>
+</head>
+<body>
+<header class="rn-header">
+  <div class="rn-header-inner">
+    <a href="/" class="rn-brand"><span class="rn-brand-bolt"></span><span>WUIC</span></a>
+    <a href="/downloads" class="rn-back">&larr; Back to downloads</a>
+  </div>
+</header>
+<article class="rn-article">
+<h1 id="release-notes-wuic-framework-v1.7.0">Release Notes — WUIC Framework v1.7.0</h1>
+<p><strong>Date</strong>: 11 August 2026
+<strong>Previously published version</strong>: 1.5.0 (21 July 2026)
+<strong>Backend</strong>: .NET 10 + IIS / Linux nginx
+<strong>Frontend</strong>: Angular 21</p>
+<hr />
+<blockquote>
+<p><strong>Packages replaced on 15 August 2026.</strong> The archives published initially shipped an <code>appsettings.json</code> with <code>autoGeneratedQueryTimeout</code> set to <code>1</code>: with that value, every query taking longer than one second ends in a server error. A few header settings (logo, menu orientation, theme selector, notifications) had also been left behind by a test session. The archives have been rebuilt and their checksums updated.</p>
+<p><strong>If you downloaded before 15 August</strong>: download the package again, or open <code>appsettings.json</code> and set <code>autoGeneratedQueryTimeout</code> back to <code>30</code>, removing the keys <code>header-logo</code>, <code>header-logo-position</code>, <code>header-menu-orientation</code>, <code>header-show-theme-selector</code>, <code>header-menu-multicolumn-submenu</code> and <code>header-show-notifications</code> unless you set them yourself. Neither setting touches your data: editing the file and restarting is enough to fix an existing installation.</p>
+</blockquote>
+<hr />
+<p>Three weeks of work on two fronts. The first is <strong>appearance</strong>: the new <strong>Theme Builder</strong> is a page for composing custom themes — colors, typography, background, density, grid rendering — that apply to every user of the installation, and the application header has been redesigned and made configurable. The second is <strong>integration and observability</strong>: the new <strong>Webhook Hub</strong> receives and sends events with signing and retries, and the <strong>Performance Inspector</strong> measures fetch and render times per route. The chatbot learns to act on three more surfaces of the application and to query the database schema.</p>
+<hr />
+<h2 id="theme-builder">🎨 Theme Builder</h2>
+<p>A new page under Administration lets you compose custom themes without touching code. Every saved theme appears in the theme selector of <strong>all</strong> users of the installation, alongside the built-in ones.</p>
+<p>What you can set:</p>
+<ul>
+<li><strong>Primary color</strong>, from which the full 11-shade scale is generated: the scale stays clickable, and picking a darker shade promotes it to primary color. A badge shows the WCAG contrast ratio reached (AAA / AA / AA-large / fail).</li>
+<li><strong>Light and dark surfaces</strong>, <strong>corner radius</strong> and <strong>density</strong> (comfortable or compact).</li>
+<li><strong>Typography</strong>: font family from a catalog of system fonts or a free-form stack, plus a base size that scales the whole interface.</li>
+<li><strong>Page background</strong>: solid color, gradient or image. The gradient can have an optional <strong>slow drift</strong> that swings its angle over time; the image is configured with fit, repeat, position and a dark overlay so text stays readable.</li>
+<li><strong>Grid</strong>: alternating rows and the selected row are no longer fixed colors but blends of the surface with an accent, driven by two intensity knobs, with the option of an accent different from the primary color.</li>
+<li><strong>Light/dark mode</strong> left free or forced by the theme.</li>
+</ul>
+<p>The preview is live and applies the theme to the whole page while you compose it, without touching the user's own preferences: on leaving, reloading or closing the browser your own theme comes back.</p>
+<p><strong>Excel export follows the theme</strong>: a file exported while a custom theme is active comes out with that theme's colors — header, alternating rows, borders — instead of generic greys. Fallback styles have been added for every preset family, so a theme that has not been sampled yet still inherits the look of its family.</p>
+<p>The built-in theme catalog gains new variants, and the active theme is applied on the very first frame after a reload, without the previous theme flashing.</p>
+<h2 id="redesigned-configurable-header">🖥️ Redesigned, configurable header</h2>
+<p>The application header is now a framework component: installations inherit it instead of keeping a copy. The top-right block has been compacted — theme selector, light/dark, language, notifications and user area live in a card that expands on hover — and the user area shows name, role, license and sign-out.</p>
+<p>A new <strong>Header &amp; Menu</strong> section in the settings lets you choose the menu orientation (horizontal above or below, vertical left or right), upload a logo and position it, and turn the language selector, theme selector and notifications on or off. You can also disable the automatic multi-column layout of submenu entries: in that case long submenus become scrollable instead of being cut off.</p>
+<h2 id="webhook-hub">🔗 Webhook Hub</h2>
+<p>A new system for integrating the application with external services, in both directions.</p>
+<p><strong>Outbound</strong>: events are queued and delivered asynchronously, with <strong>HMAC</strong> payload signing, retries at a fixed or exponential interval, a <strong>dead letter</strong> queue for permanently failed deliveries and the ability to <strong>replay</strong> a delivery. Every attempt is recorded in the logs.</p>
+<p><strong>Inbound</strong>: the <code>POST /api/webhooks/inbound</code> endpoint accepts external calls and routes them according to a metadata configuration — SQL execution, HTTP call or method invocation — with anti-replay protection.</p>
+<p>Also included are notification policies with a configurable cooldown, an administrative API for managing endpoints, and a scheduler job that drains the queue. The whole configuration — endpoints, events, subscriptions, inbound rules — lives in metadata tables: adding an integration needs neither dedicated code nor a new deployment. The &quot;Webhook Hub&quot; page of the in-app documentation carries the full procedure in 5 languages.</p>
+<h2 id="performance-inspector">📈 Performance Inspector</h2>
+<p>The framework can collect <strong>fetch</strong> and <strong>render</strong> metrics for every route, aggregate them and show them in an administrative dashboard: average, p95, maximum and count, with a 7-day retention and per-route collection.</p>
+<p>The feature is <strong>off by default</strong> and is enabled with <code>AppSettings:enablePerformanceInspector</code>, in hot-reload. Alongside the metrics there is a data quality inspector, enabled per route from the props bag (<code>extraProps.qualityInspector</code>).</p>
+<h2 id="chatbot-new-actions-and-schema-reading">🤖 Chatbot: new actions and schema reading</h2>
+<p>The RAG chatbot gains ten new action types and the ability to query the structure of the project.</p>
+<ul>
+<li><strong>Three new contextual surfaces</strong>: <strong>pivot builder</strong>, <strong>settings editor</strong> and <strong>report designer</strong>. The chatbot proposes actions on the page you are on. In the settings editor changes are only <em>prepared</em>: saving stays an explicit user gesture. In the dump sent to the model, reserved values — connection strings, passwords, keys, license — are masked, and an exclusion list prevents writing them. In the report designer a new timestamped file is always generated, leaving the open report untouched.</li>
+<li><strong>Metadata operations</strong>: table creation, scaffolding of tables, views and columns, moving menu entries. The two irreversible operations — deleting a column and deleting a menu entry — require an <strong>explicit confirmation</strong> that is verified server-side as well, so it holds even when the request comes from a client with no user interface.</li>
+<li><strong>Introspection</strong>: the chatbot can list connections (<strong>names</strong> only, never connection strings), databases, tables, columns and the menu tree. Without these reads it could not know the real identifiers to work on.</li>
+</ul>
+<p>A new documentation page lists the supported prompts, verified against the automated tests.</p>
+<h2 id="spreadsheet-column-visibility-aligned-with-the-grid">📊 Spreadsheet: column visibility aligned with the grid</h2>
+<p>The spreadsheet now honours the same visibility flags as the list grid: <code>mc_hide_in_list</code>, <code>mc_hide_in_edit</code> and <code>mc_show_in_filters</code>. A column hidden in the list no longer appears in the sheet, and a column hidden in edit is no longer editable in the cells.</p>
+<h2 id="security">🛡️ Security</h2>
+<p>Best-effort hardening on report scaffolding: the requested file name is now validated by rejecting absolute paths and disallowed characters, with a check that behaves the same way on Windows and on Linux — it previously relied on a normalization that filtered differently on the two systems. The returned error tells an invalid configuration apart from a generation failure, so integrators do not look for the problem in the wrong place.</p>
+<h2 id="notable-bug-fixes">🐛 Notable bug fixes</h2>
+<ul>
+<li><strong>Scheduler, first load</strong>: the view showed data that was not filtered for the displayed range — typically no events in the current month, even with appointments present. The first load ran before the start and end fields configured for the archetype were available, and no later request corrected it. The fields are now resolved before the filter is composed and, if they arrive afterwards, the data is requested again exactly once.</li>
+<li><strong>3D scenes with a professional license</strong>: the designer and 3D viewer pages redirected to the access-denied screen, because the feature was not included in any license profile. It is now part of the professional profile.</li>
+<li><strong>Reports on Linux</strong>: report scaffolding failed because fonts were handled through a graphics library available only on Windows.</li>
+<li><strong>Performance Inspector, aggregation</strong>: two overlapping runs of the aggregation job — the dashboard triggers it on its own reload, and it can also be launched manually — ended with a duplicate key error. The raw data window was also not aligned to the daily bucket boundary, so the oldest bucket was rebuilt from a subset of the events.</li>
+<li><strong>Linux behind a reverse proxy</strong>: absolute URLs generated by the backend lost the port and used the wrong scheme when the installation is served on a non-standard port or over plain HTTP.</li>
+<li><strong>Oracle, saving 3D scenes</strong>: saving failed because of a reserved parameter name and of numeric value conversion. Both fixed, together with the handling of quoted lowercase column names.</li>
+<li><strong>Oracle, OData exposure</strong>: columns were forced to uppercase instead of using the physical name declared in the metadata, making entities with mixed-case names unreachable.</li>
+<li><strong>PostgreSQL and Oracle, lookups in charts and grouping</strong>: the descriptive field of a lookup was not resolved from the logical name to the physical one, and grouping showed empty or wrong values.</li>
+<li><strong>Chatbot, missing confirmations</strong>: in four places the confirmation prompt never appeared because of a malformed call; in two of them the deletion (chat history and sessions) happened without asking anything. Every confirmation now goes through the same path and, on error, the answer is &quot;cancel&quot;.</li>
+<li><strong>Metadata import</strong>: routes whose database field is empty — that is, those using the application's default database — could not be imported, and the error suggested a permissions problem or the wrong database.</li>
+<li><strong>3D viewer</strong>: the scene occupied a horizontal band instead of the full height of the page.</li>
+<li><strong>UI, grid over a themed background</strong>: the area below the last row let the page background show through, making the grid look punctured. The grid surface now follows the theme, in light and dark.</li>
+</ul>
+<h2 id="recommended-operational-updates-for-upgrades">🔧 Recommended operational updates for upgrades</h2>
+<ol>
+<li><strong>Review <code>appsettings.json</code></strong> after the upgrade: the new keys have conservative defaults and need no action, but this is a good moment to go through them.</li>
+<li><strong>Performance Inspector</strong>: set <code>AppSettings:enablePerformanceInspector</code> to <code>true</code> to enable it; it stays off if the key is absent.</li>
+<li><strong>Webhook Hub</strong>: nothing to do to make it reachable. Tables, administrative routes and menu entries — gathered in a &quot;Webhook Hub&quot; submenu under Administration — are created on the first menu load, both on a fresh installation and when upgrading from an earlier version. What remains is configuring the integration: outbound takes three rows (the endpoint with target URL, shared secret, timeout and retry policy; the event; the subscription linking them), inbound takes an endpoint with <code>inbound</code> direction and a routing rule. The signature travels in the <code>X-Wuic-Signature</code> header; the full procedure is in the &quot;Webhook Hub&quot; page of the in-app documentation.</li>
+<li><strong>Theme Builder</strong>: the themes table is created on the first save. If you use custom themes, check the Excel export of a grid to confirm the colors are the expected ones.</li>
+<li><strong>Chatbot</strong>: the new actions are available after restarting the RAG engine; irreversible operations require confirmation and cannot be applied without it.</li>
+<li><strong>Linux behind a reverse proxy</strong>: if the installation answers on a non-standard port or over plain HTTP, regenerate the nginx configuration or manually align the existing vhost to <code>proxy_set_header Host $http_host;</code> and <code>proxy_set_header X-Forwarded-Proto $scheme;</code>. Upgrades do not rewrite an existing vhost.</li>
+</ol>
+
+</article>
+</body>
+</html>
