@@ -701,3 +701,20 @@ sessione senza utente non viene mai risolto. Fix: `additionalDirectories`
 `KonvergenceCore/.claude/settings.local.json`; i prompt dei job del 6/9 e 10/9
 hanno il fallback CLI `gaql` e scrivono i file argomenti in
 `scripts/mcp/tmp/` (ignorata da git). Sessione bloccata archiviata.
+
+### Promozione 400 EUR — verificata in Fatturazione > Promozioni il 04/09/2026
+
+- Coupon `4CJEL-RHC4F-UGXT`, "Ricevi un credito di 400,00 EUR a fronte di una
+  spesa di 400,00 EUR". Stato **Utilizzato: completa altri requisiti** (= codice
+  gia' applicato all'account il 30/08/2026, credito non ancora maturato).
+- Requisito: spesa di 400 EUR entro il **29/10/2026**. Avanzamento al 4/9:
+  **25,46 EUR** (il contatore e' in ritardo di ~1 giorno sulla spesa reale).
+  Servono ~6,8 EUR/giorno da qui alla scadenza.
+- Una volta maturato, il credito va **speso entro 60 giorni**: non mettere in
+  pausa tutto quando arriva.
+- Nessuna azione richiesta dalle mail "Richiedi l'offerta" di Google: sono
+  solleciti sulla stessa promozione (la campagna Display citata non e' un
+  requisito, conta la spesa dell'account).
+- Nota browser: la pagina Promozioni non si legge dal browser controllato via
+  MCP (dialog "Turn off ad blockers" e app ferma, anche senza blocker attivo):
+  leggerla da una tab normale con Adblock Plus disattivato per ads.google.com.
