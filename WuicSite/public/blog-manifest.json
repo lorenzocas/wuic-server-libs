@@ -1,7 +1,26 @@
 {
-  "generatedAt": "2026-09-03T17:33:28.150Z",
-  "count": 14,
+  "generatedAt": "2026-09-04T08:57:05.243Z",
+  "count": 15,
   "posts": [
+    {
+      "slug": "dpo-first-shot-trajectory-metrics",
+      "title": "The metric was wrong, and so was the training signal: rebuilding DPO around the first move",
+      "date": "2026-09-04",
+      "author": "Lorenzo Castrico",
+      "description": "Our last DPO post ended with a fine-tune that failed its own gate on the metric it was trained for. A reader replied with two criticisms: the preference pairs were teaching recovery instead of first-shot correctness, and pass/fail was hiding everything that matters about a trajectory. Both were right. Here is the rebuilt dataset, the four metrics that replaced pass/fail, an honest result that is smaller and stranger than we hoped — and the measurement of our own noise floor that invalidated a conclusion we had already published.",
+      "tags": [
+        "dpo",
+        "fine-tuning",
+        "llm",
+        "evaluation",
+        "metrics",
+        "agentic",
+        "ollama",
+        "statistics"
+      ],
+      "readingMinutes": 8,
+      "sourcePath": "assets/blog/dpo-first-shot-trajectory-metrics.md"
+    },
     {
       "slug": "workflow-engine-graph-source-of-truth",
       "title": "The graph is the source of truth: shipping an embeddable workflow engine",
@@ -43,12 +62,12 @@
       "title": "Running the WUIC assistant on a local LLM: Ollama, an MCP server, and a free agentic VS Code",
       "date": "2026-06-14",
       "author": "Lorenzo Castrico",
-      "description": "We moved the generative half of our RAG chatbot off a paid cloud API and onto a local model served by Ollama on a GPU box — and exposed the same WUIC knowledge to Cline and Continue in VS Code through a tiny MCP server. This is the architecture, the one hard problem (tool-calling), the measured results, and an honest accounting of what a local LLM costs you in quality and latency to save you in money and privacy.",
+      "description": "We moved the generative half of our RAG chatbot off a paid cloud API and onto a local model served by Ollama on a GPU box — and exposed the same WUIC knowledge to VS Code through a tiny MCP server, which eventually grew into our own downloadable extension. This is the architecture, the one hard problem (tool-calling), the measured results, and an honest accounting of what a local LLM costs you in quality and latency to save you in money and privacy.",
       "tags": [
         "llm",
         "ollama",
         "mcp",
-        "cline",
+        "vscode",
         "continue",
         "local-llm",
         "rag",
@@ -56,7 +75,7 @@
         "architecture",
         "ai"
       ],
-      "readingMinutes": 11,
+      "readingMinutes": 12,
       "sourcePath": "assets/blog/local-llm-ollama-mcp-agentic-vscode.md"
     },
     {

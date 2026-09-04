@@ -6,7 +6,7 @@ tags: crm, opensource, wuic, selfhosted
 canonical_url: https://wuic-framework.com/blog/crmapp-free-crm-on-wuic
 ---
 
-CrmApp is the first of the three **free distributions** we ship on top of WUIC. It runs on your own Windows server, talks to your own SQL Server, and uses the WUIC framework runtime under a bundled host-binding license — which means you don't need to buy anything to run it. The download is a single `CrmApp-iis-v1.5.0-with-dbs.zip` archive on the [Downloads page](https://wuic-framework.com/downloads#free-apps): unzip, point IIS at the folder, restore the two shipped databases, you're live.
+CrmApp is the first of the three **free distributions** we ship on top of WUIC. It runs on your own Windows server, talks to your own SQL Server, and uses the WUIC framework runtime under a bundled host-binding license — which means you don't need to buy anything to run it. The download is a single `CrmApp-iis-v1.7.0-with-dbs.zip` archive on the [Downloads page](https://wuic-framework.com/downloads#free-apps): unzip, point IIS at the folder, restore the two shipped databases, you're live.
 
 This post covers three things:
 
@@ -51,7 +51,7 @@ It does NOT pay off if you're a 200-person sales org that needs Salesforce-tier 
 
 ## How to install (10 minutes, honestly)
 
-1. Download `CrmApp-iis-v1.5.0-with-dbs.zip` from the [Downloads page](https://wuic-framework.com/downloads#free-apps)
+1. Download `CrmApp-iis-v1.7.0-with-dbs.zip` from the [Downloads page](https://wuic-framework.com/downloads#free-apps)
 2. Unzip into `C:\inetpub\wwwroot\CrmApp`
 3. Restore the two `.bak` files shipped in the `db\` folder (`data.bak` + `metadata.bak`) to your SQL Server — the bundled `INSTALL.md` has the exact `RESTORE DATABASE` statements. SQL Server 2017 or later; Express edition is enough
 4. Edit `appsettings.json` and set the two connection strings to your SQL Server instance
@@ -70,6 +70,6 @@ You can still extend CrmApp **without** recompiling the app binary: add new meta
 
 ## Get it
 
-- **Download**: [Downloads → Free apps → CrmApp](https://wuic-framework.com/downloads#free-apps) — current release is **v1.5.0**
+- **Download**: [Downloads → Free apps → CrmApp](https://wuic-framework.com/downloads#free-apps) — current release is **v1.7.0**
 - **Try WUIC first**: the framework that powers CrmApp has a live sandbox at [demo.wuic-framework.com](https://demo.wuic-framework.com/) if you want to feel the metadata-driven UI before installing anything
 - **Want to recompile?** See [Pricing](https://wuic-framework.com/pricing) — the Developer tier unlocks the framework source and the right to ship recompiled CrmApp binaries inside your products

@@ -12,7 +12,7 @@ This post covers what's in the box, who tends to install this kind of thing, and
 
 ## What ships in the free distribution
 
-Download is `FlottaMezzi-iis-v1.5.0-with-dbs.zip` on the [Downloads page](https://wuic-framework.com/downloads#free-apps). Inside:
+Download is `FlottaMezzi-iis-v1.7.0-with-dbs.zip` on the [Downloads page](https://wuic-framework.com/downloads#free-apps). Inside:
 
 ### Registry & ownership
 
@@ -86,7 +86,7 @@ It does NOT pay off if:
 
 Same flow as the other free apps:
 
-1. Download `FlottaMezzi-iis-v1.5.0-with-dbs.zip` from [Downloads](https://wuic-framework.com/downloads#free-apps)
+1. Download `FlottaMezzi-iis-v1.7.0-with-dbs.zip` from [Downloads](https://wuic-framework.com/downloads#free-apps)
 2. Unzip into `C:\inetpub\wwwroot\Flotta`
 3. Restore the two `.bak` files shipped in the `db\` folder (`data.bak` + `metadata.bak`) — SQL Server 2017 or later, Express is enough; the bundled `INSTALL.md` has the exact `RESTORE DATABASE` statements
 4. Edit `appsettings.json` for the two connection strings, plus your `GoogleMaps:ApiKey` for the map
@@ -102,10 +102,10 @@ Identical to the other two free apps:
 
 The free ZIP gives you the ready-to-run binary (`FlottaMezzi.dll`) with the embedded host-binding `.lic` that authorizes the framework runtime. The source ZIP gives you the app's C# — but recompiling it locally produces a binary with a different identity (different strong-name PKT, no embedded `WUIC.HostBindingLicense` resource — we don't ship the .snk or the RSA private key that signs the .lic), so the framework stops recognizing the host as authorized and falls back to the standard fingerprint check.
 
-You can extend FlottaMezzi without recompiling the binary: add metadata via SQL, add custom Angular components, add Stimulsoft reports, add scheduled jobs in the `scheduler` table, change the Maps key or connection strings in `appsettings.json`. Adding a new controller (say, a `FuelCardController.cs` to integrate DKV) requires recompiling `FlottaMezzi.dll`, so that crosses the license line.
+You can extend FlottaMezzi without recompiling the binary: add metadata via SQL, add custom Angular components, add Stimulsoft reports, add scheduled jobs in the `scheduler` table, change the Maps key or connection strings in `appsettings.json`. Adding a new controller (say, to integrate DKV fuel-card imports) means changing the app's C# and recompiling `FlottaMezzi.dll`, so that crosses the license line.
 
 ## Get it
 
-- **Download**: [Downloads → Free apps → FlottaMezzi](https://wuic-framework.com/downloads#free-apps) — current release is **v1.5.0**
+- **Download**: [Downloads → Free apps → FlottaMezzi](https://wuic-framework.com/downloads#free-apps) — current release is **v1.7.0**
 - **Try WUIC first**: the framework underneath has a live sandbox at [demo.wuic-framework.com](https://demo.wuic-framework.com/)
 - **Need fuel-card integrations or white-label trackers?** See [Pricing](https://wuic-framework.com/pricing) — the Developer tier unlocks the framework source and the right to ship recompiled FlottaMezzi binaries inside your products

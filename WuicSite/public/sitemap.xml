@@ -2209,6 +2209,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://wuic-framework.com/blog/dpo-first-shot-trajectory-metrics</loc>
+    <lastmod>2026-09-04</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://wuic-framework.com/blog/workflow-engine-graph-source-of-truth</loc>
     <lastmod>2026-07-11</lastmod>
     <changefreq>monthly</changefreq>

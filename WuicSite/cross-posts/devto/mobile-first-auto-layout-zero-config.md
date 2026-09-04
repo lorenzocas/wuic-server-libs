@@ -69,7 +69,13 @@ export class DeviceAwarenessService {
 
 When the viewport crosses the breakpoint, the observable emits, the grid recompiles its row template, and the same `<p-table>` re-renders as cards. No reload, no double-fetch — the data is already in the component's `records` array.
 
-Honesty corner: this is the **second** implementation. The first one swapped the entire subtree — `<p-table>` on desktop, a separate `*ngComponentOutlet` card list on mobile. It worked in the demo and then bit us: input propagation into JIT-compiled components inside `ngComponentOutlet` was unreliable, and the parallel code path meant every grid feature (virtualization, conditional styling, custom cell templates) had to be implemented twice. Unifying everything under the one row-template pipeline deleted the whole bug class. The public `WidgetDefinition` API still exposes a `mobileCardTemplate` hook for custom card markup — see the framework's responsive-layout docs for the variables available in its scope.
+### Customizing the card: `mobileCardTemplate`
+
+The default card is built for you — an action-button row on top, then one label/value row per visible column, reusing the exact same cell renderers as the desktop grid (a lookup link, an image thumbnail, a colour swatch all render the way they do in a table cell). For most back-office screens that's the whole job.
+
+When you want a different card layout, the public `WidgetDefinition` API exposes a `mobileCardTemplate` hook — an Angular template string that replaces the card body. It's compiled at runtime through the same `ɵcompileComponent` pipeline as the row template and injected into the card cell, so inside it you have the grid's scope: `rowData` for the current record, the `columns` list, `metaInfo`, and the same helper pipes the default uses (`formatGridViewValue`, `visibleFieldList`, the cell-class helpers). One thing to know up front: it's set at the host level, so it applies to every grid in the app — it's a global card style, not a per-route override.
+
+The full list of variables available in the template's scope is in the [responsive-layout docs](https://wuic-framework.com/docs/responsive-mobile-layout).
 
 ### Edit-form: CSS-only reflow (SCSS)
 
@@ -98,6 +104,8 @@ The edit form is the opposite call. `<wuic-parametric-dialog>` already builds a 
 The `!important` is defensive: field widths come from `mc_ui_size_width` per-column (a designer-saved value rendered as inline styles) and the media query has to win on small screens. The same defensive rule lives in `field-editor.component.scss` so it applies whether the field is hosted directly or inside a wrapper.
 
 Total mobile-specific code for the edit form: a few dozen lines of SCSS (stacking, tab-list scroll, compact toolbar). No TypeScript.
+
+That covers the automatic reflow. When a screen needs a genuinely bespoke form — grouped panels, a custom header, fields laid out around an image — the edit dialog takes a full custom template too: set `md_edit_template` on the route and `<wuic-parametric-dialog>` renders your Angular form markup instead of the auto-generated field layout, compiled at runtime. Unlike the list's `mobileCardTemplate` (which is host-wide), this one is **per-route**, so each screen opts in independently; `md_detail_template` does the same for the read-only detail view. You own that markup — including how it reflows on a phone — so the automatic stacking above applies to the default layout, not to a template you hand-write.
 
 Why the asymmetry? Because the list needs *different DOM* per viewport — cells versus cards — which is a template problem, while the form needs the *same DOM in a different flow* — which is a CSS problem. The right answer was different for each.
 
