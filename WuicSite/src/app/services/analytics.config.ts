@@ -18,7 +18,7 @@
  */
 
 /** ID conversione Google Ads. Placeholder = feature disattivata. */
-export const ADS_CONVERSION_ID = 'AW-XXXXXXXXXX';
+export const ADS_CONVERSION_ID = 'AW-18418312407';
 
 /**
  * Label delle conversion action per goal (la parte dopo lo slash del
@@ -27,10 +27,10 @@ export const ADS_CONVERSION_ID = 'AW-XXXXXXXXXX';
  * Le CHIAVI combaciano con i nomi-evento già usati nelle CTA (start.ts, ecc.).
  */
 export const CONVERSION_LABELS: Record<string, string> = {
-  sandbox_open: '',    // demo live aperta
-  download_click: '',  // click su download ZIP
-  buy_click: '',       // apertura flusso acquisto (pricing)
-  start_cta: '',       // CTA principale su /start
+  sandbox_open: 'oP6gCMzqzuocENfJxM5E',    // demo live aperta   (Ads: "Clic in uscita", 5 EUR)
+  download_click: '4wDuCKvqzuocENfJxM5E',  // click su download  (Ads: "Registrazione", 15 EUR)
+  buy_click: 'djlmCKjqzuocENfJxM5E',       // apertura checkout  (Ads: "Inizio pagamento", 60 EUR)
+  start_cta: '0GYKCM_qzuocENfJxM5E',       // CTA su /start      (Ads: "Visualizzazione pagina", 2 EUR)
 };
 
 /** True quando l'ID Ads è configurato per davvero (non il placeholder). */
