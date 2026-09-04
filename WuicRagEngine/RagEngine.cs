@@ -489,6 +489,15 @@ public sealed class RagEngine : IDisposable
                     ["temperature"] = TemperatureCfg(),
                     ["messages"] = oaiMessages,
                 };
+                // Modelli "reasoning" (Qwen3.6/3.8, o-series, ...) spendono centinaia di
+                // token di ragionamento prima della risposta: misurato su Qwen3.8-27B,
+                // 214 token e 5.3s contro i 15 token / 0.3s di un modello non-reasoning,
+                // a parita' di risposta finale. Con `reasoning_effort: none` la stessa
+                // richiesta torna a 15 token / 0.9s (verificato via /v1 su Ollama 0.32.12).
+                // Vuoto = header non inviato -> comportamento invariato per i modelli
+                // che non conoscono il parametro (alcuni provider rispondono 400).
+                string effort = ReasoningEffortCfg();
+                if (!string.IsNullOrWhiteSpace(effort)) body["reasoning_effort"] = effort;
                 if (oaiTools.Count > 0)
                 {
                     body["tools"] = oaiTools;
@@ -1838,6 +1847,16 @@ public sealed class RagEngine : IDisposable
             t >= 0 && t <= 1)
             return t;
         return 0.0;
+    }
+
+    /// <summary>
+    /// `reasoning_effort` da inviare nel body OpenAI-compatible (vuoto = non inviato).
+    /// Valori tipici: "none" per spegnere il ragionamento, "low"/"medium"/"high" per dosarlo.
+    /// </summary>
+    private static string ReasoningEffortCfg()
+    {
+        string? raw = Environment.GetEnvironmentVariable("WUIC_RAG_REASONING_EFFORT");
+        return string.IsNullOrWhiteSpace(raw) ? string.Empty : raw.Trim();
     }
 
     private static string BuildProposedAction(string kind, JsonElement input)
