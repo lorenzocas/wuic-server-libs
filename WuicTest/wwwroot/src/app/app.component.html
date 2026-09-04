@@ -13,62 +13,25 @@
 <wuic-first-run-wizard (complete)="onFirstRunComplete()"></wuic-first-run-wizard>
 
 <div class="app-shell">
-    <header class="app-shell-header">
-        <div class="app-shell-menu">
-            <ng-container *ngIf="metaMenuComponent" [ngComponentOutlet]="metaMenuComponent"></ng-container>
-        </div>
-        @if (showRightHeaderBlock) {
+    <!-- Header shell: layout, stili token-based e theme selector vivono nel
+         componente lib <wuic-app-header>. L'host proietta solo i pezzi lazy
+         (menu, notification bell) e l'azienda switcher; le install ereditano
+         i miglioramenti header aggiornando la lib, senza ri-clonare la shell. -->
+    <wuic-app-header class="app-shell-header" [showWidgets]="showRightHeaderBlock">
+        <!-- showUserArea=false: l'identita' utente (bandiera/nome/logout) vive
+             ora nel <wuic-user-menu> integrato nell'app-header, il menubar
+             resta pura navigazione. -->
+        <ng-container *ngIf="metaMenuComponent" [ngComponentOutlet]="metaMenuComponent"
+            [ngComponentOutletInputs]="metaMenuInputs"></ng-container>
         <!-- Multi-tenant azienda switcher: widget standalone self-contained.
              Visibilita' gestita internamente al widget (early-return per non-
-             superadmin / flag off) via `:host([hidden])`. Nessun wrapper
-             esterno: l'host element collassa interamente quando non applicabile. -->
-        <wuic-azienda-switcher></wuic-azienda-switcher>
-        <div class="app-shell-theme">
-            <div class="app-shell-theme-card border-1 border-300 border-round p-3 surface-100 shadow-2">
-                <div class="app-shell-theme-select mb-2">
-                    <p-select [options]="availableThemes" optionLabel="label" optionValue="value"
-                        [ngModel]="selectedTheme" (ngModelChange)="onThemeChange($event)"
-                        [style]="{ width: '100%', height: '35px' }" placeholder="Tema" appendTo="body">
-                        <ng-template #selectedItem let-selectedOption>
-                            @if (selectedOption) {
-                            <div class="theme-select-item">
-                                <span class="theme-dot" [style.backgroundColor]="selectedOption.primaryHex"></span>
-                                <span>{{ selectedOption.label }}</span>
-                            </div>
-                            } @else {
-                            <span>Tema</span>
-                            }
-                        </ng-template>
-                        <ng-template #item let-item>
-                            <div class="theme-select-item">
-                                <span class="theme-dot" [style.backgroundColor]="item.primaryHex"></span>
-                                <span>{{ item.label }}</span>
-                            </div>
-                        </ng-template>
-                    </p-select>
-                </div>
-                <div class="app-shell-notification">
-                    <ng-container *ngIf="notificationBellComponent"
-                        [ngComponentOutlet]="notificationBellComponent"></ng-container>
-                </div>
-                <div class="app-shell-theme-icon text-xl mb-3">
-                    @if (isDarkMode) {
-                    🌚
-                    } @else {
-                    🌞
-                    }
-                </div>
-                <div class="app-shell-theme-switch"
-                    [pTooltip]="isHighContrastTheme() ? ('La variante chiaro/scuro e inclusa nella scelta del tema ad alto contrasto dal dropdown.') : null"
-                    tooltipPosition="bottom">
-                    <p-toggleswitch [ngModel]="isDarkMode" (ngModelChange)="toggleLightDark()"
-                        [disabled]="isHighContrastTheme()"
-                        [ariaLabel]="'Tema scuro'" />
-                </div>
-            </div>
+             superadmin / flag off) via `:host([hidden])`. -->
+        <wuic-azienda-switcher wuicHeaderExtra></wuic-azienda-switcher>
+        <div wuicHeaderNotifications class="app-shell-notification">
+            <ng-container *ngIf="notificationBellComponent"
+                [ngComponentOutlet]="notificationBellComponent"></ng-container>
         </div>
-        }
-    </header>
+    </wuic-app-header>
     @if (showRightHeaderBlock) {
     <main id="app-main" class="app-shell-content" role="main">
         <router-outlet />

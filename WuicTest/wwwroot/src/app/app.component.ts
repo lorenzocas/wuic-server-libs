@@ -4,9 +4,6 @@ import { Meta, Title, DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { filter } from 'rxjs/operators';
 import { utility } from './classes/utility';
 import { CommonModule, NgClass, NgComponentOutlet, NgFor, NgIf, NgStyle, DatePipe, DecimalPipe, AsyncPipe, CurrencyPipe, PercentPipe, JsonPipe, SlicePipe } from '@angular/common';
-import { ToggleSwitchModule } from 'primeng/toggleswitch';
-import { TooltipModule } from 'primeng/tooltip';
-import { SelectModule } from 'primeng/select';
 import { FormsModule } from '@angular/forms';
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
@@ -26,11 +23,6 @@ import { environment as appSettings } from './environments/environment';
 import { DialogService } from 'primeng/dynamicdialog';
 
 import { PrimeNG } from 'primeng/config';
-import Aura from '@primeuix/themes/aura';
-import Lara from '@primeuix/themes/lara';
-import Nora from '@primeuix/themes/nora';
-import Material from '@primeuix/themes/material';
-import { updatePrimaryPalette, usePreset } from '@primeuix/styled';
 // IMPORT da `wuic-framework-lib-dev` (alias TS, vedi tsconfig.json `paths`)
 // e NON dai path relativi `./wuic-bridges/public` (vietato dalla regola 24 di
 // AGENTS.md + skill app-creation). Motivo: altri componenti dell'app importano
@@ -38,12 +30,11 @@ import { updatePrimaryPalette, usePreset } from '@primeuix/styled';
 // Angular tratta i due specifier come moduli distinti -> duplicazione
 // component IDs -> NG0912. Il path alias e il path relativo risolvono allo
 // STESSO file ma TS li mappa a record diversi nel module map.
-import { DataRepeaterComponent, DataSourceComponent, WuicRagChatbotFabComponent, LazyFirstRunWizardComponent, WuicErrorDialogComponent, WuicAziendaSwitcherComponent } from 'wuic-framework-lib-dev';
+import { DataRepeaterComponent, DataSourceComponent, WuicRagChatbotFabComponent, LazyFirstRunWizardComponent, WuicErrorDialogComponent, WuicAziendaSwitcherComponent, AppHeaderComponent } from 'wuic-framework-lib-dev';
 
 import {
   WtoolboxService, MetadataProviderService, GlobalHandler,
-  TranslationManagerService, AuthSessionService, getThemeOptions,
-  PRIMARY_PALETTES, ThemeOption, LicenseFeatureService
+  TranslationManagerService, AuthSessionService, LicenseFeatureService
 } from './wuic-bridges/core';
 import { ImageWrapperComponent } from './wuic-bridges/ui';
 import { CustomListComponent } from './component/custom-list/custom-list.component';
@@ -51,26 +42,17 @@ import { CustomListComponent } from './component/custom-list/custom-list.compone
 @Component({
   selector: 'app-root',
   imports: [
-    CommonModule, RouterOutlet, NgComponentOutlet, ToggleSwitchModule, SelectModule,
-    FormsModule, DialogModule, ButtonModule, TranslateModule, TooltipModule, ToastModule,
+    CommonModule, RouterOutlet, NgComponentOutlet,
+    FormsModule, DialogModule, ButtonModule, TranslateModule, ToastModule,
     ConfirmDialogModule, FieldsetModule, WuicRagChatbotFabComponent, LazyFirstRunWizardComponent,
-    WuicErrorDialogComponent, WuicAziendaSwitcherComponent,
+    WuicErrorDialogComponent, WuicAziendaSwitcherComponent, AppHeaderComponent,
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
   providers: [MessageService, ConfirmationService, DialogService, GlobalHandler]
 })
 export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
-  private static readonly ThemeStorageKey = 'wuic-selected-theme';
-  private static readonly ThemeModeStorageKey = 'wuic-theme-mode';
-  private readonly themePresets: Record<string, any> = {
-    aura: Aura,
-    lara: Lara,
-    nora: Nora,
-    material: Material
-  };
   title = 'wuic-test';
-  isDarkMode = false;
 
   // Error dialog state moved into the lib `<wuic-error-dialog>` component
   // (skill crash-reporting Commit 9b — Opzione B). Il consumer non subscribe
@@ -80,15 +62,14 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
   busyVisible: boolean = false;
   private busySub?: Subscription;
 
-  selectedTheme = 'aura-blue';
-  availableThemes: ThemeOption[] = getThemeOptions();
-
   unreadNotificationsCount = 0;
   private loggedUserId: number | null = null;
   private notificationsRealtimeUserId: number | null = null;
   private authSession: AuthSessionService | null = null;
   metaMenuComponent: any = null;
   notificationBellComponent: any = null;
+  /** Input per l'outlet del meta-menu: user-area spenta (vive in wuic-user-menu). */
+  readonly metaMenuInputs = { showUserArea: false };
 
   constructor(
     public messageService: MessageService,
@@ -417,34 +398,8 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     void this.injector.get(LicenseFeatureService).refresh();
 
     void this.loadShellWidgets();
-    const savedTheme = localStorage.getItem(AppComponent.ThemeStorageKey);
-    if (savedTheme && this.availableThemes.some(t => t.value === savedTheme)) {
-      this.selectedTheme = savedTheme;
-    }
-    const savedThemeMode = localStorage.getItem(AppComponent.ThemeModeStorageKey);
-    if (savedThemeMode === 'dark') {
-      document.documentElement.classList.add('theme-dark');
-      this.isDarkMode = true;
-    } else if (savedThemeMode === 'light') {
-      document.documentElement.classList.remove('theme-dark');
-      this.isDarkMode = false;
-    } else {
-      const darkEnabled = document.documentElement.classList.contains('theme-dark') ||
-        document.body?.classList?.contains('theme-dark') === true;
-      if (darkEnabled) {
-        document.documentElement.classList.add('theme-dark');
-        this.isDarkMode = true;
-      } else {
-        document.documentElement.classList.remove('theme-dark');
-        this.isDarkMode = false;
-      }
-    }
-
-    // Persist effective startup values so downstream consumers can always read them.
-    localStorage.setItem(AppComponent.ThemeStorageKey, this.selectedTheme);
-    localStorage.setItem(AppComponent.ThemeModeStorageKey, this.isDarkMode ? 'dark' : 'light');
-
-    this.applyThemePreset(this.selectedTheme);
+    // Bootstrap tema (restore localStorage + usePreset) spostato nella lib:
+    // lo esegue <wuic-theme-selector> al proprio ngOnInit.
 
     this.primeng.zIndex = {
       modal: 1100,    // dialog, sidebar
@@ -503,101 +458,9 @@ export class AppComponent implements OnInit, AfterContentInit, OnDestroy {
     }
   }
 
-  toggleLightDark() {
-    // Guard: quando un tema ad alto contrasto e' selezionato, la variante
-    // chiaro/scuro e' determinata dalla scelta del tema stesso nel dropdown.
-    if (this.isHighContrastTheme()) {
-      return;
-    }
-    const root = document?.documentElement;
-    const body = document?.body;
-    if (root?.classList.contains('theme-dark')) {
-      root?.classList.remove('theme-dark');
-      body?.classList.remove('theme-dark');
-      this.isDarkMode = false;
-      localStorage.setItem(AppComponent.ThemeModeStorageKey, 'light');
-    } else {
-      root?.classList.add('theme-dark');
-      body?.classList.add('theme-dark');
-      this.isDarkMode = true;
-      localStorage.setItem(AppComponent.ThemeModeStorageKey, 'dark');
-    }
-  }
-
-  /**
-   * True quando il tema correntemente selezionato e' una variante accessibility
-   * ad alto contrasto. Usato dal template per disabilitare il toggle dark/light.
-   */
-  isHighContrastTheme(): boolean {
-    const selected = this.availableThemes.find(t => t.value === this.selectedTheme);
-    return !!selected?.isHighContrast;
-  }
-
-  onThemeChange(themeName: string) {
-    if (!themeName) {
-      return;
-    }
-    this.selectedTheme = themeName;
-    localStorage.setItem(AppComponent.ThemeStorageKey, themeName);
-    this.applyThemePreset(themeName);
-  }
-
-  private applyThemePreset(themeName: string) {
-    const selected = this.availableThemes.find(t => t.value === themeName);
-    if (!selected) {
-      this.setHighContrastMode(false);
-      return;
-    }
-
-    const preset = this.themePresets[selected.preset];
-    if (!preset) {
-      this.setHighContrastMode(false);
-      return;
-    }
-
-    // CRITICO: applica `theme-dark` PRIMA di `usePreset()`. Quando PrimeNG
-    // installa il preset ricalcola le CSS var dark/light basandosi sul
-    // matching del `darkModeSelector: '.theme-dark'`.
-    if (selected.isHighContrast && selected.highContrastMode) {
-      const root = document?.documentElement;
-      const body = document?.body;
-      const wantsDark = selected.highContrastMode === 'dark';
-      if (wantsDark) {
-        root?.classList.add('theme-dark');
-        body?.classList.add('theme-dark');
-        this.isDarkMode = true;
-        localStorage.setItem(AppComponent.ThemeModeStorageKey, 'dark');
-      } else {
-        root?.classList.remove('theme-dark');
-        body?.classList.remove('theme-dark');
-        this.isDarkMode = false;
-        localStorage.setItem(AppComponent.ThemeModeStorageKey, 'light');
-      }
-    }
-
-    usePreset(preset);
-
-    const palette = PRIMARY_PALETTES[selected.primary];
-    if (palette) {
-      updatePrimaryPalette(palette);
-    }
-
-    this.setHighContrastMode(!!selected.isHighContrast);
-  }
-
-  private setHighContrastMode(enabled: boolean): void {
-    const root = document?.documentElement;
-    const body = document?.body;
-    root?.classList.toggle('theme-high-contrast', enabled);
-    body?.classList.toggle('theme-high-contrast', enabled);
-    if (enabled) {
-      root?.setAttribute('data-contrast-mode', 'high');
-      body?.setAttribute('data-contrast-mode', 'high');
-    } else {
-      root?.removeAttribute('data-contrast-mode');
-      body?.removeAttribute('data-contrast-mode');
-    }
-  }
+  // toggleLightDark / isHighContrastTheme / onThemeChange / applyThemePreset /
+  // setHighContrastMode: spostati nella lib dentro <wuic-theme-selector>
+  // (component/theme-selector) — niente duplicazione tra consumer.
 
   // formatParameters / formatSqlDetails / copyErrorDetails moved into the
   // lib `<wuic-error-dialog>` component (Commit 9b — Opzione B). Niente

@@ -16,6 +16,9 @@ export { WuicRagChatbotFabComponent } from 'wuic-framework-lib-src/component/rag
 export { LazyFirstRunWizardComponent } from 'wuic-framework-lib-src/component/first-run-wizard/first-run-wizard.lazy.component';
 export { WuicErrorDialogComponent } from 'wuic-framework-lib-src/component/error-dialog/error-dialog.component';
 export { WuicAziendaSwitcherComponent } from 'wuic-framework-lib-src/component/azienda-switcher/azienda-switcher.component';
+export { ThemeSelectorComponent } from 'wuic-framework-lib-src/component/theme-selector/theme-selector.component';
+export { AppHeaderComponent } from 'wuic-framework-lib-src/component/app-header/app-header.component';
+export { UserMenuComponent } from 'wuic-framework-lib-src/component/user-menu/user-menu.component';
 export type { RagSource } from 'wuic-framework-lib-src/service/wuic-rag.service';
 export type { IDataBoundHostComponent } from 'wuic-framework-lib-src/class/IDataBoundHostComponent';
 export { MetaInfo } from 'wuic-framework-lib-src/class/metaInfo';

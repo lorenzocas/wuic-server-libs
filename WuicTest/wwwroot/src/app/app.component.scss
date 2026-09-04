@@ -5,10 +5,6 @@
     overflow: hidden;
 }
 
-.border-1 {
-    border-color: var(--p-menubar-border-color) !important;
-}
-
 .app-shell {
     width: 100%;
     height: 100%;
@@ -17,28 +13,13 @@
     min-height: 0;
 }
 
+// NOTA refactor branch ui-graphic-restyling: gli stili header (.app-shell-header,
+// .app-shell-menu, .app-shell-theme*, .theme-select-item, .theme-dot e gli
+// override ::ng-deep del menubar) sono migrati nel componente lib
+// <wuic-app-header> (component/app-header) — l'host non li duplica piu'.
 .app-shell-header {
-    display: flex;
-    align-items: stretch;
-    gap: 8px;
     flex: 0 0 auto;
     min-height: 0;
-}
-
-.app-shell-menu {
-    flex: 1 1 auto;
-    width: auto;
-    min-width: 0;
-    overflow: visible;
-}
-
-.app-shell-theme {
-    width: 270px;
-    flex: 0 0 270px;
-    border-radius: 5px !important;
-    display: flex;
-    align-items: center;
-    height: 42px;
 }
 
 .app-shell-content {
@@ -64,47 +45,30 @@
     overflow: hidden;
 }
 
+/* NIENTE `overflow-y: auto` + `scrollbar-gutter: stable` qui.
+ *
+ * Insieme facevano riservare al browser 15px di gutter DENTRO il content box,
+ * in permanenza: `clientWidth` restava 15px sotto il border-box e l'intera
+ * catena discendente (wuic-data-repeater -> list-grid -> p-table -> table
+ * container) ereditava quella larghezza ridotta. La griglia sembrava non usare
+ * tutto lo spazio orizzontale.
+ *
+ * Quel gutter non serviva a niente: gli archetipi che passano da
+ * `.repeater-content` gestiscono lo scroll verticale al loro interno (la
+ * list-grid ha il proprio table-container scrollabile), e infatti su tutte le
+ * route misurate — anche a viewport 620px — risultava `scrollHeight ===
+ * clientHeight`, cioe' la scrollbar esterna non compariva mai.
+ *
+ * Se un archetipo futuro dovesse davvero sforare in verticale qui, il
+ * contenuto verrebbe TAGLIATO (la lib mette `overflow: hidden` su
+ * `.repeater-content`): la correzione giusta in quel caso e' dare lo scroll al
+ * contenuto interno dell'archetipo, non ripristinare lo scroll esterno. */
 :host ::ng-deep .app-shell-content .repeater-content {
     flex: 1 1 auto;
     height: 100%;
     min-height: 0 !important;
     max-height: 100%;
-    overflow-y: auto !important;
     overflow-x: hidden !important;
-    scrollbar-gutter: stable;
-}
-
-.app-shell-theme-card {
-    width: 100%;
-    height: 100%;
-    min-height: 50px;
-    padding: 7px !important;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 8px;
-    flex-wrap: nowrap;
-    overflow: hidden;
-}
-
-.app-shell-theme-select {
-    flex: 1 1 auto;
-    min-width: 0;
-    max-width: 10rem;
-    margin-bottom: 0 !important;
-}
-
-.app-shell-theme-icon {
-    flex: 0 0 auto;
-    margin-bottom: 0 !important;
-    display: flex;
-    align-items: center;
-}
-
-.app-shell-theme-switch {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: center;
 }
 
 // NOTA refactor 2026-04-26: tutti gli stili `.first-run-*` (overlay full-screen,
@@ -189,78 +153,6 @@
     margin-top: 0.25rem;
     font-size: 0.75rem;
     opacity: 0.7;
-}
-
-:host ::ng-deep .app-shell-menu .p-menubar {
-    display: flex;
-    align-items: center;
-    flex-wrap: nowrap;
-    overflow: visible !important;
-}
-
-:host ::ng-deep .app-shell-menu .p-menubar-start {
-    flex: 1 1 auto;
-    min-width: 0;
-}
-
-:host ::ng-deep .app-shell-menu .p-menubar-root-list {
-    flex-wrap: nowrap !important;
-    min-width: 0;
-    overflow: auto;
-}
-
-:host ::ng-deep .app-shell-menu .p-menubar-end {
-    flex: 0 0 auto;
-    min-width: 0;
-    margin-inline-start: auto;
-}
-
-:host ::ng-deep .app-shell-menu .wuic-menubar-extra {
-    min-width: 0;
-    max-width: 100%;
-    flex-wrap: nowrap;
-}
-
-:host ::ng-deep .app-shell-menu .wuic-menubar-user {
-    min-width: 0;
-}
-
-:host ::ng-deep .app-shell-theme-select .p-select {
-    width: 100% !important;
-    min-width: 0;
-}
-
-:host ::ng-deep .app-shell-theme-select .p-select-label {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.theme-select-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    min-width: 0;
-}
-
-.theme-dot {
-    width: 0.75rem;
-    height: 0.75rem;
-    border-radius: 999px;
-    border: 1px solid color-mix(in srgb, var(--p-text-color, #334155) 30%, transparent);
-    box-shadow: 0 0 0 1px color-mix(in srgb, #ffffff 60%, transparent) inset;
-    flex: 0 0 auto;
-}
-
-@media (max-width: 1500px) {
-    .app-shell-theme {
-        width: 240px;
-        flex: 0 0 240px;
-    }
-
-    .app-shell-theme-icon {
-        display: none;
-    }
 }
 
 .notification-panel-header-row {

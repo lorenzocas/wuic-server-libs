@@ -9,6 +9,12 @@ const lazyBoundedRepeaterPendingChangesGuard: CanDeactivateFn<any> = async (comp
   return isObservable(result) ? await firstValueFrom(result) : result;
 };
 
+const lazyThemeBuilderPendingChangesGuard: CanDeactivateFn<any> = async (component, currentRoute, currentState, nextState) => {
+  const m = await import('wuic-framework-lib-src/component/theme-builder/theme-builder-pending-changes.guard');
+  const result = m.themeBuilderPendingChangesGuard(component, currentRoute, currentState, nextState);
+  return isObservable(result) ? await firstValueFrom(result) : result;
+};
+
 // Curated descriptions per route: usate da
 // `AppComponent.updateMetaDescriptionForCurrentRoute` per popolare
 // `<meta name="description">` via `@angular/platform-browser` Meta service.
@@ -148,6 +154,17 @@ export const routes: Routes = [
     canMatch: [menuRouteAccessCanMatchGuard, roleRouteCanMatchGuard],
     canActivate: [menuRouteAccessCanActivateGuard, roleRouteCanActivateGuard],
     data: { breadcrumbs: 'appsettings-editor', description: 'AppSettings Editor WUIC: modifica live le configurazioni di appsettings.json con validazione tipo e reload runtime.' }
+  },
+  {
+    // Theme Builder: composizione dei temi custom salvati in `_wuic_theme`.
+    // Il canDeactivate ripristina il tema dell'utente se si esce con
+    // l'anteprima live attiva.
+    path: 'theme-builder',
+    loadComponent: () => import('wuic-framework-lib-src/component/theme-builder/theme-builder.component').then((m) => m.ThemeBuilderComponent),
+    canMatch: [menuRouteAccessCanMatchGuard, roleRouteCanMatchGuard],
+    canActivate: [menuRouteAccessCanActivateGuard, roleRouteCanActivateGuard],
+    canDeactivate: [lazyThemeBuilderPendingChangesGuard],
+    data: { breadcrumbs: 'theme-builder', description: 'Theme Builder WUIC: componi temi personalizzati (colori, tipografia, sfondo) visibili a tutti gli utenti dell installazione.' }
   },
   {
     path: 'rag-chatbot',
