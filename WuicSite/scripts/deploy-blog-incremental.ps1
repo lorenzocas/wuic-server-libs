@@ -24,6 +24,29 @@ $scriptDir = Split-Path -Parent $PSScriptRoot          # .../WuicSite
 $distBrowser = Join-Path $scriptDir 'dist\WuicSite\browser'
 $remote = "${RemoteUser}@${Server}"
 
+# Risoluzione robusta di scp: su questa macchina l'OpenSSH client di Windows non
+# e' installato e `scp` non e' nel PATH di pwsh; l'unico presente e' quello di
+# Git for Windows. Senza questo blocco il deploy builda (minuti) e poi muore
+# sull'upload con "The term 'scp' is not recognized".
+$scp = (Get-Command scp -ErrorAction SilentlyContinue).Source
+if (-not $scp) {
+  # NB: in alcune sessioni pwsh $env:ProgramFiles vale "C:\Program Files (x86)"
+  # (host a 32 bit): senza $env:ProgramW6432 e il path letterale il candidato
+  # Git for Windows a 64 bit non viene mai trovato.
+  foreach ($cand in @(
+      "$env:WINDIR\System32\OpenSSH\scp.exe",
+      "$env:ProgramW6432\OpenSSH\scp.exe",
+      "$env:ProgramW6432\Git\usr\bin\scp.exe",
+      "$env:ProgramFiles\OpenSSH\scp.exe",
+      "$env:ProgramFiles\Git\usr\bin\scp.exe",
+      "${env:ProgramFiles(x86)}\Git\usr\bin\scp.exe",
+      'C:\Program Files\Git\usr\bin\scp.exe')) {
+    if (Test-Path $cand) { $scp = $cand; break }
+  }
+}
+if (-not $scp) { throw 'scp non trovato: installa OpenSSH Client (Impostazioni > Funzionalita facoltative) oppure Git for Windows.' }
+Write-Host "==> scp: $scp" -ForegroundColor DarkGray
+
 if (-not $SkipBuild) {
   Push-Location $scriptDir
   Write-Host '==> generate manifest + sitemap' -ForegroundColor Cyan
@@ -44,7 +67,7 @@ foreach ($p in $localePrefixes) {
   if (-not (Test-Path $localBlog)) { Write-Host "  [skip] $localBlog assente" -ForegroundColor DarkGray; continue }
   $remoteParent = if ($p) { "${SitePath}/$p" } else { $SitePath }
   Write-Host "==> scp blog ($([string]::IsNullOrEmpty($p) ? 'root' : $p))" -ForegroundColor Cyan
-  & scp -r -q $localBlog "${remote}:${remoteParent}/"
+  & $scp -r -q $localBlog "${remote}:${remoteParent}/"
   if ($LASTEXITCODE) { $ok = $false; Write-Host "  [err] scp blog $p exit $LASTEXITCODE" -ForegroundColor Red }
 }
 # File singoli
@@ -52,7 +75,7 @@ foreach ($f in @('blog-manifest.json', 'sitemap.xml')) {
   $lf = Join-Path $distBrowser $f
   if (Test-Path $lf) {
     Write-Host "==> scp $f" -ForegroundColor Cyan
-    & scp -q $lf "${remote}:${SitePath}/$f"
+    & $scp -q $lf "${remote}:${SitePath}/$f"
     if ($LASTEXITCODE) { $ok = $false; Write-Host "  [err] scp $f exit $LASTEXITCODE" -ForegroundColor Red }
   }
 }
@@ -60,7 +83,7 @@ foreach ($f in @('blog-manifest.json', 'sitemap.xml')) {
 $localMd = Join-Path $distBrowser 'assets\blog'
 if (Test-Path $localMd) {
   Write-Host '==> scp assets/blog (.md)' -ForegroundColor Cyan
-  & scp -r -q $localMd "${remote}:${SitePath}/assets/"
+  & $scp -r -q $localMd "${remote}:${SitePath}/assets/"
   if ($LASTEXITCODE) { $ok = $false; Write-Host "  [err] scp assets/blog exit $LASTEXITCODE" -ForegroundColor Red }
 }
 

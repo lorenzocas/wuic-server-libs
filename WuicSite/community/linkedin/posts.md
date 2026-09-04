@@ -1,7 +1,7 @@
 # LinkedIn post drafts — WUIC framework launch
 
-10 post allineati uno-a-uno con il calendario di pubblicazione dev.to (1
-articolo al giorno dal 31 maggio al 9 giugno 2026). Ogni post linka
+11 post allineati uno-a-uno con il calendario di pubblicazione dev.to (1
+articolo al giorno dal 31 maggio al 10 giugno 2026). Ogni post linka
 **all'URL canonico su wuic-framework.com**, non a dev.to — vogliamo il
 SEO juice sul sito ufficiale, dev.to fa solo da volume amplifier.
 
@@ -139,9 +139,9 @@ The download is a single ZIP. Self-host on your own SQL Server. Free unless you 
 
 🇮🇹 FatturazioneElettronica: a free Italian e-invoicing app with SDI integration.
 
-Second free app on WUIC. Invoice editor + CADES-BES signature + XSD validation + four interchangeable SDI providers (DirectPec free, ArubaPec / FatturePec / PecIt commercial) + conservazione pipeline.
+Second free app on WUIC. Invoice editor + CADES-BES signature + XSD validation + five interchangeable SDI providers (DirectPec free, ArubaPec / FatturePec / PecIt / Notarify commercial) + conservazione pipeline.
 
-Free distribution. Bundling rule is MIT-friendly. Runs on your own SQL Server. The post covers the SDI provider abstraction, what we do at edge cases (rejected invoices, late acknowledgements), and where the commercial providers add value over the free DirectPec.
+Free as-shipped — recompile the app from source and you're a customer who needs a WUIC license. Runs on your own SQL Server. The post covers the SDI provider abstraction, what we do at edge cases (rejected invoices, late acknowledgements), and where the commercial providers add value over the free DirectPec.
 
 👉 https://wuic-framework.com/blog/fatturazione-elettronica-free-italian-einvoicing
 
@@ -151,11 +151,11 @@ Free distribution. Bundling rule is MIT-friendly. Runs on your own SQL Server. T
 
 ## Day 10 — 2026-06-09 (FlottaMezzi free)
 
-🚛 FlottaMezzi: a free fleet management app — geolocation, maintenance deadlines, cost rollups.
+🚛 FlottaMezzi: a free fleet management app — geolocation, expiry deadlines, cost rollups.
 
-Third and last of the free apps shipped on WUIC. Vehicle inventory + drivers + service history + maintenance deadlines + fuel/insurance/tax cost rollups + live geolocation + map view of the active fleet.
+Third and last of the free apps shipped on WUIC. Vehicle inventory + drivers + service history + licence/insurance/inspection deadline alerts + maintenance/fuel/accident cost rollups + live geolocation + map view of the active fleet.
 
-The post explains the geolocation pipeline (we don't ship the GPS tracker hardware — there's a small ingestion service that accepts standard NMEA/Traccar formats), and the maintenance-deadline alert that fires before things become urgent.
+The post explains the geolocation feed (we don't ship the GPS tracker hardware — anything that can authenticate and POST a small JSON payload with the vehicle id and lat/long feeds the live map, so any tracker or a plain script works), and the deadline alerts that fire before a licence, insurance or inspection expires.
 
 👉 https://wuic-framework.com/blog/flottamezzi-free-fleet-management
 
@@ -227,3 +227,43 @@ What we'd build differently if we restarted WUIC today, 5 years later:
 What would you build differently in your framework / SaaS / library, in hindsight?
 
 #framework #engineering #dotnet #lowcode
+
+
+## DPO article — 2026-08-18 (teaching-dpo) [written 2026-07]
+
+🧪 We fine-tuned our local coding agent on its own mistakes — and the metric we were optimizing for got worse.
+
+Our VS Code assistant runs a 30B model locally (Ollama, one RTX 4090). It was passing 100% of its curriculum — which meant the curriculum had stopped measuring anything. So we built honest holdout sets, found two silent test-bench contaminations, and used DPO (Direct Preference Optimization) on the assistant's own redirect pairs to teach it to pick the right tool on the first try.
+
+The pre-registered gate said: adopt only if first-shot redirects drop 30%. They went UP 25%. So the base model stayed the default. But the same DPO model won a *different* gate — single-shot tool routing for our in-product chatbot, 96/102 vs 88/102 — and now ships as the chatbot's brain.
+
+The point isn't "we fine-tuned a model." It's: we built a ruler that doesn't lie, fixed the criteria before looking, and let the numbers decide. Twice.
+
+Full story — five OOM crashes, the counterintuitive fix, the two contaminations 👇
+
+👉 https://wuic-framework.com/blog/teaching-a-coding-agent-with-dpo
+
+#llm #finetuning #dpo #localllm #mlops
+
+## Local LLM article — 2026-09-01 (local-llm-ollama-mcp)
+
+> Nota HN: il calendario annotava questo slot come "Show HN", ma le linee guida
+> di Hacker News riservano Show HN a cose provabili, non ai blog post. Se si
+> posta, va fatto come submit normale con titolo descrittivo e non brandizzato.
+> Al 31/08/2026 non risulta alcuna pubblicazione HN mai effettuata.
+
+💸 We moved the generative half of our RAG chatbot off a paid cloud API onto a local model. The interesting part wasn't the model — it was the plumbing.
+
+Retrieval was already local (BM25 + bge-m3 + a fine-tuned reranker, native .NET/ONNX). Generation still called a cloud API with a per-token bill. Swapping it for Ollama was configuration, not surgery: the engine already spoke an OpenAI-compatible dialect.
+
+Then the actual problem showed up. Cloud models return tool calls in a structured field. Our local stack often didn't — it buried the call in the message *content* as raw text, sometimes as a JS object literal with single quotes and `key=value`. The model knew exactly what to do; the plumbing dropped it on the floor. A tolerant parser on our side took routing from unusable to good.
+
+If you keep one sentence: **the weights are capable; the adapter around them is where the work is.**
+
+The side effect turned out to be more useful than the goal — a small MCP server (9 tools now) that gives Cline and Continue in VS Code the same framework knowledge. Free agentic coding assistant that actually knows your codebase, no API key.
+
+Honest accounting of what local costs you in quality and latency 👇
+
+👉 https://wuic-framework.com/blog/local-llm-ollama-mcp-agentic-vscode
+
+#llm #ollama #mcp #localllm #vscode
