@@ -1,0 +1,158 @@
+<div class="model-page">
+  <div class="container">
+
+    <!-- HERO -->
+    <header class="model-hero">
+      <span class="model-eyebrow">Local AI · WUIC Assistant</span>
+      <h1>Run the WUIC coding model locally</h1>
+      <p class="model-lead">
+        <code>{{ modelTag }}</code> is our <strong>DPO fine-tune of qwen3-coder:30b</strong>,
+        trained on the WUIC framework's own tool-use transcripts. Download it from
+        Hugging Face, serve it on your own GPU with Ollama, and drive the WUIC
+        backend and the WUIC Assistant VS Code extension entirely offline — no API
+        calls, no data leaving your machine.
+      </p>
+      <div class="model-cta-row">
+        <a [href]="hfUrl" target="_blank" rel="noopener">
+          <p-button label="Model on Hugging Face" icon="pi pi-download" />
+        </a>
+        <a [href]="vsixUrl">
+          <p-button label="WUIC Assistant (.vsix)" icon="pi pi-microchip-ai" severity="secondary" [outlined]="true" />
+        </a>
+      </div>
+      <p class="model-subnote">
+        Read the story behind it: <a routerLink="/blog/teaching-a-coding-agent-with-dpo">how we trained it with DPO</a>
+        and <a routerLink="/blog/local-llm-ollama-mcp-agentic-vscode">the local Ollama + MCP setup</a>.
+      </p>
+    </header>
+
+    <!-- REQUIREMENTS -->
+    <section class="model-section">
+      <h2>What you need</h2>
+      <div class="model-req-grid">
+        <div class="model-req">
+          <i class="pi pi-microchip"></i>
+          <div><strong>GPU · 24 GB VRAM</strong><span>RTX 4090 class. The Q4_K_M weights use ≈ 19 GB VRAM.</span></div>
+        </div>
+        <div class="model-req">
+          <i class="pi pi-database"></i>
+          <div><strong>~19 GB disk</strong><span>Size of the GGUF (q4_K_M quantization).</span></div>
+        </div>
+        <div class="model-req">
+          <i class="pi pi-bolt"></i>
+          <div><strong>~197 tokens/s</strong><span>MoE 30b-a3b (~3B active params) on a 4090.</span></div>
+        </div>
+        <div class="model-req">
+          <i class="pi pi-server"></i>
+          <div><strong>Ollama</strong><span>Local model server. <a href="https://ollama.com/download" target="_blank" rel="noopener">ollama.com/download</a></span></div>
+        </div>
+      </div>
+      <p-message severity="info" text="Smaller GPU? qwen2.5-coder:14b or gpt-oss:20b run with less VRAM, but are weaker on complex tool schemas." />
+    </section>
+
+    <!-- STEP 1 — DOWNLOAD -->
+    <section class="model-section">
+      <h2><span class="model-step">1</span> Download the model</h2>
+      <p>
+        The GGUF is hosted on Hugging Face at
+        <a [href]="hfUrl" target="_blank" rel="noopener">{{ hfRepo }}</a>. Ollama can
+        pull it directly, then we give it a short local tag so the config below is clean:
+      </p>
+      <pre><code># pull the GGUF straight from Hugging Face
+ollama pull hf.co/{{ hfRepo }}:Q4_K_M
+
+# alias it to a short name (used everywhere below)
+ollama cp hf.co/{{ hfRepo }}:Q4_K_M {{ modelTag }}</code></pre>
+      <p class="model-subnote">Verify it's a tool-calling model: <code>ollama show {{ modelTag }}</code> should list <code>tools</code>.</p>
+    </section>
+
+    <!-- STEP 2 — OLLAMA TUNING -->
+    <section class="model-section">
+      <h2><span class="model-step">2</span> Tune Ollama for the GPU</h2>
+      <p>
+        Set these machine-level environment variables, then restart Ollama. They
+        enable flash attention, quantize the KV cache, and fix a context window
+        that stays fully on-GPU on a 24 GB card:
+      </p>
+      <pre><code># Windows (PowerShell, run once, then restart the Ollama service)
+[Environment]::SetEnvironmentVariable('OLLAMA_FLASH_ATTENTION','1','Machine')
+[Environment]::SetEnvironmentVariable('OLLAMA_KV_CACHE_TYPE','q8_0','Machine')
+[Environment]::SetEnvironmentVariable('OLLAMA_CONTEXT_LENGTH','49152','Machine')
+[Environment]::SetEnvironmentVariable('OLLAMA_KEEP_ALIVE','-1','Machine')
+
+# Linux/macOS equivalent
+export OLLAMA_FLASH_ATTENTION=1
+export OLLAMA_KV_CACHE_TYPE=q8_0
+export OLLAMA_CONTEXT_LENGTH=49152
+export OLLAMA_KEEP_ALIVE=-1</code></pre>
+      <p-message severity="warn" text="Check ollama ps: the PROCESSOR column must read 100% GPU. If it shows a CPU/GPU split, part of the model spilled to CPU (much slower) — lower OLLAMA_CONTEXT_LENGTH (e.g. 32768)." />
+      <p class="model-subnote">Serving on a separate box? Add <code>OLLAMA_HOST=0.0.0.0:11434</code> and open TCP 11434 in the firewall.</p>
+    </section>
+
+    <!-- STEP 3 — BACKEND -->
+    <section class="model-section">
+      <h2><span class="model-step">3</span> Point the WUIC backend at it</h2>
+      <p>
+        In your app's <code>appsettings.json</code>, under <code>AppSettings</code>,
+        set the RAG/chat model to the local Ollama model. This is what the in-product
+        chatbot and the metadata assistant use:
+      </p>
+      <pre><code>{{ '{' }}
+  "AppSettings": {{ '{' }}
+    "rag-use-dotnet-engine": "true",
+    "rag-llm-provider": "ollama",
+    "rag-llm-api-key": "ollama",
+    "rag-llm-default-chat-model": "{{ modelTag }}",
+    "rag-llm-base-url": "http://localhost:11434/v1",
+    "rag-auto-compact-threshold": "24"
+  {{ '}' }}
+{{ '}' }}</code></pre>
+      <p class="model-subnote">
+        Replace <code>localhost</code> with your Ollama host if it runs elsewhere.
+        Verify with <code>GET /api/Rag/Health</code> → <code>status: "ok"</code>.
+      </p>
+    </section>
+
+    <!-- STEP 4 — VS CODE EXTENSION -->
+    <section class="model-section">
+      <h2><span class="model-step">4</span> Install the WUIC Assistant (VS Code)</h2>
+      <p>
+        The WUIC Assistant is an agentic VS Code extension — a chat panel that
+        scaffolds components, routes and metadata patches on your real project
+        files, grounded on the framework. Install the packaged extension:
+      </p>
+      <div class="model-cta-row model-cta-inline">
+        <a [href]="vsixUrl"><p-button label="Download wuic-assistant.vsix" icon="pi pi-download" size="small" /></a>
+      </div>
+      <pre><code># from the folder where you saved it
+code --install-extension wuic-assistant.vsix</code></pre>
+      <p>Then in <strong>Settings → WUIC Assistant</strong> point it at your local model:</p>
+      <pre><code>"wuicAssistant.provider": "ollama",
+"wuicAssistant.ollamaUrl": "http://localhost:11434",
+"wuicAssistant.ollamaModel": "{{ modelTag }}",
+"wuicAssistant.ollamaNumCtx": 49152,
+"wuicAssistant.backendUrl": "http://localhost:5000"</code></pre>
+      <p class="model-subnote">
+        Open the chat from the WUIC Assistant icon in the activity bar. The extension
+        also speaks to the framework's <code>wuic-rag</code> MCP server for
+        codebase-aware answers. It can run against Anthropic instead of Ollama
+        (<code>provider: "anthropic"</code>) if you'd rather use an API key.
+      </p>
+    </section>
+
+    <!-- FOOTER NOTE -->
+    <section class="model-section model-outro">
+      <h2>Fully local, and yours to keep</h2>
+      <p>
+        Once pulled, everything runs on your hardware — the model, the backend, the
+        editor. No prompts, code or metadata leave the machine. The model is an
+        Apache-2.0 derivative of Qwen3-Coder; use it freely.
+      </p>
+      <div class="model-cta-row">
+        <a [href]="hfUrl" target="_blank" rel="noopener"><p-button label="Get the model on Hugging Face" icon="pi pi-external-link" /></a>
+        <a routerLink="/downloads"><p-button label="Browse all downloads" severity="secondary" [outlined]="true" /></a>
+      </div>
+    </section>
+
+  </div>
+</div>

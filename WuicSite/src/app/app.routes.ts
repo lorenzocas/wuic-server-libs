@@ -32,6 +32,11 @@ const pageRoutes: Routes = [
     loadComponent: () => import('./pages/downloads/older-downloads').then(m => m.OlderDownloads)
   },
   {
+    // /model — "Run the WUIC coding model locally" (EN-only, localizedUrls:false).
+    path: 'model',
+    loadComponent: () => import('./pages/model/model').then(m => m.Model)
+  },
+  {
     path: 'gallery',
     loadComponent: () => import('./pages/gallery/gallery').then(m => m.Gallery)
   },

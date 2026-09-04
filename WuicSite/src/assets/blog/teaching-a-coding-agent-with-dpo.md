@@ -115,3 +115,7 @@ The pre-registered rule, though, was: no automatic adoption unless the gate clea
 One epilogue. On a different job — single-shot tool routing for the [in-product RAG chatbot](/blog/local-llm-ollama-mcp-agentic-vscode), where there are no guards and no multi-turn churn to fall back on — the same DPO model scored **96/102 against the base's 88/102** at identical speed, and *that* gate it cleared. It now ships as the chatbot's default brain. The model didn't fail; it turned out to be better at a different job than the one we trained it for.
 
 Because that's the real point of this whole story. Not "we fine-tuned a model," but: **we built a ruler that doesn't lie, we cleaned the test bench, we fixed the criteria before looking — and we let the numbers decide.** Twice.
+
+## Run it yourself
+
+The model is public. `qwen3-coder-wuic:30b-dpo` is on [Hugging Face](https://huggingface.co/castricolorenzo/qwen3-coder-wuic-30b-dpo) as a GGUF (q4_K_M, ~19 GB) — pull it straight into Ollama and run it on your own 24 GB GPU. The full setup, end to end — the Ollama tuning, the WUIC backend config, and the WUIC Assistant VS Code extension — is on the [Run the WUIC coding model locally](/model) page. No API calls, no data leaving your machine.

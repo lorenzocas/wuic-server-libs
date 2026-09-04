@@ -13,7 +13,7 @@ You can pay an intermediary €10–€30/month per partita IVA to handle all of
 
 ## What ships in the free distribution
 
-The `FatturazioneElettronica-iis-v1.5.0-with-dbs.zip` archive on the [Downloads page](/downloads#free-apps) is a complete .NET 10 + Angular app, IIS-ready. Inside:
+The `FatturazioneElettronica-iis-v1.7.0-with-dbs.zip` archive on the [Downloads page](/downloads#free-apps) is a complete .NET 10 + Angular app, IIS-ready. Inside:
 
 ### Editor & data model
 
@@ -69,7 +69,7 @@ It does NOT pay off if you have <5 invoices/month — for that volume, a commerc
 
 Same as the other free apps:
 
-1. Download `FatturazioneElettronica-iis-v1.5.0-with-dbs.zip` from [Downloads](/downloads#free-apps)
+1. Download `FatturazioneElettronica-iis-v1.7.0-with-dbs.zip` from [Downloads](/downloads#free-apps)
 2. Unzip into `C:\inetpub\wwwroot\EInvoice`
 3. Restore the two `.bak` files shipped in the `db\` folder (`data.bak` + `metadata.bak`) — SQL Server 2017 or later, Express is enough; the bundled `INSTALL.md` has the exact `RESTORE DATABASE` statements
 4. Edit `appsettings.json`:
@@ -90,6 +90,6 @@ You can extend FatturazioneElettronica without recompiling the binary: add new m
 
 ## Get it
 
-- **Download**: [Downloads → Free apps → FatturazioneElettronica](/downloads#free-apps) — current release is **v1.5.0**
+- **Download**: [Downloads → Free apps → FatturazioneElettronica](/downloads#free-apps) — current release is **v1.7.0**
 - **Try WUIC first**: the framework underneath has a live sandbox at [demo.wuic-framework.com](https://demo.wuic-framework.com/)
 - **Need to recompile?** See [Pricing](/pricing) — the Developer tier unlocks the framework source and the right to ship recompiled FatturazioneElettronica binaries

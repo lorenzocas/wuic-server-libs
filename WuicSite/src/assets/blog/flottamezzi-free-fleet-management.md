@@ -13,7 +13,7 @@ This post covers what's in the box, who tends to install this kind of thing, and
 
 ## What ships in the free distribution
 
-Download is `FlottaMezzi-iis-v1.5.0-with-dbs.zip` on the [Downloads page](/downloads#free-apps). Inside:
+Download is `FlottaMezzi-iis-v1.7.0-with-dbs.zip` on the [Downloads page](/downloads#free-apps). Inside:
 
 ### Registry & ownership
 
@@ -87,7 +87,7 @@ It does NOT pay off if:
 
 Same flow as the other free apps:
 
-1. Download `FlottaMezzi-iis-v1.5.0-with-dbs.zip` from [Downloads](/downloads#free-apps)
+1. Download `FlottaMezzi-iis-v1.7.0-with-dbs.zip` from [Downloads](/downloads#free-apps)
 2. Unzip into `C:\inetpub\wwwroot\Flotta`
 3. Restore the two `.bak` files shipped in the `db\` folder (`data.bak` + `metadata.bak`) — SQL Server 2017 or later, Express is enough; the bundled `INSTALL.md` has the exact `RESTORE DATABASE` statements
 4. Edit `appsettings.json` for the two connection strings, plus your `GoogleMaps:ApiKey` for the map
@@ -107,6 +107,6 @@ You can extend FlottaMezzi without recompiling the binary: add metadata via SQL,
 
 ## Get it
 
-- **Download**: [Downloads → Free apps → FlottaMezzi](/downloads#free-apps) — current release is **v1.5.0**
+- **Download**: [Downloads → Free apps → FlottaMezzi](/downloads#free-apps) — current release is **v1.7.0**
 - **Try WUIC first**: the framework underneath has a live sandbox at [demo.wuic-framework.com](https://demo.wuic-framework.com/)
 - **Need fuel-card integrations or white-label trackers?** See [Pricing](/pricing) — the Developer tier unlocks the framework source and the right to ship recompiled FlottaMezzi binaries inside your products
