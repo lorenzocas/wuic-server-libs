@@ -718,3 +718,39 @@ hanno il fallback CLI `gaql` e scrivono i file argomenti in
 - Nota browser: la pagina Promozioni non si legge dal browser controllato via
   MCP (dialog "Turn off ad blockers" e app ferma, anche senza blocker attivo):
   leggerla da una tab normale con Adblock Plus disattivato per ads.google.com.
+
+## Check 05/09/2026 (manuale)
+
+| | 3/9 | 4/9 | 5/9 (parziale) |
+|---|---|---|---|
+| A - Competitor EN | 43 impr, 4 clic, 6,24 EUR | 1 impr | 6 impr, 0 clic |
+| C - Italia | 0 | 5 impr, 1 clic, 1,68 EUR | 12 impr, 4 clic, 6,93 EUR |
+
+Totale dal 31/8: A 25,46 EUR, C 8,61 EUR, conversioni 0 (anche secondarie).
+
+- **C e' partita**: C4 9 impr, 3 clic, 5,14 EUR (CPC 1,71); C1 7 impr, 2 clic,
+  3,47 EUR. Ma 2 dei 3 clic di C4 (3,46 EUR) vengono da `bubble io` (brand di
+  un no-code concorrente, agganciato come variante di "creare app senza
+  codice") e 1 impression da `flutterflow`. Query buona vista:
+  `come si crea un software gestionale` (2 impr, 0 clic).
+- **A5 e' entrato nelle aste** solo con `admin panel generator` (5 impr): query
+  `flutter admin dashboard`, `best admin dashboard template` = template
+  grafici, non generatori. Le altre 12 keyword a 0, 7 RARELY_SERVED. A1 Retool
+  ancora 0; A3 2 impr su `internal tool builder` (on-target).
+- Quota impressioni persa per ranking: C 90 %, A 50 %: sono i cap, non il budget.
+
+### Interventi applicati il 5/9 (via API, riletti via GAQL)
+
+- Negative BROAD in C: `bubble`, `flutterflow` (ora 17 negative in C).
+- Negative BROAD in A: `template`, `templates`, `flutter`, `dashboard template`
+  (ora 56 negative in A).
+- **Cap CPC di C: da 1,80 a 2,50 EUR** (C4 ha impression e la campagna perde il
+  90 % per ranking: condizione dell'audit soddisfatta). Riletto: 2,50.
+- Cap di A lasciato a 2,00: si decide al check del 6/9 con un giorno in piu' di
+  dati su A5.
+- Credito promozionale: ~34 EUR spesi su 400, servono 6,8 EUR al giorno fino al
+  29/10; il 5/9 C da sola ha fatto 6,93 EUR.
+
+Trappola CLI verificata: in una function PowerShell il parametro non puo'
+chiamarsi `$args` (variabile automatica): il payload JSON esce vuoto e il tool
+fallisce con `Expecting value` senza applicare nulla. Rileggere sempre.
