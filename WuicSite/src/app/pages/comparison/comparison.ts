@@ -103,7 +103,7 @@ export class Comparison {
     { q: 'Where do you draw the line between WUIC and a low-code platform?',
       a: 'WUIC is opinionated about generating UI from metadata, but it stays out of your way for everything else: routing, services, custom components, deployment, SSO, observability — all standard Angular and .NET. Low-code platforms typically own the entire stack and constrain you to their primitives. We see WUIC as a "code-saver framework" rather than low-code: less typing, full developer control.' },
     { q: 'Can I try it before committing to a license?',
-      a: 'Yes — every license tier ships with a 30-day evaluation. The annual Developer license starts at €600/dev. You can also book a guided demo on the Get Started page, or download the framework from the Downloads page and run it on a SQL Server instance you already have.' },
+      a: 'Yes — download the framework from the Downloads page and run it on a SQL Server instance you already have: without a license it runs in Trial mode (20 records per query), enough to evaluate every feature. Or explore the live sandbox without installing anything. The annual Developer license starts at €600 per machine.' },
   ];
 
   // Visual rendering helpers used by the template.

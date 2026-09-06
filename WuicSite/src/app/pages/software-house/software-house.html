@@ -1,0 +1,164 @@
+<!-- Hero -->
+<section class="sh-hero">
+  <div class="container">
+    <span class="sh-eyebrow">{{ 'softwareHouse.hero.eyebrow' | translate }}</span>
+    <h1>{{ 'softwareHouse.hero.title' | translate }}</h1>
+    <p class="sh-lede">{{ 'softwareHouse.hero.lede' | translate }}</p>
+    <div class="sh-actions">
+      <a routerLink="/pricing">
+        <p-button [label]="'softwareHouse.hero.ctaPricing' | translate" icon="pi pi-tag" size="large" />
+      </a>
+      <a href="mailto:licensing@wuic-framework.com?subject=WUIC%20Software%20House">
+        <p-button [label]="'softwareHouse.hero.ctaContact' | translate" icon="pi pi-envelope" severity="secondary" [outlined]="true" size="large" />
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Why -->
+<section class="sh-section">
+  <div class="container">
+    <h2 class="sh-section-title">{{ 'softwareHouse.why.sectionTitle' | translate }}</h2>
+    <p class="sh-section-lede">{{ 'softwareHouse.why.sectionLede' | translate }}</p>
+    <div class="why-grid">
+      @for (id of ['perServer', 'resale', 'ownStack', 'fromSql', 'freeApps', 'offline']; track id) {
+        <article class="why-card">
+          <h3>{{ ('softwareHouse.why.cards.' + id + '.title') | translate }}</h3>
+          <p>{{ ('softwareHouse.why.cards.' + id + '.text') | translate }}</p>
+        </article>
+      }
+    </div>
+  </div>
+</section>
+
+<!-- TCO calculator -->
+<section class="sh-section tco-section">
+  <div class="container">
+    <h2 class="sh-section-title">{{ 'softwareHouse.tco.sectionTitle' | translate }}</h2>
+    <p class="sh-section-lede">{{ 'softwareHouse.tco.sectionLede' | translate }}</p>
+
+    <div class="tco-inputs" role="group" [attr.aria-label]="'softwareHouse.tco.sectionTitle' | translate">
+      <label>
+        <span>{{ 'softwareHouse.tco.inputs.developers' | translate }}</span>
+        <input type="number" min="0" max="1000" [value]="developers()" (input)="onInput('developers', $event)" />
+      </label>
+      <label>
+        <span>{{ 'softwareHouse.tco.inputs.clients' | translate }}</span>
+        <input type="number" min="0" max="1000" [value]="clients()" (input)="onInput('clients', $event)" />
+      </label>
+      <label>
+        <span>{{ 'softwareHouse.tco.inputs.endUsers' | translate }}</span>
+        <input type="number" min="0" max="100000" step="10" [value]="endUsers()" (input)="onInput('endUsers', $event)" />
+      </label>
+    </div>
+
+    <p class="tco-fingerprints">
+      {{ 'softwareHouse.tco.fingerprintsLine' | translate: { fingerprints: fingerprints(), extra: extraFingerprints() } }}
+    </p>
+
+    <div class="tco-table-wrapper">
+      <table class="tco-table" [attr.aria-label]="'softwareHouse.tco.sectionTitle' | translate">
+        <thead>
+          <tr>
+            <th scope="col" class="th-label">{{ 'softwareHouse.tco.columns.option' | translate }}</th>
+            <th scope="col">{{ 'softwareHouse.tco.columns.year1' | translate }}</th>
+            <th scope="col">{{ 'softwareHouse.tco.columns.year2' | translate }}</th>
+            <th scope="col">{{ 'softwareHouse.tco.columns.year3' | translate }}</th>
+            <th scope="col" class="th-total">{{ 'softwareHouse.tco.columns.total' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.id) {
+            <tr [class.row-highlight]="row.highlight">
+              <th scope="row" class="th-label">
+                <div class="row-name">{{ ('softwareHouse.tco.rows.' + row.id + '.label') | translate }}</div>
+                <div class="row-detail">{{ ('softwareHouse.tco.rows.' + row.id + '.detail') | translate }}</div>
+              </th>
+              <td>{{ money(row.year1, row.currency) }}</td>
+              <td>{{ money(row.year2, row.currency) }}</td>
+              <td>{{ money(row.year3, row.currency) }}</td>
+              <td class="td-total">{{ money(row.total, row.currency) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <p class="tco-note">{{ 'softwareHouse.tco.note' | translate: { asOf: pricesAsOf } }}</p>
+  </div>
+</section>
+
+<!-- How a client project works -->
+<section class="sh-section">
+  <div class="container">
+    <h2 class="sh-section-title">{{ 'softwareHouse.flow.sectionTitle' | translate }}</h2>
+    <p class="sh-section-lede">{{ 'softwareHouse.flow.sectionLede' | translate }}</p>
+    <ol class="flow-list">
+      @for (id of ['build', 'deliver', 'fingerprint', 'license', 'update']; track id) {
+        <li>
+          <h3>{{ ('softwareHouse.flow.steps.' + id + '.title') | translate }}</h3>
+          <p>{{ ('softwareHouse.flow.steps.' + id + '.text') | translate }}</p>
+        </li>
+      }
+    </ol>
+  </div>
+</section>
+
+<!-- Which tier -->
+<section class="sh-section tier-section">
+  <div class="container">
+    <h2 class="sh-section-title">{{ 'softwareHouse.tier.sectionTitle' | translate }}</h2>
+    <p class="sh-section-lede">{{ 'softwareHouse.tier.sectionLede' | translate }}</p>
+    <div class="tier-grid">
+      <article class="tier-card">
+        <h3>{{ 'softwareHouse.tier.pro.title' | translate }}</h3>
+        <p class="tier-price">{{ 'softwareHouse.tier.pro.price' | translate }}</p>
+        <ul>
+          @for (b of $any('softwareHouse.tier.pro.bullets' | translate); track b) {
+            <li>{{ b }}</li>
+          }
+        </ul>
+      </article>
+      <article class="tier-card tier-card-sh">
+        <h3>{{ 'softwareHouse.tier.sh.title' | translate }}</h3>
+        <p class="tier-price">{{ 'softwareHouse.tier.sh.price' | translate }}</p>
+        <ul>
+          @for (b of $any('softwareHouse.tier.sh.bullets' | translate); track b) {
+            <li>{{ b }}</li>
+          }
+        </ul>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="sh-section faq-section">
+  <div class="container">
+    <h2 class="sh-section-title">{{ 'softwareHouse.faq.sectionTitle' | translate }}</h2>
+    <div class="faq-list">
+      @for (f of faqs; track f.id) {
+        <details class="faq-item">
+          <summary>{{ ('softwareHouse.faq.items.' + f.id + '.q') | translate }}</summary>
+          <p>{{ ('softwareHouse.faq.items.' + f.id + '.a') | translate }}</p>
+        </details>
+      }
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="sh-section cta-section">
+  <div class="container cta-inner">
+    <h2>{{ 'softwareHouse.cta.title' | translate }}</h2>
+    <p>{{ 'softwareHouse.cta.lede' | translate }}</p>
+    <div class="cta-actions">
+      <a routerLink="/sandbox">
+        <p-button [label]="'softwareHouse.cta.ctaSandbox' | translate" icon="pi pi-play" size="large" />
+      </a>
+      <a href="mailto:licensing@wuic-framework.com?subject=WUIC%20Software%20House">
+        <p-button [label]="'softwareHouse.cta.ctaContact' | translate" icon="pi pi-envelope" severity="secondary" [outlined]="true" size="large" />
+      </a>
+    </div>
+  </div>
+</section>

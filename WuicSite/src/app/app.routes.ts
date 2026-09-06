@@ -65,6 +65,10 @@ const pageRoutes: Routes = [
     loadComponent: () => import('./pages/terms/terms').then(m => m.Terms)
   },
   {
+    path: 'software-house',
+    loadComponent: () => import('./pages/software-house/software-house').then(m => m.SoftwareHouse),
+  },
+  {
     path: 'comparison',
     loadComponent: () => import('./pages/comparison/comparison').then(m => m.Comparison),
   },

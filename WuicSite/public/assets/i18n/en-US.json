@@ -177,7 +177,7 @@
   },
   "pricing": {
     "pageTitle": "Pricing",
-    "pageSubtitle": "Two tiers, no surprises. Pick the one that fits your project.",
+    "pageSubtitle": "Three tiers, no surprises. Pick the one that fits your project.",
     "perYear": "/ year",
     "ribbonRecommended": "Recommended",
     "fingerprintsIncluded": "fingerprint included",
@@ -226,7 +226,8 @@
         "resale": "Explicit resale rights for client projects"
       },
       "contact": "Contact us",
-      "concierge": "Dedicated onboarding: licenses issued manually within 24h."
+      "concierge": "Dedicated onboarding: licenses issued manually within 24h.",
+      "guide": "Read the software house guide: 3-year cost and licensing per customer"
     },
     "economics": "💡 <strong>500 end users on WUIC: €1,200 / year</strong> (one Professional license). The same scale on Budibase Premium: ~$33,000 / year. WUIC pricing never depends on user count.",
     "tryFree": "Download and try for free",
@@ -400,6 +401,15 @@
         "features": "Vehicle / driver registry, automatic expiry alerts (license, insurance, inspection), GPS geolocation feed with live map and route playback, refuel and incident tracking, per-vehicle maintenance/fuel/claims cost reports with monthly views and forecast dashboards."
       }
     },
+    "windowsInstall": {
+      "title": "Windows installation (one-liner)",
+      "subtitle": "One PowerShell line, no admin console required. The script installs the ASP.NET Core Runtime 10 if missing, finds a SQL Server instance (or installs SQL Server 2022 Express), downloads the latest IIS-ready package, starts WUIC on http://localhost:5000 and opens the first-run wizard in your browser.",
+      "copyHint": "Copy and run in PowerShell (Windows PowerShell 5.1 or PowerShell 7):",
+      "optionsTitle": "Options",
+      "optionsDesc": "-WithTutorial downloads the variant with the WideWorldImporters demo database (~1.2 GB instead of ~640 MB). -Port, -InstallDir (default %LOCALAPPDATA%\\WUIC), -SqlServer 'host\\instance' to skip auto-detection, -NoSqlInstall to never install Express, -NoStart to only download and extract.",
+      "viewScript": "View install.ps1 and all options",
+      "note": "Nothing goes under Program Files and no Windows service is created: the backend runs on Kestrel in a console window; start-wuic.cmd restarts it. To host in IIS, install the Hosting Bundle and point a 'No Managed Code' app pool at the same folder (web.config included)."
+    },
     "linuxInstall": {
       "title": "Linux installation (Ubuntu/Debian)",
       "subtitle": "One-liner installer. The script automatically downloads the required tarballs (runtime and/or source), verifies them with sha256 and runs the full setup. Three modes depending on your audience.",
@@ -429,7 +439,7 @@
       "iisTitle": "IIS Packages",
       "iisText": "Output of <code>dotnet publish</code> ready for IIS. Angular already compiled. Extract into the site physical path, configure appsettings.json, start.",
       "ragTitle": "RAG Chatbot",
-      "ragText": "Packages with RAG include the vector index and Python server. After extraction run <code>pwsh rag-setup.ps1</code> for automated setup.",
+      "ragText": "Packages marked <strong>RAG</strong> ship the chatbot with its native .NET/ONNX engine (<code>rag-engine/</code> folder): no Python, no separate server. On first use the backend downloads models and index (~4.5 GB) by itself; an NVIDIA GPU is optional.",
       "tutorialTitle": "Tutorial DB: BAK vs SQL",
       "tutorialText": "Packages with the <strong>-bak-</strong> suffix include a binary backup (<code>.bak</code>) of the tutorial database ready to restore — they require <strong>SQL Server 2022</strong> or newer (backup format) but are <strong>much faster to restore</strong> (seconds vs several minutes). Packages with <strong>SQL</strong> tutorial (without <code>-bak-</code>) contain <code>.sql</code> scripts compatible from <strong>SQL Server 2019</strong> onwards (compat level 150): pick these if your instance is on 2019/2020 or on a recent Express edition, at the cost of a slower import."
     },
@@ -481,6 +491,7 @@
   "footer": {
     "features": "Features",
     "compare": "Compare",
+    "softwareHouse": "For software houses",
     "sandbox": "Live demo",
     "docs": "Docs",
     "blog": "Blog",
@@ -720,7 +731,7 @@
     "home":      { "title": "Metadata-driven framework for business applications",       "description": "Generate CRUD, dashboards, workflows and reports from metadata. Includes RAG chatbot, multi-DBMS, .NET 10 + Angular 21. Zero boilerplate." },
     "features":  { "title": "Framework features",                                        "description": "Everything included: data layer, visual designer, workflow engine, report builder, RAG chatbot, multi-DBMS. Every component is metadata-driven." },
     "comparison": { "title": "WUIC vs Retool, Refine, Budibase, AppSmith",               "description": "A side-by-side comparison of WUIC against Retool, Refine, Budibase and AppSmith: feature matrix, when each one fits, and honest tradeoffs." },
-    "pricing":   { "title": "Pricing and licenses",                                      "description": "Two tiers: Developer €600/year (1 fingerprint) and Professional €1200/year (3 fingerprints, designer, AI). Pay with PayPal or card." },
+    "pricing":   { "title": "Pricing and licenses",                                      "description": "Three tiers: Developer €600/year (1 fingerprint) and Professional €1200/year (3 fingerprints, designer, AI). Pay with PayPal or card." },
     "gallery":   { "title": "Gallery — Real screenshots",                                "description": "Screenshots of real UIs generated by the framework: lists, dashboards, edit forms, workflow designer, report viewer." },
     "docs":      { "title": "Documentation",                                             "description": "Complete framework documentation: architecture, component archetypes, metadata configuration, server APIs, IIS deployment." },
     "downloads": { "title": "Downloads",                                                 "description": "Ready-to-run packages: IIS build, full sources, tutorial database (BAK or SQL), optional RAG chatbot. .NET 10 backend + Angular 21 frontend." },
@@ -729,7 +740,8 @@
     "cookies":   { "title": "Cookie Policy",                                             "description": "Types of cookies in use (technical and PayPal third-party), purposes, consent management, Italian and European regulatory references." },
     "terms":     { "title": "Terms and conditions",                                      "description": "Terms of sale for WUIC licenses: scope, prices, payment methods, activation, support, warranties and limitations." },
     "sandbox":   { "title": "Try WUIC in your browser",                                  "description": "A hosted WUIC demo running in your browser: live data, full designer, dashboards and reports. No installation, resets every night." },
-    "start":     { "title": "Get started with WUIC",                                     "description": "Try WUIC in 10 minutes: live sandbox with no install, or free download. €600–1,200/year flat, no per-user pricing." }
+    "start":     { "title": "Get started with WUIC",                                     "description": "Try WUIC in 10 minutes: live sandbox with no install, or free download. €600–1,200/year flat, no per-user pricing." },
+    "softwareHouse": { "title": "WUIC for software houses", "description": "Deliver customer projects on WUIC with per-server licensing: three-year cost versus Retool and Budibase, resale rights, one fingerprint per customer server." }
   },
   "start": {
     "hero": {
@@ -963,6 +975,170 @@
       "full": "Full support",
       "partial": "Partial / limited",
       "none": "Not supported"
+    }
+  },
+  "softwareHouse": {
+    "hero": {
+      "eyebrow": "For software houses",
+      "title": "Ship customer projects on WUIC. Pay per server, not per user.",
+      "lede": "A software house that delivers business applications to several customers pays WUIC once per installation, keeps resale rights, and never sees the bill grow with the customers' user count. This page puts the numbers side by side and explains how a customer deployment is licensed.",
+      "ctaPricing": "See pricing",
+      "ctaContact": "Talk to us"
+    },
+    "why": {
+      "sectionTitle": "Why software houses pick WUIC",
+      "sectionLede": "Six reasons that come up in every evaluation call.",
+      "cards": {
+        "perServer": {
+          "title": "Licensed per machine, not per user",
+          "text": "Each installation is a fingerprint. 20 or 2,000 end users on a customer server cost the same: nothing extra."
+        },
+        "resale": {
+          "title": "Explicit resale rights",
+          "text": "The Software House tier states in writing that you can sell WUIC-based applications to your customers and install them on their servers."
+        },
+        "ownStack": {
+          "title": "Your stack, your servers",
+          "text": ".NET 10 backend and Angular 21 frontend, self-hosted on the customer's Windows/IIS or Linux server. No SaaS, no container requirement, no call home."
+        },
+        "fromSql": {
+          "title": "From the customer's schema to the app",
+          "text": "Point it at the customer's SQL Server, MySQL, PostgreSQL or Oracle database: lists, forms, dashboards, workflows and reports are generated from metadata. You write code only where the customer is different."
+        },
+        "freeApps": {
+          "title": "Three complete apps as starting points",
+          "text": "CRM, Italian e-invoicing and fleet management ship for free with the framework. Fork one instead of starting a customer project from a blank page."
+        },
+        "offline": {
+          "title": "Offline license checks",
+          "text": "The license payload is signed and verified locally. Customer installations keep running without contacting our servers."
+        }
+      }
+    },
+    "tco": {
+      "sectionTitle": "Three-year cost of ownership",
+      "sectionLede": "Adjust the scenario to your pipeline. WUIC rows are list prices in EUR; competitor rows use their published per-seat prices in USD with annual billing.",
+      "inputs": {
+        "developers": "Developers (builder seats)",
+        "clients": "Customer installations",
+        "endUsers": "Total end users across customers"
+      },
+      "fingerprintsLine": "Professional needs {{fingerprints}} fingerprints (developer machines + customer servers): 3 included, {{extra}} extra at €200 / year each.",
+      "columns": {
+        "option": "Option",
+        "year1": "Year 1",
+        "year2": "Year 2",
+        "year3": "Year 3",
+        "total": "3 years"
+      },
+      "rows": {
+        "wuicPro": {
+          "label": "WUIC Professional",
+          "detail": "€1,200 first year, extension at €600 / year, extra fingerprints at €200 / year"
+        },
+        "wuicSh": {
+          "label": "WUIC Software House",
+          "detail": "€4,800 / year: 3 developer seats, unlimited production servers, priority support, resale rights"
+        },
+        "retoolTeam": {
+          "label": "Retool Team",
+          "detail": "$10 per builder + $5 per end user, per month, annual billing"
+        },
+        "retoolBusiness": {
+          "label": "Retool Business",
+          "detail": "$50 per builder + $15 per end user (15 included), per month, annual billing"
+        },
+        "budibase": {
+          "label": "Budibase Premium (self-hosted)",
+          "detail": "$50 per creator + $5 per app user, per month, annual billing"
+        }
+      },
+      "note": "Competitor prices are the vendors' public list prices as of {{asOf}}, before volume discounts, and exclude add-on meters (AI credits, workflow runs, external users). WUIC extension prices assume renewal within 60 days of the window expiry. Currencies are not converted."
+    },
+    "flow": {
+      "sectionTitle": "How a customer project works",
+      "sectionLede": "Five steps from your development machine to a licensed customer server.",
+      "steps": {
+        "build": {
+          "title": "Build on your fingerprint",
+          "text": "Your development machine is one of the fingerprints of your license. Develop against the customer's schema, or start from one of the free apps."
+        },
+        "deliver": {
+          "title": "Deliver the built application",
+          "text": "Publish the .NET backend and the compiled Angular frontend on the customer's IIS or Linux server. Their data stays in their database."
+        },
+        "fingerprint": {
+          "title": "Read the server fingerprint",
+          "text": "On the customer server call GET /api/Meta/LicenseStatus and copy machineFingerprint. Until the license is applied the installation runs in Trial mode (20 records per query)."
+        },
+        "license": {
+          "title": "Get the updated license within 24 hours",
+          "text": "Send us the fingerprint. You receive a signed license payload that adds the server; paste it into appsettings.json and restart. Existing fingerprints stay valid; a server swap costs nothing."
+        },
+        "update": {
+          "title": "Update when you decide",
+          "text": "Every release published within your 12-month window is yours. After that the installed version keeps working; an extension license at half price opens the next window."
+        }
+      }
+    },
+    "tier": {
+      "sectionTitle": "Professional or Software House?",
+      "sectionLede": "Both include every feature. The difference is how many machines you deploy to and what support you need.",
+      "pro": {
+        "title": "Professional",
+        "price": "€1,200 / year, then €600 / year extension",
+        "bullets": [
+          "3 fingerprints included: typically 1 developer machine + 2 customer servers",
+          "Extra fingerprints at €200 / year each, no technical limit",
+          "Best for one or two customer deployments",
+          "Documentation, updates within the window, public bug tracker"
+        ]
+      },
+      "sh": {
+        "title": "Software House",
+        "price": "€4,800 / year",
+        "bullets": [
+          "3 developer seats + unlimited production fingerprints on customer servers",
+          "Explicit resale rights for customer projects",
+          "Priority support with guaranteed 48-hour response",
+          "Cheaper than Professional from about 6 customer servers upward"
+        ]
+      }
+    },
+    "faq": {
+      "sectionTitle": "Frequently asked by software houses",
+      "items": {
+        "resale": {
+          "q": "Can I resell applications built on WUIC to my customers?",
+          "a": "Yes. The Professional license covers customer projects, and the Software House license adds explicit resale rights, three developer seats and unlimited production fingerprints on end-client servers."
+        },
+        "fingerprint": {
+          "q": "How is a customer installation licensed?",
+          "a": "Per machine. Each server has a machineFingerprint (GET /api/Meta/LicenseStatus). You send it to us and receive an updated license payload that adds the new server. Professional includes 3 fingerprints, extras cost €200 per year, Software House has no production limit."
+        },
+        "tier": {
+          "q": "Professional or Software House?",
+          "a": "Professional fits one or two customer deployments plus your development machine. From roughly six fingerprints upward, or when you want priority support and explicit resale rights, Software House at €4,800 per year is cheaper and simpler."
+        },
+        "upgrade": {
+          "q": "What happens after the first year?",
+          "a": "The installed version keeps working forever. To receive newer releases you buy an extension license at half price within 60 days of the window expiry (Developer €300, Professional €600), which opens a new 12-month update window."
+        },
+        "source": {
+          "q": "Do my customers get the source code?",
+          "a": "The framework runtime is closed-source; your application code (metadata, Angular customizations, .NET hooks) is yours and stays in your repository. Customers receive the built application and its data in their own SQL database."
+        },
+        "lockin": {
+          "q": "Is there lock-in for my customers?",
+          "a": "Application data lives in the customer's SQL Server, MySQL, PostgreSQL or Oracle database and metadata lives in SQL tables under their control. The runtime is closed, but nothing is hosted by us: installations keep running without any contact with our servers, and license checks are offline."
+        }
+      }
+    },
+    "cta": {
+      "title": "Evaluate it on a real customer schema",
+      "lede": "Open the live sandbox, or download the framework and point it at a database you already have: without a license it runs in Trial mode, enough to evaluate every feature.",
+      "ctaSandbox": "Open the live sandbox",
+      "ctaContact": "Ask about Software House"
     }
   },
   "newsletter": {

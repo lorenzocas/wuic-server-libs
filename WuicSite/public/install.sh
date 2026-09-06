@@ -8,7 +8,8 @@
 # Two audiences:
 #   - "demo"  → operator running WUIC as a system service (default).
 #               Pre-compiled .NET app under /opt/wuiccore/app/, nginx vhost,
-#               wuic-core.service + wuic-rag.service via systemd, full DB
+#               wuic-core.service via systemd (the RAG chatbot runs
+#               in-process with the .NET/ONNX engine, no Python), full DB
 #               seeded (minimal-metadata + tutorial-metadata + tutorial-data).
 #   - "src"   → developer cloning + building from source.
 #               Source tree extracted to /opt/wuic-src/ (or --src-dir),
@@ -61,7 +62,8 @@
 #
 # Misc demo-mode flags (ignored if --src-only):
 #   --hostname <name>          nginx server_name (default: _ wildcard).
-#   --skip-rag                 Don't install the Python RAG stack.
+#   --skip-rag                 Deprecated no-op (kept for backward compat):
+#                              the RAG engine is .NET/ONNX inside the app.
 #   --with-tls                 Issue Let's Encrypt cert via certbot.
 #   --with-e2e-tests           Provision the e2e users (admin role + guest_1)
 #                              and force --seed-tutorial. Implies --with-db
@@ -455,7 +457,7 @@ if [[ $INSTALL_SRC -eq 1 ]]; then
     echo
     echo "   NOTE: the demo wuic-core.service is bound to port 5000."
     echo "   To run the dev backend interactively, stop it first:"
-    echo "     sudo systemctl stop wuic-core wuic-rag"
+    echo "     sudo systemctl stop wuic-core"
   fi
   if [[ $INSTALL_DEMO -eq 0 ]]; then
     echo

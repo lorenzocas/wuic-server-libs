@@ -56,6 +56,7 @@ export const ROUTES = [
   { path: '/features',   dir: 'features',  changefreq: 'monthly', priority: 0.9 },
   { path: '/pricing',    dir: 'pricing',   changefreq: 'monthly', priority: 0.9 },
   { path: '/comparison', dir: 'comparison', changefreq: 'monthly', priority: 0.8 },
+  { path: '/software-house', dir: 'software-house', changefreq: 'monthly', priority: 0.8 },
   { path: '/gallery',    dir: 'gallery',   changefreq: 'monthly', priority: 0.7 },
   { path: '/docs',       dir: 'docs',      changefreq: 'weekly',  priority: 0.8 },
   { path: '/blog',       dir: 'blog',      changefreq: 'weekly',  priority: 0.8 },

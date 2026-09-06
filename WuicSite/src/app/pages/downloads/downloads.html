@@ -135,6 +135,31 @@
       </div>
     </div>
 
+    <div class="linux-install-block windows-install-block">
+      <h2><i class="pi pi-microsoft"></i> {{ 'downloads.windowsInstall.title' | translate }}</h2>
+      <p class="linux-install-subtitle">{{ 'downloads.windowsInstall.subtitle' | translate }}</p>
+      <p class="linux-install-copy-hint">{{ 'downloads.windowsInstall.copyHint' | translate }}</p>
+      <pre class="linux-install-cmd"><code>irm https://wuic-framework.com/install.ps1 | iex</code></pre>
+
+      <h3 class="linux-install-mode-title">{{ 'downloads.windowsInstall.optionsTitle' | translate }}</h3>
+      <p class="linux-install-mode-desc">{{ 'downloads.windowsInstall.optionsDesc' | translate }}</p>
+      <pre class="linux-install-cmd"><code>&amp; ([scriptblock]::Create((irm https://wuic-framework.com/install.ps1))) `
+  -WithTutorial -Port 5000 -SqlServer 'localhost\SQLEXPRESS'</code></pre>
+
+      <div class="linux-install-actions">
+        <a href="/install.ps1" target="_blank" rel="noopener">
+          <p-button
+            [label]="'downloads.windowsInstall.viewScript' | translate"
+            icon="pi pi-external-link"
+            severity="secondary"
+            [outlined]="true"
+            size="small">
+          </p-button>
+        </a>
+        <small class="linux-install-tarball-note">{{ 'downloads.windowsInstall.note' | translate }}</small>
+      </div>
+    </div>
+
     <div class="linux-install-block">
       <h2><i class="pi pi-desktop"></i> {{ 'downloads.linuxInstall.title' | translate }}</h2>
       <p class="linux-install-subtitle">{{ 'downloads.linuxInstall.subtitle' | translate }}</p>
